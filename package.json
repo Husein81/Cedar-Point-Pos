@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "point-verse",
   "private": true,
   "scripts": {
     "build": "turbo run build",

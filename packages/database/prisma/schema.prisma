@@ -1,0 +1,337 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//
+// ---------- ENUMS ----------
+//
+enum BusinessType {
+  RETAIL
+  RESTAURANT
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum OrderStatus {
+  DRAFT // New: For orders being built on the POS
+  PENDING // Order created but not processed
+  SENT_TO_KITCHEN // Order sent to kitchen/bar
+  READY // Ready for pickup/serve
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  CREDIT
+  VOUCHER
+  ONLINE
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ModifierType {
+  SINGLE
+  MULTIPLE
+}
+
+//
+// ---------- TENANT (Multi-Tenancy Root) ----------
+//
+model Tenant {
+  id           String       @id @default(cuid())
+  name         String
+  businessType BusinessType
+  currencyCode String       @default("LBP") // New: Essential for financial context
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  users          User[]
+  branches       Branch[]
+  products       Product[]
+  inventory      Inventory[] // Inventory records still belong to the Tenant scope
+  orders         Order[]
+  tables         Table[]
+  modifierGroups ModifierGroup[]
+  recipes        Recipe[]
+  devices        POSDevice[]
+
+  settings  Json? // feature flags, tax rates, etc.
+  modifiers Modifier[]
+}
+
+//
+// ---------- USERS & AUTH ----------
+//
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  email     String   @unique
+  password  String
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//
+// ---------- BRANCHES (Physical Locations) ----------
+//
+model Branch {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  address   String?
+  phone     String?
+  isDeleted Boolean @default(false) // Soft delete
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  tables    Table[]
+  devices   POSDevice[]
+  inventory Inventory[] // Inventory is tracked at the Branch level
+  orders    Order[]
+}
+
+//
+// ---------- POS DEVICES (For Sync & Auth) ----------
+//
+model POSDevice {
+  id       String       @id @default(cuid())
+  tenantId String
+  branchId String
+  name     String
+  status   DeviceStatus @default(ACTIVE)
+  token    String       @unique // device authentication token
+  lastSync DateTime?
+  isKDS    Boolean      @default(false) // New: Flag to identify Kitchen Display Systems
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  branch Branch  @relation(fields: [branchId], references: [id])
+  orders Order[]
+}
+
+//
+// ---------- PRODUCTS & INGREDIENTS ----------
+//
+model Product {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  sku          String?  @unique
+  barcode      String?  @unique // retail
+  price        Float
+  cost         Float?
+  category     String?
+  isActive     Boolean  @default(true)
+  isDeleted    Boolean  @default(false) // Soft delete
+  isIngredient Boolean  @default(false) // New: Differentiates raw ingredients from sellable items
+  isModifiable Boolean  @default(false) // restaurant
+  createdAt    DateTime @default(now())
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  inventory     Inventory[]
+  modifiers     Modifier[]
+  recipesUsedIn Recipe[]    @relation("SellableRecipe") // Recipe output product
+  ingredientIn  Recipe[]    @relation("IngredientRecipe") // Product used as ingredient
+  orderItems    OrderItem[]
+}
+
+//
+// ---------- INVENTORY (Branch-Scoped) ----------
+//
+model Inventory {
+  id           String   @id @default(cuid())
+  tenantId     String
+  branchId     String // FIXED: Link to Branch
+  productId    String
+  stockQty     Int      @default(0)
+  minQty       Int      @default(0)
+  lastAdjusted DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  // Composite key to ensure unique inventory per branch-product combination
+  @@unique([branchId, productId])
+}
+
+//
+// ---------- RESTAURANT MODULE (TABLES) ----------
+//
+model Table {
+  id        String  @id @default(cuid())
+  tenantId  String
+  branchId  String
+  name      String
+  capacity  Int     @default(4)
+  isActive  Boolean @default(true)
+  isDeleted Boolean @default(false)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  branch Branch  @relation(fields: [branchId], references: [id])
+  orders Order[]
+}
+
+//
+// ---------- MODIFIERS (Toppings/Add-ons) ----------
+//
+model ModifierGroup {
+  id        String       @id @default(cuid())
+  tenantId  String
+  name      String
+  type      ModifierType
+  isDeleted Boolean      @default(false)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  modifiers Modifier[]
+}
+
+model Modifier {
+  id        String  @id @default(cuid())
+  tenantId  String
+  groupId   String
+  productId String? // optional parent product
+  name      String
+  price     Float   @default(0)
+  isDeleted Boolean @default(false)
+
+  tenant        Tenant              @relation(fields: [tenantId], references: [id])
+  group         ModifierGroup       @relation(fields: [groupId], references: [id])
+  product       Product?            @relation(fields: [productId], references: [id])
+  orderItemMods OrderItemModifier[]
+}
+
+//
+// ---------- RECIPE (for restaurant inventory deduction) ----------
+//
+model Recipe {
+  id           String @id @default(cuid())
+  tenantId     String
+  productId    String // The finished product this recipe creates
+  ingredientId String // The raw material (Product with isIngredient=true)
+  qty          Float // Amount of ingredient required for one unit of product
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  product    Product @relation("SellableRecipe", fields: [productId], references: [id])
+  ingredient Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
+
+  // Enforce unique ingredient per product (a product can only have one recipe per ingredient)
+  @@unique([productId, ingredientId])
+}
+
+//
+// ---------- ORDERS (Sales Transaction) ----------
+//
+model Order {
+  id       String      @id @default(cuid())
+  tenantId String
+  branchId String
+  tableId  String? // restaurant only
+  deviceId String? // POS device that created the order
+  type     OrderType
+  status   OrderStatus @default(DRAFT) // Changed default to DRAFT
+
+  // Financial fields
+  subtotal  Float  @default(0) // New: Total before tax/discount
+  taxAmount Float  @default(0) // New: Total tax collected
+  total     Float  @default(0) // Final amount due/paid
+  discount  Float? @default(0)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime? // New: Timestamp for final closure/payment
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  branch   Branch      @relation(fields: [branchId], references: [id])
+  table    Table?      @relation(fields: [tableId], references: [id])
+  device   POSDevice?  @relation(fields: [deviceId], references: [id])
+  items    OrderItem[]
+  payments Payment[] // FIXED: Relation to new Payment model
+}
+
+//
+// ---------- ORDER ITEMS (Line Items) ----------
+//
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  qty       Int    @default(1)
+  unitPrice Float // New: Price of one unit
+  taxRate   Float  @default(0) // New: Tax rate at time of sale
+  taxAmount Float  @default(0) // New: Calculated tax for this item
+  total     Float // Item subtotal (qty * unitPrice + taxAmount)
+
+  // KDS tracking
+  notes String? // e.g., "Extra crispy"
+
+  order     Order               @relation(fields: [orderId], references: [id])
+  product   Product             @relation(fields: [productId], references: [id])
+  modifiers OrderItemModifier[]
+  tickets   OrderItemTicket[] // FIXED: Relation to new KDS ticket model
+}
+
+//
+// ---------- KDS/TICKET TRACKING (Granular Kitchen Workflow) ----------
+//
+model OrderItemTicket {
+  id          String      @id @default(cuid())
+  orderItemId String
+  station     String? // e.g., "Main Kitchen," "Bar"
+  status      OrderStatus @default(SENT_TO_KITCHEN)
+
+  // Important KDS Timestamps
+  sentAt   DateTime  @default(now())
+  bumpedAt DateTime? // Time it was removed/completed from the KDS screen
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+}
+
+//
+// ---------- ORDER ITEM MODIFIERS ----------
+//
+model OrderItemModifier {
+  id          String @id @default(cuid())
+  orderItemId String
+  modifierId  String
+  price       Float // Price charged for this modifier
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  modifier  Modifier  @relation(fields: [modifierId], references: [id])
+}
+
+//
+// ---------- PAYMENTS (Financial Compliance) ----------
+//
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String
+  method        PaymentMethod
+  amount        Float
+  currencyCode  String // Currency used for payment (e.g., USD, LBP)
+  exchangeRate  Float? // Rate if foreign currency used (CRUCIAL for Lebanon)
+  transactionId String? // Reference ID from card processor (Stripe, etc.)
+  paidAt        DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}

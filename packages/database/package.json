@@ -16,7 +16,7 @@
     "dotenv": "^17.2.3",
     "pg": "^8.16.3"
   },
-  "exports":{
-    ".":"./src/index.ts"
+  "exports": {
+    ".": "./src/index.ts"
   }
 }

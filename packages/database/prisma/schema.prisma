@@ -69,7 +69,6 @@ model Tenant {
   id           String       @id @default(cuid())
   name         String
   businessType BusinessType
-  currencyCode String       @default("USD")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -83,8 +82,21 @@ model Tenant {
   recipes        Recipe[]
   devices        POSDevice[]
 
-  settings  Json? // feature flags, tax rates, etc.
-  modifiers Modifier[]
+  settings   Json? // feature flags, tax rates, etc.
+  modifiers  Modifier[]
+  categories Category[]
+  currencies Currency[]
+}
+
+model Currency {
+  code         String   @id // e.g., USD, EUR, LBP
+  name         String // "United States Dollar"
+  symbol       String? // "$"
+  exchangeRate Decimal? @db.Decimal(10, 2) // Optional: relative to base currency (usually USD)
+  isActive     Boolean  @default(true)
+
+  tenants  Tenant[]
+  payments Payment[]
 }
 
 //
@@ -101,6 +113,8 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  orders Order[]
 }
 
 //
@@ -142,27 +156,87 @@ model POSDevice {
 //
 // ---------- PRODUCTS & INGREDIENTS ----------
 //
-model Product {
-  id           String   @id @default(cuid())
-  tenantId     String
-  name         String
-  sku          String?  @unique
-  barcode      String?  @unique // retail
-  price        Decimal
-  cost         Decimal?
-  category     String?
-  isActive     Boolean  @default(true)
-  isDeleted    Boolean  @default(false) // Soft delete
-  isIngredient Boolean  @default(false) // New: Differentiates raw ingredients from sellable items
-  isModifiable Boolean  @default(false) // restaurant
-  createdAt    DateTime @default(now())
+model Category {
+  id          String  @id @default(cuid())
+  tenantId    String
+  name        String
+  code        String? @unique
+  description String?
+  isDeleted   Boolean @default(false)
 
-  tenant        Tenant      @relation(fields: [tenantId], references: [id])
-  inventory     Inventory[]
-  modifiers     Modifier[]
-  recipesUsedIn Recipe[]    @relation("SellableRecipe") // Recipe output product
-  ingredientIn  Recipe[]    @relation("IngredientRecipe") // Product used as ingredient
-  orderItems    OrderItem[]
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  products      Product[]
+  subcategories Subcategory[]
+}
+
+model Subcategory {
+  id          String  @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  isDeleted   Boolean @default(false)
+
+  category Category  @relation(fields: [categoryId], references: [id])
+  products Product[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  tenantId      String
+  name          String
+  imageUrl      String?
+  sku           String?  @unique
+  barcode       String?  @unique // retail
+  price         Decimal? @default(0) @db.Decimal(10, 2)
+  cost          Decimal? @default(0) @db.Decimal(10, 2)
+  categoryId    String?
+  subcategoryId String?
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false) // Soft delete
+  isIngredient  Boolean  @default(false) // New: Differentiates raw ingredients from sellable items
+  isModifiable  Boolean  @default(false) // restaurant
+  createdAt     DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  inventory       Inventory[]
+  modifiers       Modifier[]
+  recipesUsedIn   Recipe[]         @relation("SellableRecipe") // Recipe output product
+  ingredientIn    Recipe[]         @relation("IngredientRecipe") // Product used as ingredient
+  orderItems      OrderItem[]
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id])
+  refunds         Refund[]
+  offerGroupItems OfferGroupItem[]
+}
+
+// 
+// ---------- OFFERS & DISCOUNTS (Future Enhancement) ----------
+model Offer {
+  id        String  @id @default(cuid())
+  name      String
+  basePrice Decimal @default(0) @db.Decimal(10, 2)
+
+  offerGroups OfferGroup[]
+}
+
+model OfferGroup {
+  id             String @id @default(cuid())
+  offerId        String
+  name           String
+  freeItemsCount Int    @default(0)
+
+  offer           Offer            @relation(fields: [offerId], references: [id])
+  offerGroupItems OfferGroupItem[]
+}
+
+model OfferGroupItem {
+  id           String  @id @default(cuid())
+  offerGroupId String
+  productId    String
+  extraPrice   Decimal @default(0) @db.Decimal(10, 2)
+
+  offerGroup OfferGroup @relation(fields: [offerGroupId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
 }
 
 //
@@ -173,8 +247,7 @@ model Inventory {
   tenantId     String
   branchId     String // FIXED: Link to Branch
   productId    String
-  stockQty     Int      @default(0)
-  minQty       Int      @default(0)
+  stock        Decimal  @default(0) @db.Decimal(10, 4)
   lastAdjusted DateTime @updatedAt
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
@@ -185,17 +258,48 @@ model Inventory {
   @@unique([branchId, productId])
 }
 
+// 
+// ---------- REFUNDS (Audit Trail) ----------
+// 
+
+model Refund {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Decimal  @default(0) @db.Decimal(10, 4)
+  totalAmount Decimal  @default(0) @db.Decimal(10, 2)
+  reason      String?
+  refundedAt  DateTime @default(now())
+
+  order       Order        @relation(fields: [orderId], references: [id])
+  product     Product      @relation(fields: [productId], references: [id])
+  refundItems RefundItem[]
+}
+
+model RefundItem {
+  id          String  @id @default(cuid())
+  refundId    String
+  orderItemId String
+  quantity    Decimal @db.Decimal(10, 4)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  subtotal    Decimal @db.Decimal(10, 2)
+
+  refund    Refund    @relation(fields: [refundId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+}
+
 //
 // ---------- RESTAURANT MODULE (TABLES) ----------
 //
 model Table {
-  id        String  @id @default(cuid())
-  tenantId  String
-  branchId  String
-  name      String
-  capacity  Int     @default(4)
-  isActive  Boolean @default(true)
-  isDeleted Boolean @default(false)
+  id          String  @id @default(cuid())
+  tableNumber Int
+  tenantId    String
+  branchId    String
+  name        String
+  capacity    Int     @default(4)
+  isActive    Boolean @default(true)
+  isDeleted   Boolean @default(false)
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   branch Branch  @relation(fields: [branchId], references: [id])
@@ -239,7 +343,7 @@ model Recipe {
   tenantId     String
   productId    String // The finished product this recipe creates
   ingredientId String // The raw material (Product with isIngredient=true)
-  qty          Decimal // Amount of ingredient required for one unit of product
+  quantity     Decimal @db.Decimal(10, 4) // Amount of ingredient required for one unit of product
 
   tenant     Tenant  @relation(fields: [tenantId], references: [id])
   product    Product @relation("SellableRecipe", fields: [productId], references: [id])
@@ -255,6 +359,7 @@ model Recipe {
 model Order {
   id       String      @id @default(cuid())
   tenantId String
+  userId   String? // Cashier/user who created the order
   branchId String
   tableId  String? // restaurant only
   deviceId String? // POS device that created the order
@@ -262,42 +367,45 @@ model Order {
   status   OrderStatus @default(DRAFT) // Changed default to DRAFT
 
   // Financial fields
-  subtotal  Decimal  @default(0) // New: Total before tax/discount
-  taxAmount Decimal  @default(0) // New: Total tax collected
-  total     Decimal  @default(0) // Final amount due/paid
-  discount  Decimal? @default(0)
+  subtotal  Decimal  @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
+  taxAmount Decimal  @default(0) @db.Decimal(10, 2) // New: Total tax collected
+  total     Decimal  @default(0) @db.Decimal(10, 2) // Final amount due/paid
+  discount  Decimal? @default(0) @db.Decimal(10, 2)
 
   createdAt   DateTime  @default(now())
   completedAt DateTime? // New: Timestamp for final closure/payment
 
+  user     User?       @relation(fields: [userId], references: [id])
   tenant   Tenant      @relation(fields: [tenantId], references: [id])
   branch   Branch      @relation(fields: [branchId], references: [id])
   table    Table?      @relation(fields: [tableId], references: [id])
   device   POSDevice?  @relation(fields: [deviceId], references: [id])
   items    OrderItem[]
   payments Payment[] // FIXED: Relation to new Payment model
+  refunds  Refund[]
 }
 
 //
 // ---------- ORDER ITEMS (Line Items) ----------
 //
+
 model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
   productId String
-  qty       Int     @default(1)
-  unitPrice Decimal // New: Price of one unit
-  taxRate   Decimal @default(0) // New: Tax rate at time of sale
-  taxAmount Decimal @default(0) // New: Calculated tax for this item
-  total     Decimal // Item subtotal (qty * unitPrice + taxAmount)
-
+  quantity  Decimal @default(1) @db.Decimal(10, 4)
+  unitPrice Decimal @db.Decimal(10, 2) // New: Price of one unit
+  taxRate   Decimal @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
+  taxAmount Decimal @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
+  total     Decimal @db.Decimal(10, 2) // Item subtotal (qty * unitPrice + taxAmount)
   // KDS tracking
-  notes String? // e.g., "Extra crispy"
+  notes     String? // e.g., "Extra crispy"
 
-  order     Order               @relation(fields: [orderId], references: [id])
-  product   Product             @relation(fields: [productId], references: [id])
-  modifiers OrderItemModifier[]
-  tickets   OrderItemTicket[] // FIXED: Relation to new KDS ticket model
+  order       Order               @relation(fields: [orderId], references: [id])
+  product     Product             @relation(fields: [productId], references: [id])
+  modifiers   OrderItemModifier[]
+  tickets     OrderItemTicket[] // FIXED: Relation to new KDS ticket model
+  refundItems RefundItem[]
 }
 
 //
@@ -323,7 +431,7 @@ model OrderItemModifier {
   id          String  @id @default(cuid())
   orderItemId String
   modifierId  String
-  price       Decimal // Price charged for this modifier
+  price       Decimal @db.Decimal(10, 2) // Price charged for this modifier
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id])
   modifier  Modifier  @relation(fields: [modifierId], references: [id])
@@ -336,11 +444,12 @@ model Payment {
   id            String        @id @default(cuid())
   orderId       String
   method        PaymentMethod
+  currencyCode  String        @default("USD")
   amount        Decimal
-  currencyCode  String // Currency used for payment (e.g., USD, LBP)
   exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
   transactionId String? // Reference ID from card processor (Stripe, etc.)
   paidAt        DateTime      @default(now())
 
-  order Order @relation(fields: [orderId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
+  currency Currency @relation(fields: [currencyCode], references: [code])
 }

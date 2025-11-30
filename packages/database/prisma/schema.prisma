@@ -16,6 +16,14 @@ datasource db {
 //
 // ---------- ENUMS ----------
 //
+enum UserRole {
+  OWNER
+  ADMIN
+  MANAGER
+  CASHIER
+  KITCHEN
+}
+
 enum BusinessType {
   RETAIL
   RESTAURANT
@@ -61,7 +69,7 @@ model Tenant {
   id           String       @id @default(cuid())
   name         String
   businessType BusinessType
-  currencyCode String       @default("LBP") // New: Essential for financial context
+  currencyCode String       @default("USD")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -86,9 +94,10 @@ model User {
   id        String   @id @default(cuid())
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
   email     String   @unique
   password  String
-  role      String
+  role      UserRole @default(CASHIER)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,8 +148,8 @@ model Product {
   name         String
   sku          String?  @unique
   barcode      String?  @unique // retail
-  price        Float
-  cost         Float?
+  price        Decimal
+  cost         Decimal?
   category     String?
   isActive     Boolean  @default(true)
   isDeleted    Boolean  @default(false) // Soft delete
@@ -213,7 +222,7 @@ model Modifier {
   groupId   String
   productId String? // optional parent product
   name      String
-  price     Float   @default(0)
+  price     Decimal @default(0)
   isDeleted Boolean @default(false)
 
   tenant        Tenant              @relation(fields: [tenantId], references: [id])
@@ -226,11 +235,11 @@ model Modifier {
 // ---------- RECIPE (for restaurant inventory deduction) ----------
 //
 model Recipe {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   tenantId     String
   productId    String // The finished product this recipe creates
   ingredientId String // The raw material (Product with isIngredient=true)
-  qty          Float // Amount of ingredient required for one unit of product
+  qty          Decimal // Amount of ingredient required for one unit of product
 
   tenant     Tenant  @relation(fields: [tenantId], references: [id])
   product    Product @relation("SellableRecipe", fields: [productId], references: [id])
@@ -253,10 +262,10 @@ model Order {
   status   OrderStatus @default(DRAFT) // Changed default to DRAFT
 
   // Financial fields
-  subtotal  Float  @default(0) // New: Total before tax/discount
-  taxAmount Float  @default(0) // New: Total tax collected
-  total     Float  @default(0) // Final amount due/paid
-  discount  Float? @default(0)
+  subtotal  Decimal  @default(0) // New: Total before tax/discount
+  taxAmount Decimal  @default(0) // New: Total tax collected
+  total     Decimal  @default(0) // Final amount due/paid
+  discount  Decimal? @default(0)
 
   createdAt   DateTime  @default(now())
   completedAt DateTime? // New: Timestamp for final closure/payment
@@ -273,14 +282,14 @@ model Order {
 // ---------- ORDER ITEMS (Line Items) ----------
 //
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
   productId String
-  qty       Int    @default(1)
-  unitPrice Float // New: Price of one unit
-  taxRate   Float  @default(0) // New: Tax rate at time of sale
-  taxAmount Float  @default(0) // New: Calculated tax for this item
-  total     Float // Item subtotal (qty * unitPrice + taxAmount)
+  qty       Int     @default(1)
+  unitPrice Decimal // New: Price of one unit
+  taxRate   Decimal @default(0) // New: Tax rate at time of sale
+  taxAmount Decimal @default(0) // New: Calculated tax for this item
+  total     Decimal // Item subtotal (qty * unitPrice + taxAmount)
 
   // KDS tracking
   notes String? // e.g., "Extra crispy"
@@ -311,10 +320,10 @@ model OrderItemTicket {
 // ---------- ORDER ITEM MODIFIERS ----------
 //
 model OrderItemModifier {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   orderItemId String
   modifierId  String
-  price       Float // Price charged for this modifier
+  price       Decimal // Price charged for this modifier
 
   orderItem OrderItem @relation(fields: [orderItemId], references: [id])
   modifier  Modifier  @relation(fields: [modifierId], references: [id])
@@ -327,9 +336,9 @@ model Payment {
   id            String        @id @default(cuid())
   orderId       String
   method        PaymentMethod
-  amount        Float
+  amount        Decimal
   currencyCode  String // Currency used for payment (e.g., USD, LBP)
-  exchangeRate  Float? // Rate if foreign currency used (CRUCIAL for Lebanon)
+  exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
   transactionId String? // Reference ID from card processor (Stripe, etc.)
   paidAt        DateTime      @default(now())
 

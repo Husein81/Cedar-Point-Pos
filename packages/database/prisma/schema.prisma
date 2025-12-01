@@ -62,6 +62,11 @@ enum ModifierType {
   MULTIPLE
 }
 
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -81,6 +86,9 @@ model Tenant {
   modifierGroups ModifierGroup[]
   recipes        Recipe[]
   devices        POSDevice[]
+  customers      Customer[]
+  shifts         Shift[]
+  taxes          Tax[]
 
   settings   Json? // feature flags, tax rates, etc.
   modifiers  Modifier[]
@@ -115,6 +123,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+  shifts Shift[]
 }
 
 //
@@ -133,6 +142,7 @@ model Branch {
   devices   POSDevice[]
   inventory Inventory[] // Inventory is tracked at the Branch level
   orders    Order[]
+  shifts    Shift[]
 }
 
 //
@@ -151,6 +161,7 @@ model POSDevice {
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   branch Branch  @relation(fields: [branchId], references: [id])
   orders Order[]
+  shifts Shift[]
 }
 
 //
@@ -196,6 +207,9 @@ model Product {
   isIngredient  Boolean  @default(false) // New: Differentiates raw ingredients from sellable items
   isModifiable  Boolean  @default(false) // restaurant
   createdAt     DateTime @default(now())
+
+  taxId String?
+  tax   Tax?    @relation(fields: [taxId], references: [id])
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
   inventory       Inventory[]
@@ -357,14 +371,23 @@ model Recipe {
 // ---------- ORDERS (Sales Transaction) ----------
 //
 model Order {
-  id       String      @id @default(cuid())
+  id       String  @id @default(cuid())
   tenantId String
   userId   String? // Cashier/user who created the order
   branchId String
   tableId  String? // restaurant only
   deviceId String? // POS device that created the order
-  type     OrderType
-  status   OrderStatus @default(DRAFT) // Changed default to DRAFT
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  shiftId String?
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
+
+  orderNumber String? // Friendly ID (e.g. "1001")
+
+  type   OrderType
+  status OrderStatus @default(DRAFT) // Changed default to DRAFT
 
   // Financial fields
   subtotal  Decimal  @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
@@ -383,6 +406,8 @@ model Order {
   items    OrderItem[]
   payments Payment[] // FIXED: Relation to new Payment model
   refunds  Refund[]
+
+  @@index([tenantId, branchId, createdAt])
 }
 
 //
@@ -452,4 +477,64 @@ model Payment {
 
   order    Order    @relation(fields: [orderId], references: [id])
   currency Currency @relation(fields: [currencyCode], references: [code])
+}
+
+//
+// ---------- CUSTOMERS (CRM) ----------
+//
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  orders Order[]
+
+  @@index([tenantId])
+}
+
+//
+// ---------- SHIFTS (Cash Management) ----------
+//
+model Shift {
+  id         String      @id @default(cuid())
+  tenantId   String
+  branchId   String
+  userId     String // Cashier who opened the shift
+  deviceId   String? // Device used
+  startTime  DateTime    @default(now())
+  endTime    DateTime?
+  startCash  Decimal     @default(0) @db.Decimal(10, 2)
+  endCash    Decimal?    @db.Decimal(10, 2) // Counted cash at close
+  actualCash Decimal?    @db.Decimal(10, 2) // System calculated cash
+  difference Decimal?    @db.Decimal(10, 2) // Over/Short amount
+  status     ShiftStatus @default(OPEN)
+  notes      String?
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  branch Branch     @relation(fields: [branchId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+  device POSDevice? @relation(fields: [deviceId], references: [id])
+  orders Order[]
+
+  @@index([tenantId, branchId, status])
+}
+
+//
+// ---------- TAXES ----------
+//
+model Tax {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String // e.g. "VAT", "Sales Tax"
+  rate      Decimal @db.Decimal(5, 2) // e.g. 10.00
+  isDefault Boolean @default(false)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
 }

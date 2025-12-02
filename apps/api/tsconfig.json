@@ -3,6 +3,9 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
     "paths": {
       "@/*": [
         "./src/*"
@@ -12,8 +15,4 @@
   "include": [
     "src"
   ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
 }

@@ -5,6 +5,8 @@ packages:
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/engines'
+  - '@swc/core'
+  - esbuild
   - prisma
   - unrs-resolver
   - ws

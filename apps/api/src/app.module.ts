@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { TenantModule } from './tenant/tenant.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './common/guards/roles.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -14,6 +15,10 @@ import { RolesGuard } from './common/guards/roles.guard';
     TenantModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: RolesGuard,

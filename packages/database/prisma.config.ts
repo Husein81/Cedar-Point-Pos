@@ -3,9 +3,12 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+const url = env("DATABASE_URL");
+console.log("Using database URL:", url);
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env("DIRECT_URL"),
+    url,
   },
 });

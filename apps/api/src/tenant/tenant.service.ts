@@ -8,12 +8,10 @@ export class TenantService {
   }
 
   async createTenant(data: Prisma.TenantCreateInput) {
-    console.log('Creating tenant with data:', data);
     try {
       const tenant = await prisma.tenant.create({
         data,
       });
-      console.log('Tenant created successfully:', tenant);
       return tenant;
     } catch (error) {
       console.error('Error creating tenant:', error);

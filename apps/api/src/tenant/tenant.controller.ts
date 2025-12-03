@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { Prisma } from '@repo/db';
 import type { Request } from 'express';
 import { TenantService } from './tenant.service';
@@ -16,8 +16,7 @@ export class TenantController {
 
   @Roles('ADMIN')
   @Post()
-  async createTenant(@Req() request: Request) {
-    const body = request.body as Prisma.TenantCreateInput;
+  async createTenant(@Body() body: Prisma.TenantCreateInput) {
     await this.tenantService.createTenant(body);
   }
 }

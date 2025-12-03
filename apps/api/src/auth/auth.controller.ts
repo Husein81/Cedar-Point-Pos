@@ -2,13 +2,11 @@ import {
   Controller,
   Post,
   Body,
-  UseGuards,
   Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { Request } from 'express';
 import { Prisma } from '@repo/db';
 import { Public } from '../common/decorators/public.decorator';
@@ -34,7 +32,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  // @UseGuards(JwtAuthGuard) // No longer needed as it is global
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request) {
     const authHeader = req.headers.authorization;

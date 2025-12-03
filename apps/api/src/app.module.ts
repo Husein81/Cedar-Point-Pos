@@ -7,6 +7,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
 import { BranchesModule } from './branches/branches.module';
+import { TablesModule } from './tables/tables.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { BranchesModule } from './branches/branches.module';
     }),
     AuthModule,
     BranchesModule,
+    TablesModule,
     TenantModule,
     UsersModule,
   ],

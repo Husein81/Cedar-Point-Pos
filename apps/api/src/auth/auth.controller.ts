@@ -2,20 +2,20 @@ import {
   Controller,
   Post,
   Body,
-  UseGuards,
   Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { Request } from 'express';
 import { Prisma } from '@repo/db';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
   createUser(
@@ -24,6 +24,7 @@ export class AuthController {
     return this.authService.createUser(createUserDto);
   }
 
+  @Public()
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: Prisma.UserCreateInput) {
@@ -31,7 +32,6 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request) {
     const authHeader = req.headers.authorization;

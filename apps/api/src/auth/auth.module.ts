@@ -23,9 +23,6 @@ import { TokenBlacklistService } from './token-blacklist.service';
 
         return {
           secret,
-          signOptions: {
-            expiresIn: '1d',
-          },
         };
       },
     }),

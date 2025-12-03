@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
-
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     TenantModule,
     UsersModule,
+    CategoryModule,
   ],
   providers: [
     {

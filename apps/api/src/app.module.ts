@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
-
+import { BranchesModule } from './branches/branches.module';
 
 @Module({
   imports: [
@@ -14,6 +14,7 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
     }),
     AuthModule,
+    BranchesModule,
     TenantModule,
     UsersModule,
   ],

@@ -112,8 +112,7 @@ model Currency {
 //
 model User {
   id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId  String?
   name      String
   email     String   @unique
   password  String
@@ -122,6 +121,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
   orders Order[]
   shifts Shift[]
 }

@@ -6,6 +6,9 @@ import { AuthModule } from './auth/auth.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
+import { BranchesModule } from './branches/branches.module';
+import { TablesModule } from './tables/tables.module';
+import { ProductsModule } from './products/products.module';
 import { CategoryModule } from './category/category.module';
 
 @Module({
@@ -14,6 +17,9 @@ import { CategoryModule } from './category/category.module';
       isGlobal: true,
     }),
     AuthModule,
+    BranchesModule,
+    ProductsModule,
+    TablesModule,
     TenantModule,
     UsersModule,
     CategoryModule,

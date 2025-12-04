@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { Prisma } from '@repo/db';
-import type { Request } from 'express';
+import { Prisma, UserRole } from '@repo/db';
 import { TenantService } from './tenant.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 
@@ -8,13 +7,13 @@ import { Roles } from '@/common/decorators/roles.decorator';
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 
-  @Roles('ADMIN')
+  @Roles(UserRole.ADMIN)
   @Get()
   getTenants() {
     return this.tenantService.getTenants();
   }
 
-  @Roles('ADMIN')
+  @Roles(UserRole.ADMIN)
   @Post()
   async createTenant(@Body() body: Prisma.TenantCreateInput) {
     await this.tenantService.createTenant(body);

@@ -14,7 +14,7 @@ export class InventoryService {
       branchId,
       ...(search && {
         product: {
-          name: { contains: search, mode: 'insensitive' },
+          name: { contains: search, mode: Prisma.QueryMode.insensitive },
         },
       }),
     };

@@ -12,6 +12,7 @@ import {
 import { InventoryService } from './inventory.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 import type { Request } from 'express';
+import { UserRole } from '@repo/db';
 
 @Controller('inventory')
 export class InventoryController {
@@ -39,7 +40,7 @@ export class InventoryController {
     return this.inventoryService.getInventoryItem(branchId, productId);
   }
 
-  @Roles('OWNER', 'MANAGER', 'KITCHEN')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
   @Put(':branchId/product/:productId')
   async setStock(
     @Req() req: Request,
@@ -56,7 +57,7 @@ export class InventoryController {
     );
   }
 
-  @Roles('OWNER', 'MANAGER', 'CASHIER', 'KITCHEN')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
   @Post(':branchId/product/:productId/adjust')
   async adjustStock(
     @Req() req: Request,

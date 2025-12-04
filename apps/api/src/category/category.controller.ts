@@ -20,12 +20,18 @@ export class CategoryController {
   @Get()
   getCategories(@Req() req: Request) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.getCategories(user.tenantId);
   }
 
   @Get(':id')
   getCategory(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.getCategory(user.tenantId, id);
   }
 
@@ -36,6 +42,9 @@ export class CategoryController {
     @Body() data: Prisma.CategoryCreateWithoutTenantInput,
   ) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.createCategory(user.tenantId, data);
   }
 
@@ -47,6 +56,9 @@ export class CategoryController {
     @Body() data: Prisma.CategoryUpdateInput,
   ) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.updateCategory(user.tenantId, id, data);
   }
 
@@ -54,6 +66,9 @@ export class CategoryController {
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   deleteCategory(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.deleteCategory(user.tenantId, id);
   }
 
@@ -65,6 +80,9 @@ export class CategoryController {
     @Body() data: Prisma.SubcategoryCreateWithoutCategoryInput,
   ) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.createSubcategory(
       user.tenantId,
       categoryId,

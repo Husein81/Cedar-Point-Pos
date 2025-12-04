@@ -23,6 +23,9 @@ export class SubcategoryController {
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   deleteSubcategory(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
     return this.categoryService.deleteSubcategory(user.tenantId, id);
   }
 }

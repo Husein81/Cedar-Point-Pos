@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
@@ -50,11 +50,6 @@ enum PaymentMethod {
   CREDIT
   VOUCHER
   ONLINE
-}
-
-enum DeviceStatus {
-  ACTIVE
-  INACTIVE
 }
 
 enum ModifierType {
@@ -112,7 +107,6 @@ model Currency {
 //
 model User {
   id        String   @id @default(cuid())
-  tenantId  String?
   name      String
   email     String   @unique
   password  String
@@ -121,9 +115,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant? @relation(fields: [tenantId], references: [id])
-  orders Order[]
-  shifts Shift[]
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  orders   Order[]
+  shifts   Shift[]
 }
 
 //
@@ -149,14 +144,14 @@ model Branch {
 // ---------- POS DEVICES (For Sync & Auth) ----------
 //
 model POSDevice {
-  id       String       @id @default(cuid())
+  id       String    @id @default(cuid())
   tenantId String
   branchId String
   name     String
-  status   DeviceStatus @default(ACTIVE)
-  token    String       @unique // device authentication token
+  token    String    @unique // device authentication token
   lastSync DateTime?
-  isKDS    Boolean      @default(false) // New: Flag to identify Kitchen Display Systems
+  isActive Boolean   @default(true)
+  isKDS    Boolean   @default(false) // New: Flag to identify Kitchen Display Systems
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   branch Branch  @relation(fields: [branchId], references: [id])

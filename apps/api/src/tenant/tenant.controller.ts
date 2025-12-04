@@ -16,8 +16,7 @@ export class TenantController {
 
   @Roles(UserRole.ADMIN)
   @Post()
-  async createTenant(@Req() request: Request) {
-    const body = request.body as Prisma.TenantCreateInput;
+  async createTenant(@Body() body: Prisma.TenantCreateInput) {
     await this.tenantService.createTenant(body);
   }
 }

@@ -7,7 +7,7 @@ import { TokenBlacklistService } from './token-blacklist.service';
 export interface JwtPayload {
   sub: string;
   email: string;
-  tenantId: string;
+  tenantId?: string;
   role: string;
 }
 
@@ -19,37 +19,30 @@ export class AuthService {
   ) {}
 
   async createUser(
-    data: Prisma.UserCreateInput & { tenantId: string },
+    data: Prisma.UserCreateInput,
   ): Promise<Omit<User, 'password'>> {
-    try {
-      const { name, email, password, tenantId, role } = data;
+    const existedUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
-      const existedUser = await prisma.user.findUnique({
-        where: { email: data.email },
-      });
-      if (existedUser) {
-        throw new UnauthorizedException('User already exists');
-      }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          tenantId,
-          role: role || 'CASHIER',
-          isActive: true,
-        },
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = user;
-
-      return result;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw new UnauthorizedException('Failed to create user');
+    if (existedUser) {
+      throw new UnauthorizedException('User already exists');
     }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        ...data,
+        password: hashedPassword,
+        isActive: true,
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...result } = user;
+
+    return result;
   }
 
   async login({ email, password }: Prisma.UserCreateInput): Promise<{
@@ -78,7 +71,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      tenantId: user.tenantId,
+      tenantId: user.tenantId ?? undefined,
       role: user.role,
     };
 

@@ -18,10 +18,10 @@ export class AuthController {
   @Public()
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
-  createUser(
-    @Body() createUserDto: Prisma.UserCreateInput & { tenantId: string },
-  ) {
-    return this.authService.createUser(createUserDto);
+  createUser(@Req() request: Request) {
+    const body = request.body as Prisma.UserCreateInput;
+
+    return this.authService.createUser(body);
   }
 
   @Public()

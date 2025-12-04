@@ -1,7 +1,8 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import { ProductsService } from './products.service';
-import type { Request } from 'express';
 import { Prisma } from '@repo/db';
+import { QueryParams } from '@repo/types';
+import type { Request } from 'express';
+import { ProductsService } from './products.service';
 
 @Controller('products')
 export class ProductsController {
@@ -22,21 +23,9 @@ export class ProductsController {
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    const { page, limit, search, sort, order } = req.query as {
-      page?: string;
-      limit?: string;
-      search?: string;
-      sort?: string;
-      order?: 'asc' | 'desc';
-    };
+    const query = req.query as QueryParams;
 
-    return this.productsService.getProductsPaginated(tenantId, {
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      search,
-      sort,
-      order,
-    });
+    return this.productsService.getProductsPaginated(tenantId, query);
   }
 
   @Post()

@@ -31,6 +31,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@repo/db": "workspace:*",
+    "@repo/types": "workspace:*",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "passport": "^0.7.0",

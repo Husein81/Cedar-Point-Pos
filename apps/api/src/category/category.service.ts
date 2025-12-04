@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
+import { QueryParams } from '@repo/types';
 
 @Injectable()
 export class CategoryService {
@@ -13,6 +14,48 @@ export class CategoryService {
         tenantId,
       },
     });
+  }
+
+  async getCategoriesPagination(tenantId: string, params: QueryParams) {
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 10;
+    const search = params.search || '';
+
+    const whereClause: Prisma.CategoryWhereInput = {
+      tenantId,
+      isDeleted: false,
+    };
+
+    if (search !== '') {
+      whereClause.name = {
+        contains: search,
+        mode: Prisma.QueryMode.insensitive,
+      };
+    }
+
+    const [totalCount, data] = await Promise.all([
+      prisma.category.count({ where: whereClause }),
+      prisma.category.findMany({
+        where: whereClause,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          subcategories: {
+            where: { isDeleted: false },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    };
   }
 
   async getCategories(tenantId: string) {

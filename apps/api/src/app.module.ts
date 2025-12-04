@@ -10,6 +10,7 @@ import { CategoryModule } from './category/category.module';
 import { BranchesModule } from './branches/branches.module';
 import { TablesModule } from './tables/tables.module';
 import { ProductsModule } from './products/products.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [

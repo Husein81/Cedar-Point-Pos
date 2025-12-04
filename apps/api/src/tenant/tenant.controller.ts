@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { Prisma, UserRole } from '@repo/db';
-import type { Request } from 'express';
 import { TenantService } from './tenant.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 

@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { BranchesModule } from './branches/branches.module';
 import { TablesModule } from './tables/tables.module';
 import { ProductsModule } from './products/products.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProductsModule } from './products/products.module';
     }),
     AuthModule,
     BranchesModule,
+    InventoryModule,
     ProductsModule,
     TablesModule,
     TenantModule,

@@ -61,8 +61,8 @@ export class InventoryController {
     @Query('search') search?: string,
   ) {
     return this.inventoryService.getInventoryByBranch(branchId, {
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
+      page,
+      limit,
       search,
     });
   }

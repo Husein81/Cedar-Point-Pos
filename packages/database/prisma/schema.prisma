@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -62,6 +63,13 @@ enum ShiftStatus {
   CLOSED
 }
 
+enum TransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -84,6 +92,7 @@ model Tenant {
   customers      Customer[]
   shifts         Shift[]
   taxes          Tax[]
+  transfers      Transfer[]
 
   settings   Json? // feature flags, tax rates, etc.
   modifiers  Modifier[]
@@ -119,6 +128,9 @@ model User {
   tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   orders   Order[]
   shifts   Shift[]
+
+  transfersRequested Transfer[] @relation("TransferRequests")
+  transfersApproved  Transfer[] @relation("TransferApprovals")
 }
 
 //
@@ -138,6 +150,9 @@ model Branch {
   inventory Inventory[] // Inventory is tracked at the Branch level
   orders    Order[]
   shifts    Shift[]
+
+  transfersFrom Transfer[] @relation("TransfersFrom")
+  transfersTo   Transfer[] @relation("TransfersTo")
 }
 
 //
@@ -216,6 +231,7 @@ model Product {
   subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id])
   refunds         Refund[]
   offerGroupItems OfferGroupItem[]
+  transferItems   TransferItem[]
 }
 
 // 
@@ -266,6 +282,47 @@ model Inventory {
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
+}
+
+//
+// ---------- INVENTORY TRANSFERS ----------
+//
+
+model Transfer {
+  id           String         @id @default(cuid())
+  tenantId     String
+  fromBranchId String
+  toBranchId   String
+  status       TransferStatus @default(PENDING)
+  requestedBy  String // User ID who initiated the transfer
+  approvedBy   String? // User ID who approved/completed the transfer
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  completedAt  DateTime?
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  fromBranch Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
+  toBranch   Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
+  requestor  User           @relation("TransferRequests", fields: [requestedBy], references: [id])
+  approver   User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
+  items      TransferItem[]
+
+  @@index([tenantId, status])
+  @@index([fromBranchId])
+  @@index([toBranchId])
+}
+
+model TransferItem {
+  id         String  @id @default(cuid())
+  transferId String
+  productId  String
+  quantity   Decimal @db.Decimal(10, 4)
+
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([transferId, productId])
 }
 
 // 

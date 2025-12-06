@@ -8,6 +8,7 @@ import { CategoryModule } from './category/category.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProductsModule } from './products/products.module';
+import { DevicesModule } from './devices/devices.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { TablesModule } from './tables/tables.module';
 import { TenantModule } from './tenant/tenant.module';
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     BranchesModule,
     CategoryModule,
+    DevicesModule,
     InventoryModule,
     ProductsModule,
     RecipesModule,

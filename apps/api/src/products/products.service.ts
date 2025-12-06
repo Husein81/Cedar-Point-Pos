@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
+import { QueryParams } from '@repo/types';
 
 @Injectable()
 export class ProductsService {
@@ -9,18 +10,11 @@ export class ProductsService {
     });
   }
 
-  async getProductsPaginated(
-    tenantId: string,
-    params: {
-      page: number;
-      limit: number;
-      search?: string;
-      sort?: string;
-      order?: 'asc' | 'desc';
-    },
-  ) {
+  async getProductsPaginated(tenantId: string, params: QueryParams) {
     try {
-      const { page = 1, limit = 10, search, sort, order } = params;
+      const { search, sort, order } = params;
+      const page = Number(params.page) || 1;
+      const limit = Number(params.limit) || 10;
 
       const skip = (page - 1) * limit;
       const where: Prisma.ProductWhereInput = { tenantId };

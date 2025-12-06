@@ -257,6 +257,7 @@ model Inventory {
   branchId     String // FIXED: Link to Branch
   productId    String
   stock        Decimal  @default(0) @db.Decimal(10, 4)
+  minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
   lastAdjusted DateTime @updatedAt
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])

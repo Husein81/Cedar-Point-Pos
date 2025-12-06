@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import {
   Prisma,
@@ -14,9 +15,16 @@ import {
 } from '@repo/db';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { QueryParams } from '@repo/types';
+import { InventoryDeductionService } from '@/inventory/inventory-deduction.service';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
+  constructor(
+    private readonly inventoryDeductionService: InventoryDeductionService,
+  ) {}
+
   /**
    * Create a new order in DRAFT status
    */
@@ -404,6 +412,182 @@ export class OrdersService {
         totalPages: Math.ceil(totalCount / limit),
       },
     };
+  }
+
+  /**
+   * Complete an order and deduct stock
+   * Handles both regular products and recipe-based ingredient deduction
+   */
+  async completeOrder(tenantId: string, orderId: string) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException('Order is already completed');
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Cannot complete a cancelled order');
+    }
+
+    // Deduct stock (validates and executes atomically)
+    const deductionResult =
+      await this.inventoryDeductionService.deductStockForOrder(
+        tenantId,
+        orderId,
+        order.branchId,
+      );
+
+    // Update order status to COMPLETED
+    const completedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                price: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Order ${orderId} completed with ${deductionResult.deductionsApplied} stock deductions`,
+    );
+
+    return {
+      ...this.formatOrder(completedOrder as Order & { items: OrderItem[] }),
+      stockDeductions: deductionResult,
+    };
+  }
+
+  /**
+   * Update order status
+   * If status is COMPLETED, triggers stock deduction
+   */
+  async updateStatus(tenantId: string, orderId: string, status: OrderStatus) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // If completing the order, use the complete order flow
+    if (status === OrderStatus.COMPLETED) {
+      return this.completeOrder(tenantId, orderId);
+    }
+
+    // For other status updates, just update the status
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status,
+        ...(status === OrderStatus.CANCELLED && { completedAt: new Date() }),
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                price: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.formatOrder(updated as Order & { items: OrderItem[] });
+  }
+
+  /**
+   * Preview stock deductions for an order
+   * Shows what will be deducted without executing
+   */
+  async previewOrderStockDeductions(tenantId: string, orderId: string) {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const items = order.items.map((item) => ({
+      productId: item.productId,
+      quantity: Number(item.quantity),
+    }));
+
+    return this.inventoryDeductionService.previewStockDeductions(
+      tenantId,
+      order.branchId,
+      items,
+    );
   }
 
   /**

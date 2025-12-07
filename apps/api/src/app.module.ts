@@ -14,6 +14,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { UsersModule } from './users/users.module';
 import { TransfersModule } from './transfers/transfers.module';
 import { OrdersModule } from './orders/orders.module';
+import { ModifierGroupsModule } from './modifier-groups/modifier-groups.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { OrdersModule } from './orders/orders.module';
     UsersModule,
     TransfersModule,
     OrdersModule,
+    ModifierGroupsModule,
   ],
   providers: [
     {

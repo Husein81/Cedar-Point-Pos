@@ -4,15 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import {
-  Prisma,
-  prisma,
-  OrderStatus,
-  OrderType,
-  BusinessType,
-  Order,
-  OrderItem,
-} from '@repo/db';
+import { Prisma, prisma, OrderStatus, OrderType, BusinessType } from '@repo/db';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { QueryParams } from '@repo/types';
 import { InventoryDeductionService } from '@/inventory/inventory-deduction.service';
@@ -264,7 +256,7 @@ export class OrdersService {
       },
     });
 
-    return this.formatOrder(order);
+    return order;
   }
 
   /**
@@ -329,7 +321,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    return this.formatOrder(order);
+    return order;
   }
 
   /**
@@ -404,7 +396,7 @@ export class OrdersService {
     ]);
 
     return {
-      data: orders.map((order) => this.formatOrder(order)),
+      data: orders,
       pagination: {
         page,
         limit,
@@ -490,7 +482,7 @@ export class OrdersService {
     );
 
     return {
-      ...this.formatOrder(completedOrder as Order & { items: OrderItem[] }),
+      ...completedOrder,
       stockDeductions: deductionResult,
     };
   }
@@ -552,7 +544,7 @@ export class OrdersService {
       },
     });
 
-    return this.formatOrder(updated as Order & { items: OrderItem[] });
+    return updated;
   }
 
   /**
@@ -588,26 +580,5 @@ export class OrdersService {
       order.branchId,
       items,
     );
-  }
-
-  /**
-   * Format order response with decimal conversions
-   */
-  private formatOrder(order: Order & { items: OrderItem[] }) {
-    return {
-      ...order,
-      subtotal: Number(order.subtotal),
-      taxAmount: Number(order.taxAmount),
-      total: Number(order.total),
-      discount: order.discount ? Number(order.discount) : null,
-      items: order.items?.map((item) => ({
-        ...item,
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-        taxRate: Number(item.taxRate),
-        taxAmount: Number(item.taxAmount),
-        total: Number(item.total),
-      })),
-    };
   }
 }

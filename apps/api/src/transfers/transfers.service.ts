@@ -165,7 +165,7 @@ export class TransfersService {
       return newTransfer;
     });
 
-    return this.formatTransfer(transfer);
+    return transfer;
   }
 
   /**
@@ -219,7 +219,7 @@ export class TransfersService {
     }> = [];
 
     for (const item of transfer.items) {
-      const inventory = inventoryMap.get(item.productId);
+      const inventory = inventoryMap.get(String(item.productId));
       const requestedQty = Number(item.quantity);
 
       if (!inventory || Number(inventory.stock) < requestedQty) {
@@ -243,7 +243,7 @@ export class TransfersService {
     const completedTransfer = await prisma.$transaction(async (tx) => {
       // Update inventory for each item
       for (const item of transfer.items) {
-        const quantity = new Prisma.Decimal(item.quantity);
+        const quantity = new Prisma.Decimal(String(item.quantity));
 
         // Deduct from source branch
         const sourceInventory = await tx.inventory.findUnique({
@@ -352,7 +352,7 @@ export class TransfersService {
       });
     });
 
-    return this.formatTransfer(completedTransfer);
+    return completedTransfer;
   }
 
   /**
@@ -417,7 +417,7 @@ export class TransfersService {
       },
     });
 
-    return this.formatTransfer(updated);
+    return updated;
   }
 
   /**
@@ -495,7 +495,7 @@ export class TransfersService {
     ]);
 
     return {
-      data: transfers.map((transfer) => this.formatTransfer(transfer)),
+      data: transfers,
       pagination: {
         page,
         limit,
@@ -559,7 +559,7 @@ export class TransfersService {
       throw new NotFoundException('Transfer not found');
     }
 
-    return this.formatTransfer(transfer);
+    return transfer;
   }
 
   /**
@@ -641,19 +641,6 @@ export class TransfersService {
       },
     });
 
-    return this.formatTransfer(updated);
-  }
-
-  /**
-   * Format transfer response with decimal conversions
-   */
-  private formatTransfer(transfer: any) {
-    return {
-      ...transfer,
-      items: transfer.items.map((item: any) => ({
-        ...item,
-        quantity: Number(item.quantity),
-      })),
-    };
+    return updated;
   }
 }

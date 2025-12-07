@@ -9,17 +9,9 @@ export enum BusinessType {
   RETAIL = "RETAIL",
 }
 
-export enum UserRole {
-  ADMIN = "ADMIN",
-  OWNER = "OWNER",
-  MANAGER = "MANAGER",
-  CASHIER = "CASHIER",
-  KITCHEN = "KITCHEN",
-}
-
-export enum SortOrder {
-  ASC = "asc",
-  DESC = "desc",
+export enum ModifierType {
+  SINGLE = "SINGLE", // Only one modifier can be selected
+  MULTIPLE = "MULTIPLE", // Multiple modifiers can be selected
 }
 
 export enum OrderType {
@@ -35,6 +27,19 @@ export enum OrderStatus {
   READY = "READY", // Ready for pickup/serve
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
+}
+
+export enum SortOrder {
+  ASC = "asc",
+  DESC = "desc",
+}
+
+export enum UserRole {
+  ADMIN = "ADMIN",
+  OWNER = "OWNER",
+  MANAGER = "MANAGER",
+  CASHIER = "CASHIER",
+  KITCHEN = "KITCHEN",
 }
 
 export const decimal = z.union([z.string(), z.number()]);
@@ -65,6 +70,9 @@ export const userSchema = z.object({
 });
 export type User = z.infer<typeof userSchema>;
 
+//
+// -------- Categories ---------
+//
 export const categorySchema = z.object({
   id: z.string().cuid().optional(),
   tenantId: z.string().cuid().optional(),
@@ -75,6 +83,9 @@ export const categorySchema = z.object({
 });
 export type Category = z.infer<typeof categorySchema>;
 
+//
+// -------- Subcategories ---------
+//
 export const subcategorySchema = z.object({
   id: z.string().optional(),
   categoryId: z.string().cuid().optional(),
@@ -85,6 +96,9 @@ export const subcategorySchema = z.object({
 });
 export type Subcategory = z.infer<typeof subcategorySchema>;
 
+//
+// ------- Recipes ---------
+//
 export const recipeSchema = z.object({
   id: z.string().cuid().optional(),
   tenantId: z.string().cuid().optional(),
@@ -94,6 +108,9 @@ export const recipeSchema = z.object({
 });
 export type Recipe = z.infer<typeof recipeSchema>;
 
+//
+// -------- Products ---------
+//
 export const productSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -118,6 +135,33 @@ export const productSchema = z.object({
   recipesUsedIn: z.array(recipeSchema).optional(),
   ingredientUsedIn: z.array(recipeSchema).optional(),
 });
+export type Product = z.infer<typeof productSchema>;
+
+//
+// ---------- Modifiers ---------
+//
+export const modifierSchema = z.object({
+  id: z.string().cuid().optional(),
+  tenantId: z.string().cuid().optional(),
+  groupId: z.string().cuid().optional(),
+  name: z.string(),
+  price: decimal,
+  isDeleted: z.boolean().default(false),
+});
+export type Modifier = z.infer<typeof modifierSchema>;
+
+//
+// ------- Modifier Groups ---------
+//
+export const modifierGroupSchema = z.object({
+  id: z.string().cuid().optional(),
+  tenantId: z.string().cuid().optional(),
+  name: z.string(),
+  isDeleted: z.boolean().default(false),
+  type: z.enum(ModifierType),
+  modifiers: z.array(modifierSchema).optional(),
+});
+export type ModifierGroup = z.infer<typeof modifierGroupSchema>;
 
 //
 // -------- Orders and Order Items ---------

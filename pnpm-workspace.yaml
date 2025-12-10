@@ -8,5 +8,6 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - prisma
+  - sharp
   - unrs-resolver
   - ws

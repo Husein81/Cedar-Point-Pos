@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Req, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Req,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
@@ -52,5 +61,41 @@ export class OrdersController {
   findOne(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findOne(user.tenantId, id);
+  }
+
+  /**
+   * Complete an order (triggers automatic stock deduction)
+   */
+  @Post(':id/complete')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  completeOrder(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.completeOrder(user.tenantId, id);
+  }
+
+  /**
+   * Update order status
+   * If status is COMPLETED, triggers automatic stock deduction
+   */
+  @Patch(':id/status')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  updateStatus(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { status: OrderStatus },
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.updateStatus(user.tenantId, id, body.status);
+  }
+
+  /**
+   * Preview stock deductions for an order
+   * Shows what inventory will be affected without executing
+   */
+  @Get(':id/preview-deductions')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  previewDeductions(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.previewOrderStockDeductions(user.tenantId, id);
   }
 }

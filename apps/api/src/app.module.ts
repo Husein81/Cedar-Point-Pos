@@ -14,6 +14,7 @@ import { TablesModule } from './tables/tables.module';
 import { TenantModule } from './tenant/tenant.module';
 import { UsersModule } from './users/users.module';
 import { TransfersModule } from './transfers/transfers.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TransfersModule } from './transfers/transfers.module';
     TenantModule,
     UsersModule,
     TransfersModule,
+    OrdersModule,
   ],
   providers: [
     {

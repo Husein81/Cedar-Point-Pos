@@ -70,6 +70,12 @@ enum TransferStatus {
   CANCELLED
 }
 
+enum AdjustmentType {
+  ADD
+  REMOVE
+  SET
+}
+
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -94,10 +100,11 @@ model Tenant {
   taxes          Tax[]
   transfers      Transfer[]
 
-  settings   Json? // feature flags, tax rates, etc.
-  modifiers  Modifier[]
-  categories Category[]
-  currencies Currency[]
+  settings         Json? // feature flags, tax rates, etc.
+  modifiers        Modifier[]
+  categories       Category[]
+  currencies       Currency[]
+  stockAdjustments StockAdjustment[]
 }
 
 model Currency {
@@ -129,8 +136,9 @@ model User {
   orders   Order[]
   shifts   Shift[]
 
-  transfersRequested Transfer[] @relation("TransferRequests")
-  transfersApproved  Transfer[] @relation("TransferApprovals")
+  transfersRequested Transfer[]        @relation("TransferRequests")
+  transfersApproved  Transfer[]        @relation("TransferApprovals")
+  stockAdjustments   StockAdjustment[] @relation("StockAdjustments")
 }
 
 //
@@ -151,8 +159,9 @@ model Branch {
   orders    Order[]
   shifts    Shift[]
 
-  transfersFrom Transfer[] @relation("TransfersFrom")
-  transfersTo   Transfer[] @relation("TransfersTo")
+  transfersFrom    Transfer[]        @relation("TransfersFrom")
+  transfersTo      Transfer[]        @relation("TransfersTo")
+  stockAdjustments StockAdjustment[]
 }
 
 //
@@ -221,17 +230,18 @@ model Product {
   taxId String?
   tax   Tax?    @relation(fields: [taxId], references: [id])
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  inventory       Inventory[]
-  modifiers       Modifier[]
-  recipesUsedIn   Recipe[]         @relation("SellableRecipe") // Recipe output product
-  ingredientIn    Recipe[]         @relation("IngredientRecipe") // Product used as ingredient
-  orderItems      OrderItem[]
-  category        Category?        @relation(fields: [categoryId], references: [id])
-  subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id])
-  refunds         Refund[]
-  offerGroupItems OfferGroupItem[]
-  transferItems   TransferItem[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  inventory        Inventory[]
+  modifiers        Modifier[]
+  recipesUsedIn    Recipe[]          @relation("SellableRecipe") // Recipe output product
+  ingredientIn     Recipe[]          @relation("IngredientRecipe") // Product used as ingredient
+  orderItems       OrderItem[]
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  subcategory      Subcategory?      @relation(fields: [subcategoryId], references: [id])
+  refunds          Refund[]
+  offerGroupItems  OfferGroupItem[]
+  transferItems    TransferItem[]
+  stockAdjustments StockAdjustment[]
 }
 
 // 
@@ -276,12 +286,42 @@ model Inventory {
   minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
   lastAdjusted DateTime @updatedAt
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
-  branch  Branch  @relation(fields: [branchId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  branch      Branch            @relation(fields: [branchId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
+  adjustments StockAdjustment[]
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
+}
+
+//
+// ---------- STOCK ADJUSTMENTS ----------
+//
+
+model StockAdjustment {
+  id             String         @id @default(cuid())
+  tenantId       String
+  inventoryId    String
+  branchId       String
+  productId      String
+  type           AdjustmentType
+  quantityChange Decimal        @db.Decimal(10, 4) // Amount changed (positive or negative)
+  stockBefore    Decimal        @db.Decimal(10, 4) // Stock level before adjustment
+  stockAfter     Decimal        @db.Decimal(10, 4) // Stock level after adjustment
+  reason         String
+  adjustedBy     String // User ID who made the adjustment
+  createdAt      DateTime       @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+  branch    Branch    @relation(fields: [branchId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+  user      User      @relation("StockAdjustments", fields: [adjustedBy], references: [id])
+
+  @@index([inventoryId])
+  @@index([branchId, productId])
+  @@index([createdAt])
 }
 
 //

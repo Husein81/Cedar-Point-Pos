@@ -4,6 +4,11 @@ import id from "zod/v4/locales/id.js";
 // ===========================================
 //         Enums
 // ===========================================
+export enum AdjustmentType {
+  ADD = "ADD",
+  REMOVE = "REMOVE",
+  SET = "SET",
+}
 export enum BusinessType {
   RESTAURANT = "RESTAURANT",
   RETAIL = "RETAIL",

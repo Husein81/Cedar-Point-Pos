@@ -133,25 +133,15 @@ export class ProductsService {
 
   async getModifiersByProduct(productId: string, tenantId: string) {
     try {
-      const product = await prisma.product.findFirst({
-        where: {
-          id: productId,
-          tenantId,
-          isDeleted: false,
-        },
-      });
-
-      if (!product) {
-        throw new NotFoundException('Product not found');
-      }
-
-      // Fetch all modifiers for this product that are not deleted
       const modifiers = await prisma.modifier.findMany({
         where: {
           productId,
           tenantId,
           isDeleted: false,
           group: {
+            isDeleted: false,
+          },
+          product: {
             isDeleted: false,
           },
         },
@@ -169,15 +159,57 @@ export class ProductsService {
         },
       });
 
+      if (modifiers.length === 0) {
+        const productExists = await prisma.product.findFirst({
+          where: { id: productId, tenantId, isDeleted: false },
+          select: { id: true },
+        });
+
+        if (!productExists) {
+          throw new NotFoundException('Product not found');
+        }
+      }
+
+      const modifierGroupsMap = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          type: string;
+          modifiers: Array<{
+            id: string;
+            name: string;
+            price: number;
+          }>;
+        }
+      >();
+
+      for (const modifier of modifiers) {
+        const groupId = modifier.group.id;
+
+        if (!modifierGroupsMap.has(groupId)) {
+          modifierGroupsMap.set(groupId, {
+            id: groupId,
+            name: modifier.group.name,
+            type: modifier.group.type,
+            modifiers: [],
+          });
+        }
+
+        modifierGroupsMap.get(groupId)!.modifiers.push({
+          id: modifier.id,
+          name: modifier.name,
+          price: Number(modifier.price),
+        });
+      }
+
       return {
-        productId: product.id,
-        productName: product.name,
-        modifiers,
+        productId,
+        modifierGroups: Array.from(modifierGroupsMap.values()),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
+
       console.error('Error fetching modifiers by product:', error);
       throw new InternalServerErrorException(
         'Failed to fetch modifiers for product',

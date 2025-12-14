@@ -1,8 +1,10 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import { Prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { ProductsService } from './products.service';
+
+type PrismaProductCreateInput = Record<string, unknown>;
+type PrismaProductUpdateInput = Record<string, unknown>;
 
 @Controller('products')
 export class ProductsController {
@@ -30,7 +32,7 @@ export class ProductsController {
 
   @Post()
   createProduct(@Req() req: Request) {
-    const body = req.body as Prisma.ProductCreateInput;
+    const body = req.body as PrismaProductCreateInput;
     return this.productsService.createProduct(body);
   }
 
@@ -40,7 +42,7 @@ export class ProductsController {
     if (!id) {
       throw new Error('Product ID is required');
     }
-    const body = req.body as Prisma.ProductUpdateInput;
+    const body = req.body as PrismaProductUpdateInput;
     return this.productsService.updateProduct(id, body);
   }
 
@@ -51,5 +53,21 @@ export class ProductsController {
       throw new Error('Product ID is required');
     }
     return this.productsService.deleteProduct(id);
+  }
+
+  @Get('/:id/modifiers')
+  getModifiersByProduct(@Req() req: Request) {
+    const { id: productId } = req.params;
+    const { tenantId } = req.user as { tenantId: string };
+
+    if (!productId) {
+      throw new Error('Product ID is required');
+    }
+
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    return this.productsService.getModifiersByProduct(productId, tenantId);
   }
 }

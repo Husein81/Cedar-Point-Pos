@@ -1,9 +1,45 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+import { Prisma, prisma, InventoryChangeType } from '@repo/db';
 import { QueryParams } from '@repo/types';
 
 @Injectable()
 export class InventoryService {
+  private async createHistoryLog(
+    tx: Prisma.TransactionClient,
+    data: {
+      tenantId: string;
+      branchId: string;
+      productId: string;
+      userId: string;
+      changeType: InventoryChangeType;
+      beforeStock: number;
+      afterStock: number;
+      beforeMinStock?: number;
+      afterMinStock?: number;
+      reason?: string;
+    },
+  ) {
+    const adjustment = data.afterStock - data.beforeStock;
+    return tx.inventoryHistory.create({
+      data: {
+        tenantId: data.tenantId,
+        branchId: data.branchId,
+        productId: data.productId,
+        userId: data.userId,
+        changeType: data.changeType,
+        beforeStock: new Prisma.Decimal(data.beforeStock),
+        afterStock: new Prisma.Decimal(data.afterStock),
+        adjustment: new Prisma.Decimal(adjustment),
+        beforeMinStock: data.beforeMinStock
+          ? new Prisma.Decimal(data.beforeMinStock)
+          : null,
+        afterMinStock: data.afterMinStock
+          ? new Prisma.Decimal(data.afterMinStock)
+          : null,
+        reason: data.reason,
+      },
+    });
+  }
   async getInventoryByBranch(branchId: string, params: QueryParams) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
@@ -63,24 +99,56 @@ export class InventoryService {
     branchId: string,
     productId: string,
     stock: number,
+    userId: string,
+    reason?: string,
   ) {
-    return prisma.inventory.upsert({
-      where: {
-        branchId_productId: {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.inventory.findUnique({
+        where: {
+          branchId_productId: {
+            branchId,
+            productId,
+          },
+        },
+      });
+
+      const beforeStock = existing ? Number(existing.stock) : 0;
+      const afterStock = stock;
+
+      const result = await tx.inventory.upsert({
+        where: {
+          branchId_productId: {
+            branchId,
+            productId,
+          },
+        },
+        create: {
+          tenantId,
           branchId,
           productId,
+          stock: new Prisma.Decimal(stock),
         },
-      },
-      create: {
-        tenantId,
-        branchId,
-        productId,
-        stock: new Prisma.Decimal(stock),
-      },
-      update: {
-        stock: new Prisma.Decimal(stock),
-      },
-      include: { product: true },
+        update: {
+          stock: new Prisma.Decimal(stock),
+        },
+        include: { product: true },
+      });
+
+      // Log history if stock actually changed
+      if (beforeStock !== afterStock) {
+        await this.createHistoryLog(tx, {
+          tenantId,
+          branchId,
+          productId,
+          userId,
+          changeType: InventoryChangeType.SET_STOCK,
+          beforeStock,
+          afterStock,
+          reason,
+        });
+      }
+
+      return result;
     });
   }
 
@@ -89,20 +157,26 @@ export class InventoryService {
     branchId: string,
     productId: string,
     adjustment: number,
+    userId: string,
+    reason?: string,
   ) {
     return await prisma.$transaction(async (tx) => {
       const existing = await tx.inventory.findUnique({
         where: { branchId_productId: { branchId, productId } },
       });
 
+      const beforeStock = existing ? Number(existing.stock) : 0;
+      const afterStock = beforeStock + adjustment;
+
+      let result;
       if (existing) {
-        return tx.inventory.update({
+        result = await tx.inventory.update({
           where: { branchId_productId: { branchId, productId } },
           data: { stock: { increment: adjustment } },
           include: { product: true },
         });
       } else {
-        return tx.inventory.create({
+        result = await tx.inventory.create({
           data: {
             tenantId,
             branchId,
@@ -112,6 +186,20 @@ export class InventoryService {
           include: { product: true },
         });
       }
+
+      // Log history
+      await this.createHistoryLog(tx, {
+        tenantId,
+        branchId,
+        productId,
+        userId,
+        changeType: InventoryChangeType.ADJUST_STOCK,
+        beforeStock,
+        afterStock,
+        reason,
+      });
+
+      return result;
     });
   }
 
@@ -241,25 +329,61 @@ export class InventoryService {
     branchId: string,
     productId: string,
     minStock: number,
+    userId: string,
+    reason?: string,
   ) {
-    return prisma.inventory.upsert({
-      where: {
-        branchId_productId: {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.inventory.findUnique({
+        where: {
+          branchId_productId: {
+            branchId,
+            productId,
+          },
+        },
+      });
+
+      const beforeMinStock = existing ? Number(existing.minStock) : 0;
+      const afterMinStock = minStock;
+      const beforeStock = existing ? Number(existing.stock) : 0;
+      const afterStock = beforeStock; // Stock doesn't change, only minStock
+
+      const result = await tx.inventory.upsert({
+        where: {
+          branchId_productId: {
+            branchId,
+            productId,
+          },
+        },
+        create: {
+          tenantId,
           branchId,
           productId,
+          stock: new Prisma.Decimal(0),
+          minStock: new Prisma.Decimal(minStock),
         },
-      },
-      create: {
-        tenantId,
-        branchId,
-        productId,
-        stock: new Prisma.Decimal(0),
-        minStock: new Prisma.Decimal(minStock),
-      },
-      update: {
-        minStock: new Prisma.Decimal(minStock),
-      },
-      include: { product: true, branch: true },
+        update: {
+          minStock: new Prisma.Decimal(minStock),
+        },
+        include: { product: true, branch: true },
+      });
+
+      // Log history if minStock actually changed
+      if (beforeMinStock !== afterMinStock) {
+        await this.createHistoryLog(tx, {
+          tenantId,
+          branchId,
+          productId,
+          userId,
+          changeType: InventoryChangeType.SET_MIN_STOCK,
+          beforeStock,
+          afterStock,
+          beforeMinStock,
+          afterMinStock,
+          reason,
+        });
+      }
+
+      return result;
     });
   }
 
@@ -270,31 +394,181 @@ export class InventoryService {
     tenantId: string,
     branchId: string,
     items: Array<{ productId: string; minStock: number }>,
+    userId: string,
+    reason?: string,
   ) {
-    const results = await prisma.$transaction(
-      items.map((item) =>
-        prisma.inventory.upsert({
-          where: {
-            branchId_productId: {
+    return await prisma.$transaction(async (tx) => {
+      // First, get existing inventory items
+      const existingItems = await tx.inventory.findMany({
+        where: {
+          branchId,
+          productId: { in: items.map((item) => item.productId) },
+        },
+      });
+
+      const existingMap = new Map(
+        existingItems.map((item) => [item.productId, item]),
+      );
+
+      // Update inventory and create history logs
+      const results = await Promise.all(
+        items.map(async (item) => {
+          const existing = existingMap.get(item.productId);
+          const beforeMinStock = existing ? Number(existing.minStock) : 0;
+          const afterMinStock = item.minStock;
+          const beforeStock = existing ? Number(existing.stock) : 0;
+          const afterStock = beforeStock; // Stock doesn't change
+
+          const result = await tx.inventory.upsert({
+            where: {
+              branchId_productId: {
+                branchId,
+                productId: item.productId,
+              },
+            },
+            create: {
+              tenantId,
               branchId,
               productId: item.productId,
+              stock: new Prisma.Decimal(0),
+              minStock: new Prisma.Decimal(item.minStock),
+            },
+            update: {
+              minStock: new Prisma.Decimal(item.minStock),
+            },
+            include: { product: true },
+          });
+
+          // Log history if minStock actually changed
+          if (beforeMinStock !== afterMinStock) {
+            await this.createHistoryLog(tx, {
+              tenantId,
+              branchId,
+              productId: item.productId,
+              userId,
+              changeType: InventoryChangeType.SET_MIN_STOCK,
+              beforeStock,
+              afterStock,
+              beforeMinStock,
+              afterMinStock,
+              reason,
+            });
+          }
+
+          return result;
+        }),
+      );
+
+      return results;
+    });
+  }
+
+  /**
+   * Get inventory history log with filtering and pagination
+   */
+  async getInventoryHistory(
+    tenantId: string,
+    params: {
+      branchId?: string;
+      productId?: string;
+      userId?: string;
+      changeType?: InventoryChangeType;
+      page?: number;
+      limit?: number;
+      startDate?: Date;
+      endDate?: Date;
+    },
+  ) {
+    const {
+      branchId,
+      productId,
+      userId,
+      changeType,
+      page = 1,
+      limit = 20,
+      startDate,
+      endDate,
+    } = params;
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.InventoryHistoryWhereInput = {
+      tenantId,
+      ...(branchId && { branchId }),
+      ...(productId && { productId }),
+      ...(userId && { userId }),
+      ...(changeType && { changeType }),
+      ...((startDate || endDate) && {
+        createdAt: {
+          ...(startDate && { gte: startDate }),
+          ...(endDate && { lte: endDate }),
+        },
+      }),
+    };
+
+    const [totalCount, data] = await Promise.all([
+      prisma.inventoryHistory.count({ where }),
+      prisma.inventoryHistory.findMany({
+        where,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
             },
           },
-          create: {
-            tenantId,
-            branchId,
-            productId: item.productId,
-            stock: new Prisma.Decimal(0),
-            minStock: new Prisma.Decimal(item.minStock),
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
-          update: {
-            minStock: new Prisma.Decimal(item.minStock),
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
-          include: { product: true },
-        }),
-      ),
-    );
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
-    return results;
+    return {
+      data: data.map((entry) => ({
+        id: entry.id,
+        tenantId: entry.tenantId,
+        branchId: entry.branchId,
+        branchName: entry.branch.name,
+        productId: entry.productId,
+        productName: entry.product.name,
+        productSku: entry.product.sku,
+        userId: entry.userId,
+        userName: entry.user.name,
+        userEmail: entry.user.email,
+        changeType: entry.changeType,
+        beforeStock: Number(entry.beforeStock),
+        afterStock: Number(entry.afterStock),
+        adjustment: Number(entry.adjustment),
+        beforeMinStock: entry.beforeMinStock
+          ? Number(entry.beforeMinStock)
+          : null,
+        afterMinStock: entry.afterMinStock
+          ? Number(entry.afterMinStock)
+          : null,
+        reason: entry.reason,
+        createdAt: entry.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    };
   }
 }

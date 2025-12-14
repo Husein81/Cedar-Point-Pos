@@ -72,18 +72,19 @@ model Tenant {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  users          User[]
-  branches       Branch[]
-  products       Product[]
-  inventory      Inventory[] // Inventory records still belong to the Tenant scope
-  orders         Order[]
-  tables         Table[]
-  modifierGroups ModifierGroup[]
-  recipes        Recipe[]
-  devices        POSDevice[]
-  customers      Customer[]
-  shifts         Shift[]
-  taxes          Tax[]
+  users            User[]
+  branches         Branch[]
+  products         Product[]
+  inventory        Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory InventoryHistory[]
+  orders           Order[]
+  tables           Table[]
+  modifierGroups   ModifierGroup[]
+  recipes          Recipe[]
+  devices          POSDevice[]
+  customers        Customer[]
+  shifts           Shift[]
+  taxes            Tax[]
 
   settings   Json? // feature flags, tax rates, etc.
   modifiers  Modifier[]
@@ -115,10 +116,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  orders   Order[]
-  shifts   Shift[]
+  tenantId         String?
+  tenant           Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  orders           Order[]
+  shifts           Shift[]
+  inventoryHistory InventoryHistory[]
 }
 
 //
@@ -132,12 +134,13 @@ model Branch {
   phone     String?
   isDeleted Boolean @default(false) // Soft delete
 
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  tables    Table[]
-  devices   POSDevice[]
-  inventory Inventory[] // Inventory is tracked at the Branch level
-  orders    Order[]
-  shifts    Shift[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  tables           Table[]
+  devices          POSDevice[]
+  inventory        Inventory[] // Inventory is tracked at the Branch level
+  inventoryHistory InventoryHistory[]
+  orders           Order[]
+  shifts           Shift[]
 }
 
 //
@@ -206,16 +209,17 @@ model Product {
   taxId String?
   tax   Tax?    @relation(fields: [taxId], references: [id])
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  inventory       Inventory[]
-  modifiers       Modifier[]
-  recipesUsedIn   Recipe[]         @relation("SellableRecipe") // Recipe output product
-  ingredientIn    Recipe[]         @relation("IngredientRecipe") // Product used as ingredient
-  orderItems      OrderItem[]
-  category        Category?        @relation(fields: [categoryId], references: [id])
-  subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id])
-  refunds         Refund[]
-  offerGroupItems OfferGroupItem[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  inventory        Inventory[]
+  inventoryHistory InventoryHistory[]
+  modifiers        Modifier[]
+  recipesUsedIn    Recipe[]          @relation("SellableRecipe") // Recipe output product
+  ingredientIn     Recipe[]          @relation("IngredientRecipe") // Product used as ingredient
+  orderItems       OrderItem[]
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  subcategory      Subcategory?      @relation(fields: [subcategoryId], references: [id])
+  refunds          Refund[]
+  offerGroupItems  OfferGroupItem[]
 }
 
 // 
@@ -266,6 +270,43 @@ model Inventory {
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
+}
+
+//
+// ---------- INVENTORY HISTORY (Audit Trail) ----------
+//
+enum InventoryChangeType {
+  SET_STOCK      // Direct stock set
+  ADJUST_STOCK   // Stock adjustment (increment/decrement)
+  SET_MIN_STOCK  // Minimum stock threshold change
+  ORDER_DEDUCT   // Stock deducted from order
+  ORDER_RETURN   // Stock returned from refund
+  MANUAL_ADJUST  // Manual adjustment
+}
+
+model InventoryHistory {
+  id            String              @id @default(cuid())
+  tenantId      String
+  branchId      String
+  productId     String
+  userId        String              // User who made the change
+  changeType    InventoryChangeType
+  beforeStock   Decimal             @db.Decimal(10, 4) // Stock quantity before change
+  afterStock    Decimal             @db.Decimal(10, 4) // Stock quantity after change
+  adjustment    Decimal             @db.Decimal(10, 4) // Net change (afterStock - beforeStock)
+  beforeMinStock Decimal?           @db.Decimal(10, 4) // Min stock before change (if applicable)
+  afterMinStock  Decimal?           @db.Decimal(10, 4) // Min stock after change (if applicable)
+  reason        String?             // Reason for the adjustment
+  createdAt     DateTime            @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, branchId, createdAt])
+  @@index([productId, createdAt])
+  @@index([userId, createdAt])
 }
 
 // 

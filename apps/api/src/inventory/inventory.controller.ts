@@ -8,19 +8,17 @@ import {
   Put,
   Req,
   ParseFloatPipe,
+  ParseEnumPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 import type { Request } from 'express';
-import { UserRole } from '@repo/db';
+import { UserRole, InventoryChangeType } from '@repo/db';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
-
-  /**
-   * Get all low stock products for the tenant (across all branches or filtered by branch)
-   */
   @Get('low-stock')
   @Roles(UserRole.OWNER, UserRole.MANAGER)
   async getLowStock(
@@ -82,13 +80,16 @@ export class InventoryController {
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('stock', ParseFloatPipe) stock: number,
+    @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string };
+    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.setStock(
       user.tenantId,
       branchId,
       productId,
       stock,
+      user.id,
+      reason,
     );
   }
 
@@ -99,13 +100,16 @@ export class InventoryController {
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('adjustment', ParseFloatPipe) adjustment: number,
+    @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string };
+    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.adjustStock(
       user.tenantId,
       branchId,
       productId,
       adjustment,
+      user.id,
+      reason,
     );
   }
 
@@ -119,13 +123,16 @@ export class InventoryController {
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('minStock', ParseFloatPipe) minStock: number,
+    @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string };
+    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.setMinStock(
       user.tenantId,
       branchId,
       productId,
       minStock,
+      user.id,
+      reason,
     );
   }
 
@@ -137,13 +144,103 @@ export class InventoryController {
   async bulkSetMinStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
-    @Body() body: { items: Array<{ productId: string; minStock: number }> },
+    @Body() body: {
+      items: Array<{ productId: string; minStock: number }>;
+      reason?: string;
+    },
   ) {
-    const user = req.user as { tenantId: string };
+    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.bulkSetMinStock(
       user.tenantId,
       branchId,
       body.items,
+      user.id,
+      body.reason,
     );
+  }
+
+  /**
+   * Get inventory history log with filtering and pagination
+   */
+  @Get('history')
+  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  async getInventoryHistory(
+    @Req() req: Request,
+    @Query('branchId') branchId?: string,
+    @Query('productId') productId?: string,
+    @Query('userId') userId?: string,
+    @Query('changeType', new ParseEnumPipe(InventoryChangeType, { optional: true }))
+    changeType?: InventoryChangeType,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.inventoryService.getInventoryHistory(user.tenantId, {
+      branchId,
+      productId,
+      userId,
+      changeType,
+      page: page || 1,
+      limit: limit || 20,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
+  }
+
+  /**
+   * Get inventory history for a specific branch
+   */
+  @Get(':branchId/history')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  async getInventoryHistoryByBranch(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Query('productId') productId?: string,
+    @Query('userId') userId?: string,
+    @Query('changeType', new ParseEnumPipe(InventoryChangeType, { optional: true }))
+    changeType?: InventoryChangeType,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.inventoryService.getInventoryHistory(user.tenantId, {
+      branchId,
+      productId,
+      userId,
+      changeType,
+      page: page || 1,
+      limit: limit || 20,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
+  }
+
+  /**
+   * Get inventory history for a specific product
+   */
+  @Get(':branchId/product/:productId/history')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  async getInventoryHistoryByProduct(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Param('productId') productId: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.inventoryService.getInventoryHistory(user.tenantId, {
+      branchId,
+      productId,
+      page: page || 1,
+      limit: limit || 20,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
   }
 }

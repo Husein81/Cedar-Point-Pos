@@ -1,11 +1,14 @@
 import { ModifierType } from '@repo/db';
+import z from 'zod';
 
-export type CreateModifierGroupDto = {
-  name: string;
-  type: ModifierType;
-};
+export const createModifierGroupDto = z.object({
+  name: z.string(),
+  type: z.enum(ModifierType),
+});
+export type CreateModifierGroupDto = z.infer<typeof createModifierGroupDto>;
 
-export type UpdateModifierGroupDto = {
-  name?: string;
-  type?: ModifierType;
-};
+export const updateModifierGroupDto = z.object({
+  name: z.string().optional(),
+  type: z.enum(ModifierType).optional(),
+});
+export type UpdateModifierGroupDto = z.infer<typeof updateModifierGroupDto>;

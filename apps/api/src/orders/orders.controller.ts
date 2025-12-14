@@ -41,6 +41,12 @@ export class OrdersController {
     @Query('branchId') branchId?: string,
     @Query('userId') userId?: string,
     @Query('type') type?: OrderType,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('tableId') tableId?: string,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findAll(user.tenantId, {
@@ -50,6 +56,12 @@ export class OrdersController {
       branchId,
       userId,
       type,
+      startDate,
+      endDate,
+      tableId,
+      search,
+      sortBy,
+      sortOrder,
     });
   }
 

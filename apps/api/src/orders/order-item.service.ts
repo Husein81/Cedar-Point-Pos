@@ -25,7 +25,6 @@ export class OrderItemService {
       data: {
         orderItemId: orderItem.id,
         modifierId: modifier.id,
-        name: modifier.name,
         price: modifier.price,
       },
     });

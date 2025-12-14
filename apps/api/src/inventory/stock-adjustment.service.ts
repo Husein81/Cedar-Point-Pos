@@ -99,9 +99,7 @@ export class StockAdjustmentService {
         break;
 
       default:
-        throw new BadRequestException(
-          `Invalid adjustment type: ${type as AdjustmentType}`,
-        );
+        throw new BadRequestException(`Invalid adjustment type`);
     }
 
     // Validate stock doesn't go negative

@@ -1,16 +1,18 @@
 import { AdjustmentType } from '@repo/types';
 import z from 'zod';
 
-export const createStockAdjustmentDto = z.object({
+export const createStockAdjustmentSchema = z.object({
   branchId: z.string(),
   productId: z.string(),
   type: z.enum(AdjustmentType),
   quantity: z.number(),
   reason: z.string(),
 });
-export type CreateStockAdjustmentDto = typeof createStockAdjustmentDto;
+export type CreateStockAdjustmentDto = z.infer<
+  typeof createStockAdjustmentSchema
+>;
 
-export const stockAdjustmentHistoryQueryDto = z.object({
+export const stockAdjustmentHistoryQuerySchema = z.object({
   page: z.number().optional(),
   limit: z.number().optional(),
   branchId: z.string().optional(),
@@ -19,3 +21,6 @@ export const stockAdjustmentHistoryQueryDto = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
+export type StockAdjustmentHistoryQueryDto = z.infer<
+  typeof stockAdjustmentHistoryQuerySchema
+>;

@@ -7,9 +7,12 @@ import {
   Req,
   Query,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
+import type { AddItemDto } from './dto/add-item.dto';
+import type { UpdateQuantityDto } from './dto/update-quantity.dto';
 import { Roles } from '@/common/decorators/roles.decorator';
 import { UserRole, OrderStatus, OrderType } from '@repo/db';
 import type { Request } from 'express';
@@ -88,9 +91,6 @@ export class OrdersController {
     return this.ordersService.updateStatus(user.tenantId, id, body.status);
   }
 
-  /**
-   * Update order discount
-   */
   @Patch(':id/discount')
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
   updateDiscount(
@@ -100,6 +100,45 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
+  }
+
+  @Post(':id/items')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  addItemToOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() addItemDto: AddItemDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.addItemToOrder(user.tenantId, id, addItemDto);
+  }
+
+  @Patch(':id/items/:itemId')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  updateItemQuantity(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() updateQuantityDto: UpdateQuantityDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.updateItemQuantity(
+      user.tenantId,
+      id,
+      itemId,
+      updateQuantityDto.quantity,
+    );
+  }
+
+  @Delete(':id/items/:itemId')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  removeItemFromOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.removeItemFromOrder(user.tenantId, id, itemId);
   }
 
   /**

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, prisma, OrderStatus, OrderType, BusinessType } from '@repo/db';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AddItemDto } from './dto/add-item.dto';
 import { QueryParams } from '@repo/types';
 import { InventoryDeductionService } from '@/inventory/inventory-deduction.service';
 
@@ -862,5 +863,333 @@ export class OrdersService {
       order.branchId,
       items,
     );
+  }
+
+  /**
+   * Add a product item to an existing order
+   * Only allowed for DRAFT orders
+   */
+  async addItemToOrder(
+    tenantId: string,
+    orderId: string,
+    addItemDto: AddItemDto,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        typeof prisma.order.findFirst<{
+          include: {
+            items: {
+              include: {
+                modifiers: true;
+                product: {
+                  include: { tax: true };
+                };
+              };
+            };
+            user: { select: { id: true; name: true; email: true } };
+            branch: { select: { id: true; name: true } };
+            table: { select: { id: true; tableNumber: true; name: true } };
+            device: { select: { id: true; name: true } };
+            customer: { select: { id: true; name: true; phone: true } };
+          };
+        }>
+      >
+    >
+  > {
+    // Validate order exists and belongs to tenant
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Only allow modifications on DRAFT orders
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException('Cannot add items to a completed order');
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Cannot add items to a cancelled order');
+    }
+
+    // Validate product exists
+    const product = await prisma.product.findFirst({
+      where: {
+        id: addItemDto.productId,
+        tenantId,
+        isDeleted: false,
+      },
+      include: {
+        tax: true,
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    // Validate modifiers if provided
+    let modifierMap = new Map<
+      string,
+      Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+    >();
+
+    if (addItemDto.modifiers && addItemDto.modifiers.length > 0) {
+      const modifiers = await prisma.modifier.findMany({
+        where: {
+          id: { in: addItemDto.modifiers },
+          tenantId,
+          isDeleted: false,
+        },
+      });
+
+      modifierMap = new Map(modifiers.map((m) => [m.id, m]));
+
+      const foundModifierIds = new Set(modifiers.map((m) => m.id));
+      const missingModifiers = addItemDto.modifiers.filter(
+        (id) => !foundModifierIds.has(id),
+      );
+
+      if (missingModifiers.length > 0) {
+        throw new BadRequestException(
+          `One or more modifiers not found: ${missingModifiers.join(', ')}`,
+        );
+      }
+    }
+
+    // Calculate item totals
+    const quantity = new Prisma.Decimal(addItemDto.quantity);
+    const unitPrice = product.price || new Prisma.Decimal(0);
+
+    const itemModifiers = (addItemDto.modifiers || [])
+      .map((modifierId) => modifierMap.get(modifierId))
+      .filter(
+        (
+          m,
+        ): m is Awaited<ReturnType<typeof prisma.modifier.findMany>>[number] =>
+          m !== undefined,
+      );
+
+    const modifiersTotal = itemModifiers.reduce(
+      (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
+      new Prisma.Decimal(0),
+    );
+
+    const taxRate = product.tax?.rate || new Prisma.Decimal(0);
+    const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
+      quantity,
+      unitPrice,
+      modifiersTotal,
+      taxRate,
+    );
+
+    // Create order item with modifiers
+    await prisma.orderItem.create({
+      data: {
+        orderId: order.id,
+        productId: product.id,
+        quantity,
+        unitPrice,
+        taxRate,
+        taxAmount: itemTaxAmount,
+        total: itemTotal,
+        notes: addItemDto.notes,
+        modifiers: {
+          create: itemModifiers.map((modifier) => ({
+            modifierId: modifier.id,
+            price: modifier.price,
+          })),
+        },
+      },
+    });
+
+    // Recalculate order totals
+    return this.recalculateOrderTotals(tenantId, orderId);
+  }
+
+  /**
+   * Update the quantity of an existing order item
+   * Only allowed for DRAFT orders
+   */
+  async updateItemQuantity(
+    tenantId: string,
+    orderId: string,
+    orderItemId: string,
+    quantity: number,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        typeof prisma.order.findFirst<{
+          include: {
+            items: {
+              include: {
+                modifiers: true;
+                product: {
+                  include: { tax: true };
+                };
+              };
+            };
+            user: { select: { id: true; name: true; email: true } };
+            branch: { select: { id: true; name: true } };
+            table: { select: { id: true; tableNumber: true; name: true } };
+            device: { select: { id: true; name: true } };
+            customer: { select: { id: true; name: true; phone: true } };
+          };
+        }>
+      >
+    >
+  > {
+    // Validate order exists and belongs to tenant
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Only allow modifications on DRAFT orders
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException('Cannot update items in a completed order');
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('Cannot update items in a cancelled order');
+    }
+
+    // Validate order item exists and belongs to the order
+    const orderItem = await prisma.orderItem.findFirst({
+      where: {
+        id: orderItemId,
+        orderId: order.id,
+      },
+      include: {
+        modifiers: true,
+        product: {
+          include: {
+            tax: true,
+          },
+        },
+      },
+    });
+
+    if (!orderItem) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    // Update quantity
+    const newQuantity = new Prisma.Decimal(quantity);
+    const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
+
+    const modifiersTotal = orderItem.modifiers.reduce(
+      (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
+      new Prisma.Decimal(0),
+    );
+
+    const taxRate = orderItem.product.tax?.rate || new Prisma.Decimal(0);
+    const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
+      newQuantity,
+      unitPrice,
+      modifiersTotal,
+      taxRate,
+    );
+
+    await prisma.orderItem.update({
+      where: { id: orderItemId },
+      data: {
+        quantity: newQuantity,
+        taxRate,
+        taxAmount: itemTaxAmount,
+        total: itemTotal,
+      },
+    });
+
+    // Recalculate order totals
+    return this.recalculateOrderTotals(tenantId, orderId);
+  }
+
+  /**
+   * Remove an item from an order
+   * Only allowed for DRAFT orders
+   */
+  async removeItemFromOrder(
+    tenantId: string,
+    orderId: string,
+    orderItemId: string,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        typeof prisma.order.findFirst<{
+          include: {
+            items: {
+              include: {
+                modifiers: true;
+                product: {
+                  include: { tax: true };
+                };
+              };
+            };
+            user: { select: { id: true; name: true; email: true } };
+            branch: { select: { id: true; name: true } };
+            table: { select: { id: true; tableNumber: true; name: true } };
+            device: { select: { id: true; name: true } };
+            customer: { select: { id: true; name: true; phone: true } };
+          };
+        }>
+      >
+    >
+  > {
+    // Validate order exists and belongs to tenant
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Only allow modifications on DRAFT orders
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Cannot remove items from a completed order',
+      );
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Cannot remove items from a cancelled order',
+      );
+    }
+
+    // Validate order item exists and belongs to the order
+    const orderItem = await prisma.orderItem.findFirst({
+      where: {
+        id: orderItemId,
+        orderId: order.id,
+      },
+    });
+
+    if (!orderItem) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    // Delete the order item (cascade will handle modifiers)
+    await prisma.orderItem.delete({
+      where: { id: orderItemId },
+    });
+
+    // Recalculate order totals
+    return this.recalculateOrderTotals(tenantId, orderId);
   }
 }

@@ -214,6 +214,7 @@ model Product {
   id            String   @id @default(cuid())
   tenantId      String
   name          String
+  description   String?
   imageUrl      String?
   sku           String?  @unique
   barcode       String?  @unique // retail

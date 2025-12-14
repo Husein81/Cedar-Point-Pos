@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { Prisma, prisma, OrderStatus } from '@repo/db';
 import type { OrderItem } from '@repo/types';

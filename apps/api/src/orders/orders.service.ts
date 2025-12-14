@@ -639,7 +639,7 @@ export class OrdersService {
     }
 
     return prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
+      await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.SENT_TO_KITCHEN },
       });
@@ -654,7 +654,17 @@ export class OrdersService {
         });
       }
 
-      return updatedOrder;
+      return tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: {
+            include: {
+              tickets: true,
+              product: { select: { id: true, name: true } },
+            },
+          },
+        },
+      });
     });
   }
 }

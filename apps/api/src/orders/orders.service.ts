@@ -337,9 +337,6 @@ export class OrdersService {
       startDate?: string;
       endDate?: string;
       tableId?: string;
-      search?: string;
-      sortBy?: string;
-      sortOrder?: 'asc' | 'desc';
     },
   ) {
     const page = Number(params.page) || 1;
@@ -353,8 +350,8 @@ export class OrdersService {
       endDate,
       tableId,
       search,
-      sortBy,
-      sortOrder,
+      sort,
+      order,
     } = params;
     const skip = (page - 1) * limit;
 
@@ -377,9 +374,9 @@ export class OrdersService {
     };
 
     const orderBy: Prisma.OrderOrderByWithRelationInput = {};
-    if (sortBy) {
-      orderBy[sortBy as keyof Prisma.OrderOrderByWithRelationInput] =
-        sortOrder || 'desc';
+    if (sort) {
+      orderBy[sort as keyof Prisma.OrderOrderByWithRelationInput] =
+        order || 'desc';
     } else {
       orderBy.createdAt = 'desc';
     }

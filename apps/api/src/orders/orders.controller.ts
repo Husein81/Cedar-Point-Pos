@@ -1,18 +1,18 @@
+import { Roles } from '@/common/decorators/roles.decorator';
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
-  Req,
-  Query,
   Patch,
+  Post,
+  Query,
+  Req,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole, OrderStatus, OrderType } from '@repo/db';
+import { OrderStatus, OrderType, UserRole } from '@repo/db';
 import type { Request } from 'express';
+import type { CreateOrderDto } from './dto/create-order.dto';
+import { OrdersService } from './orders.service';
 
 @Controller('orders')
 export class OrdersController {
@@ -45,8 +45,8 @@ export class OrdersController {
     @Query('endDate') endDate?: string,
     @Query('tableId') tableId?: string,
     @Query('search') search?: string,
-    @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('sort') sort?: string,
+    @Query('order') order?: 'asc' | 'desc',
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findAll(user.tenantId, {
@@ -60,8 +60,8 @@ export class OrdersController {
       endDate,
       tableId,
       search,
-      sortBy,
-      sortOrder,
+      order,
+      sort,
     });
   }
 

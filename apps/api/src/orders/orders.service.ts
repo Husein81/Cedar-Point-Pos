@@ -614,4 +614,47 @@ export class OrdersService {
       items,
     );
   }
+
+  /**
+   * Send order to kitchen
+   * Updates status to SENT_TO_KITCHEN and creates KDS tickets
+   */
+  async sendToKitchen(tenantId: string, orderId: string) {
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include: { items: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (
+      order.status !== OrderStatus.PENDING &&
+      order.status !== OrderStatus.DRAFT
+    ) {
+      throw new BadRequestException(
+        `Cannot send order with status ${order.status} to kitchen`,
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.SENT_TO_KITCHEN },
+      });
+
+      if (order.items.length > 0) {
+        await tx.orderItemTicket.createMany({
+          data: order.items.map((item) => ({
+            orderItemId: item.id,
+            status: OrderStatus.SENT_TO_KITCHEN,
+            station: 'Main Kitchen', // Default station for now
+          })),
+        });
+      }
+
+      return updatedOrder;
+    });
+  }
 }

@@ -1,0 +1,97 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto';
+import { StockAdjustmentService } from './stock-adjustment.service';
+
+@Controller('inventory/adjustments')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class StockAdjustmentController {
+  constructor(
+    private readonly stockAdjustmentService: StockAdjustmentService,
+  ) {}
+
+  /**
+   * Create a stock adjustment (ADD, REMOVE, or SET)
+   */
+  @Post()
+  @Roles('OWNER', 'MANAGER')
+  async adjustStock(
+    @Req() req: Request,
+    @Body() adjustmentDto: CreateStockAdjustmentDto,
+  ) {
+    const user = req.user as { tenantId: string; userId: string };
+    const tenantId = user.tenantId;
+    const userId = user.userId;
+
+    return this.stockAdjustmentService.adjustStock(
+      tenantId,
+      userId,
+      adjustmentDto,
+    );
+  }
+
+  /**
+   * Get adjustment history with filters
+   */
+  @Get()
+  @Roles('OWNER', 'MANAGER')
+  async getAdjustmentHistory(@Req() req: Request) {
+    const queryDto = req.query;
+    const { tenantId } = req.user as { tenantId: string };
+    return this.stockAdjustmentService.getAdjustmentHistory(tenantId, queryDto);
+  }
+
+  /**
+   * Get adjustment summary statistics
+   */
+  @Get('summary')
+  @Roles('OWNER', 'MANAGER')
+  async getAdjustmentSummary(
+    @Req() req: Request,
+    @Query('branchId') branchId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const { tenantId } = req.user as { tenantId: string };
+    return this.stockAdjustmentService.getAdjustmentSummary(
+      tenantId,
+      branchId,
+      startDate,
+      endDate,
+    );
+  }
+
+  /**
+   * Get adjustment history for a specific inventory item
+   */
+  @Get('inventory/:branchId/:productId')
+  @Roles('OWNER', 'MANAGER')
+  async getInventoryAdjustmentHistory(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Param('productId') productId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { tenantId } = req.user as { tenantId: string };
+    return this.stockAdjustmentService.getInventoryAdjustmentHistory(
+      tenantId,
+      branchId,
+      productId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
+  }
+}

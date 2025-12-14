@@ -16,7 +16,11 @@ export class BranchesController {
   @Post()
   createBranch(@Req() req: Request) {
     const body = req.body as Prisma.BranchCreateInput;
-    return this.branchesService.createBranch(body);
+    const { tenantId } = req.user as { tenantId: string };
+    return this.branchesService.createBranch({
+      ...body,
+      tenant: { connect: { id: tenantId } },
+    });
   }
 
   @Roles('OWNER', 'MANAGER')

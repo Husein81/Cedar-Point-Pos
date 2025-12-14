@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -62,6 +63,19 @@ enum ShiftStatus {
   CLOSED
 }
 
+enum TransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum AdjustmentType {
+  ADD
+  REMOVE
+  SET
+}
+
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -72,24 +86,26 @@ model Tenant {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  users            User[]
-  branches         Branch[]
-  products         Product[]
-  inventory        Inventory[] // Inventory records still belong to the Tenant scope
+  users          User[]
+  branches       Branch[]
+  products       Product[]
+  inventory      Inventory[] // Inventory records still belong to the Tenant scope
   inventoryHistory InventoryHistory[]
-  orders           Order[]
-  tables           Table[]
-  modifierGroups   ModifierGroup[]
-  recipes          Recipe[]
-  devices          POSDevice[]
-  customers        Customer[]
-  shifts           Shift[]
-  taxes            Tax[]
+  orders         Order[]
+  tables         Table[]
+  modifierGroups ModifierGroup[]
+  recipes        Recipe[]
+  devices        POSDevice[]
+  customers      Customer[]
+  shifts         Shift[]
+  taxes          Tax[]
+  transfers      Transfer[]
 
-  settings   Json? // feature flags, tax rates, etc.
-  modifiers  Modifier[]
-  categories Category[]
-  currencies Currency[]
+  settings         Json? // feature flags, tax rates, etc.
+  modifiers        Modifier[]
+  categories       Category[]
+  currencies       Currency[]
+  stockAdjustments StockAdjustment[]
 }
 
 model Currency {
@@ -116,11 +132,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId         String?
-  tenant           Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  orders           Order[]
-  shifts           Shift[]
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  orders   Order[]
+  shifts   Shift[]
   inventoryHistory InventoryHistory[]
+  transfersRequested Transfer[]        @relation("TransferRequests")
+  transfersApproved  Transfer[]        @relation("TransferApprovals")
+  stockAdjustments   StockAdjustment[] @relation("StockAdjustments")
 }
 
 //
@@ -134,13 +153,16 @@ model Branch {
   phone     String?
   isDeleted Boolean @default(false) // Soft delete
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id])
-  tables           Table[]
-  devices          POSDevice[]
-  inventory        Inventory[] // Inventory is tracked at the Branch level
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  tables    Table[]
+  devices   POSDevice[]
+  inventory Inventory[] // Inventory is tracked at the Branch level
+  orders    Order[]
+  shifts    Shift[]
   inventoryHistory InventoryHistory[]
-  orders           Order[]
-  shifts           Shift[]
+  transfersFrom    Transfer[]        @relation("TransfersFrom")
+  transfersTo      Transfer[]        @relation("TransfersTo")
+  stockAdjustments StockAdjustment[]
 }
 
 //
@@ -193,6 +215,7 @@ model Product {
   id            String   @id @default(cuid())
   tenantId      String
   name          String
+  description   String?
   imageUrl      String?
   sku           String?  @unique
   barcode       String?  @unique // retail
@@ -220,6 +243,8 @@ model Product {
   subcategory      Subcategory?      @relation(fields: [subcategoryId], references: [id])
   refunds          Refund[]
   offerGroupItems  OfferGroupItem[]
+  transferItems    TransferItem[]
+  stockAdjustments StockAdjustment[]
 }
 
 // 
@@ -264,9 +289,10 @@ model Inventory {
   minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
   lastAdjusted DateTime @updatedAt
 
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
-  branch  Branch  @relation(fields: [branchId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  branch      Branch            @relation(fields: [branchId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
+  adjustments StockAdjustment[]
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
@@ -307,6 +333,73 @@ model InventoryHistory {
   @@index([tenantId, branchId, createdAt])
   @@index([productId, createdAt])
   @@index([userId, createdAt])
+// ---------- STOCK ADJUSTMENTS ----------
+//
+
+model StockAdjustment {
+  id             String         @id @default(cuid())
+  tenantId       String
+  inventoryId    String
+  branchId       String
+  productId      String
+  type           AdjustmentType
+  quantityChange Decimal        @db.Decimal(10, 4) // Amount changed (positive or negative)
+  stockBefore    Decimal        @db.Decimal(10, 4) // Stock level before adjustment
+  stockAfter     Decimal        @db.Decimal(10, 4) // Stock level after adjustment
+  reason         String
+  adjustedBy     String // User ID who made the adjustment
+  createdAt      DateTime       @default(now())
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+  branch    Branch    @relation(fields: [branchId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+  user      User      @relation("StockAdjustments", fields: [adjustedBy], references: [id])
+
+  @@index([inventoryId])
+  @@index([branchId, productId])
+  @@index([createdAt])
+}
+
+//
+// ---------- INVENTORY TRANSFERS ----------
+//
+
+model Transfer {
+  id           String         @id @default(cuid())
+  tenantId     String
+  fromBranchId String
+  toBranchId   String
+  status       TransferStatus @default(PENDING)
+  requestedBy  String // User ID who initiated the transfer
+  approvedBy   String? // User ID who approved/completed the transfer
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  completedAt  DateTime?
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  fromBranch Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
+  toBranch   Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
+  requestor  User           @relation("TransferRequests", fields: [requestedBy], references: [id])
+  approver   User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
+  items      TransferItem[]
+
+  @@index([tenantId, status])
+  @@index([fromBranchId])
+  @@index([toBranchId])
+}
+
+model TransferItem {
+  id         String  @id @default(cuid())
+  transferId String
+  productId  String
+  quantity   Decimal @db.Decimal(10, 4)
+
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([transferId, productId])
 }
 
 // 

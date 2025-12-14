@@ -1,6 +1,10 @@
-import { Prisma } from '@repo/db';
+import z from 'zod';
 
-export type UpdateRecipeDto = Prisma.RecipeUpdateInput & {
-  productId?: string;
-  ingredientId?: string;
-};
+export const updateRecipeDto = z.object({
+  productId: z.string().optional(),
+  ingredientId: z.string().optional(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  quantity: z.number().optional(),
+});
+export type UpdateRecipeDto = z.infer<typeof updateRecipeDto>;

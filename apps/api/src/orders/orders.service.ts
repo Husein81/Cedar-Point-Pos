@@ -334,11 +334,25 @@ export class OrdersService {
       branchId?: string;
       userId?: string;
       type?: OrderType;
+      startDate?: string;
+      endDate?: string;
+      tableId?: string;
     },
   ) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
-    const { status, branchId, userId, type } = params;
+    const {
+      status,
+      branchId,
+      userId,
+      type,
+      startDate,
+      endDate,
+      tableId,
+      search,
+      sort,
+      order,
+    } = params;
     const skip = (page - 1) * limit;
 
     const where: Prisma.OrderWhereInput = {
@@ -347,7 +361,25 @@ export class OrdersService {
       ...(branchId && { branchId }),
       ...(userId && { userId }),
       ...(type && { type }),
+      ...(tableId && { tableId }),
+      ...(search && {
+        orderNumber: { contains: search, mode: 'insensitive' },
+      }),
+      ...((startDate || endDate) && {
+        createdAt: {
+          ...(startDate && { gte: new Date(startDate) }),
+          ...(endDate && { lte: new Date(endDate) }),
+        },
+      }),
     };
+
+    const orderBy: Prisma.OrderOrderByWithRelationInput = {};
+    if (sort) {
+      orderBy[sort as keyof Prisma.OrderOrderByWithRelationInput] =
+        order || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
 
     const [totalCount, orders] = await Promise.all([
       prisma.order.count({ where }),
@@ -389,9 +421,7 @@ export class OrdersService {
         },
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
       }),
     ]);
 

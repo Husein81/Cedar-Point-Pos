@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev --skip-generate",
-    "db:deploy": "prisma migrate deploy"
+    "db:push": "prisma db push"
   },
   "devDependencies": {
     "@types/pg": "^8.15.6",

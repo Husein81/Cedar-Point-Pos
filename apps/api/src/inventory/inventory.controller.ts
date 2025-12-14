@@ -13,6 +13,7 @@ import { InventoryService } from './inventory.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 import type { Request } from 'express';
 import { UserRole } from '@repo/db';
+import { QueryParams } from '@repo/types';
 
 @Controller('inventory')
 export class InventoryController {
@@ -54,17 +55,10 @@ export class InventoryController {
   }
 
   @Get(':branchId')
-  async getInventory(
-    @Param('branchId') branchId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.inventoryService.getInventoryByBranch(branchId, {
-      page,
-      limit,
-      search,
-    });
+  async getInventory(@Req() req: Request, @Param('branchId') branchId: string) {
+    const query = req.query as QueryParams;
+
+    return this.inventoryService.getInventoryByBranch(branchId, query);
   }
 
   @Get(':branchId/product/:productId')

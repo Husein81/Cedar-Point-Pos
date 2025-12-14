@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 
@@ -108,6 +112,96 @@ export class ProductsService {
     } catch (error) {
       console.error('Error deleting product:', error);
       throw new InternalServerErrorException('Failed to delete product');
+    }
+  }
+
+  async getModifiersByProduct(productId: string, tenantId: string) {
+    try {
+      const product = await prisma.product.findFirst({
+        where: {
+          id: productId,
+          tenantId,
+          isDeleted: false,
+        },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      const modifiers = await prisma.modifier.findMany({
+        where: {
+          productId,
+          tenantId,
+          isDeleted: false,
+          group: {
+            isDeleted: false,
+          },
+        },
+        include: {
+          group: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      type ModifierWithGroup = (typeof modifiers)[number];
+
+      const modifierGroupsMap = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          type: string;
+          modifiers: Array<{
+            id: string;
+            name: string;
+            price: number;
+          }>;
+        }
+      >();
+
+      modifiers.forEach((modifier: ModifierWithGroup) => {
+        const groupId = String(modifier.group.id);
+        if (!modifierGroupsMap.has(groupId)) {
+          modifierGroupsMap.set(groupId, {
+            id: String(modifier.group.id),
+            name: String(modifier.group.name),
+            type: String(modifier.group.type),
+            modifiers: [],
+          });
+        }
+
+        const group = modifierGroupsMap.get(groupId)!;
+        group.modifiers.push({
+          id: String(modifier.id),
+          name: String(modifier.name),
+          price: Number(modifier.price),
+        });
+      });
+
+      const modifierGroups = Array.from(modifierGroupsMap.values());
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        modifierGroups,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error fetching modifiers by product:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch modifiers for product',
+      );
     }
   }
 }

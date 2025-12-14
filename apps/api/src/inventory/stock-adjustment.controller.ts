@@ -1,24 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
-  Controller,
-  Post,
-  Get,
   Body,
-  Query,
+  Controller,
+  Get,
   Param,
-  UseGuards,
+  Post,
+  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { StockAdjustmentService } from './stock-adjustment.service';
-import type {
-  CreateStockAdjustmentDto,
-  StockAdjustmentHistoryQueryDto,
-} from './dto/stock-adjustment.dto';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { AdjustmentType } from '@repo/types';
-import type { Request } from 'express';
+import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto';
+import { StockAdjustmentService } from './stock-adjustment.service';
 
 @Controller('inventory/adjustments')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -52,26 +47,9 @@ export class StockAdjustmentController {
    */
   @Get()
   @Roles('OWNER', 'MANAGER')
-  async getAdjustmentHistory(
-    @Req() req: Request,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('branchId') branchId?: string,
-    @Query('productId') productId?: string,
-    @Query('type') type?: AdjustmentType,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
+  async getAdjustmentHistory(@Req() req: Request) {
+    const queryDto = req.query;
     const { tenantId } = req.user as { tenantId: string };
-    const queryDto: StockAdjustmentHistoryQueryDto = {
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 20,
-      branchId,
-      productId,
-      type,
-      startDate,
-      endDate,
-    };
     return this.stockAdjustmentService.getAdjustmentHistory(tenantId, queryDto);
   }
 

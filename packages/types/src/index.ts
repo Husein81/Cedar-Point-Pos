@@ -1,51 +1,57 @@
 import z from "zod";
-import id from "zod/v4/locales/id.js";
-
 // ===========================================
 //         Enums
 // ===========================================
-export enum AdjustmentType {
-  ADD = "ADD",
-  REMOVE = "REMOVE",
-  SET = "SET",
-}
-export enum BusinessType {
-  RESTAURANT = "RESTAURANT",
-  RETAIL = "RETAIL",
-}
+export const AdjustmentType = {
+  ADD: "ADD",
+  REMOVE: "REMOVE",
+  SET: "SET",
+} as const;
+export type AdjustmentType = z.infer<typeof AdjustmentType>;
 
-export enum ModifierType {
-  SINGLE = "SINGLE", // Only one modifier can be selected
-  MULTIPLE = "MULTIPLE", // Multiple modifiers can be selected
-}
+export const BusinessType = {
+  RESTAURANT: "RESTAURANT",
+  RETAIL: "RETAIL",
+} as const;
+export type BusinessType = z.infer<typeof BusinessType>;
 
-export enum OrderType {
-  DINE_IN = "DINE_IN",
-  TAKEAWAY = "TAKEAWAY",
-  DELIVERY = "DELIVERY",
-}
+export const ModifierType = {
+  SINGLE: "SINGLE", // Only one modifier can be selected
+  MULTIPLE: "MULTIPLE", // Multiple modifiers can be selected
+} as const;
+export type ModifierType = z.infer<typeof ModifierType>;
 
-export enum OrderStatus {
-  DRAFT = "DRAFT", // New: For orders being built on the POS
-  PENDING = "PENDING", // Order created but not processed
-  SENT_TO_KITCHEN = "SENT_TO_KITCHEN", // Order sent to kitchen/bar
-  READY = "READY", // Ready for pickup/serve
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-}
+export const OrderType = {
+  DINE_IN: "DINE_IN",
+  TAKEAWAY: "TAKEAWAY",
+  DELIVERY: "DELIVERY",
+} as const;
+export type OrderType = z.infer<typeof OrderType>;
 
-export enum SortOrder {
-  ASC = "asc",
-  DESC = "desc",
-}
+export const OrderStatus = {
+  DRAFT: "DRAFT", // New: For orders being built on the POS
+  PENDING: "PENDING", // Order created but not processed
+  SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
+  READY: "READY", // Ready for pickup/serve
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type OrderStatus = z.infer<typeof OrderStatus>;
 
-export enum UserRole {
-  ADMIN = "ADMIN",
-  OWNER = "OWNER",
-  MANAGER = "MANAGER",
-  CASHIER = "CASHIER",
-  KITCHEN = "KITCHEN",
-}
+export const SortOrder = {
+  ASC: "asc",
+  DESC: "desc",
+} as const;
+export type SortOrder = z.infer<typeof SortOrder>;
+
+export const UserRole = {
+  ADMIN: "ADMIN",
+  OWNER: "OWNER",
+  MANAGER: "MANAGER",
+  CASHIER: "CASHIER",
+  KITCHEN: "KITCHEN",
+} as const;
+export type UserRole = z.infer<typeof UserRole>;
 
 export const decimal = z.union([z.string(), z.number()]);
 // ===========================================

@@ -110,4 +110,15 @@ export class OrdersController {
     const user = req.user as { tenantId: string };
     return this.ordersService.previewOrderStockDeductions(user.tenantId, id);
   }
+
+  /**
+   * Send order to kitchen
+   * Transitions status to SENT_TO_KITCHEN and creates tickets
+   */
+  @Post(':id/send-to-kitchen')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  async sendToKitchen(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.sendToKitchen(user.tenantId, id);
+  }
 }

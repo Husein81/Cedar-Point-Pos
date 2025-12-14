@@ -89,6 +89,20 @@ export class OrdersController {
   }
 
   /**
+   * Update order discount
+   */
+  @Patch(':id/discount')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  updateDiscount(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { discount: number },
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
+  }
+
+  /**
    * Preview stock deductions for an order
    * Shows what inventory will be affected without executing
    */

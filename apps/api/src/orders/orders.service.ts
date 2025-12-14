@@ -17,16 +17,177 @@ export class OrdersService {
     private readonly inventoryDeductionService: InventoryDeductionService,
   ) {}
 
-  /**
-   * Create a new order in DRAFT status
-   */
+  private calculateItemTotals(
+    quantity: Prisma.Decimal,
+    unitPrice: Prisma.Decimal,
+    modifiersTotal: Prisma.Decimal,
+    taxRate: Prisma.Decimal,
+  ): {
+    itemSubtotal: Prisma.Decimal;
+    itemTaxAmount: Prisma.Decimal;
+    itemTotal: Prisma.Decimal;
+  } {
+    const itemSubtotal = quantity.times(unitPrice.plus(modifiersTotal));
+    const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
+
+    const itemTotal = itemSubtotal.plus(itemTaxAmount);
+
+    return {
+      itemSubtotal,
+      itemTaxAmount,
+      itemTotal,
+    };
+  }
+
+  async recalculateOrderTotals(
+    tenantId: string,
+    orderId: string,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        typeof prisma.order.findFirst<{
+          include: {
+            items: {
+              include: {
+                modifiers: true;
+                product: {
+                  include: { tax: true };
+                };
+              };
+            };
+            user: { select: { id: true; name: true; email: true } };
+            branch: { select: { id: true; name: true } };
+            table: { select: { id: true; tableNumber: true; name: true } };
+            device: { select: { id: true; name: true } };
+            customer: { select: { id: true; name: true; phone: true } };
+          };
+        }>
+      >
+    >
+  > {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+      include: {
+        items: {
+          include: {
+            modifiers: true,
+            product: {
+              include: {
+                tax: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    let subtotal = new Prisma.Decimal(0);
+    let taxAmount = new Prisma.Decimal(0);
+    for (const item of order.items) {
+      const quantity = new Prisma.Decimal(item.quantity);
+      const unitPrice = item.unitPrice || new Prisma.Decimal(0);
+      const modifiersTotal = item.modifiers.reduce(
+        (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
+        new Prisma.Decimal(0),
+      );
+      const taxRate = item.product.tax?.rate || new Prisma.Decimal(0);
+      const { itemSubtotal, itemTaxAmount, itemTotal } =
+        this.calculateItemTotals(quantity, unitPrice, modifiersTotal, taxRate);
+      await prisma.orderItem.update({
+        where: { id: item.id },
+        data: {
+          taxRate,
+          taxAmount: itemTaxAmount,
+          total: itemTotal,
+        },
+      });
+      subtotal = subtotal.plus(itemSubtotal);
+      taxAmount = taxAmount.plus(itemTaxAmount);
+    }
+    const discount = order.discount || new Prisma.Decimal(0);
+    const total = subtotal.plus(taxAmount).minus(discount);
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        subtotal,
+        taxAmount,
+        total,
+      },
+      include: {
+        items: {
+          include: {
+            modifiers: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                price: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        table: {
+          select: {
+            id: true,
+            tableNumber: true,
+            name: true,
+          },
+        },
+        device: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    return updatedOrder;
+  }
+
   async create(
     tenantId: string,
     userId: string,
     createOrderDto: CreateOrderDto,
   ) {
-    const { branchId, type, tableId, deviceId, shiftId, customerId, items } =
-      createOrderDto;
+    const {
+      branchId,
+      type,
+      tableId,
+      deviceId,
+      shiftId,
+      customerId,
+      items,
+      discount,
+    } = createOrderDto;
 
     // Validate branch exists and belongs to tenant
     const branch = await prisma.branch.findFirst({
@@ -117,7 +278,10 @@ export class OrdersService {
     });
     const orderNumber = `${branchId.slice(-4).toUpperCase()}-${String(orderCount + 1).padStart(4, '0')}`;
 
-    // If items are provided, validate products and calculate totals
+    const orderDiscount = discount
+      ? new Prisma.Decimal(discount)
+      : new Prisma.Decimal(0);
+
     let orderData: Prisma.OrderCreateInput = {
       tenant: { connect: { id: tenantId } },
       branch: { connect: { id: branchId } },
@@ -128,6 +292,7 @@ export class OrdersService {
       subtotal: new Prisma.Decimal(0),
       taxAmount: new Prisma.Decimal(0),
       total: new Prisma.Decimal(0),
+      discount: orderDiscount,
       ...(tableId && { table: { connect: { id: tableId } } }),
       ...(deviceId && { device: { connect: { id: deviceId } } }),
       ...(shiftId && { shift: { connect: { id: shiftId } } }),
@@ -153,7 +318,38 @@ export class OrdersService {
 
       const productMap = new Map(products.map((p) => [p.id, p]));
 
-      // Calculate totals
+      const allModifierIds = items
+        .flatMap((item) => item.modifiers || [])
+        .filter((id) => id);
+
+      let modifierMap = new Map<
+        string,
+        Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+      >();
+
+      if (allModifierIds.length > 0) {
+        const modifiers = await prisma.modifier.findMany({
+          where: {
+            id: { in: allModifierIds },
+            tenantId,
+            isDeleted: false,
+          },
+        });
+
+        modifierMap = new Map(modifiers.map((m) => [m.id, m]));
+
+        const foundModifierIds = new Set(modifiers.map((m) => m.id));
+        const missingModifiers = allModifierIds.filter(
+          (id) => !foundModifierIds.has(id),
+        );
+
+        if (missingModifiers.length > 0) {
+          throw new BadRequestException(
+            `One or more modifiers not found: ${missingModifiers.join(', ')}`,
+          );
+        }
+      }
+
       let subtotal = new Prisma.Decimal(0);
       let taxAmount = new Prisma.Decimal(0);
 
@@ -165,12 +361,30 @@ export class OrdersService {
 
         const quantity = new Prisma.Decimal(item.quantity);
         const unitPrice = product.price || new Prisma.Decimal(0);
-        const itemSubtotal = quantity.times(unitPrice);
 
-        // Calculate tax
+        const itemModifiers = (item.modifiers || [])
+          .map((modifierId) => modifierMap.get(modifierId))
+          .filter(
+            (
+              m,
+            ): m is Awaited<
+              ReturnType<typeof prisma.modifier.findMany>
+            >[number] => m !== undefined,
+          );
+
+        const modifiersTotal = itemModifiers.reduce(
+          (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
+          new Prisma.Decimal(0),
+        );
+
         const taxRate = product.tax?.rate || new Prisma.Decimal(0);
-        const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
-        const itemTotal = itemSubtotal.plus(itemTaxAmount);
+        const { itemSubtotal, itemTaxAmount, itemTotal } =
+          this.calculateItemTotals(
+            quantity,
+            unitPrice,
+            modifiersTotal,
+            taxRate,
+          );
 
         subtotal = subtotal.plus(itemSubtotal);
         taxAmount = taxAmount.plus(itemTaxAmount);
@@ -183,10 +397,15 @@ export class OrdersService {
           taxAmount: itemTaxAmount,
           total: itemTotal,
           notes: item.notes,
+          modifiers: {
+            create: itemModifiers.map((modifier) => ({
+              modifierId: modifier.id,
+              price: modifier.price,
+            })),
+          },
         };
       });
-
-      const total = subtotal.plus(taxAmount);
+      const total = subtotal.plus(taxAmount).minus(orderDiscount);
 
       orderData = {
         ...orderData,
@@ -545,6 +764,69 @@ export class OrdersService {
     });
 
     return updated;
+  }
+
+  async updateDiscount(
+    tenantId: string,
+    orderId: string,
+    discount: number,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        typeof prisma.order.findFirst<{
+          include: {
+            items: {
+              include: {
+                modifiers: true;
+                product: {
+                  include: { tax: true };
+                };
+              };
+            };
+            user: { select: { id: true; name: true; email: true } };
+            branch: { select: { id: true; name: true } };
+            table: { select: { id: true; tableNumber: true; name: true } };
+            device: { select: { id: true; name: true } };
+            customer: { select: { id: true; name: true; phone: true } };
+          };
+        }>
+      >
+    >
+  > {
+    if (discount < 0) {
+      throw new BadRequestException('Discount cannot be negative');
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Cannot modify discount on completed order',
+      );
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Cannot modify discount on cancelled order',
+      );
+    }
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        discount: new Prisma.Decimal(discount),
+      },
+    });
+    return this.recalculateOrderTotals(tenantId, orderId);
   }
 
   /**

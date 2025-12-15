@@ -14,6 +14,7 @@ import { OrderStatus, OrderType, UserRole } from '@repo/db';
 import { SortOrder } from '@repo/types';
 import type { Request } from 'express';
 import type { AddItemDto } from './dto/add-item.dto';
+import type { AssignTableDto } from './dto/assign-table.dto';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { UpdateQuantityDto } from './dto/update-quantity.dto';
 import { OrdersService } from './orders.service';
@@ -113,6 +114,21 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
+  }
+
+  @Patch(':id/table')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  assignTableToOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() assignTableDto: AssignTableDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.assignTableToOrder(
+      user.tenantId,
+      id,
+      assignTableDto,
+    );
   }
 
   @Post(':id/items')

@@ -30,6 +30,15 @@ enum BusinessType {
   RESTAURANT
 }
 
+enum InventoryChangeType {
+  SET_STOCK // Direct stock set
+  ADJUST_STOCK // Stock adjustment (increment/decrement)
+  SET_MIN_STOCK // Minimum stock threshold change
+  ORDER_DEDUCT // Stock deducted from order
+  ORDER_RETURN // Stock returned from refund
+  MANUAL_ADJUST // Manual adjustment
+}
+
 enum OrderType {
   DINE_IN
   TAKEAWAY
@@ -70,12 +79,6 @@ enum TransferStatus {
   CANCELLED
 }
 
-enum AdjustmentType {
-  ADD
-  REMOVE
-  SET
-}
-
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -86,25 +89,25 @@ model Tenant {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  users          User[]
-  branches       Branch[]
-  products       Product[]
-  inventory      Inventory[] // Inventory records still belong to the Tenant scope
-  orders         Order[]
-  tables         Table[]
-  modifierGroups ModifierGroup[]
-  recipes        Recipe[]
-  devices        POSDevice[]
-  customers      Customer[]
-  shifts         Shift[]
-  taxes          Tax[]
-  transfers      Transfer[]
+  users            User[]
+  branches         Branch[]
+  products         Product[]
+  inventory        Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory InventoryHistory[]
+  orders           Order[]
+  tables           Table[]
+  modifierGroups   ModifierGroup[]
+  recipes          Recipe[]
+  devices          POSDevice[]
+  customers        Customer[]
+  shifts           Shift[]
+  taxes            Tax[]
+  transfers        Transfer[]
 
-  settings         Json? // feature flags, tax rates, etc.
-  modifiers        Modifier[]
-  categories       Category[]
-  currencies       Currency[]
-  stockAdjustments StockAdjustment[]
+  settings   Json? // feature flags, tax rates, etc.
+  modifiers  Modifier[]
+  categories Category[]
+  currencies Currency[]
 }
 
 model Currency {
@@ -131,14 +134,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenantId String?
-  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  orders   Order[]
-  shifts   Shift[]
-
-  transfersRequested Transfer[]        @relation("TransferRequests")
-  transfersApproved  Transfer[]        @relation("TransferApprovals")
-  stockAdjustments   StockAdjustment[] @relation("StockAdjustments")
+  tenantId           String?
+  tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  orders             Order[]
+  shifts             Shift[]
+  inventoryHistory   InventoryHistory[]
+  transfersRequested Transfer[]         @relation("TransferRequests")
+  transfersApproved  Transfer[]         @relation("TransferApprovals")
 }
 
 //
@@ -152,16 +154,15 @@ model Branch {
   phone     String?
   isDeleted Boolean @default(false) // Soft delete
 
-  tenant    Tenant      @relation(fields: [tenantId], references: [id])
-  tables    Table[]
-  devices   POSDevice[]
-  inventory Inventory[] // Inventory is tracked at the Branch level
-  orders    Order[]
-  shifts    Shift[]
-
-  transfersFrom    Transfer[]        @relation("TransfersFrom")
-  transfersTo      Transfer[]        @relation("TransfersTo")
-  stockAdjustments StockAdjustment[]
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
+  tables           Table[]
+  devices          POSDevice[]
+  inventory        Inventory[] // Inventory is tracked at the Branch level
+  orders           Order[]
+  shifts           Shift[]
+  inventoryHistory InventoryHistory[]
+  transfersFrom    Transfer[]         @relation("TransfersFrom")
+  transfersTo      Transfer[]         @relation("TransfersTo")
 }
 
 //
@@ -231,18 +232,18 @@ model Product {
   taxId String?
   tax   Tax?    @relation(fields: [taxId], references: [id])
 
-  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
   inventory        Inventory[]
+  inventoryHistory InventoryHistory[]
   modifiers        Modifier[]
-  recipesUsedIn    Recipe[]          @relation("SellableRecipe") // Recipe output product
-  ingredientIn     Recipe[]          @relation("IngredientRecipe") // Product used as ingredient
+  recipesUsedIn    Recipe[]           @relation("SellableRecipe") // Recipe output product
+  ingredientIn     Recipe[]           @relation("IngredientRecipe") // Product used as ingredient
   orderItems       OrderItem[]
-  category         Category?         @relation(fields: [categoryId], references: [id])
-  subcategory      Subcategory?      @relation(fields: [subcategoryId], references: [id])
+  category         Category?          @relation(fields: [categoryId], references: [id])
+  subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
   refunds          Refund[]
   offerGroupItems  OfferGroupItem[]
   transferItems    TransferItem[]
-  stockAdjustments StockAdjustment[]
 }
 
 // 
@@ -287,42 +288,40 @@ model Inventory {
   minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
   lastAdjusted DateTime @updatedAt
 
-  tenant      Tenant            @relation(fields: [tenantId], references: [id])
-  branch      Branch            @relation(fields: [branchId], references: [id])
-  product     Product           @relation(fields: [productId], references: [id])
-  adjustments StockAdjustment[]
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
 }
 
 //
-// ---------- STOCK ADJUSTMENTS ----------
+// ---------- INVENTORY HISTORY (Audit Trail) ----------
 //
-
-model StockAdjustment {
-  id             String         @id @default(cuid())
+model InventoryHistory {
+  id             String              @id @default(cuid())
   tenantId       String
-  inventoryId    String
   branchId       String
   productId      String
-  type           AdjustmentType
-  quantityChange Decimal        @db.Decimal(10, 4) // Amount changed (positive or negative)
-  stockBefore    Decimal        @db.Decimal(10, 4) // Stock level before adjustment
-  stockAfter     Decimal        @db.Decimal(10, 4) // Stock level after adjustment
-  reason         String
-  adjustedBy     String // User ID who made the adjustment
-  createdAt      DateTime       @default(now())
+  userId         String // User who made the change
+  changeType     InventoryChangeType
+  beforeStock    Decimal             @db.Decimal(10, 4) // Stock quantity before change
+  afterStock     Decimal             @db.Decimal(10, 4) // Stock quantity after change
+  adjustment     Decimal             @db.Decimal(10, 4) // Net change (afterStock - beforeStock)
+  beforeMinStock Decimal?            @db.Decimal(10, 4) // Min stock before change (if applicable)
+  afterMinStock  Decimal?            @db.Decimal(10, 4) // Min stock after change (if applicable)
+  reason         String? // Reason for the adjustment
+  createdAt      DateTime            @default(now())
 
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  inventory Inventory @relation(fields: [inventoryId], references: [id])
-  branch    Branch    @relation(fields: [branchId], references: [id])
-  product   Product   @relation(fields: [productId], references: [id])
-  user      User      @relation("StockAdjustments", fields: [adjustedBy], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 
-  @@index([inventoryId])
-  @@index([branchId, productId])
-  @@index([createdAt])
+  @@index([tenantId, branchId, createdAt])
+  @@index([productId, createdAt])
+  @@index([userId, createdAt])
 }
 
 //

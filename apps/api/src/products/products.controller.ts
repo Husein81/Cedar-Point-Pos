@@ -1,8 +1,8 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import { Prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { ProductsService } from './products.service';
+import { Prisma } from '@repo/db';
 
 @Controller('products')
 export class ProductsController {
@@ -51,5 +51,21 @@ export class ProductsController {
       throw new Error('Product ID is required');
     }
     return this.productsService.deleteProduct(id);
+  }
+
+  @Get('/:id/modifiers')
+  getModifiersByProduct(@Req() req: Request) {
+    const { id: productId } = req.params;
+    const { tenantId } = req.user as { tenantId: string };
+
+    if (!productId) {
+      throw new Error('Product ID is required');
+    }
+
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+
+    return this.productsService.getModifiersByProduct(productId, tenantId);
   }
 }

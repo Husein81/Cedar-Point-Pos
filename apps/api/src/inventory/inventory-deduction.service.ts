@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { Prisma, prisma, OrderStatus } from '@repo/db';
 import type { OrderItem } from '@repo/types';
@@ -32,6 +34,7 @@ export class InventoryDeductionService {
     tenantId: string,
     orderId: string,
     branchId: string,
+    userId?: string,
   ) {
     // Get order with items
     const order = await prisma.order.findFirst({
@@ -76,8 +79,14 @@ export class InventoryDeductionService {
       });
     }
 
-    // Execute deductions atomically
-    await this.executeStockDeductions(tenantId, branchId, deductions);
+    // Execute deductions atomically with audit trail
+    await this.executeStockDeductions(
+      tenantId,
+      branchId,
+      deductions,
+      orderId,
+      userId,
+    );
 
     this.logger.log(
       `Stock deducted for order ${orderId}: ${deductions.length} products/ingredients`,
@@ -204,12 +213,14 @@ export class InventoryDeductionService {
   }
 
   /**
-   * Execute stock deductions atomically
+   * Execute stock deductions atomically with audit trail
    */
   private async executeStockDeductions(
     tenantId: string,
     branchId: string,
     deductions: StockDeductionItem[],
+    orderId?: string,
+    userId?: string,
   ) {
     await prisma.$transaction(async (tx) => {
       for (const deduction of deductions) {
@@ -228,6 +239,10 @@ export class InventoryDeductionService {
           );
         }
 
+        const beforeStock = Number(inventory.stock);
+        const afterStock = beforeStock - deduction.quantity;
+        const adjustment = -deduction.quantity;
+
         // Deduct stock
         await tx.inventory.update({
           where: { id: inventory.id },
@@ -237,6 +252,25 @@ export class InventoryDeductionService {
             },
           },
         });
+
+        // Create audit trail record (only if userId is provided)
+        if (userId) {
+          await tx.inventoryHistory.create({
+            data: {
+              tenantId,
+              branchId,
+              productId: deduction.productId,
+              userId,
+              changeType: 'ORDER_DEDUCT',
+              beforeStock: new Prisma.Decimal(beforeStock),
+              afterStock: new Prisma.Decimal(afterStock),
+              adjustment: new Prisma.Decimal(adjustment),
+              reason: orderId
+                ? `Order deduction for order ${orderId}`
+                : 'Order deduction',
+            },
+          });
+        }
       }
     });
   }

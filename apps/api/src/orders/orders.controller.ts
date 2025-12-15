@@ -81,8 +81,8 @@ export class OrdersController {
   @Post(':id/complete')
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
   completeOrder(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.ordersService.completeOrder(user.tenantId, id);
+    const user = req.user as { tenantId: string; userId: string };
+    return this.ordersService.completeOrder(user.tenantId, id, user.userId);
   }
 
   /**

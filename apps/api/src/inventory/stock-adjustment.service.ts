@@ -1,27 +1,31 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { prisma, Prisma } from '@repo/db';
+import { prisma, Prisma, InventoryChangeType } from '@repo/db';
 import type {
   CreateStockAdjustmentDto,
   StockAdjustmentHistoryQueryDto,
 } from './dto/stock-adjustment.dto';
-import { AdjustmentType } from '@repo/types';
 
 @Injectable()
 export class StockAdjustmentService {
   /**
    * Adjust stock for a product at a branch
-   * Supports ADD, REMOVE, and SET operations
+   * Supports ADD, REMOVE, and SET operations with reason tracking
+   * Updates lastAdjusted timestamp automatically via Prisma @updatedAt
+   * Creates audit trail in InventoryHistory
    */
   async adjustStock(
     tenantId: string,
     userId: string,
     adjustmentDto: CreateStockAdjustmentDto,
-  ): Promise<void> {
-    const { branchId, productId, type, quantity, reason } = adjustmentDto;
+  ) {
+    const { branchId, productId, operation, quantity, reason } = adjustmentDto;
 
     // Verify branch belongs to tenant
     const branch = await prisma.branch.findFirst({
@@ -74,44 +78,43 @@ export class StockAdjustmentService {
 
     const stockBefore = Number(inventory.stock);
     let stockAfter: number;
-    let quantityChange: number;
 
-    // Calculate new stock level based on adjustment type
-    switch (type) {
-      case AdjustmentType.ADD:
-        stockAfter = stockBefore + quantity;
-        quantityChange = quantity;
-        break;
-
-      case AdjustmentType.REMOVE:
-        if (quantity > stockBefore) {
-          throw new BadRequestException(
-            `Cannot remove ${quantity} units. Only ${stockBefore} units available in stock`,
-          );
-        }
-        stockAfter = stockBefore - quantity;
-        quantityChange = -quantity;
-        break;
-
-      case AdjustmentType.SET:
+    // Calculate new stock level based on operation type (matching Prisma InventoryChangeType)
+    switch (operation) {
+      case 'SET_STOCK':
+        // Set stock to absolute value
         stockAfter = quantity;
-        quantityChange = quantity - stockBefore;
+        break;
+
+      case 'ADJUST_STOCK':
+        // Adjust stock by quantity (positive to add, negative to remove)
+        stockAfter = stockBefore + quantity;
+        break;
+
+      case 'MANUAL_ADJUST':
+        // Manual adjustment - set to absolute value
+        stockAfter = quantity;
         break;
 
       default:
-        throw new BadRequestException(`Invalid adjustment type`);
+        throw new BadRequestException(
+          `Invalid operation type. Use SET_STOCK, ADJUST_STOCK, or MANUAL_ADJUST`,
+        );
     }
 
     // Validate stock doesn't go negative
     if (stockAfter < 0) {
       throw new BadRequestException(
-        `Stock cannot be negative. Current stock: ${stockBefore}`,
+        `Stock cannot be negative. Attempted: ${stockAfter}, Current stock: ${stockBefore}`,
       );
     }
 
+    // Use the operation directly as InventoryChangeType
+    const changeType = operation as InventoryChangeType;
+
     // Perform adjustment in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Update inventory
+    const result = await prisma.$transaction(async (tx) => {
+      // Update inventory (lastAdjusted is auto-updated via @updatedAt)
       const updatedInventory = await tx.inventory.update({
         where: {
           branchId_productId: {
@@ -120,23 +123,7 @@ export class StockAdjustmentService {
           },
         },
         data: {
-          stock: stockAfter,
-        },
-      });
-
-      // Create adjustment record
-      const adjustment = await tx.stockAdjustment.create({
-        data: {
-          tenantId,
-          inventoryId: updatedInventory.id,
-          branchId,
-          productId,
-          type,
-          quantityChange,
-          stockBefore,
-          stockAfter,
-          reason,
-          adjustedBy: userId,
+          stock: new Prisma.Decimal(stockAfter),
         },
         include: {
           product: {
@@ -152,22 +139,52 @@ export class StockAdjustmentService {
               name: true,
             },
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
         },
       });
 
-      return adjustment;
+      // Create history record for audit trail
+      // Tracks: user, timestamp, before/after quantities, and reason
+      await tx.inventoryHistory.create({
+        data: {
+          tenantId,
+          branchId,
+          productId,
+          userId,
+          changeType,
+          beforeStock: new Prisma.Decimal(stockBefore),
+          afterStock: new Prisma.Decimal(stockAfter),
+          adjustment: new Prisma.Decimal(stockAfter - stockBefore),
+          reason,
+        },
+      });
+
+      return updatedInventory;
     });
+
+    return {
+      message: 'Stock adjusted successfully',
+      inventory: {
+        id: result.id,
+        stock: Number(result.stock),
+        minStock: Number(result.minStock),
+        lastAdjusted: result.lastAdjusted,
+        product: result.product,
+        branch: result.branch,
+      },
+      adjustment: {
+        operation,
+        changeType,
+        quantity,
+        stockBefore,
+        stockAfter,
+        reason,
+      },
+    };
   }
 
   /**
    * Get adjustment history with filters
+   * Returns audit trail with user, timestamp, before/after quantities, and reason
    */
   async getAdjustmentHistory(
     tenantId: string,
@@ -178,18 +195,18 @@ export class StockAdjustmentService {
       limit = 20,
       branchId,
       productId,
-      type,
+      changeType,
       startDate,
       endDate,
     } = queryDto;
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.StockAdjustmentWhereInput = {
+    const where: Prisma.InventoryHistoryWhereInput = {
       tenantId,
       ...(branchId && { branchId }),
       ...(productId && { productId }),
-      ...(type && { type }),
+      ...(changeType && { changeType }),
       ...(startDate &&
         endDate && {
           createdAt: {
@@ -199,9 +216,9 @@ export class StockAdjustmentService {
         }),
     };
 
-    const [totalCount, adjustments] = await Promise.all([
-      prisma.stockAdjustment.count({ where }),
-      prisma.stockAdjustment.findMany({
+    const [totalCount, adjustments] = (await Promise.all([
+      prisma.inventoryHistory.count({ where }),
+      prisma.inventoryHistory.findMany({
         where,
         include: {
           product: {
@@ -231,10 +248,49 @@ export class StockAdjustmentService {
           createdAt: 'desc',
         },
       }),
-    ]);
+    ])) as [
+      number,
+      Prisma.InventoryHistoryGetPayload<{
+        include: {
+          product: {
+            select: {
+              id: true;
+              name: true;
+              sku: true;
+            };
+          };
+          branch: {
+            select: {
+              id: true;
+              name: true;
+            };
+          };
+          user: {
+            select: {
+              id: true;
+              name: true;
+              email: true;
+            };
+          };
+        };
+      }>[],
+    ];
 
     return {
-      data: adjustments,
+      data: adjustments.map((adj) => ({
+        id: adj.id,
+        changeType: adj.changeType,
+        beforeStock: Number(adj.beforeStock),
+        afterStock: Number(adj.afterStock),
+        adjustment: Number(adj.adjustment),
+        beforeMinStock: adj.beforeMinStock ? Number(adj.beforeMinStock) : null,
+        afterMinStock: adj.afterMinStock ? Number(adj.afterMinStock) : null,
+        reason: adj.reason,
+        createdAt: adj.createdAt,
+        product: adj.product,
+        branch: adj.branch,
+        user: adj.user,
+      })),
       pagination: {
         page,
         limit,
@@ -270,14 +326,16 @@ export class StockAdjustmentService {
     const skip = (page - 1) * limit;
 
     const [totalCount, adjustments] = await Promise.all([
-      prisma.stockAdjustment.count({
+      prisma.inventoryHistory.count({
         where: {
-          inventoryId: inventory.id,
+          branchId,
+          productId,
         },
       }),
-      prisma.stockAdjustment.findMany({
+      prisma.inventoryHistory.findMany({
         where: {
-          inventoryId: inventory.id,
+          branchId,
+          productId,
         },
         include: {
           product: {
@@ -310,7 +368,20 @@ export class StockAdjustmentService {
     ]);
 
     return {
-      data: adjustments,
+      data: adjustments.map((adj) => ({
+        id: adj.id,
+        changeType: adj.changeType,
+        beforeStock: Number(adj.beforeStock),
+        afterStock: Number(adj.afterStock),
+        adjustment: Number(adj.adjustment),
+        beforeMinStock: adj.beforeMinStock ? Number(adj.beforeMinStock) : null,
+        afterMinStock: adj.afterMinStock ? Number(adj.afterMinStock) : null,
+        reason: adj.reason,
+        createdAt: adj.createdAt,
+        product: adj.product,
+        branch: adj.branch,
+        user: adj.user,
+      })),
       pagination: {
         page,
         limit,
@@ -334,7 +405,7 @@ export class StockAdjustmentService {
     startDate?: string,
     endDate?: string,
   ) {
-    const where: Prisma.StockAdjustmentWhereInput = {
+    const where: Prisma.InventoryHistoryWhereInput = {
       tenantId,
       ...(branchId && { branchId }),
       ...(startDate &&
@@ -347,12 +418,12 @@ export class StockAdjustmentService {
     };
 
     const [totalAdjustments, adjustmentsByType] = await Promise.all([
-      prisma.stockAdjustment.count({ where }),
-      prisma.stockAdjustment.groupBy({
-        by: ['type'],
+      prisma.inventoryHistory.count({ where }),
+      prisma.inventoryHistory.groupBy({
+        by: ['changeType'],
         where,
         _count: {
-          type: true,
+          changeType: true,
         },
       }),
     ]);
@@ -360,8 +431,8 @@ export class StockAdjustmentService {
     const summary = {
       totalAdjustments,
       byType: adjustmentsByType.reduce(
-        (acc, item) => {
-          acc[item.type] = item._count.type;
+        (acc: Record<string, number>, item): Record<string, number> => {
+          acc[item.changeType] = item._count.changeType;
           return acc;
         },
         {} as Record<string, number>,

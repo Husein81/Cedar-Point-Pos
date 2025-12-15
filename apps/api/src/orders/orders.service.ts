@@ -440,7 +440,7 @@ export class OrdersService {
    * Complete an order and deduct stock
    * Handles both regular products and recipe-based ingredient deduction
    */
-  async completeOrder(tenantId: string, orderId: string) {
+  async completeOrder(tenantId: string, orderId: string, userId?: string) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -469,6 +469,7 @@ export class OrdersService {
         tenantId,
         orderId,
         order.branchId,
+        userId,
       );
 
     // Update order status to COMPLETED

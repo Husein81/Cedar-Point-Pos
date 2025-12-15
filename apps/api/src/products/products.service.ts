@@ -1,6 +1,25 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
+
+// Type definitions for Prisma (will be available after prisma generate)
+// These are temporary types until Prisma client is generated
+type PrismaProductWhereInput = {
+  tenantId?: string;
+  OR?: Array<{
+    name?: { contains: string; mode?: 'insensitive' };
+    sku?: { contains: string; mode?: 'insensitive' };
+  }>;
+};
+
+type PrismaProductOrderByWithRelationInput = {
+  [key: string]: 'asc' | 'desc' | undefined;
+  createdAt?: 'asc' | 'desc';
+};
 
 @Injectable()
 export class ProductsService {
@@ -17,7 +36,7 @@ export class ProductsService {
       const limit = Number(params.limit) || 10;
 
       const skip = (page - 1) * limit;
-      const where: Prisma.ProductWhereInput = { tenantId };
+      const where: PrismaProductWhereInput = { tenantId };
       if (search) {
         where.OR = [
           {
@@ -35,22 +54,23 @@ export class ProductsService {
         ];
       }
 
-      const orderBy: Prisma.ProductOrderByWithRelationInput = {};
+      const orderBy: PrismaProductOrderByWithRelationInput = {};
       if (sort) {
         (orderBy as Record<string, any>)[sort] = order || 'asc';
       } else {
         orderBy.createdAt = 'desc';
       }
 
-      const [totalCount, data] = await Promise.all([
+      const [totalCount, data] = (await Promise.all([
         prisma.product.count({ where }),
+
         prisma.product.findMany({
           where,
           orderBy,
           skip,
           take: limit,
         }),
-      ]);
+      ])) as [number, unknown[]];
 
       return {
         data,
@@ -108,6 +128,60 @@ export class ProductsService {
     } catch (error) {
       console.error('Error deleting product:', error);
       throw new InternalServerErrorException('Failed to delete product');
+    }
+  }
+
+  async getModifiersByProduct(productId: string, tenantId: string) {
+    try {
+      const product = await prisma.product.findFirst({
+        where: {
+          id: productId,
+          tenantId,
+          isDeleted: false,
+        },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found');
+      }
+
+      // Fetch all modifiers for this product that are not deleted
+      const modifiers = await prisma.modifier.findMany({
+        where: {
+          productId,
+          tenantId,
+          isDeleted: false,
+          group: {
+            isDeleted: false,
+          },
+        },
+        include: {
+          group: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      return {
+        productId: product.id,
+        productName: product.name,
+        modifiers,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error fetching modifiers by product:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch modifiers for product',
+      );
     }
   }
 }

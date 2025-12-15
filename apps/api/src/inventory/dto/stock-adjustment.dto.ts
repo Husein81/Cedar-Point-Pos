@@ -1,11 +1,11 @@
-import { AdjustmentType } from '@repo/types';
 import z from 'zod';
+import { InventoryChangeType } from '@repo/types';
 
 export const createStockAdjustmentSchema = z.object({
   branchId: z.string(),
   productId: z.string(),
-  type: z.enum(AdjustmentType),
-  quantity: z.number(),
+  operation: z.enum(InventoryChangeType),
+  quantity: z.number(), // For ADJUST_STOCK: positive to add, negative to remove. For SET_STOCK/MANUAL_ADJUST: absolute value
   reason: z.string(),
 });
 export type CreateStockAdjustmentDto = z.infer<
@@ -17,7 +17,7 @@ export const stockAdjustmentHistoryQuerySchema = z.object({
   limit: z.number().optional(),
   branchId: z.string().optional(),
   productId: z.string().optional(),
-  type: z.enum(AdjustmentType).optional(),
+  changeType: z.enum(InventoryChangeType).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });

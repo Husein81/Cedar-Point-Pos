@@ -51,17 +51,10 @@ export class InventoryController {
   }
 
   @Get(':branchId')
-  async getInventory(
-    @Param('branchId') branchId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-  ) {
-    return this.inventoryService.getInventoryByBranch(branchId, {
-      page,
-      limit,
-      search,
-    });
+  async getInventory(@Req() req: Request, @Param('branchId') branchId: string) {
+    const query = req.query as QueryParams;
+
+    return this.inventoryService.getInventoryByBranch(branchId, query);
   }
 
   @Get(':branchId/product/:productId')

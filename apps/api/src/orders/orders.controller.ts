@@ -1,18 +1,18 @@
+import { Roles } from '@/common/decorators/roles.decorator';
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
-  Req,
-  Query,
   Patch,
+  Post,
+  Query,
+  Req,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole, OrderStatus, OrderType } from '@repo/db';
+import { OrderStatus, OrderType, UserRole } from '@repo/db';
 import type { Request } from 'express';
+import type { CreateOrderDto } from './dto/create-order.dto';
+import { OrdersService } from './orders.service';
 
 @Controller('orders')
 export class OrdersController {
@@ -41,6 +41,12 @@ export class OrdersController {
     @Query('branchId') branchId?: string,
     @Query('userId') userId?: string,
     @Query('type') type?: OrderType,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('tableId') tableId?: string,
+    @Query('search') search?: string,
+    @Query('sort') sort?: string,
+    @Query('order') order?: 'asc' | 'desc',
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findAll(user.tenantId, {
@@ -50,6 +56,12 @@ export class OrdersController {
       branchId,
       userId,
       type,
+      startDate,
+      endDate,
+      tableId,
+      search,
+      order,
+      sort,
     });
   }
 
@@ -97,5 +109,16 @@ export class OrdersController {
   previewDeductions(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.ordersService.previewOrderStockDeductions(user.tenantId, id);
+  }
+
+  /**
+   * Send order to kitchen
+   * Transitions status to SENT_TO_KITCHEN and creates tickets
+   */
+  @Post(':id/send-to-kitchen')
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  async sendToKitchen(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.sendToKitchen(user.tenantId, id);
   }
 }

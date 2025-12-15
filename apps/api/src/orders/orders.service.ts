@@ -11,9 +11,8 @@ import { InventoryDeductionService } from '@/inventory/inventory-deduction.servi
 
 @Injectable()
 export class OrdersService {
-  private readonly logger = new Logger(OrdersService.name);
-
   constructor(
+    private readonly logger = new Logger(OrdersService.name),
     private readonly inventoryDeductionService: InventoryDeductionService,
   ) {}
 

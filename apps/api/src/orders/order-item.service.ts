@@ -1,19 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  Inject,
-  forwardRef,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrderItem, Prisma, prisma } from '@repo/db';
 import { AddModifierDto } from './dto/add-modifier-dto';
 import { OrdersService } from './orders.service';
 
 @Injectable()
 export class OrderItemService {
-  constructor(
-    @Inject(forwardRef(() => OrdersService))
-    private readonly ordersService: OrdersService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
   async addModifier(orderItemId: string, addModifierDto: AddModifierDto) {
     const orderItem = await prisma.orderItem.findUnique({
       where: { id: orderItemId },

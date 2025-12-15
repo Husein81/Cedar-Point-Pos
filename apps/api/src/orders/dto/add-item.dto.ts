@@ -7,4 +7,3 @@ export const addItemDto = z.object({
   modifiers: z.array(z.string()).optional(), // Array of modifier IDs
 });
 export type AddItemDto = z.infer<typeof addItemDto>;
-

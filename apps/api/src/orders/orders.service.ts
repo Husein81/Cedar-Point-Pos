@@ -5,11 +5,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, prisma, OrderStatus, OrderType, BusinessType } from '@repo/db';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { AddItemDto } from './dto/add-item.dto';
-import { AssignTableDto } from './dto/assign-table.dto';
+import { BusinessType, OrderStatus, OrderType, Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
+import { AddItemDto } from './dto/add-item.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {

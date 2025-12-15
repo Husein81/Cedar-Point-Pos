@@ -2,56 +2,52 @@ import z from "zod";
 // ===========================================
 //         Enums
 // ===========================================
-export const AdjustmentType = {
-  ADD: "ADD",
-  REMOVE: "REMOVE",
-  SET: "SET",
-} as const;
-export type AdjustmentType = z.infer<typeof AdjustmentType>;
+export enum BusinessType {
+  RESTAURANT = "RESTAURANT",
+  RETAIL = "RETAIL",
+}
 
-export const BusinessType = {
-  RESTAURANT: "RESTAURANT",
-  RETAIL: "RETAIL",
-} as const;
-export type BusinessType = z.infer<typeof BusinessType>;
+export enum InventoryChangeType {
+  SET_STOCK = "SET_STOCK", // Direct stock set
+  ADJUST_STOCK = "ADJUST_STOCK", // Stock adjustment (increment/decrement)
+  SET_MIN_STOCK = "SET_MIN_STOCK", // Minimum stock threshold change
+  ORDER_DEDUCT = "ORDER_DEDUCT", // Stock deducted from order
+  ORDER_RETURN = "ORDER_RETURN", // Stock returned from refund
+  MANUAL_ADJUST = "MANUAL_ADJUST", // Manual adjustment
+}
 
-export const ModifierType = {
-  SINGLE: "SINGLE", // Only one modifier can be selected
-  MULTIPLE: "MULTIPLE", // Multiple modifiers can be selected
-} as const;
-export type ModifierType = z.infer<typeof ModifierType>;
+export enum ModifierType {
+  SINGLE = "SINGLE", // Only one modifier can be selected
+  MULTIPLE = "MULTIPLE", // Multiple modifiers can be selected
+}
 
-export const OrderType = {
-  DINE_IN: "DINE_IN",
-  TAKEAWAY: "TAKEAWAY",
-  DELIVERY: "DELIVERY",
-} as const;
-export type OrderType = z.infer<typeof OrderType>;
+export enum OrderType {
+  DINE_IN = "DINE_IN",
+  TAKEAWAY = "TAKEAWAY",
+  DELIVERY = "DELIVERY",
+}
 
-export const OrderStatus = {
-  DRAFT: "DRAFT", // New: For orders being built on the POS
-  PENDING: "PENDING", // Order created but not processed
-  SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
-  READY: "READY", // Ready for pickup/serve
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-} as const;
-export type OrderStatus = z.infer<typeof OrderStatus>;
+export enum OrderStatus {
+  DRAFT = "DRAFT", // New: For orders being built on the POS
+  PENDING = "PENDING", // Order created but not processed
+  SENT_TO_KITCHEN = "SENT_TO_KITCHEN", // Order sent to kitchen/bar
+  READY = "READY", // Ready for pickup/serve
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
 
-export const SortOrder = {
-  ASC: "asc",
-  DESC: "desc",
-} as const;
-export type SortOrder = z.infer<typeof SortOrder>;
+export enum SortOrder {
+  ASC = "asc",
+  DESC = "desc",
+}
 
-export const UserRole = {
-  ADMIN: "ADMIN",
-  OWNER: "OWNER",
-  MANAGER: "MANAGER",
-  CASHIER: "CASHIER",
-  KITCHEN: "KITCHEN",
-} as const;
-export type UserRole = z.infer<typeof UserRole>;
+export enum UserRole {
+  ADMIN = "ADMIN",
+  OWNER = "OWNER",
+  MANAGER = "MANAGER",
+  CASHIER = "CASHIER",
+  KITCHEN = "KITCHEN",
+}
 
 export const decimal = z.union([z.string(), z.number()]);
 // ===========================================

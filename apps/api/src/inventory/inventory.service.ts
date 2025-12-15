@@ -1,45 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, prisma, InventoryChangeType } from '@repo/db';
-import { QueryParams } from '@repo/types';
+import { Prisma, prisma } from '@repo/db';
+import { InventoryChangeType, QueryParams } from '@repo/types';
+import { CreateInventoryHistoryDto } from './dto/inventory.dto';
 
 @Injectable()
 export class InventoryService {
-  private async createHistoryLog(
-    tx: Prisma.TransactionClient,
-    data: {
-      tenantId: string;
-      branchId: string;
-      productId: string;
-      userId: string;
-      changeType: InventoryChangeType;
-      beforeStock: number;
-      afterStock: number;
-      beforeMinStock?: number;
-      afterMinStock?: number;
-      reason?: string;
-    },
-  ) {
-    const adjustment = data.afterStock - data.beforeStock;
-    return tx.inventoryHistory.create({
-      data: {
-        tenantId: data.tenantId,
-        branchId: data.branchId,
-        productId: data.productId,
-        userId: data.userId,
-        changeType: data.changeType,
-        beforeStock: new Prisma.Decimal(data.beforeStock),
-        afterStock: new Prisma.Decimal(data.afterStock),
-        adjustment: new Prisma.Decimal(adjustment),
-        beforeMinStock: data.beforeMinStock
-          ? new Prisma.Decimal(data.beforeMinStock)
-          : null,
-        afterMinStock: data.afterMinStock
-          ? new Prisma.Decimal(data.afterMinStock)
-          : null,
-        reason: data.reason,
-      },
-    });
-  }
   async getInventoryByBranch(branchId: string, params: QueryParams) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
@@ -126,10 +94,10 @@ export class InventoryService {
           tenantId,
           branchId,
           productId,
-          stock: new Prisma.Decimal(stock),
+          stock: Number(stock),
         },
         update: {
-          stock: new Prisma.Decimal(stock),
+          stock: Number(stock),
         },
         include: { product: true },
       });
@@ -181,7 +149,7 @@ export class InventoryService {
             tenantId,
             branchId,
             productId,
-            stock: new Prisma.Decimal(adjustment),
+            stock: Number(adjustment),
           },
           include: { product: true },
         });
@@ -358,11 +326,11 @@ export class InventoryService {
           tenantId,
           branchId,
           productId,
-          stock: new Prisma.Decimal(0),
-          minStock: new Prisma.Decimal(minStock),
+          stock: Number(0),
+          minStock: Number(minStock),
         },
         update: {
-          minStock: new Prisma.Decimal(minStock),
+          minStock: Number(minStock),
         },
         include: { product: true, branch: true },
       });
@@ -430,11 +398,11 @@ export class InventoryService {
               tenantId,
               branchId,
               productId: item.productId,
-              stock: new Prisma.Decimal(0),
-              minStock: new Prisma.Decimal(item.minStock),
+              stock: Number(0),
+              minStock: Number(item.minStock),
             },
             update: {
-              minStock: new Prisma.Decimal(item.minStock),
+              minStock: Number(item.minStock),
             },
             include: { product: true },
           });
@@ -468,36 +436,25 @@ export class InventoryService {
    */
   async getInventoryHistory(
     tenantId: string,
-    params: {
-      branchId?: string;
-      productId?: string;
-      userId?: string;
-      changeType?: InventoryChangeType;
-      page?: number;
-      limit?: number;
-      startDate?: Date;
-      endDate?: Date;
+    params: QueryParams & {
+      startDate?: string;
+      endDate?: string;
+      productId: string;
+      branchId: string;
+      userId: string;
     },
   ) {
-    const {
-      branchId,
-      productId,
-      userId,
-      changeType,
-      page = 1,
-      limit = 20,
-      startDate,
-      endDate,
-    } = params;
+    const { branchId, productId, userId, startDate, endDate } = params;
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 20;
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.InventoryHistoryWhereInput = {
+    const where = {
       tenantId,
       ...(branchId && { branchId }),
       ...(productId && { productId }),
       ...(userId && { userId }),
-      ...(changeType && { changeType }),
       ...((startDate || endDate) && {
         createdAt: {
           ...(startDate && { gte: startDate }),
@@ -506,7 +463,7 @@ export class InventoryService {
       }),
     };
 
-    const [totalCount, data] = await Promise.all([
+    const [totalCount, data] = (await Promise.all([
       prisma.inventoryHistory.count({ where }),
       prisma.inventoryHistory.findMany({
         where,
@@ -536,33 +493,10 @@ export class InventoryService {
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-    ]);
+    ])) as [number, unknown[]];
 
     return {
-      data: data.map((entry) => ({
-        id: entry.id,
-        tenantId: entry.tenantId,
-        branchId: entry.branchId,
-        branchName: entry.branch.name,
-        productId: entry.productId,
-        productName: entry.product.name,
-        productSku: entry.product.sku,
-        userId: entry.userId,
-        userName: entry.user.name,
-        userEmail: entry.user.email,
-        changeType: entry.changeType,
-        beforeStock: Number(entry.beforeStock),
-        afterStock: Number(entry.afterStock),
-        adjustment: Number(entry.adjustment),
-        beforeMinStock: entry.beforeMinStock
-          ? Number(entry.beforeMinStock)
-          : null,
-        afterMinStock: entry.afterMinStock
-          ? Number(entry.afterMinStock)
-          : null,
-        reason: entry.reason,
-        createdAt: entry.createdAt,
-      })),
+      data,
       pagination: {
         page,
         limit,
@@ -570,5 +504,43 @@ export class InventoryService {
         totalPages: Math.ceil(totalCount / limit),
       },
     };
+  }
+
+  private async createHistoryLog(
+    tx: Prisma.TransactionClient,
+    data: CreateInventoryHistoryDto,
+  ) {
+    const {
+      afterStock,
+      beforeStock,
+      changeType,
+      tenantId,
+      branchId,
+      productId,
+      userId,
+      reason,
+      beforeMinStock,
+      afterMinStock,
+    } = data;
+    const adjustment = Number(afterStock) - Number(beforeStock);
+    await tx.inventoryHistory.create({
+      data: {
+        tenantId: tenantId!,
+        branchId: branchId!,
+        productId: productId!,
+        userId: userId!,
+        changeType: changeType!,
+        beforeStock: Number(beforeStock),
+        afterStock: Number(afterStock),
+        adjustment,
+        ...(beforeMinStock !== undefined && {
+          beforeMinStock: Number(beforeMinStock),
+        }),
+        ...(afterMinStock !== undefined && {
+          afterMinStock: Number(afterMinStock),
+        }),
+        ...(reason && { reason }),
+      },
+    });
   }
 }

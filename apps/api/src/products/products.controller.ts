@@ -2,9 +2,7 @@ import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { ProductsService } from './products.service';
-
-type PrismaProductCreateInput = Record<string, unknown>;
-type PrismaProductUpdateInput = Record<string, unknown>;
+import { Prisma } from '@repo/db';
 
 @Controller('products')
 export class ProductsController {
@@ -32,7 +30,7 @@ export class ProductsController {
 
   @Post()
   createProduct(@Req() req: Request) {
-    const body = req.body as PrismaProductCreateInput;
+    const body = req.body as Prisma.ProductCreateInput;
     return this.productsService.createProduct(body);
   }
 
@@ -42,7 +40,7 @@ export class ProductsController {
     if (!id) {
       throw new Error('Product ID is required');
     }
-    const body = req.body as PrismaProductUpdateInput;
+    const body = req.body as Prisma.ProductUpdateInput;
     return this.productsService.updateProduct(id, body);
   }
 

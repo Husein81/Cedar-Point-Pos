@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { prisma } from '@repo/db';
+import { Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 
 // Type definitions for Prisma (will be available after prisma generate)
@@ -21,18 +21,10 @@ type PrismaProductOrderByWithRelationInput = {
   createdAt?: 'asc' | 'desc';
 };
 
-type PrismaProductCreateInput = Record<string, unknown>;
-type PrismaProductUpdateInput = Record<string, unknown>;
-
-// Type assertion for prisma client (types will be available after prisma generate)
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const typedPrisma = prisma as any;
-
 @Injectable()
 export class ProductsService {
   async getProductsByTenant(tenantId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    return await typedPrisma.product.findMany({
+    return await prisma.product.findMany({
       where: { tenantId },
     });
   }
@@ -50,13 +42,13 @@ export class ProductsService {
           {
             name: {
               contains: search,
-              mode: 'insensitive' as const,
+              mode: Prisma.QueryMode.insensitive,
             },
           },
           {
             sku: {
               contains: search,
-              mode: 'insensitive' as const,
+              mode: Prisma.QueryMode.insensitive,
             },
           },
         ];
@@ -70,10 +62,9 @@ export class ProductsService {
       }
 
       const [totalCount, data] = (await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        typedPrisma.product.count({ where }),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        typedPrisma.product.findMany({
+        prisma.product.count({ where }),
+
+        prisma.product.findMany({
           where,
           orderBy,
           skip,
@@ -97,20 +88,17 @@ export class ProductsService {
   }
 
   async getProductById(id: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    return await typedPrisma.product.findUnique({
+    return await prisma.product.findUnique({
       where: { id },
     });
   }
 
-  async createProduct(data: PrismaProductCreateInput) {
+  async createProduct(data: Prisma.ProductCreateInput) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await typedPrisma.product.create({
+      const result = await prisma.product.create({
         data,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
       console.error('Error creating product:', error);
@@ -118,14 +106,12 @@ export class ProductsService {
     }
   }
 
-  async updateProduct(id: string, data: PrismaProductUpdateInput) {
+  async updateProduct(id: string, data: Prisma.ProductUpdateInput) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await typedPrisma.product.update({
+      const result = await prisma.product.update({
         where: { id },
         data,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
       console.error('Error updating product:', error);
@@ -135,11 +121,9 @@ export class ProductsService {
 
   async deleteProduct(id: string) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await typedPrisma.product.delete({
+      const result = await prisma.product.delete({
         where: { id },
       });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -149,8 +133,7 @@ export class ProductsService {
 
   async getModifiersByProduct(productId: string, tenantId: string) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const product = await typedPrisma.product.findFirst({
+      const product = await prisma.product.findFirst({
         where: {
           id: productId,
           tenantId,
@@ -163,8 +146,7 @@ export class ProductsService {
       }
 
       // Fetch all modifiers for this product that are not deleted
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const modifiers = await typedPrisma.modifier.findMany({
+      const modifiers = await prisma.modifier.findMany({
         where: {
           productId,
           tenantId,
@@ -186,56 +168,11 @@ export class ProductsService {
           name: 'asc',
         },
       });
-      type ModifierWithGroup = (typeof modifiers)[number];
-
-      const modifierGroupsMap = new Map<
-        string,
-        {
-          id: string;
-          name: string;
-          type: string;
-          modifiers: Array<{
-            id: string;
-            name: string;
-            price: number;
-          }>;
-        }
-      >();
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      modifiers.forEach((modifier: ModifierWithGroup) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const groupId = modifier.group.id as string;
-        if (!modifierGroupsMap.has(groupId)) {
-          modifierGroupsMap.set(groupId, {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            id: modifier.group.id as string,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            name: modifier.group.name as string,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            type: modifier.group.type as string,
-            modifiers: [],
-          });
-        }
-
-        const group = modifierGroupsMap.get(groupId)!;
-        group.modifiers.push({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          id: modifier.id as string,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          name: modifier.name as string,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          price: Number(modifier.price as number | string),
-        });
-      });
-      const modifierGroups = Array.from(modifierGroupsMap.values());
 
       return {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         productId: product.id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         productName: product.name,
-        modifierGroups,
+        modifiers,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

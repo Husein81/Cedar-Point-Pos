@@ -8,13 +8,12 @@ import {
   Put,
   Req,
   ParseFloatPipe,
-  ParseEnumPipe,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { Roles } from '@/common/decorators/roles.decorator';
 import type { Request } from 'express';
 import { UserRole, InventoryChangeType } from '@repo/db';
+import { QueryParams } from '@repo/types';
 
 @Controller('inventory')
 export class InventoryController {
@@ -144,7 +143,8 @@ export class InventoryController {
   async bulkSetMinStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
-    @Body() body: {
+    @Body()
+    body: {
       items: Array<{ productId: string; minStock: number }>;
       reason?: string;
     },
@@ -164,29 +164,17 @@ export class InventoryController {
    */
   @Get('history')
   @Roles(UserRole.OWNER, UserRole.MANAGER)
-  async getInventoryHistory(
-    @Req() req: Request,
-    @Query('branchId') branchId?: string,
-    @Query('productId') productId?: string,
-    @Query('userId') userId?: string,
-    @Query('changeType', new ParseEnumPipe(InventoryChangeType, { optional: true }))
-    changeType?: InventoryChangeType,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
+  async getInventoryHistory(@Req() req: Request) {
     const user = req.user as { tenantId: string };
-    return this.inventoryService.getInventoryHistory(user.tenantId, {
-      branchId,
-      productId,
-      userId,
-      changeType,
-      page: page || 1,
-      limit: limit || 20,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-    });
+    const query = req.query as QueryParams & {
+      changeType?: InventoryChangeType;
+      startDate?: string;
+      endDate?: string;
+      productId: string;
+      branchId: string;
+      userId: string;
+    };
+    return this.inventoryService.getInventoryHistory(user.tenantId, query);
   }
 
   /**
@@ -194,29 +182,17 @@ export class InventoryController {
    */
   @Get(':branchId/history')
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByBranch(
-    @Req() req: Request,
-    @Param('branchId') branchId: string,
-    @Query('productId') productId?: string,
-    @Query('userId') userId?: string,
-    @Query('changeType', new ParseEnumPipe(InventoryChangeType, { optional: true }))
-    changeType?: InventoryChangeType,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
+  async getInventoryHistoryByBranch(@Req() req: Request) {
     const user = req.user as { tenantId: string };
-    return this.inventoryService.getInventoryHistory(user.tenantId, {
-      branchId,
-      productId,
-      userId,
-      changeType,
-      page: page || 1,
-      limit: limit || 20,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-    });
+    const query = req.query as QueryParams & {
+      changeType?: InventoryChangeType;
+      startDate?: string;
+      endDate?: string;
+      productId: string;
+      userId: string;
+      branchId: string;
+    };
+    return this.inventoryService.getInventoryHistory(user.tenantId, query);
   }
 
   /**
@@ -224,23 +200,15 @@ export class InventoryController {
    */
   @Get(':branchId/product/:productId/history')
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByProduct(
-    @Req() req: Request,
-    @Param('branchId') branchId: string,
-    @Param('productId') productId: string,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
+  async getInventoryHistoryByProduct(@Req() req: Request) {
     const user = req.user as { tenantId: string };
-    return this.inventoryService.getInventoryHistory(user.tenantId, {
-      branchId,
-      productId,
-      page: page || 1,
-      limit: limit || 20,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-    });
+    const query = req.query as QueryParams & {
+      startDate?: string;
+      endDate?: string;
+      branchId: string;
+      productId: string;
+      userId: string;
+    };
+    return this.inventoryService.getInventoryHistory(user.tenantId, query);
   }
 }

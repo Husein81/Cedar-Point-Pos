@@ -16,6 +16,7 @@ import { UsersModule } from './users/users.module';
 import { TransfersModule } from './transfers/transfers.module';
 import { OrdersModule } from './orders/orders.module';
 import { ModifierGroupsModule } from './modifier-groups/modifier-groups.module';
+import { RefundsModule } from './refunds/refunds.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ModifierGroupsModule } from './modifier-groups/modifier-groups.module';
     TransfersModule,
     OrdersModule,
     ModifierGroupsModule,
+    RefundsModule,
   ],
   providers: [
     {

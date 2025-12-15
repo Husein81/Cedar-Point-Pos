@@ -13,6 +13,7 @@ import { OrderStatus, OrderType, UserRole } from '@repo/db';
 import type { Request } from 'express';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import { OrdersService } from './orders.service';
+import { SortOrder } from '@repo/types';
 
 @Controller('orders')
 export class OrdersController {
@@ -46,7 +47,7 @@ export class OrdersController {
     @Query('tableId') tableId?: string,
     @Query('search') search?: string,
     @Query('sort') sort?: string,
-    @Query('order') order?: 'asc' | 'desc',
+    @Query('order') order?: SortOrder,
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findAll(user.tenantId, {

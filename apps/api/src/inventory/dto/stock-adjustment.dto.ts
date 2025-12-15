@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 import { InventoryChangeType } from '@repo/types';
 
 export const createStockAdjustmentSchema = z.object({

@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 
 export const updateQuantityDto = z.object({
   quantity: z.number().positive(),

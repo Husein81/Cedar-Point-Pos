@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrderItem, Prisma, prisma } from '@repo/db';
 import { AddModifierDto } from './dto/add-modifier-dto';
+import { CreateTicketDto } from './dto/create-ticket.dto';
 import { OrdersService } from './orders.service';
 
 @Injectable()
@@ -98,5 +99,67 @@ export class OrderItemService {
     );
 
     return updatedItem;
+  }
+
+  async createTicket(tenantId: string, createTicketDto: CreateTicketDto) {
+    const { orderItemId, station, status } = createTicketDto;
+    const orderItem = await prisma.orderItem.findFirst({
+      where: {
+        id: orderItemId,
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            tenantId: true,
+          },
+        },
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!orderItem) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    // Validate tenant ownership
+    if (orderItem.order.tenantId !== tenantId) {
+      throw new NotFoundException('Order item not found');
+    }
+    const ticket = await prisma.orderItemTicket.create({
+      data: {
+        orderItemId: orderItem.id,
+        station: station || null,
+        status: status || OrderStatus.SENT_TO_KITCHEN,
+        sentAt: new Date(),
+      },
+      include: {
+        orderItem: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+              },
+            },
+            order: {
+              select: {
+                id: true,
+                orderNumber: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return ticket;
   }
 }

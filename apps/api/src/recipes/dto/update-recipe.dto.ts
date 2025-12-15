@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 
 export const updateRecipeDto = z.object({
   productId: z.string().optional(),

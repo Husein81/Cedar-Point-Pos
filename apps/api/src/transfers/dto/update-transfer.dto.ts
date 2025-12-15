@@ -1,5 +1,5 @@
 import { TransferStatus } from '@repo/db';
-import z from 'zod';
+import { z } from 'zod';
 
 export const updateTransferSchema = z.object({
   status: z.enum(TransferStatus).optional(),

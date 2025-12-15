@@ -6,21 +6,6 @@ import {
 import { Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 
-// Type definitions for Prisma (will be available after prisma generate)
-// These are temporary types until Prisma client is generated
-type PrismaProductWhereInput = {
-  tenantId?: string;
-  OR?: Array<{
-    name?: { contains: string; mode?: 'insensitive' };
-    sku?: { contains: string; mode?: 'insensitive' };
-  }>;
-};
-
-type PrismaProductOrderByWithRelationInput = {
-  [key: string]: 'asc' | 'desc' | undefined;
-  createdAt?: 'asc' | 'desc';
-};
-
 @Injectable()
 export class ProductsService {
   async getProductsByTenant(tenantId: string) {
@@ -36,7 +21,7 @@ export class ProductsService {
       const limit = Number(params.limit) || 10;
 
       const skip = (page - 1) * limit;
-      const where: PrismaProductWhereInput = { tenantId };
+      const where: Prisma.ProductWhereInput = { tenantId };
       if (search) {
         where.OR = [
           {
@@ -54,7 +39,7 @@ export class ProductsService {
         ];
       }
 
-      const orderBy: PrismaProductOrderByWithRelationInput = {};
+      const orderBy: Prisma.ProductOrderByWithRelationInput = {};
       if (sort) {
         (orderBy as Record<string, any>)[sort] = order || 'asc';
       } else {
@@ -130,28 +115,17 @@ export class ProductsService {
       throw new InternalServerErrorException('Failed to delete product');
     }
   }
-
   async getModifiersByProduct(productId: string, tenantId: string) {
     try {
-      const product = await prisma.product.findFirst({
-        where: {
-          id: productId,
-          tenantId,
-          isDeleted: false,
-        },
-      });
-
-      if (!product) {
-        throw new NotFoundException('Product not found');
-      }
-
-      // Fetch all modifiers for this product that are not deleted
       const modifiers = await prisma.modifier.findMany({
         where: {
           productId,
           tenantId,
           isDeleted: false,
           group: {
+            isDeleted: false,
+          },
+          product: {
             isDeleted: false,
           },
         },
@@ -169,15 +143,69 @@ export class ProductsService {
         },
       });
 
+      if (modifiers.length === 0) {
+        const productExists = await prisma.product.findFirst({
+          where: { id: productId, tenantId, isDeleted: false },
+          select: { id: true },
+        });
+
+        if (!productExists) {
+          throw new NotFoundException('Product not found');
+        }
+
+        return {
+          productId,
+          modifierGroups: [],
+        };
+      }
+
+      const modifierGroupsMap = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          type: string;
+          modifiers: Array<{
+            id: string;
+            name: string;
+            price: number;
+          }>;
+        }
+      >();
+
+      for (const modifier of modifiers) {
+        const groupId = modifier.group.id;
+
+        if (!modifierGroupsMap.has(groupId)) {
+          modifierGroupsMap.set(groupId, {
+            id: groupId,
+            name: modifier.group.name,
+            type: modifier.group.type,
+            modifiers: [],
+          });
+        }
+
+        const group = modifierGroupsMap.get(groupId);
+        if (!group) {
+          console.error(
+            `Group ${groupId} not found in map for modifier ${modifier.id}`,
+          );
+          continue;
+        }
+        group.modifiers.push({
+          id: modifier.id,
+          name: modifier.name,
+          price: Number(modifier.price),
+        });
+      }
+
       return {
-        productId: product.id,
-        productName: product.name,
-        modifiers,
+        productId,
+        modifierGroups: Array.from(modifierGroupsMap.values()),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof NotFoundException) throw error;
+
       console.error('Error fetching modifiers by product:', error);
       throw new InternalServerErrorException(
         'Failed to fetch modifiers for product',

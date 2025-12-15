@@ -1,5 +1,5 @@
 import { OrderType } from '@repo/db';
-import z from 'zod';
+import { z } from 'zod';
 
 export const createOrderItemDto = z.object({
   productId: z.string(),

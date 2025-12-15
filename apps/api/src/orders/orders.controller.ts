@@ -11,12 +11,12 @@ import {
   Req,
 } from '@nestjs/common';
 import { OrderStatus, OrderType, UserRole } from '@repo/db';
-import type { Request } from 'express';
 import { SortOrder } from '@repo/types';
-import { OrdersService } from './orders.service';
-import type { UpdateQuantityDto } from './dto/update-quantity.dto';
+import type { Request } from 'express';
 import type { AddItemDto } from './dto/add-item.dto';
 import type { CreateOrderDto } from './dto/create-order.dto';
+import type { UpdateQuantityDto } from './dto/update-quantity.dto';
+import { OrdersService } from './orders.service';
 
 @Controller('orders')
 export class OrdersController {

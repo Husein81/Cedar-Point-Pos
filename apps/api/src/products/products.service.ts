@@ -152,6 +152,11 @@ export class ProductsService {
         if (!productExists) {
           throw new NotFoundException('Product not found');
         }
+
+        return {
+          productId,
+          modifierGroups: [],
+        };
       }
 
       const modifierGroupsMap = new Map<
@@ -180,7 +185,14 @@ export class ProductsService {
           });
         }
 
-        modifierGroupsMap.get(groupId)!.modifiers.push({
+        const group = modifierGroupsMap.get(groupId);
+        if (!group) {
+          console.error(
+            `Group ${groupId} not found in map for modifier ${modifier.id}`,
+          );
+          continue;
+        }
+        group.modifiers.push({
           id: modifier.id,
           name: modifier.name,
           price: Number(modifier.price),

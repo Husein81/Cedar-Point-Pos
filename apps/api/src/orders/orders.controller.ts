@@ -123,12 +123,12 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() assignTableDto: AssignTableDto,
   ) {
+    const tableId = assignTableDto.tableId;
     const user = req.user as { tenantId: string };
-    return this.ordersService.assignTableToOrder(
-      user.tenantId,
-      id,
-      assignTableDto,
-    );
+    if (!tableId) {
+      throw new Error('Table ID is required');
+    }
+    return this.ordersService.assignTableToOrder(user.tenantId, id, tableId);
   }
 
   @Post(':id/items')

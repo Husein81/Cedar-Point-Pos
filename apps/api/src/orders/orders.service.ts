@@ -957,29 +957,7 @@ export class OrdersService {
     tenantId: string,
     orderId: string,
     addItemDto: AddItemDto,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -1091,29 +1069,7 @@ export class OrdersService {
     orderId: string,
     orderItemId: string,
     quantity: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -1185,29 +1141,7 @@ export class OrdersService {
     tenantId: string,
     orderId: string,
     orderItemId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -1247,37 +1181,34 @@ export class OrdersService {
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
-  async assignTableToOrder(
-    tenantId: string,
-    orderId: string,
-    assignTableDto: AssignTableDto,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
+  async assignTableToOrder(tenantId: string, orderId: string, tableId: string) {
+    const orderInclude = {
+      items: {
+        include: {
+          modifiers: true,
+          product: {
+            include: { tax: true },
+          },
+        },
+      },
+      user: { select: { id: true, name: true, email: true } },
+      branch: { select: { id: true, name: true } },
+      table: { select: { id: true, tableNumber: true, name: true } },
+      device: { select: { id: true, name: true } },
+      customer: { select: { id: true, name: true, phone: true } },
+    };
+
+    // 1️⃣ Fetch minimal order data (fast & safe)
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
+      },
+      select: {
+        id: true,
+        status: true,
+        branchId: true,
+        tableId: true,
       },
     });
 
@@ -1285,46 +1216,43 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status === OrderStatus.COMPLETED) {
-      throw new BadRequestException('Cannot assign table to a completed order');
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        `Cannot assign table to a ${order.status.toLowerCase()} order`,
+      );
     }
 
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException('Cannot assign table to a cancelled order');
-    }
-
-    if (!assignTableDto.tableId) {
-      const updatedOrder = await prisma.order.update({
+    // 2️⃣ Unassign table
+    if (!tableId) {
+      return prisma.order.update({
         where: { id: orderId },
-        data: {
-          tableId: null,
-        },
-        include: {
-          items: {
-            include: {
-              modifiers: true,
-              product: {
-                include: { tax: true },
-              },
-            },
-          },
-          user: { select: { id: true, name: true, email: true } },
-          branch: { select: { id: true, name: true } },
-          table: { select: { id: true, tableNumber: true, name: true } },
-          device: { select: { id: true, name: true } },
-          customer: { select: { id: true, name: true, phone: true } },
-        },
+        data: { tableId: null },
+        include: orderInclude,
       });
-
-      return updatedOrder;
     }
 
+    // 3️⃣ If same table is already assigned → no-op
+    if (order.tableId === tableId) {
+      return prisma.order.findUnique({
+        where: { id: orderId },
+        include: orderInclude,
+      });
+    }
+
+    // 4️⃣ Validate table
     const table = await prisma.table.findFirst({
       where: {
-        id: assignTableDto.tableId,
+        id: tableId,
         branchId: order.branchId,
         tenantId,
         isDeleted: false,
+      },
+      select: {
+        id: true,
+        isActive: true,
       },
     });
 
@@ -1336,50 +1264,38 @@ export class OrdersService {
       throw new BadRequestException('Table is not active');
     }
 
-    const activeOrderStatuses = [
+    const activeOrderStatuses: OrderStatus[] = [
       OrderStatus.DRAFT,
       OrderStatus.PENDING,
       OrderStatus.SENT_TO_KITCHEN,
       OrderStatus.READY,
     ];
 
-    const existingOrder = await prisma.order.findFirst({
-      where: {
-        tableId: assignTableDto.tableId,
-        tenantId,
-        status: { in: activeOrderStatuses },
-        id: { not: orderId },
-      },
-    });
-
-    if (existingOrder) {
-      throw new BadRequestException(
-        'Table is already occupied by another active order',
-      );
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        tableId: assignTableDto.tableId,
-      },
-      include: {
-        items: {
-          include: {
-            modifiers: true,
-            product: {
-              include: { tax: true },
-            },
-          },
+    // 5️⃣ Transaction → prevents race conditions
+    return prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findFirst({
+        where: {
+          tenantId,
+          tableId,
+          status: { in: activeOrderStatuses },
+          id: { not: orderId },
         },
-        user: { select: { id: true, name: true, email: true } },
-        branch: { select: { id: true, name: true } },
-        table: { select: { id: true, tableNumber: true, name: true } },
-        device: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true, phone: true } },
-      },
-    });
+        select: { id: true },
+      });
 
-    return updatedOrder;
+      if (existingOrder) {
+        throw new BadRequestException(
+          'Table is already occupied by another active order',
+        );
+      }
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: {
+          tableId,
+        },
+        include: orderInclude,
+      });
+    });
   }
 }

@@ -741,60 +741,119 @@ export class OrdersService {
    * Update order status
    * If status is COMPLETED, triggers stock deduction
    */
-  async updateStatus(tenantId: string, orderId: string, status: OrderStatus) {
-    const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        tenantId,
-      },
-    });
+  async updateStatus(
+    tenantId: string,
+    orderId: string,
+    nextStatus: OrderStatus,
+  ) {
+    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.DRAFT]: [OrderStatus.PENDING],
+      [OrderStatus.PENDING]: [OrderStatus.SENT_TO_KITCHEN],
+      [OrderStatus.SENT_TO_KITCHEN]: [OrderStatus.READY],
+      [OrderStatus.READY]: [OrderStatus.COMPLETED],
+      [OrderStatus.COMPLETED]: [],
+      [OrderStatus.CANCELLED]: [],
+    };
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
+    return prisma.$transaction(async (tx) => {
+      // 1️⃣ Load minimal order data
+      const order = await tx.order.findFirst({
+        where: {
+          id: orderId,
+          tenantId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
 
-    // If completing the order, use the complete order flow
-    if (status === OrderStatus.COMPLETED) {
-      return this.completeOrder(tenantId, orderId);
-    }
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
 
-    // For other status updates, just update the status
-    const updated = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status,
-        ...(status === OrderStatus.CANCELLED && { completedAt: new Date() }),
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                price: true,
+      // 2️⃣ COMPLETED must go through completeOrder()
+      if (nextStatus === OrderStatus.COMPLETED) {
+        if (order.status !== OrderStatus.READY) {
+          throw new BadRequestException(
+            `Order must be READY before completing`,
+          );
+        }
+
+        // Delegate to your existing logic
+        return this.completeOrder(tenantId, orderId);
+      }
+
+      // 3️⃣ Prevent transitions from terminal states
+      if (
+        order.status === OrderStatus.COMPLETED ||
+        order.status === OrderStatus.CANCELLED
+      ) {
+        throw new BadRequestException(
+          `Cannot change status of a ${order.status} order`,
+        );
+      }
+
+      // 4️⃣ Enforce strict transition order
+      const allowedNextStatuses = allowedTransitions[order.status];
+
+      if (!allowedNextStatuses.includes(nextStatus)) {
+        throw new BadRequestException(
+          `Invalid order status transition: ${order.status} → ${nextStatus}`,
+        );
+      }
+
+      // 5️⃣ Business validations per transition
+      if (nextStatus === OrderStatus.SENT_TO_KITCHEN) {
+        const hasItems = await tx.orderItem.findFirst({
+          where: { orderId },
+          select: { id: true },
+        });
+
+        if (!hasItems) {
+          throw new BadRequestException(
+            'Cannot send an empty order to kitchen',
+          );
+        }
+      }
+
+      // 6️⃣ Apply status update
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: nextStatus,
+        },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  price: true,
+                },
               },
             },
           },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      });
 
-    return updated;
+      return updated;
+    });
   }
 
   async updateDiscount(

@@ -1,12 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { OrderItem, Prisma, prisma } from '@repo/db';
 import { AddModifierDto } from './dto/add-modifier-dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { OrdersService } from './orders.service';
+import { OrderStatus } from '@repo/types';
 
 @Injectable()
 export class OrderItemService {
   constructor(private readonly ordersService: OrdersService) {}
+
   async addModifier(orderItemId: string, addModifierDto: AddModifierDto) {
     const orderItem = await prisma.orderItem.findUnique({
       where: { id: orderItemId },
@@ -107,36 +113,37 @@ export class OrderItemService {
       where: {
         id: orderItemId,
       },
-      include: {
-        order: {
-          select: {
-            id: true,
-            tenantId: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+      select: {
+        id: true,
+        order: { select: { tenantId: true } },
       },
     });
 
-    if (!orderItem) {
+    if (!orderItem || orderItem.order.tenantId !== tenantId) {
       throw new NotFoundException('Order item not found');
     }
+    const existing = await prisma.orderItemTicket.findFirst({
+      where: {
+        orderItemId,
+        station: station ?? null,
+        status: { in: [OrderStatus.SENT_TO_KITCHEN, OrderStatus.PENDING] },
+      },
+      select: { id: true },
+    });
 
-    // Validate tenant ownership
-    if (orderItem.order.tenantId !== tenantId) {
-      throw new NotFoundException('Order item not found');
+    if (existing) {
+      throw new BadRequestException(
+        'A ticket already exists for this item/station',
+      );
     }
+    const finalStatus = status ?? OrderStatus.SENT_TO_KITCHEN;
+
     const ticket = await prisma.orderItemTicket.create({
       data: {
         orderItemId: orderItem.id,
         station: station || null,
-        status: status || OrderStatus.SENT_TO_KITCHEN,
-        sentAt: new Date(),
+        status: finalStatus,
+        sentAt: finalStatus ? new Date() : undefined,
       },
       include: {
         orderItem: {

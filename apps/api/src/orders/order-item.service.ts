@@ -4,10 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrderItem, Prisma, prisma } from '@repo/db';
+import { OrderStatus } from '@repo/types';
 import { AddModifierDto } from './dto/add-modifier-dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from '@repo/types';
 
 @Injectable()
 export class OrderItemService {

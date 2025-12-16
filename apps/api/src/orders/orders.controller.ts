@@ -14,10 +14,10 @@ import { OrderStatus, OrderType, UserRole } from '@repo/db';
 import { SortOrder } from '@repo/types';
 import type { Request } from 'express';
 import type { AddItemDto } from './dto/add-item.dto';
+import type { AssignTableDto } from './dto/assign-table.dto';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { UpdateQuantityDto } from './dto/update-quantity.dto';
 import { OrdersService } from './orders.service';
-import { AssignTableDto } from './dto/assign-table.dto';
 
 @Controller('orders')
 export class OrdersController {

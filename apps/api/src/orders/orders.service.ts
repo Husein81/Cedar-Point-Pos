@@ -5,10 +5,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { BusinessType, OrderStatus, OrderType, Prisma, prisma } from '@repo/db';
+import { Prisma, prisma, OrderStatus, OrderType, BusinessType } from '@repo/db';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { AddItemDto } from './dto/add-item.dto';
+import { AssignTableDto } from './dto/assign-table.dto';
 import { QueryParams } from '@repo/types';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import type { AddItemDto } from './dto/add-item.dto';
 
 @Injectable()
 export class OrdersService {
@@ -956,30 +957,7 @@ export class OrdersService {
     tenantId: string,
     orderId: string,
     addItemDto: AddItemDto,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
-    // Validate order exists and belongs to tenant
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -991,7 +969,6 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    // Only allow modifications on DRAFT orders
     if (order.status === OrderStatus.COMPLETED) {
       throw new BadRequestException('Cannot add items to a completed order');
     }
@@ -1000,7 +977,6 @@ export class OrdersService {
       throw new BadRequestException('Cannot add items to a cancelled order');
     }
 
-    // Validate product exists
     const product = await prisma.product.findFirst({
       where: {
         id: addItemDto.productId,
@@ -1015,8 +991,6 @@ export class OrdersService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-
-    // Validate modifiers if provided
     let modifierMap = new Map<
       string,
       Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
@@ -1044,8 +1018,6 @@ export class OrdersService {
         );
       }
     }
-
-    // Calculate item totals
     const quantity = new Prisma.Decimal(addItemDto.quantity);
     const unitPrice = product.price || new Prisma.Decimal(0);
 
@@ -1070,8 +1042,6 @@ export class OrdersService {
       modifiersTotal,
       taxRate,
     );
-
-    // Create order item with modifiers
     await prisma.orderItem.create({
       data: {
         orderId: order.id,
@@ -1091,43 +1061,15 @@ export class OrdersService {
       },
     });
 
-    // Recalculate order totals
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
-  /**
-   * Update the quantity of an existing order item
-   * Only allowed for DRAFT orders
-   */
   async updateItemQuantity(
     tenantId: string,
     orderId: string,
     orderItemId: string,
     quantity: number,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
-    // Validate order exists and belongs to tenant
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -1139,7 +1081,6 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    // Only allow modifications on DRAFT orders
     if (order.status === OrderStatus.COMPLETED) {
       throw new BadRequestException('Cannot update items in a completed order');
     }
@@ -1148,7 +1089,6 @@ export class OrdersService {
       throw new BadRequestException('Cannot update items in a cancelled order');
     }
 
-    // Validate order item exists and belongs to the order
     const orderItem = await prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
@@ -1168,7 +1108,6 @@ export class OrdersService {
       throw new NotFoundException('Order item not found');
     }
 
-    // Update quantity
     const newQuantity = new Prisma.Decimal(quantity);
     const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
 
@@ -1195,42 +1134,14 @@ export class OrdersService {
       },
     });
 
-    // Recalculate order totals
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
-  /**
-   * Remove an item from an order
-   * Only allowed for DRAFT orders
-   */
   async removeItemFromOrder(
     tenantId: string,
     orderId: string,
     orderItemId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
-    // Validate order exists and belongs to tenant
+  ) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -1242,7 +1153,6 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    // Only allow modifications on DRAFT orders
     if (order.status === OrderStatus.COMPLETED) {
       throw new BadRequestException(
         'Cannot remove items from a completed order',
@@ -1254,8 +1164,6 @@ export class OrdersService {
         'Cannot remove items from a cancelled order',
       );
     }
-
-    // Validate order item exists and belongs to the order
     const orderItem = await prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
@@ -1266,13 +1174,128 @@ export class OrdersService {
     if (!orderItem) {
       throw new NotFoundException('Order item not found');
     }
-
-    // Delete the order item (cascade will handle modifiers)
     await prisma.orderItem.delete({
       where: { id: orderItemId },
     });
 
-    // Recalculate order totals
     return this.recalculateOrderTotals(tenantId, orderId);
+  }
+
+  async assignTableToOrder(tenantId: string, orderId: string, tableId: string) {
+    const orderInclude = {
+      items: {
+        include: {
+          modifiers: true,
+          product: {
+            include: { tax: true },
+          },
+        },
+      },
+      user: { select: { id: true, name: true, email: true } },
+      branch: { select: { id: true, name: true } },
+      table: { select: { id: true, tableNumber: true, name: true } },
+      device: { select: { id: true, name: true } },
+      customer: { select: { id: true, name: true, phone: true } },
+    };
+
+    // 1️⃣ Fetch minimal order data (fast & safe)
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        tenantId,
+      },
+      select: {
+        id: true,
+        status: true,
+        branchId: true,
+        tableId: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (
+      order.status === OrderStatus.COMPLETED ||
+      order.status === OrderStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        `Cannot assign table to a ${order.status.toLowerCase()} order`,
+      );
+    }
+
+    // 2️⃣ Unassign table
+    if (!tableId) {
+      return prisma.order.update({
+        where: { id: orderId },
+        data: { tableId: null },
+        include: orderInclude,
+      });
+    }
+
+    // 3️⃣ If same table is already assigned → no-op
+    if (order.tableId === tableId) {
+      return prisma.order.findUnique({
+        where: { id: orderId },
+        include: orderInclude,
+      });
+    }
+
+    // 4️⃣ Validate table
+    const table = await prisma.table.findFirst({
+      where: {
+        id: tableId,
+        branchId: order.branchId,
+        tenantId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        isActive: true,
+      },
+    });
+
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    if (!table.isActive) {
+      throw new BadRequestException('Table is not active');
+    }
+
+    const activeOrderStatuses: OrderStatus[] = [
+      OrderStatus.DRAFT,
+      OrderStatus.PENDING,
+      OrderStatus.SENT_TO_KITCHEN,
+      OrderStatus.READY,
+    ];
+
+    // 5️⃣ Transaction → prevents race conditions
+    return prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findFirst({
+        where: {
+          tenantId,
+          tableId,
+          status: { in: activeOrderStatuses },
+          id: { not: orderId },
+        },
+        select: { id: true },
+      });
+
+      if (existingOrder) {
+        throw new BadRequestException(
+          'Table is already occupied by another active order',
+        );
+      }
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: {
+          tableId,
+        },
+        include: orderInclude,
+      });
+    });
   }
 }

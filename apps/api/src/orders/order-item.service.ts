@@ -72,25 +72,16 @@ export class OrderItemService {
     const quantity = new Prisma.Decimal(orderItem.quantity);
     const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
 
-    // Calculate modifiers total
     const modifiersTotal = orderItem.modifiers.reduce(
       (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
       new Prisma.Decimal(0),
     );
-
-    // Get tax rate from product
     const taxRate = orderItem.product.tax?.rate || new Prisma.Decimal(0);
 
-    // Calculate item subtotal = quantity × (unitPrice + modifiersTotal)
     const itemSubtotal = quantity.times(unitPrice.plus(modifiersTotal));
-
-    // Calculate item tax = itemSubtotal × taxRate / 100
     const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
-
-    // Calculate item total = itemSubtotal + itemTaxAmount
     const itemTotal = itemSubtotal.plus(itemTaxAmount);
 
-    // Update order item
     const updatedItem = await prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
@@ -101,7 +92,6 @@ export class OrderItemService {
       include: { modifiers: true },
     });
 
-    // Recalculate order totals
     await this.ordersService.recalculateOrderTotals(
       orderItem.order.tenantId,
       orderItem.orderId,

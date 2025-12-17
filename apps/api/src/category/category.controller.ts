@@ -8,11 +8,11 @@ import {
   Put,
   Req,
 } from '@nestjs/common';
-import { Prisma } from '@repo/db';
 import { User, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CategoryService } from './category.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}

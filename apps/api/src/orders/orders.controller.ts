@@ -10,8 +10,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, UserRole } from '@repo/db';
-import { SortOrder } from '@repo/types';
+import { OrderStatus, OrderType, SortOrder, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AssignTableDto } from './dto/assign-table.dto.js';

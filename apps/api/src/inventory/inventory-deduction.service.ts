@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { prisma, Prisma } from '@repo/db';
 import { OrderItem, OrderStatus } from '@repo/types';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 interface StockDeductionItem {
   productId: string;
@@ -28,6 +25,7 @@ interface StockValidationResult {
 export class InventoryDeductionService {
   private readonly logger = new Logger(InventoryDeductionService.name);
 
+  constructor(private prisma: PrismaService) {}
   /**
    * Validate and deduct stock when order is completed
    * Handles both direct products and recipe-based ingredient deduction
@@ -39,7 +37,7 @@ export class InventoryDeductionService {
     userId?: string,
   ) {
     // Get order with items
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -169,7 +167,7 @@ export class InventoryDeductionService {
   ): Promise<StockValidationResult> {
     const productIds = deductions.map((d) => d.productId);
 
-    const inventoryRecords = await prisma.inventory.findMany({
+    const inventoryRecords = await this.prisma.inventory.findMany({
       where: {
         tenantId,
         branchId,
@@ -200,7 +198,7 @@ export class InventoryDeductionService {
       if (available < deduction.quantity) {
         const product =
           inventory?.product ||
-          (await prisma.product.findUnique({
+          (await this.prisma.product.findUnique({
             where: { id: deduction.productId },
             select: { name: true, isIngredient: true },
           }));
@@ -234,7 +232,7 @@ export class InventoryDeductionService {
     orderId?: string,
     userId?: string,
   ) {
-    await prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       for (const deduction of deductions) {
         const inventory = await tx.inventory.findUnique({
           where: {
@@ -297,7 +295,7 @@ export class InventoryDeductionService {
     items: Array<{ productId: string; quantity: number }>,
   ) {
     // Get products with recipes
-    const products = await prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         id: { in: items.map((i) => i.productId) },
         tenantId,
@@ -382,7 +380,7 @@ export class InventoryDeductionService {
     const deductionList = Array.from(deductions.values());
     const productIds = deductionList.map((d) => String(d.productId));
 
-    const inventoryRecords = await prisma.inventory.findMany({
+    const inventoryRecords = await this.prisma.inventory.findMany({
       where: {
         tenantId,
         branchId,

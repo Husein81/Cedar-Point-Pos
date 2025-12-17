@@ -1,4 +1,4 @@
-import { ModifierType } from '@repo/db';
+import { ModifierType } from '@repo/types';
 import { z } from 'zod';
 
 export const createModifierGroupDto = z.object({

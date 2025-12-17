@@ -1,4 +1,4 @@
-import { TransferStatus } from '@repo/db';
+import { TransferStatus } from '@repo/types';
 import { z } from 'zod';
 
 export const updateTransferSchema = z.object({

@@ -3,13 +3,16 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ProductsService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getProductsByTenant(tenantId: string) {
-    return await prisma.product.findMany({
+    return await this.prisma.product.findMany({
       where: { tenantId },
     });
   }
@@ -47,9 +50,9 @@ export class ProductsService {
       }
 
       const [totalCount, data] = (await Promise.all([
-        prisma.product.count({ where }),
+        this.prisma.product.count({ where }),
 
-        prisma.product.findMany({
+        this.prisma.product.findMany({
           where,
           orderBy,
           skip,
@@ -73,14 +76,14 @@ export class ProductsService {
   }
 
   async getProductById(id: string) {
-    return await prisma.product.findUnique({
+    return await this.prisma.product.findUnique({
       where: { id },
     });
   }
 
   async createProduct(data: Prisma.ProductCreateInput) {
     try {
-      const result = await prisma.product.create({
+      const result = await this.prisma.product.create({
         data,
       });
 
@@ -93,7 +96,7 @@ export class ProductsService {
 
   async updateProduct(id: string, data: Prisma.ProductUpdateInput) {
     try {
-      const result = await prisma.product.update({
+      const result = await this.prisma.product.update({
         where: { id },
         data,
       });
@@ -106,7 +109,7 @@ export class ProductsService {
 
   async deleteProduct(id: string) {
     try {
-      const result = await prisma.product.delete({
+      const result = await this.prisma.product.delete({
         where: { id },
       });
       return result;
@@ -117,7 +120,7 @@ export class ProductsService {
   }
   async getModifiersByProduct(productId: string, tenantId: string) {
     try {
-      const modifiers = await prisma.modifier.findMany({
+      const modifiers = await this.prisma.modifier.findMany({
         where: {
           productId,
           tenantId,
@@ -144,7 +147,7 @@ export class ProductsService {
       });
 
       if (modifiers.length === 0) {
-        const productExists = await prisma.product.findFirst({
+        const productExists = await this.prisma.product.findFirst({
           where: { id: productId, tenantId, isDeleted: false },
           select: { id: true },
         });

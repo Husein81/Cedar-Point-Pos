@@ -1,16 +1,17 @@
 import { generateToken } from '../utils/generateToken.js';
 import { Injectable } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+import { Prisma, PrismaClient } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class DevicesService {
+  constructor(private prisma: PrismaClient) {}
   async registerDevice(
     tenantId: string,
     data: Prisma.POSDeviceUncheckedCreateInput,
   ) {
     const token = generateToken();
 
-    const device = await prisma.pOSDevice.create({
+    const device = await this.prisma.pOSDevice.create({
       data: {
         ...data,
         token,
@@ -22,21 +23,21 @@ export class DevicesService {
   }
 
   async updateActiveDevice(deviceId: string, isActive: boolean) {
-    return await prisma.pOSDevice.update({
+    return await this.prisma.pOSDevice.update({
       where: { id: deviceId },
       data: { isActive },
     });
   }
 
   async updateKdsFlag(deviceId: string, isKDS: boolean) {
-    return await prisma.pOSDevice.update({
+    return await this.prisma.pOSDevice.update({
       where: { id: deviceId },
       data: { isKDS },
     });
   }
 
   async validateDeviceToken(token: string) {
-    return await prisma.pOSDevice.findUnique({
+    return await this.prisma.pOSDevice.findUnique({
       where: { token },
     });
   }

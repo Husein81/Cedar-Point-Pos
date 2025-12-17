@@ -3,14 +3,17 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { prisma, ModifierType, Prisma } from '@repo/db';
 import {
   CreateModifierGroupDto,
   UpdateModifierGroupDto,
 } from './dto/modifier-group.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { ModifierType } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ModifierGroupsService {
+  constructor(private readonly prisma: PrismaService) {}
   /**
    * Create a new modifier group
    */
@@ -18,7 +21,7 @@ export class ModifierGroupsService {
     const { name, type } = createDto;
 
     // Check if modifier group with same name already exists for this tenant
-    const existing = await prisma.modifierGroup.findFirst({
+    const existing = await this.prisma.modifierGroup.findFirst({
       where: {
         tenantId,
         name: {
@@ -35,7 +38,7 @@ export class ModifierGroupsService {
       );
     }
 
-    const modifierGroup = await prisma.modifierGroup.create({
+    const modifierGroup = await this.prisma.modifierGroup.create({
       data: {
         tenantId,
         name,
@@ -80,8 +83,8 @@ export class ModifierGroupsService {
       };
 
       const [totalCount, modifierGroups] = await Promise.all([
-        prisma.modifierGroup.count({ where }),
-        prisma.modifierGroup.findMany({
+        this.prisma.modifierGroup.count({ where }),
+        this.prisma.modifierGroup.findMany({
           where,
           include: {
             modifiers: {
@@ -121,7 +124,7 @@ export class ModifierGroupsService {
    * Get a specific modifier group by ID
    */
   async findOne(tenantId: string, id: string) {
-    const modifierGroup = await prisma.modifierGroup.findFirst({
+    const modifierGroup = await this.prisma.modifierGroup.findFirst({
       where: {
         id,
         tenantId,
@@ -158,7 +161,7 @@ export class ModifierGroupsService {
     id: string,
     updateDto: UpdateModifierGroupDto,
   ) {
-    const modifierGroup = await prisma.modifierGroup.findFirst({
+    const modifierGroup = await this.prisma.modifierGroup.findFirst({
       where: {
         id,
         tenantId,
@@ -172,7 +175,7 @@ export class ModifierGroupsService {
 
     // If updating name, check for duplicates
     if (updateDto.name && updateDto.name !== modifierGroup.name) {
-      const duplicate = await prisma.modifierGroup.findFirst({
+      const duplicate = await this.prisma.modifierGroup.findFirst({
         where: {
           tenantId,
           name: {
@@ -193,7 +196,7 @@ export class ModifierGroupsService {
       }
     }
 
-    const updated = await prisma.modifierGroup.update({
+    const updated = await this.prisma.modifierGroup.update({
       where: { id },
       data: {
         ...(updateDto.name && { name: updateDto.name }),
@@ -219,7 +222,7 @@ export class ModifierGroupsService {
    * Soft delete a modifier group
    */
   async remove(tenantId: string, id: string) {
-    const modifierGroup = await prisma.modifierGroup.findFirst({
+    const modifierGroup = await this.prisma.modifierGroup.findFirst({
       where: {
         id,
         tenantId,
@@ -232,12 +235,12 @@ export class ModifierGroupsService {
     }
 
     // Soft delete the group and all its modifiers
-    await prisma.$transaction([
-      prisma.modifierGroup.update({
+    await this.prisma.$transaction([
+      this.prisma.modifierGroup.update({
         where: { id },
         data: { isDeleted: true },
       }),
-      prisma.modifier.updateMany({
+      this.prisma.modifier.updateMany({
         where: { groupId: id },
         data: { isDeleted: true },
       }),
@@ -250,7 +253,7 @@ export class ModifierGroupsService {
    * Get modifier groups by type
    */
   async findByType(tenantId: string, type: ModifierType) {
-    const modifierGroups = await prisma.modifierGroup.findMany({
+    const modifierGroups = await this.prisma.modifierGroup.findMany({
       where: {
         tenantId,
         type,

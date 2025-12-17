@@ -1,19 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { prisma, Prisma } from '@repo/db';
 import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class OrdersService {
@@ -21,6 +17,7 @@ export class OrdersService {
 
   constructor(
     private readonly inventoryDeductionService: InventoryDeductionService,
+    private prisma: PrismaService,
   ) {}
 
   private calculateItemTotals(
@@ -46,7 +43,7 @@ export class OrdersService {
   }
 
   async recalculateOrderTotals(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -81,7 +78,7 @@ export class OrdersService {
       const taxRate = Number(item.product.tax?.rate);
       const { itemSubtotal, itemTaxAmount, itemTotal } =
         this.calculateItemTotals(quantity, unitPrice, modifiersTotal, taxRate);
-      await prisma.orderItem.update({
+      await this.prisma.orderItem.update({
         where: { id: String(item.id) },
         data: {
           taxRate,
@@ -94,7 +91,7 @@ export class OrdersService {
     }
     const discount = order.discount || 0;
     const total = subtotal + taxAmount - Number(discount);
-    const updatedOrder = await prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: {
         subtotal,
@@ -171,7 +168,7 @@ export class OrdersService {
     } = createOrderDto;
 
     // Validate branch exists and belongs to tenant
-    const branch = await prisma.branch.findFirst({
+    const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, tenantId },
     });
 
@@ -180,7 +177,7 @@ export class OrdersService {
     }
 
     // Get tenant to check business type
-    const tenant = await prisma.tenant.findUnique({
+    const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
     });
 
@@ -202,7 +199,7 @@ export class OrdersService {
 
       // For DINE_IN orders, table is recommended
       if (type === OrderType.DINE_IN && tableId) {
-        const table = await prisma.table.findFirst({
+        const table = await this.prisma.table.findFirst({
           where: { id: tableId, branchId, tenantId },
         });
 
@@ -218,7 +215,7 @@ export class OrdersService {
 
     // Validate device if provided
     if (deviceId) {
-      const device = await prisma.pOSDevice.findFirst({
+      const device = await this.prisma.pOSDevice.findFirst({
         where: { id: deviceId, branchId, tenantId },
       });
 
@@ -233,7 +230,7 @@ export class OrdersService {
 
     // Validate shift if provided
     if (shiftId) {
-      const shift = await prisma.shift.findFirst({
+      const shift = await this.prisma.shift.findFirst({
         where: { id: shiftId, tenantId },
       });
 
@@ -244,7 +241,7 @@ export class OrdersService {
 
     // Validate customer if provided
     if (customerId) {
-      const customer = await prisma.customer.findFirst({
+      const customer = await this.prisma.customer.findFirst({
         where: { id: customerId, tenantId },
       });
 
@@ -254,7 +251,7 @@ export class OrdersService {
     }
 
     // Generate order number (simple sequential number)
-    const orderCount = await prisma.order.count({
+    const orderCount = await this.prisma.order.count({
       where: { tenantId, branchId },
     });
     const orderNumber = `${branchId.slice(-4).toUpperCase()}-${String(orderCount + 1).padStart(4, '0')}`;
@@ -283,7 +280,7 @@ export class OrdersService {
     if (items && items.length > 0) {
       // Validate all products exist
       const productIds = items.map((item) => item.productId);
-      const products = await prisma.product.findMany({
+      const products = await this.prisma.product.findMany({
         where: {
           id: { in: productIds },
           tenantId,
@@ -305,11 +302,11 @@ export class OrdersService {
 
       let modifierMap = new Map<
         string,
-        Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+        Awaited<ReturnType<typeof this.prisma.modifier.findMany>>[number]
       >();
 
       if (allModifierIds.length > 0) {
-        const modifiers = await prisma.modifier.findMany({
+        const modifiers = await this.prisma.modifier.findMany({
           where: {
             id: { in: allModifierIds },
             tenantId,
@@ -349,7 +346,7 @@ export class OrdersService {
             (
               m,
             ): m is Awaited<
-              ReturnType<typeof prisma.modifier.findMany>
+              ReturnType<typeof this.prisma.modifier.findMany>
             >[number] => m !== undefined,
           );
 
@@ -400,7 +397,7 @@ export class OrdersService {
     }
 
     // Create order
-    const order = await prisma.order.create({
+    const order = await this.prisma.order.create({
       data: orderData,
       include: {
         items: {
@@ -463,7 +460,7 @@ export class OrdersService {
    * Get order by ID
    */
   async findOne(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -582,8 +579,8 @@ export class OrdersService {
     }
 
     const [totalCount, orders] = await Promise.all([
-      prisma.order.count({ where }),
-      prisma.order.findMany({
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
         where,
         include: {
           items: {
@@ -641,7 +638,7 @@ export class OrdersService {
    * Handles both regular products and recipe-based ingredient deduction
    */
   async completeOrder(tenantId: string, orderId: string, userId?: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -673,7 +670,7 @@ export class OrdersService {
       );
 
     // Update order status to COMPLETED
-    const completedOrder = await prisma.order.update({
+    const completedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: {
         status: OrderStatus.COMPLETED,
@@ -736,7 +733,7 @@ export class OrdersService {
       [OrderStatus.CANCELLED]: [],
     };
 
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       // 1️⃣ Load minimal order data
       const order = await tx.order.findFirst({
         where: {
@@ -844,7 +841,7 @@ export class OrdersService {
   ): Promise<
     Awaited<
       ReturnType<
-        typeof prisma.order.findFirst<{
+        typeof this.prisma.order.findFirst<{
           include: {
             items: {
               include: {
@@ -868,7 +865,7 @@ export class OrdersService {
       throw new BadRequestException('Discount cannot be negative');
     }
 
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -891,7 +888,7 @@ export class OrdersService {
       );
     }
 
-    await prisma.order.update({
+    await this.prisma.order.update({
       where: { id: orderId },
       data: {
         discount: new Prisma.Decimal(discount),
@@ -905,7 +902,7 @@ export class OrdersService {
    * Shows what will be deducted without executing
    */
   async previewOrderStockDeductions(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -940,7 +937,7 @@ export class OrdersService {
    * Updates status to SENT_TO_KITCHEN and creates KDS tickets
    */
   async sendToKitchen(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
       include: { items: true },
     });
@@ -958,7 +955,7 @@ export class OrdersService {
       );
     }
 
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.SENT_TO_KITCHEN },
@@ -997,7 +994,7 @@ export class OrdersService {
     orderId: string,
     addItemDto: AddItemDto,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1016,7 +1013,7 @@ export class OrdersService {
       throw new BadRequestException('Cannot add items to a cancelled order');
     }
 
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: {
         id: addItemDto.productId,
         tenantId,
@@ -1032,11 +1029,11 @@ export class OrdersService {
     }
     let modifierMap = new Map<
       string,
-      Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+      Awaited<ReturnType<typeof this.prisma.modifier.findMany>>[number]
     >();
 
     if (addItemDto.modifiers && addItemDto.modifiers.length > 0) {
-      const modifiers = await prisma.modifier.findMany({
+      const modifiers = await this.prisma.modifier.findMany({
         where: {
           id: { in: addItemDto.modifiers },
           tenantId,
@@ -1065,8 +1062,9 @@ export class OrdersService {
       .filter(
         (
           m,
-        ): m is Awaited<ReturnType<typeof prisma.modifier.findMany>>[number] =>
-          m !== undefined,
+        ): m is Awaited<
+          ReturnType<typeof this.prisma.modifier.findMany>
+        >[number] => m !== undefined,
       );
 
     const modifiersTotal = itemModifiers.reduce(
@@ -1081,7 +1079,7 @@ export class OrdersService {
       modifiersTotal,
       taxRate,
     );
-    await prisma.orderItem.create({
+    await this.prisma.orderItem.create({
       data: {
         orderId: order.id,
         productId: product.id,
@@ -1109,7 +1107,7 @@ export class OrdersService {
     orderItemId: string,
     quantity: number,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1128,7 +1126,7 @@ export class OrdersService {
       throw new BadRequestException('Cannot update items in a cancelled order');
     }
 
-    const orderItem = await prisma.orderItem.findFirst({
+    const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
         orderId: order.id,
@@ -1163,7 +1161,7 @@ export class OrdersService {
       taxRate,
     );
 
-    await prisma.orderItem.update({
+    await this.prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
         quantity: newQuantity,
@@ -1181,7 +1179,7 @@ export class OrdersService {
     orderId: string,
     orderItemId: string,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1203,7 +1201,7 @@ export class OrdersService {
         'Cannot remove items from a cancelled order',
       );
     }
-    const orderItem = await prisma.orderItem.findFirst({
+    const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
         orderId: order.id,
@@ -1213,7 +1211,7 @@ export class OrdersService {
     if (!orderItem) {
       throw new NotFoundException('Order item not found');
     }
-    await prisma.orderItem.delete({
+    await this.prisma.orderItem.delete({
       where: { id: orderItemId },
     });
 
@@ -1238,7 +1236,7 @@ export class OrdersService {
     };
 
     // 1️⃣ Fetch minimal order data (fast & safe)
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1266,7 +1264,7 @@ export class OrdersService {
 
     // 2️⃣ Unassign table
     if (!tableId) {
-      return prisma.order.update({
+      return this.prisma.order.update({
         where: { id: orderId },
         data: { tableId: null },
         include: orderInclude,
@@ -1275,14 +1273,14 @@ export class OrdersService {
 
     // 3️⃣ If same table is already assigned → no-op
     if (order.tableId === tableId) {
-      return prisma.order.findUnique({
+      return this.prisma.order.findUnique({
         where: { id: orderId },
         include: orderInclude,
       });
     }
 
     // 4️⃣ Validate table
-    const table = await prisma.table.findFirst({
+    const table = await this.prisma.table.findFirst({
       where: {
         id: tableId,
         branchId: order.branchId,
@@ -1311,7 +1309,7 @@ export class OrdersService {
     ];
 
     // 5️⃣ Transaction → prevents race conditions
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const existingOrder = await tx.order.findFirst({
         where: {
           tenantId,

@@ -1,19 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { prisma, Prisma, InventoryChangeType } from '@repo/db';
 import type {
   CreateStockAdjustmentDto,
   StockAdjustmentHistoryQueryDto,
 } from './dto/stock-adjustment.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { InventoryChangeType } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class StockAdjustmentService {
+  constructor(private prisma: PrismaService) {}
   /**
    * Adjust stock for a product at a branch
    * Supports ADD, REMOVE, and SET operations with reason tracking
@@ -28,7 +28,7 @@ export class StockAdjustmentService {
     const { branchId, productId, operation, quantity, reason } = adjustmentDto;
 
     // Verify branch belongs to tenant
-    const branch = await prisma.branch.findFirst({
+    const branch = await this.prisma.branch.findFirst({
       where: {
         id: branchId,
         tenantId,
@@ -41,7 +41,7 @@ export class StockAdjustmentService {
     }
 
     // Verify product belongs to tenant
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: {
         id: productId,
         tenantId,
@@ -54,7 +54,7 @@ export class StockAdjustmentService {
     }
 
     // Get or create inventory record
-    let inventory = await prisma.inventory.findUnique({
+    let inventory = await this.prisma.inventory.findUnique({
       where: {
         branchId_productId: {
           branchId,
@@ -65,7 +65,7 @@ export class StockAdjustmentService {
 
     if (!inventory) {
       // Create inventory if it doesn't exist
-      inventory = await prisma.inventory.create({
+      inventory = await this.prisma.inventory.create({
         data: {
           tenantId,
           branchId,
@@ -113,7 +113,7 @@ export class StockAdjustmentService {
     const changeType = operation as InventoryChangeType;
 
     // Perform adjustment in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Update inventory (lastAdjusted is auto-updated via @updatedAt)
       const updatedInventory = await tx.inventory.update({
         where: {
@@ -217,8 +217,8 @@ export class StockAdjustmentService {
     };
 
     const [totalCount, adjustments] = (await Promise.all([
-      prisma.inventoryHistory.count({ where }),
-      prisma.inventoryHistory.findMany({
+      this.prisma.inventoryHistory.count({ where }),
+      this.prisma.inventoryHistory.findMany({
         where,
         include: {
           product: {
@@ -311,7 +311,7 @@ export class StockAdjustmentService {
     limit = 20,
   ) {
     // Verify inventory exists and belongs to tenant
-    const inventory = await prisma.inventory.findFirst({
+    const inventory = await this.prisma.inventory.findFirst({
       where: {
         branchId,
         productId,
@@ -326,13 +326,13 @@ export class StockAdjustmentService {
     const skip = (page - 1) * limit;
 
     const [totalCount, adjustments] = await Promise.all([
-      prisma.inventoryHistory.count({
+      this.prisma.inventoryHistory.count({
         where: {
           branchId,
           productId,
         },
       }),
-      prisma.inventoryHistory.findMany({
+      this.prisma.inventoryHistory.findMany({
         where: {
           branchId,
           productId,
@@ -418,8 +418,8 @@ export class StockAdjustmentService {
     };
 
     const [totalAdjustments, adjustmentsByType] = await Promise.all([
-      prisma.inventoryHistory.count({ where }),
-      prisma.inventoryHistory.groupBy({
+      this.prisma.inventoryHistory.count({ where }),
+      this.prisma.inventoryHistory.groupBy({
         by: ['changeType'],
         where,
         _count: {

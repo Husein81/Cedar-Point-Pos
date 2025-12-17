@@ -1,4 +1,4 @@
-import { OrderType } from '@repo/db';
+import { OrderType } from '@repo/types';
 import { z } from 'zod';
 
 export const createOrderItemDto = z.object({

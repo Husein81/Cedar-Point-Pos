@@ -1,8 +1,9 @@
 import { Body, Controller, Delete, Param, Put, Req } from '@nestjs/common';
-import { Prisma, User, UserRole } from '@repo/db';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CategoryService } from './category.service.js';
+import { User, UserRole } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('subcategories')
 export class SubcategoryController {

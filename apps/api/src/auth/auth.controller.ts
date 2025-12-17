@@ -6,8 +6,8 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Prisma } from '@repo/db';
 import type { Request } from 'express';
+import { Prisma } from '../../generated/prisma/client.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
 

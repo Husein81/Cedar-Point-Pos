@@ -1,8 +1,8 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import { Prisma } from '@repo/db';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { TablesService } from './tables.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('tables')
 export class TablesController {

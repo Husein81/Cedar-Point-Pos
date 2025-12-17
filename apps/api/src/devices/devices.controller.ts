@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Put, Req } from '@nestjs/common';
-import { Prisma } from '@repo/db';
+
 import type { Request } from 'express';
 import { DevicesService } from './devices.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('devices')
 export class DevicesController {

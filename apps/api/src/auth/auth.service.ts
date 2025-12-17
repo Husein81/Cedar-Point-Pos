@@ -1,13 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { prisma } from '@repo/db';
 import bcrypt from 'bcrypt';
 import { TokenBlacklistService } from './token-blacklist.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { User } from '@repo/types';
+import { PrismaService } from '../prisma.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -19,13 +16,14 @@ export interface JwtPayload {
 @Injectable()
 export class AuthService {
   constructor(
+    private prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
     const { email, password } = data;
-    const existedUser = await prisma.user.findUnique({
+    const existedUser = await this.prisma.user.findUnique({
       where: { email },
     });
 
@@ -35,7 +33,7 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...data,
         password: hashedPassword,
@@ -59,7 +57,7 @@ export class AuthService {
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {
-    const user = await prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email },
       include: { tenant: true },
     });
@@ -129,7 +127,7 @@ export class AuthService {
   }
 
   async validateUser(payload: JwtPayload): Promise<User> {
-    const user = (await prisma.user.findUnique({
+    const user = (await this.prisma.user.findUnique({
       where: { id: payload.sub },
     })) as User;
 

@@ -3,13 +3,17 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma, prisma, User } from '@repo/db';
 import bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma.service.js';
+import { User } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class UsersService {
+  constructor(private prisma: PrismaService) {}
+
   async getUserProfile(userId: string): Promise<Omit<User, 'password'>> {
-    const user = await prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
@@ -27,7 +31,7 @@ export class UsersService {
     userId: string,
     data: Prisma.UserUpdateInput,
   ): Promise<Omit<User, 'password'>> {
-    const user = await prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data,
     });
@@ -37,7 +41,7 @@ export class UsersService {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    await prisma.user.delete({
+    await this.prisma.user.delete({
       where: { id: userId },
     });
   }
@@ -47,7 +51,7 @@ export class UsersService {
     oldPassword: string,
     newPassword: string,
   ): Promise<void> {
-    const user = await prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
     if (!user) {
@@ -61,7 +65,7 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
     });

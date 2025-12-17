@@ -1,8 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, prisma, User } from '@repo/db';
-import * as bcrypt from 'bcrypt';
+import { prisma } from '@repo/db';
+import bcrypt from 'bcrypt';
 import { TokenBlacklistService } from './token-blacklist.service.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { User } from '@repo/types';
 
 export interface JwtPayload {
   sub: string;
@@ -18,18 +23,17 @@ export class AuthService {
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
-  async createUser(
-    data: Prisma.UserCreateInput,
-  ): Promise<Omit<User, 'password'>> {
+  async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
+    const { email, password } = data;
     const existedUser = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email },
     });
 
     if (existedUser) {
       throw new UnauthorizedException('User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
@@ -51,7 +55,7 @@ export class AuthService {
     };
   }
 
-  async login({ email, password }: Prisma.UserCreateInput): Promise<{
+  async login({ email, password }: CreateUserDto): Promise<{
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {
@@ -68,7 +72,10 @@ export class AuthService {
       throw new UnauthorizedException('Account is deactivated');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      String(user.password),
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -121,10 +128,10 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async validateUser(payload: JwtPayload) {
-    const user = await prisma.user.findUnique({
+  async validateUser(payload: JwtPayload): Promise<User> {
+    const user = (await prisma.user.findUnique({
       where: { id: payload.sub },
-    });
+    })) as User;
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found or inactive');

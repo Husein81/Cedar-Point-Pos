@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, Put, Req } from '@nestjs/common';
-import { Prisma, UserRole } from '@repo/db';
+import { Prisma } from '@repo/db';
 import type { Request } from 'express';
+import { UserRole } from '@repo/types';
 import { UsersService } from './users.service.js';
 
 @Controller('users')

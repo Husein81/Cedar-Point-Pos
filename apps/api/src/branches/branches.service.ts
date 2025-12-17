@@ -9,10 +9,9 @@ export class BranchesService {
 
   async createBranch(data: Prisma.BranchCreateInput) {
     try {
-      const result = await prisma.branch.create({
+      await prisma.branch.create({
         data,
       });
-      return result;
     } catch (error) {
       console.error('Error creating branch:', error);
       throw new InternalServerErrorException(

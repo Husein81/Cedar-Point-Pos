@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { DatabaseModule } from '@repo/db';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { BranchesModule } from './branches/branches.module.js';
@@ -27,7 +26,6 @@ import { RefundsModule } from './refunds/refunds.module.js';
     AuthModule,
     BranchesModule,
     CategoryModule,
-    DatabaseModule,
     DevicesModule,
     InventoryModule,
     ProductsModule,

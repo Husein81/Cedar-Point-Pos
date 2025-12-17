@@ -8,7 +8,7 @@ export class CategoryService {
     tenantId: string,
     data: Prisma.CategoryCreateWithoutTenantInput,
   ) {
-    return prisma.category.create({
+    return await prisma.category.create({
       data: {
         ...data,
         tenantId,

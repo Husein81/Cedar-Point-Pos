@@ -70,9 +70,10 @@ export class InventoryDeductionService {
         productId: String(item.productId),
         quantity: Number(item.quantity),
         id: String(item.id),
-        product: item.product,
+        orderId: String(item.orderId),
+        notes: String(item.notes),
       };
-    }) as OrderItem[];
+    }) as unknown as OrderItem[];
 
     const deductions = this.calculateStockDeductions(items);
 

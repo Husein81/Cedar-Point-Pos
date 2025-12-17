@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
 import { CreateTransferDto } from './dto/create-transfer.dto.js';
-import { TransferStatus } from '@repo/types';
+import { QueryParams, TransferStatus } from '@repo/types';
 import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 
 @Injectable()
@@ -427,15 +427,18 @@ export class TransfersService {
    */
   async findAll(
     tenantId: string,
-    params: {
-      page?: number;
-      limit?: number;
+    params: QueryParams & {
+      page?: string;
+      limit?: string;
       status?: TransferStatus;
       fromBranchId?: string;
       toBranchId?: string;
     },
   ) {
-    const { page = 1, limit = 10, status, fromBranchId, toBranchId } = params;
+    const page = params.page ? parseInt(params.page, 10) : 1;
+    const limit = params.limit ? parseInt(params.limit, 10) : 20;
+    const { status, fromBranchId, toBranchId } = params;
+
     const skip = (page - 1) * limit;
 
     const where: Prisma.TransferWhereInput = {

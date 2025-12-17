@@ -1,21 +1,26 @@
 {
   "name": "@repo/db",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "db:generate": "prisma generate",
     "db:push": "prisma db push"
   },
   "devDependencies": {
-    "@types/pg": "^8.15.6",
-    "prisma": "^7.0.1"
+    "@types/pg": "^8.16.0",
+    "prisma": "^7.1.0"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.0.1",
+    "@nestjs/common": "^11.1.9",
+    "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "dotenv": "^17.2.3",
     "pg": "^8.16.3"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/src/index.js"
   }
 }

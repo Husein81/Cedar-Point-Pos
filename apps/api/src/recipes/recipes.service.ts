@@ -5,8 +5,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
-import type { CreateRecipeDto } from './dto/create-recipe.dto';
-import type { UpdateRecipeDto } from './dto/update-recipe.dto';
+import type { CreateRecipeDto } from './dto/create-recipe.dto.js';
+import type { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 
 @Injectable()
 export class RecipesService {

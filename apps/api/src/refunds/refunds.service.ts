@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
 
-import { CreateRefundDto } from './dto/create-refund.dto';
+import { CreateRefundDto } from './dto/create-refund.dto.js';
 
 @Injectable()
 export class RefundsService {
@@ -14,6 +14,7 @@ export class RefundsService {
 
   async createRefund(tenantId: string, createRefundDto: CreateRefundDto) {
     const { orderId, productId, quantity, reason } = createRefundDto;
+
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,

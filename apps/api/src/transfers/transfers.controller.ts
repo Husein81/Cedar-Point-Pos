@@ -1,19 +1,19 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
-  Req,
-  Query,
   Patch,
+  Post,
+  Query,
+  Req,
 } from '@nestjs/common';
-import { TransfersService } from './transfers.service';
-import type { CreateTransferDto } from './dto/create-transfer.dto';
-import type { UpdateTransferDto } from './dto/update-transfer.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { TransferStatus, UserRole } from '@repo/db';
+import { UserRole, TransferStatus } from '@repo/types';
 import type { Request } from 'express';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import type { CreateTransferDto } from './dto/create-transfer.dto.js';
+import type { UpdateTransferDto } from './dto/update-transfer.dto.js';
+import { TransfersService } from './transfers.service.js';
 
 @Controller('transfers')
 export class TransfersController {

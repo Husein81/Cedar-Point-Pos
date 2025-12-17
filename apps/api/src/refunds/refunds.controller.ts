@@ -1,9 +1,9 @@
-import { Controller, Post, Body, Req } from '@nestjs/common';
-import { RefundsService } from './refunds.service';
-import type { CreateRefundDto } from './dto/create-refund.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole } from '@repo/db';
+import { Body, Controller, Post, Req } from '@nestjs/common';
+import { UserRole } from '@repo/types';
 import type { Request } from 'express';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import type { CreateRefundDto } from './dto/create-refund.dto.js';
+import { RefundsService } from './refunds.service.js';
 
 @Controller('refunds')
 export class RefundsController {

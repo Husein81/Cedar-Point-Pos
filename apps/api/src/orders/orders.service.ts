@@ -1,36 +1,38 @@
-import { InventoryDeductionService } from '@/inventory/inventory-deduction.service';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { BusinessType, OrderStatus, OrderType, Prisma, prisma } from '@repo/db';
-import { QueryParams } from '@repo/types';
-import { AddItemDto } from './dto/add-item.dto';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { prisma, Prisma } from '@repo/db';
+import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
+import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
+import type { AddItemDto } from './dto/add-item.dto.js';
+import type { CreateOrderDto } from './dto/create-order.dto.js';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
-    private readonly logger = new Logger(OrdersService.name),
     private readonly inventoryDeductionService: InventoryDeductionService,
   ) {}
 
   private calculateItemTotals(
-    quantity: Prisma.Decimal,
-    unitPrice: Prisma.Decimal,
-    modifiersTotal: Prisma.Decimal,
-    taxRate: Prisma.Decimal,
+    quantity: number,
+    unitPrice: number,
+    modifiersTotal: number,
+    taxRate: number,
   ): {
-    itemSubtotal: Prisma.Decimal;
-    itemTaxAmount: Prisma.Decimal;
-    itemTotal: Prisma.Decimal;
+    itemSubtotal: number;
+    itemTaxAmount: number;
+    itemTotal: number;
   } {
-    const itemSubtotal = quantity.times(unitPrice.plus(modifiersTotal));
-    const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
+    const itemSubtotal =
+      Number(quantity) * Number(unitPrice) + Number(modifiersTotal);
+    const itemTaxAmount = itemSubtotal * (Number(taxRate) / 100);
 
-    const itemTotal = itemSubtotal.plus(itemTaxAmount);
+    const itemTotal = itemSubtotal + itemTaxAmount;
 
     return {
       itemSubtotal,
@@ -39,32 +41,7 @@ export class OrdersService {
     };
   }
 
-  async recalculateOrderTotals(
-    tenantId: string,
-    orderId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
+  async recalculateOrderTotals(tenantId: string, orderId: string) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,

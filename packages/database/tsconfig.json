@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "rootDir": ".",
+        "outDir": "dist",
+        "target": "ES2022",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "declaration": true,
+        "emitDeclarationOnly": false
+    },
+    "include": [
+        "src",
+        "generated"
+    ]
+}

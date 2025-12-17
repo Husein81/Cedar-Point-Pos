@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ModifierGroupsController } from './modifier-groups.controller';
-import { ModifierGroupsService } from './modifier-groups.service';
-import { ModifiersController } from './modifiers.controller';
-import { ModifiersService } from './modifiers.service';
+import { ModifierGroupsController } from './modifier-groups.controller.js';
+import { ModifierGroupsService } from './modifier-groups.service.js';
+import { ModifiersController } from './modifiers.controller.js';
+import { ModifiersService } from './modifiers.service.js';
 
 @Module({
   controllers: [ModifierGroupsController, ModifiersController],

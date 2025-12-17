@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { Prisma, prisma, OrderStatus } from '@repo/db';
-import type { OrderItem } from '@repo/types';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { prisma, Prisma } from '@repo/db';
+import { OrderItem, OrderStatus } from '@repo/types';
 
 interface StockDeductionItem {
   productId: string;
@@ -60,7 +62,16 @@ export class InventoryDeductionService {
 
     // Calculate all stock deductions needed
     const items = order.items.map((item) => {
-      return { productId: item.productId, quantity: Number(item.quantity) };
+      return {
+        total: Number(item.total),
+        unitPrice: Number(item.unitPrice),
+        taxRate: Number(item.taxRate),
+        taxAmount: Number(item.taxAmount),
+        productId: String(item.productId),
+        quantity: Number(item.quantity),
+        id: String(item.id),
+        product: item.product,
+      };
     }) as OrderItem[];
 
     const deductions = this.calculateStockDeductions(items);
@@ -194,11 +205,11 @@ export class InventoryDeductionService {
           }));
 
         insufficientStock.push({
-          productId: deduction.productId,
-          productName: product?.name || 'Unknown',
+          productId: String(deduction.productId),
+          productName: String(product?.name),
           ...(product?.isIngredient && {
-            ingredientId: deduction.productId,
-            ingredientName: product.name,
+            ingredientId: String(deduction.productId),
+            ingredientName: String(product.name),
           }),
           required: deduction.quantity,
           available,
@@ -245,10 +256,10 @@ export class InventoryDeductionService {
 
         // Deduct stock
         await tx.inventory.update({
-          where: { id: inventory.id },
+          where: { id: String(inventory.id) },
           data: {
             stock: {
-              decrement: new Prisma.Decimal(deduction.quantity),
+              decrement: Number(deduction.quantity),
             },
           },
         });
@@ -354,10 +365,10 @@ export class InventoryDeductionService {
         if (existing) {
           existing.quantity += orderQty;
         } else {
-          deductions.set(product.id, {
-            productId: product.id,
-            productName: product.name,
-            sku: product.sku,
+          deductions.set(String(product.id), {
+            productId: String(product.id),
+            productName: String(product.name),
+            sku: String(product.sku),
             isIngredient: product.isIngredient,
             quantity: orderQty,
             source: 'direct',

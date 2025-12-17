@@ -5,14 +5,5 @@
     "emitDecoratorMetadata": true,
     "noEmit": false,
     "outDir": "dist",
-    "rootDir": "src",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-  },
-  "include": [
-    "src"
-  ]
+  }
 }

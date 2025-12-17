@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma, prisma, User } from '@repo/db';
 import * as bcrypt from 'bcrypt';
-import { TokenBlacklistService } from './token-blacklist.service';
+import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
   sub: string;

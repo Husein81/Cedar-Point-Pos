@@ -1,4 +1,4 @@
-import { generateToken } from '@/utils/generateToken';
+import { generateToken } from '../utils/generateToken.js';
 import { Injectable } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
 

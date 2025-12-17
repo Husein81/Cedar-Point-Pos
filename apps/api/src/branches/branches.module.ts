@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { BranchesController } from './branches.controller';
-import { BranchesService } from './branches.service';
+import { BranchesController } from './branches.controller.js';
+import { BranchesService } from './branches.service.js';
 
 @Module({
   controllers: [BranchesController],

@@ -1,11 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Injectable,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, prisma, TransferStatus } from '@repo/db';
-import { CreateTransferDto } from './dto/create-transfer.dto';
-import { UpdateTransferDto } from './dto/update-transfer.dto';
+import { Prisma, prisma } from '@repo/db';
+import { CreateTransferDto } from './dto/create-transfer.dto.js';
+import { TransferStatus } from '@repo/types';
+import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 
 @Injectable()
 export class TransfersService {

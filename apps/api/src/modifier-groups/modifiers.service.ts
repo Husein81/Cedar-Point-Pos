@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Prisma, prisma } from '@repo/db';
-import { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto';
+import { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto.js';
 
 @Injectable()
 export class ModifiersService {

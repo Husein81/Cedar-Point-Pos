@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { Prisma, UserRole } from '@repo/db';
-import { TenantService } from './tenant.service';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { Prisma } from '@repo/db';
+import { UserRole } from '@repo/types';
+import { TenantService } from './tenant.service.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @Controller('tenants')
 export class TenantController {

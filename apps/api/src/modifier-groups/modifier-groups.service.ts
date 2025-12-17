@@ -7,7 +7,7 @@ import { prisma, ModifierType, Prisma } from '@repo/db';
 import {
   CreateModifierGroupDto,
   UpdateModifierGroupDto,
-} from './dto/modifier-group.dto';
+} from './dto/modifier-group.dto.js';
 
 @Injectable()
 export class ModifierGroupsService {

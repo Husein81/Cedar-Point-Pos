@@ -13,11 +13,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
-import type { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto';
-import { ModifiersService } from './modifiers.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import type { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto.js';
+import { ModifiersService } from './modifiers.service.js';
 
 @Controller('modifier-groups/:groupId/modifiers')
 @UseGuards(JwtAuthGuard, RolesGuard)

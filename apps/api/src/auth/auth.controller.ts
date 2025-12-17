@@ -1,15 +1,15 @@
 import {
-  Controller,
-  Post,
   Body,
-  Req,
+  Controller,
   HttpCode,
   HttpStatus,
+  Post,
+  Req,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import type { Request } from 'express';
 import { Prisma } from '@repo/db';
-import { Public } from '../common/decorators/public.decorator';
+import type { Request } from 'express';
+import { Public } from '../common/decorators/public.decorator.js';
+import { AuthService } from './auth.service.js';
 
 @Controller('auth')
 export class AuthController {

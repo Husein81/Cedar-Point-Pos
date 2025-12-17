@@ -5,9 +5,9 @@ import {
 } from '@nestjs/common';
 import { OrderItem, Prisma, prisma } from '@repo/db';
 import { OrderStatus } from '@repo/types';
-import { AddModifierDto } from './dto/add-modifier-dto';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { OrdersService } from './orders.service';
+import { AddModifierDto } from './dto/add-modifier-dto.js';
+import { CreateTicketDto } from './dto/create-ticket.dto.js';
+import { OrdersService } from './orders.service.js';
 
 @Injectable()
 export class OrderItemService {

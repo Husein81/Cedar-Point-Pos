@@ -9,11 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
-import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto';
-import { StockAdjustmentService } from './stock-adjustment.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto.js';
+import { StockAdjustmentService } from './stock-adjustment.service.js';
 
 @Controller('inventory/adjustments')
 @UseGuards(JwtAuthGuard, RolesGuard)

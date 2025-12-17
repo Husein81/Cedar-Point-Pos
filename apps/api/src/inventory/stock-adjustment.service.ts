@@ -10,7 +10,7 @@ import { prisma, Prisma, InventoryChangeType } from '@repo/db';
 import type {
   CreateStockAdjustmentDto,
   StockAdjustmentHistoryQueryDto,
-} from './dto/stock-adjustment.dto';
+} from './dto/stock-adjustment.dto.js';
 
 @Injectable()
 export class StockAdjustmentService {

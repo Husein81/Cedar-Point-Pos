@@ -1,8 +1,8 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import { Prisma } from '@repo/db';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
-import { ProductsService } from './products.service';
-import { Prisma } from '@repo/db';
+import { ProductsService } from './products.service.js';
 
 @Controller('products')
 export class ProductsController {

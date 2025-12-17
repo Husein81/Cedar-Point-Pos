@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"],
-      "env": ["DATABASE_URL","DIRECT_URL"]
+      "env": ["DATABASE_URL","DIRECT_URL", "JWT_SECRET","PORT"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -19,14 +19,10 @@
       "persistent": true
     },
     "db:generate": {
-    "cache": false
-  },
-  "db:migrate": {
-    "cache": false,
-    "persistent": true 
-  },
-  "db:deploy": {
-    "cache": false
-  }
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
+    }
   }
 }

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { QueryParams, TransferStatus } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateTransferDto } from './dto/create-transfer.dto.js';
 import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 

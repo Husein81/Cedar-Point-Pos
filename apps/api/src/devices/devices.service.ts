@@ -1,10 +1,11 @@
-import { generateToken } from '../utils/generateToken.js';
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { generateToken } from '../utils/generateToken.js';
 
 @Injectable()
 export class DevicesService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
   async registerDevice(
     tenantId: string,
     data: Prisma.POSDeviceUncheckedCreateInput,

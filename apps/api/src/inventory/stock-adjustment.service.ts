@@ -7,7 +7,7 @@ import type {
   CreateStockAdjustmentDto,
   StockAdjustmentHistoryQueryDto,
 } from './dto/stock-adjustment.dto.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryChangeType } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 

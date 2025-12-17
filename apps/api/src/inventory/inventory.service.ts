@@ -5,7 +5,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InventoryChangeType, QueryParams } from '@repo/types';
 import type { CreateInventoryHistoryDto } from './dto/inventory.dto.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class InventoryService {

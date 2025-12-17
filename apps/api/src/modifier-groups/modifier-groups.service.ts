@@ -7,7 +7,7 @@ import {
   CreateModifierGroupDto,
   UpdateModifierGroupDto,
 } from './dto/modifier-group.dto.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { ModifierType } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 

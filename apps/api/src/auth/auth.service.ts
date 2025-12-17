@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import { TokenBlacklistService } from './token-blacklist.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { User } from '@repo/types';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -16,7 +16,7 @@ export interface JwtPayload {
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}

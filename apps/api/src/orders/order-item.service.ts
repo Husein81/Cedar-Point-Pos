@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { OrdersService } from './orders.service.js';

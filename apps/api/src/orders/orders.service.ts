@@ -8,7 +8,7 @@ import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()

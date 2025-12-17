@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class CategoryService {

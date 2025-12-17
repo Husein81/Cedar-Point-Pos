@@ -4,12 +4,14 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
-import type { CreateRecipeDto } from './dto/create-recipe.dto';
-import type { UpdateRecipeDto } from './dto/update-recipe.dto';
+import type { CreateRecipeDto } from './dto/create-recipe.dto.js';
+import type { UpdateRecipeDto } from './dto/update-recipe.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class RecipesService {
+  constructor(private readonly prisma: PrismaService) {}
   /**
    * Create a new recipe linking a sellable product to an ingredient
    */
@@ -17,7 +19,7 @@ export class RecipesService {
     const { productId, ingredientId, quantity } = createRecipeDto;
 
     // Validate that the product exists and belongs to tenant
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId },
     });
 
@@ -26,7 +28,7 @@ export class RecipesService {
     }
 
     // Validate that the ingredient exists, belongs to tenant, and is marked as ingredient
-    const ingredient = await prisma.product.findFirst({
+    const ingredient = await this.prisma.product.findFirst({
       where: { id: ingredientId, tenantId, isIngredient: true },
     });
 
@@ -37,7 +39,7 @@ export class RecipesService {
     }
 
     // Check if recipe already exists
-    const existingRecipe = await prisma.recipe.findUnique({
+    const existingRecipe = await this.prisma.recipe.findUnique({
       where: {
         productId_ingredientId: {
           productId,
@@ -52,7 +54,7 @@ export class RecipesService {
       );
     }
 
-    return prisma.recipe.create({
+    return this.prisma.recipe.create({
       data: {
         tenantId,
         productId,
@@ -83,7 +85,7 @@ export class RecipesService {
    * Get all recipes for a specific product (showing all ingredients)
    */
   async findByProduct(tenantId: string, productId: string) {
-    const recipes = await prisma.recipe.findMany({
+    const recipes = await this.prisma.recipe.findMany({
       where: {
         tenantId,
         productId,
@@ -140,8 +142,8 @@ export class RecipesService {
     };
 
     const [totalCount, recipes] = await Promise.all([
-      prisma.recipe.count({ where }),
-      prisma.recipe.findMany({
+      this.prisma.recipe.count({ where }),
+      this.prisma.recipe.findMany({
         where,
         include: {
           product: {
@@ -187,7 +189,7 @@ export class RecipesService {
    * Get a specific recipe by ID
    */
   async findOne(tenantId: string, id: string) {
-    const recipe = await prisma.recipe.findFirst({
+    const recipe = await this.prisma.recipe.findFirst({
       where: {
         id,
         tenantId,
@@ -225,7 +227,7 @@ export class RecipesService {
    * Update recipe quantity
    */
   async update(tenantId: string, id: string, updateRecipeDto: UpdateRecipeDto) {
-    const recipe = await prisma.recipe.findFirst({
+    const recipe = await this.prisma.recipe.findFirst({
       where: { id, tenantId },
     });
 
@@ -233,7 +235,7 @@ export class RecipesService {
       throw new NotFoundException('Recipe not found');
     }
 
-    const updated = await prisma.recipe.update({
+    const updated = await this.prisma.recipe.update({
       where: { id },
       data: {
         ...(updateRecipeDto.quantity !== undefined && {
@@ -269,7 +271,7 @@ export class RecipesService {
    * Delete a recipe
    */
   async remove(tenantId: string, id: string) {
-    const recipe = await prisma.recipe.findFirst({
+    const recipe = await this.prisma.recipe.findFirst({
       where: { id, tenantId },
     });
 
@@ -277,7 +279,7 @@ export class RecipesService {
       throw new NotFoundException('Recipe not found');
     }
 
-    await prisma.recipe.delete({
+    await this.prisma.recipe.delete({
       where: { id },
     });
 
@@ -297,7 +299,7 @@ export class RecipesService {
       throw new BadRequestException('Product quantity must be greater than 0');
     }
 
-    const recipes = await prisma.recipe.findMany({
+    const recipes = await this.prisma.recipe.findMany({
       where: {
         tenantId,
         productId,
@@ -339,7 +341,7 @@ export class RecipesService {
     ingredients: Array<{ ingredientId: string; quantity: number }>,
   ) {
     // Validate product exists
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId },
     });
 
@@ -349,7 +351,7 @@ export class RecipesService {
 
     // Validate all ingredients exist and are marked as ingredients
     const ingredientIds = ingredients.map((i) => i.ingredientId);
-    const validIngredients = await prisma.product.findMany({
+    const validIngredients = await this.prisma.product.findMany({
       where: {
         id: { in: ingredientIds },
         tenantId,
@@ -364,9 +366,9 @@ export class RecipesService {
     }
 
     // Create all recipes in a transaction
-    const createdRecipes = await prisma.$transaction(
+    const createdRecipes = await this.prisma.$transaction(
       ingredients.map((ingredient) =>
-        prisma.recipe.upsert({
+        this.prisma.recipe.upsert({
           where: {
             productId_ingredientId: {
               productId,

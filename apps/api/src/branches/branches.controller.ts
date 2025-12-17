@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Get, Post, Req } from '@nestjs/common';
-import { BranchesService } from './branches.service';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { Controller, Delete, Get, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Prisma } from '@repo/db';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { BranchesService } from './branches.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('branches')
 export class BranchesController {

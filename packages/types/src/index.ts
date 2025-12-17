@@ -1,214 +1,463 @@
 import z from "zod";
+
 // ===========================================
 //         Enums
 // ===========================================
-export enum BusinessType {
-  RESTAURANT = "RESTAURANT",
-  RETAIL = "RETAIL",
-}
+export const BusinessType = {
+  RESTAURANT: "RESTAURANT",
+  RETAIL: "RETAIL",
+} as const;
+export type BusinessType = (typeof BusinessType)[keyof typeof BusinessType];
 
-export enum InventoryChangeType {
-  SET_STOCK = "SET_STOCK", // Direct stock set
-  ADJUST_STOCK = "ADJUST_STOCK", // Stock adjustment (increment/decrement)
-  SET_MIN_STOCK = "SET_MIN_STOCK", // Minimum stock threshold change
-  ORDER_DEDUCT = "ORDER_DEDUCT", // Stock deducted from order
-  ORDER_RETURN = "ORDER_RETURN", // Stock returned from refund
-  MANUAL_ADJUST = "MANUAL_ADJUST", // Manual adjustment
-}
+export const InventoryChangeType = {
+  SET_STOCK: "SET_STOCK", // Direct stock set
+  ADJUST_STOCK: "ADJUST_STOCK", // Stock adjustment (increment/decrement)
+  SET_MIN_STOCK: "SET_MIN_STOCK", // Minimum stock threshold change
+  ORDER_DEDUCT: "ORDER_DEDUCT", // Stock deducted from order
+  ORDER_RETURN: "ORDER_RETURN", // Stock returned from refund
+  MANUAL_ADJUST: "MANUAL_ADJUST", // Manual adjustment
+} as const;
+export type InventoryChangeType =
+  (typeof InventoryChangeType)[keyof typeof InventoryChangeType];
 
-export enum ModifierType {
-  SINGLE = "SINGLE", // Only one modifier can be selected
-  MULTIPLE = "MULTIPLE", // Multiple modifiers can be selected
-}
+export const ModifierType = {
+  SINGLE: "SINGLE", // Only one modifier can be selected
+  MULTIPLE: "MULTIPLE", // Multiple modifiers can be selected
+} as const;
+export type ModifierType = (typeof ModifierType)[keyof typeof ModifierType];
 
-export enum OrderType {
-  DINE_IN = "DINE_IN",
-  TAKEAWAY = "TAKEAWAY",
-  DELIVERY = "DELIVERY",
-}
+export const OrderType = {
+  DINE_IN: "DINE_IN",
+  TAKEAWAY: "TAKEAWAY",
+  DELIVERY: "DELIVERY",
+} as const;
+export type OrderType = (typeof OrderType)[keyof typeof OrderType];
 
-export enum OrderStatus {
-  DRAFT = "DRAFT", // New: For orders being built on the POS
-  PENDING = "PENDING", // Order created but not processed
-  SENT_TO_KITCHEN = "SENT_TO_KITCHEN", // Order sent to kitchen/bar
-  READY = "READY", // Ready for pickup/serve
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-}
+export const OrderStatus = {
+  DRAFT: "DRAFT", // New: For orders being built on the POS
+  PENDING: "PENDING", // Order created but not processed
+  SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
+  READY: "READY", // Ready for pickup/serve
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
-export enum SortOrder {
-  ASC = "asc",
-  DESC = "desc",
-}
+export const SortOrder = {
+  ASC: "asc",
+  DESC: "desc",
+} as const;
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder];
 
-export enum UserRole {
-  ADMIN = "ADMIN",
-  OWNER = "OWNER",
-  MANAGER = "MANAGER",
-  CASHIER = "CASHIER",
-  KITCHEN = "KITCHEN",
-}
+export const TransferStatus = {
+  PENDING: "PENDING",
+  IN_TRANSIT: "IN_TRANSIT",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type TransferStatus =
+  (typeof TransferStatus)[keyof typeof TransferStatus];
 
-export const decimal = z.union([z.string(), z.number()]);
+export const UserRole = {
+  ADMIN: "ADMIN",
+  OWNER: "OWNER",
+  MANAGER: "MANAGER",
+  CASHIER: "CASHIER",
+  KITCHEN: "KITCHEN",
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const PaymentMethod = {
+  CASH: "CASH",
+  CREDIT_CARD: "CREDIT_CARD",
+  DEBIT_CARD: "DEBIT_CARD",
+  MOBILE_PAYMENT: "MOBILE_PAYMENT",
+  GIFT_CARD: "GIFT_CARD",
+  OTHER: "OTHER",
+} as const;
+export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const ShiftStatus = {
+  OPEN: "OPEN",
+  CLOSED: "CLOSED",
+} as const;
+export type ShiftStatus = (typeof ShiftStatus)[keyof typeof ShiftStatus];
+
+export const decimal = z
+  .union([z.string(), z.number()])
+  .transform((v) => String(v))
+  .refine((v) => /^-?\d+(\.\d+)?$/.test(v), "Invalid decimal string");
+export type Decimal = z.infer<typeof decimal>;
+
+export const cuid = z.string().min(1);
+export const isoDate = z.coerce.date();
 // ===========================================
 //       Schemas
 // ===========================================
 
-export const tenantSchema = z.object({
-  id: z.string().cuid().optional(),
+// Tenant
+export const TenantSchema = z.object({
+  id: cuid,
   name: z.string(),
-  businessType: z.enum(BusinessType),
-  settings: z.json().optional(),
-  createdAt: z.date().default(new Date()),
-  updatedAt: z.date().optional(),
+  businessType: BusinessType,
+  createdAt: isoDate,
+  updatedAt: isoDate,
+  settings: z.unknown().nullable().optional(), // Json?
 });
+export type Tenant = z.infer<typeof TenantSchema>;
 
-//
-// -------- Users ---------
-//
-export const userSchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
+// Currency
+export const CurrencySchema = z.object({
+  code: z.string().min(1), // e.g., USD
+  name: z.string(),
+  symbol: z.string().nullable().optional(),
+  exchangeRate: decimal.nullable().optional(),
+  isActive: z.boolean().default(true),
+});
+export type Currency = z.infer<typeof CurrencySchema>;
+
+// User
+export const UserSchema = z.object({
+  id: cuid,
   name: z.string(),
   email: z.string().email(),
-  password: z.string(),
-  role: z.string(),
-  isActive: z.boolean(),
+  password: z.string(), // usually not returned in responses; keep for internal/admin usage
+  role: z.enum(UserRole),
+  isActive: z.boolean().default(true),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+  tenantId: cuid.nullable().optional(),
 });
-export type User = z.infer<typeof userSchema>;
+export type User = z.infer<typeof UserSchema>;
 
-//
-// -------- Categories ---------
-//
-export const categorySchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
+// Branch
+export const BranchSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
   name: z.string(),
-  description: z.string().optional(),
-  code: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
 });
-export type Category = z.infer<typeof categorySchema>;
+export type Branch = z.infer<typeof BranchSchema>;
 
-//
-// -------- Subcategories ---------
-//
-export const subcategorySchema = z.object({
-  id: z.string().optional(),
-  categoryId: z.string().cuid().optional(),
+// POSDevice
+export const POSDeviceSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
   name: z.string(),
-  description: z.string().nullable(),
-  isDeleted: z.boolean().default(false),
-  category: categorySchema.optional(),
+  token: z.string(),
+  lastSync: isoDate.nullable().optional(),
+  isActive: z.boolean().default(true),
+  isKDS: z.boolean().default(false),
 });
-export type Subcategory = z.infer<typeof subcategorySchema>;
+export type POSDevice = z.infer<typeof POSDeviceSchema>;
 
-//
-// ------- Recipes ---------
-//
-export const recipeSchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
-  productId: z.string().cuid().optional(),
-  ingredientId: z.string().cuid().optional(),
-  quantity: z.number(),
-});
-export type Recipe = z.infer<typeof recipeSchema>;
-
-//
-// -------- Products ---------
-//
-export const productSchema = z.object({
-  id: z.string(),
-  tenantId: z.string(),
+// Category
+export const CategorySchema = z.object({
+  id: cuid,
+  tenantId: cuid,
   name: z.string(),
-  imageUrl: z.string().nullable(),
-  sku: z.string().nullable(),
-  barcode: z.string().nullable(),
-  price: decimal.nullable(),
-  cost: decimal.nullable(),
-  categoryId: z.string().nullable(),
-  subcategoryId: z.string().nullable(),
-  isActive: z.boolean(),
-  isDeleted: z.boolean(),
-  isIngredient: z.boolean(),
-  isModifiable: z.boolean(),
-  taxId: z.string().nullable(),
-
-  createdAt: z.string(),
-
-  category: categorySchema.optional(),
-  subcategory: subcategorySchema.optional(),
-  recipesUsedIn: z.array(recipeSchema).optional(),
-  ingredientUsedIn: z.array(recipeSchema).optional(),
-});
-export type Product = z.infer<typeof productSchema>;
-
-//
-// ---------- Modifiers ---------
-//
-export const modifierSchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
-  groupId: z.string().cuid().optional(),
-  name: z.string(),
-  price: decimal,
+  code: z.string().nullable().optional(), // unique in prisma
+  description: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
 });
-export type Modifier = z.infer<typeof modifierSchema>;
+export type Category = z.infer<typeof CategorySchema>;
 
-//
-// ------- Modifier Groups ---------
-//
-export const modifierGroupSchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
+// Subcategory
+export const SubcategorySchema = z.object({
+  id: cuid,
+  categoryId: cuid,
   name: z.string(),
+  description: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
-  type: z.enum(ModifierType),
-  modifiers: z.array(modifierSchema).optional(),
 });
-export type ModifierGroup = z.infer<typeof modifierGroupSchema>;
+export type Subcategory = z.infer<typeof SubcategorySchema>;
 
-//
-// -------- Orders and Order Items ---------
-//
-export const orderItemSchema = z.object({
-  id: z.string().cuid().optional(),
-  orderId: z.string().cuid().optional(),
-  productId: z.string().cuid().optional(),
-  quantity: z.number(),
+// Recipe
+export const RecipeSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  productId: cuid,
+  ingredientId: cuid,
+  quantity: decimal,
+});
+export type Recipe = z.infer<typeof RecipeSchema>;
+
+// Product
+export const ProductSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  sku: z.string().nullable().optional(),
+  barcode: z.string().nullable().optional(),
+  price: decimal.nullable().optional(),
+  cost: decimal.nullable().optional(),
+  categoryId: cuid.nullable().optional(),
+  subcategoryId: cuid.nullable().optional(),
+  isActive: z.boolean().default(true),
+  isDeleted: z.boolean().default(false),
+  isIngredient: z.boolean().default(false),
+  isModifiable: z.boolean().default(false),
+  createdAt: isoDate,
+  taxId: cuid.nullable().optional(),
+  recipesUsedIn: z.array(RecipeSchema).optional(), // For ingredients
+});
+export type Product = z.infer<typeof ProductSchema>;
+
+// Offer / OfferGroup / OfferGroupItem
+export const OfferSchema = z.object({
+  id: cuid,
+  name: z.string(),
+  basePrice: decimal,
+});
+export type Offer = z.infer<typeof OfferSchema>;
+
+export const OfferGroupSchema = z.object({
+  id: cuid,
+  offerId: cuid,
+  name: z.string(),
+  freeItemsCount: z.number().int().nonnegative().default(0),
+});
+export type OfferGroup = z.infer<typeof OfferGroupSchema>;
+
+export const OfferGroupItemSchema = z.object({
+  id: cuid,
+  offerGroupId: cuid,
+  productId: cuid,
+  extraPrice: decimal.default("0"),
+});
+export type OfferGroupItem = z.infer<typeof OfferGroupItemSchema>;
+
+// Inventory
+export const InventorySchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  productId: cuid,
+  stock: decimal.default("0"),
+  minStock: decimal.default("0"),
+  lastAdjusted: isoDate,
+});
+export type Inventory = z.infer<typeof InventorySchema>;
+
+// InventoryHistory
+export const InventoryHistorySchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  productId: cuid,
+  userId: cuid,
+  changeType: z.enum(InventoryChangeType),
+  beforeStock: decimal,
+  afterStock: decimal,
+  adjustment: decimal,
+  beforeMinStock: decimal.nullable().optional(),
+  afterMinStock: decimal.nullable().optional(),
+  reason: z.string().nullable().optional(),
+  createdAt: isoDate,
+});
+export type InventoryHistory = z.infer<typeof InventoryHistorySchema>;
+
+// Transfer / TransferItem
+export const TransferSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  fromBranchId: cuid,
+  toBranchId: cuid,
+  status: z.enum(TransferStatus).default("PENDING"),
+  requestedBy: cuid,
+  approvedBy: cuid.nullable().optional(),
+  notes: z.string().nullable().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+  completedAt: isoDate.nullable().optional(),
+});
+export type Transfer = z.infer<typeof TransferSchema>;
+
+export const TransferItemSchema = z.object({
+  id: cuid,
+  transferId: cuid,
+  productId: cuid,
+  quantity: decimal,
+});
+export type TransferItem = z.infer<typeof TransferItemSchema>;
+
+// Refund / RefundItem
+export const RefundSchema = z.object({
+  id: cuid,
+  orderId: cuid,
+  productId: cuid,
+  quantity: decimal.default("0"),
+  totalAmount: decimal.default("0"),
+  reason: z.string().nullable().optional(),
+  refundedAt: isoDate,
+});
+export type Refund = z.infer<typeof RefundSchema>;
+
+export const RefundItemSchema = z.object({
+  id: cuid,
+  refundId: cuid,
+  orderItemId: cuid,
+  quantity: decimal,
   unitPrice: decimal,
-  taxRate: decimal,
-  taxAmount: decimal,
+  subtotal: decimal,
+});
+export type RefundItem = z.infer<typeof RefundItemSchema>;
+
+// Table
+export const TableSchema = z.object({
+  id: cuid,
+  tableNumber: z.number().int(),
+  tenantId: cuid,
+  branchId: cuid,
+  name: z.string(),
+  capacity: z.number().int().positive().default(4),
+  isActive: z.boolean().default(true),
+  isDeleted: z.boolean().default(false),
+});
+export type Table = z.infer<typeof TableSchema>;
+
+// ModifierGroup / Modifier
+export const ModifierGroupSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  name: z.string(),
+  type: z.enum(ModifierType),
+  isDeleted: z.boolean().default(false),
+});
+export type ModifierGroup = z.infer<typeof ModifierGroupSchema>;
+
+export const ModifierSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  groupId: cuid,
+  productId: cuid.nullable().optional(),
+  name: z.string(),
+  price: decimal.default("0"),
+  isDeleted: z.boolean().default(false),
+});
+export type Modifier = z.infer<typeof ModifierSchema>;
+
+// OrderItem
+export const OrderItemSchema = z.object({
+  id: cuid,
+  orderId: cuid,
+  productId: cuid,
+  quantity: decimal.default("1"),
+  unitPrice: decimal,
+  taxRate: decimal.default("0"),
+  taxAmount: decimal.default("0"),
   total: decimal,
-  notes: z.string().nullable(),
-  product: productSchema.optional(),
+  notes: z.string().nullable().optional(),
+  product: ProductSchema.optional(), // For combo products
 });
-export type OrderItem = z.infer<typeof orderItemSchema>;
+export type OrderItem = z.infer<typeof OrderItemSchema>;
 
-export const orderSchema = z.object({
-  id: z.string().cuid().optional(),
-  tenantId: z.string().cuid().optional(),
-  userId: z.string().cuid(),
-  branchId: z.string().cuid().nullable(),
-  tableId: z.string().cuid().nullable(),
-  deviceId: z.string().cuid().nullable(),
-  shiftId: z.string().cuid().nullable(),
-  customerId: z.string().cuid().nullable(),
-  subtotal: z.string(),
-  taxAmount: z.string(),
-  total: z.string(),
-  discount: z.string().nullable(),
-  orderNumber: z.string(),
-  status: z.enum(OrderStatus).default(OrderStatus.DRAFT),
+// Order
+export const OrderSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  userId: cuid.nullable().optional(),
+  branchId: cuid,
+  tableId: cuid.nullable().optional(),
+  deviceId: cuid.nullable().optional(),
+
+  customerId: cuid.nullable().optional(),
+  shiftId: cuid.nullable().optional(),
+
+  orderNumber: z.string().nullable().optional(),
+
   type: z.enum(OrderType),
-  items: z.array(orderItemSchema).optional(),
+  status: z.enum(OrderStatus).default("DRAFT"),
 
-  createdAt: z.date().default(new Date()),
-  completedAt: z.date().nullable(),
+  subtotal: decimal.default("0"),
+  taxAmount: decimal.default("0"),
+  total: decimal.default("0"),
+  discount: decimal.nullable().optional(),
+
+  createdAt: isoDate,
+  completedAt: isoDate.nullable().optional(),
+  items: z.array(OrderItemSchema).optional(), // OrderItem[]
 });
-export type Order = z.infer<typeof orderSchema>;
+export type Order = z.infer<typeof OrderSchema>;
+
+// OrderItemTicket
+export const OrderItemTicketSchema = z.object({
+  id: cuid,
+  orderItemId: cuid,
+  station: z.string().nullable().optional(),
+  status: z.enum(OrderStatus).default("SENT_TO_KITCHEN"),
+  sentAt: isoDate,
+  bumpedAt: isoDate.nullable().optional(),
+});
+export type OrderItemTicket = z.infer<typeof OrderItemTicketSchema>;
+
+// OrderItemModifier
+export const OrderItemModifierSchema = z.object({
+  id: cuid,
+  orderItemId: cuid,
+  modifierId: cuid,
+  price: decimal,
+});
+export type OrderItemModifier = z.infer<typeof OrderItemModifierSchema>;
+
+// Payment
+export const PaymentSchema = z.object({
+  id: cuid,
+  orderId: cuid,
+  method: z.enum(PaymentMethod),
+  currencyCode: z.string().default("USD"),
+  amount: decimal,
+  exchangeRate: decimal.nullable().optional(),
+  transactionId: z.string().nullable().optional(),
+  paidAt: isoDate,
+});
+export type Payment = z.infer<typeof PaymentSchema>;
+
+// Customer
+export const CustomerSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  name: z.string(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type Customer = z.infer<typeof CustomerSchema>;
+
+// Shift
+export const ShiftSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  userId: cuid,
+  deviceId: cuid.nullable().optional(),
+  startTime: isoDate,
+  endTime: isoDate.nullable().optional(),
+  startCash: decimal.default("0"),
+  endCash: decimal.nullable().optional(),
+  actualCash: decimal.nullable().optional(),
+  difference: decimal.nullable().optional(),
+  status: z.enum(ShiftStatus).default("OPEN"),
+  notes: z.string().nullable().optional(),
+});
+export type Shift = z.infer<typeof ShiftSchema>;
+
+// Tax
+export const TaxSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  name: z.string(),
+  rate: decimal, // Decimal(5,2)
+  isDefault: z.boolean().default(false),
+});
+export type Tax = z.infer<typeof TaxSchema>;
 
 // ===========================================
 //         Query Params Schema

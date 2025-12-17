@@ -9,11 +9,10 @@ import {
   Req,
   ParseFloatPipe,
 } from '@nestjs/common';
-import { InventoryService } from './inventory.service';
-import { Roles } from '@/common/decorators/roles.decorator';
+import { InventoryService } from './inventory.service.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 import type { Request } from 'express';
-import { UserRole, InventoryChangeType } from '@repo/db';
-import { QueryParams } from '@repo/types';
+import { InventoryChangeType, QueryParams, UserRole } from '@repo/types';
 
 @Controller('inventory')
 export class InventoryController {

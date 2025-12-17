@@ -3,18 +3,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderItem, Prisma, prisma } from '@repo/db';
 import { OrderStatus } from '@repo/types';
-import { AddModifierDto } from './dto/add-modifier-dto';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { OrdersService } from './orders.service';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma.service.js';
+import { AddModifierDto } from './dto/add-modifier-dto.js';
+import { CreateTicketDto } from './dto/create-ticket.dto.js';
+import { OrdersService } from './orders.service.js';
 
 @Injectable()
 export class OrderItemService {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private prisma: PrismaService,
+  ) {}
 
   async addModifier(orderItemId: string, addModifierDto: AddModifierDto) {
-    const orderItem = await prisma.orderItem.findUnique({
+    const orderItem = await this.prisma.orderItem.findUnique({
       where: { id: orderItemId },
     });
 
@@ -22,7 +26,7 @@ export class OrderItemService {
       throw new NotFoundException('Order item not found');
     }
 
-    const modifier = await prisma.modifier.findUnique({
+    const modifier = await this.prisma.modifier.findUnique({
       where: { id: addModifierDto.modifierId },
     });
 
@@ -30,7 +34,7 @@ export class OrderItemService {
       throw new NotFoundException('Modifier not found');
     }
 
-    await prisma.orderItemModifier.create({
+    await this.prisma.orderItemModifier.create({
       data: {
         orderItemId: orderItem.id,
         modifierId: modifier.id,
@@ -42,24 +46,22 @@ export class OrderItemService {
   }
 
   async removeModifier(orderItemId: string) {
-    const modifier = await prisma.orderItemModifier.findUnique({
+    const modifier = await this.prisma.orderItemModifier.findUnique({
       where: { id: orderItemId },
     });
     if (!modifier) {
       throw new NotFoundException('Modifier not found');
     }
 
-    await prisma.orderItemModifier.delete({
+    await this.prisma.orderItemModifier.delete({
       where: { id: orderItemId },
     });
 
     return this.recalculateOrderItemTotal(modifier.orderItemId);
   }
 
-  private async recalculateOrderItemTotal(
-    orderItemId: string,
-  ): Promise<OrderItem> {
-    const orderItem = await prisma.orderItem.findUnique({
+  private async recalculateOrderItemTotal(orderItemId: string) {
+    const orderItem = await this.prisma.orderItem.findUnique({
       where: { id: orderItemId },
       include: {
         modifiers: true,
@@ -89,7 +91,7 @@ export class OrderItemService {
     const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
     const itemTotal = itemSubtotal.plus(itemTaxAmount);
 
-    const updatedItem = await prisma.orderItem.update({
+    const updatedItem = await this.prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
         taxRate,
@@ -109,7 +111,7 @@ export class OrderItemService {
 
   async createTicket(tenantId: string, createTicketDto: CreateTicketDto) {
     const { orderItemId, station, status } = createTicketDto;
-    const orderItem = await prisma.orderItem.findFirst({
+    const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
       },
@@ -122,7 +124,7 @@ export class OrderItemService {
     if (!orderItem || orderItem.order.tenantId !== tenantId) {
       throw new NotFoundException('Order item not found');
     }
-    const existing = await prisma.orderItemTicket.findFirst({
+    const existing = await this.prisma.orderItemTicket.findFirst({
       where: {
         orderItemId,
         station: station ?? null,
@@ -138,7 +140,7 @@ export class OrderItemService {
     }
     const finalStatus = status ?? OrderStatus.SENT_TO_KITCHEN;
 
-    const ticket = await prisma.orderItemTicket.create({
+    const ticket = await this.prisma.orderItemTicket.create({
       data: {
         orderItemId: orderItem.id,
         station: station || null,

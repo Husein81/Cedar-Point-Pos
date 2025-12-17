@@ -1,10 +1,12 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class TablesService {
+  constructor(private readonly prisma: PrismaService) {}
   async getTablesByBranch(id: string) {
-    return await prisma.table.findMany({
+    return await this.prisma.table.findMany({
       where: {
         branchId: id,
       },
@@ -12,7 +14,7 @@ export class TablesService {
   }
 
   async getTableById(id: string) {
-    return await prisma.table.findUnique({
+    return await this.prisma.table.findUnique({
       where: {
         id,
       },
@@ -21,7 +23,7 @@ export class TablesService {
 
   async createTable(data: Prisma.TableCreateInput) {
     try {
-      const result = await prisma.table.create({
+      const result = await this.prisma.table.create({
         data,
       });
       return result;
@@ -35,7 +37,7 @@ export class TablesService {
 
   async updateTable(id: string, data: Prisma.TableUpdateInput) {
     try {
-      const result = await prisma.table.update({
+      const result = await this.prisma.table.update({
         where: { id },
         data,
       });
@@ -50,7 +52,7 @@ export class TablesService {
 
   async deleteTable(id: string) {
     try {
-      await prisma.table.delete({
+      await this.prisma.table.delete({
         where: { id },
       });
     } catch (error) {

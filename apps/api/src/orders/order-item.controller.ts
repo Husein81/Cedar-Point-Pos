@@ -1,10 +1,10 @@
+import { Roles } from '../common/decorators/roles.decorator.js';
 import { Body, Controller, Delete, Param, Post, Req } from '@nestjs/common';
-import type { AddModifierDto } from './dto/add-modifier-dto';
-import type { CreateTicketDto } from './dto/create-ticket.dto';
-import { OrderItemService } from './order-item.service';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole } from '@repo/db';
 import type { Request } from 'express';
+import type { AddModifierDto } from './dto/add-modifier-dto.js';
+import type { CreateTicketDto } from './dto/create-ticket.dto.js';
+import { OrderItemService } from './order-item.service.js';
+import { UserRole } from '@repo/types';
 
 @Controller('order-items')
 export class OrderItemController {

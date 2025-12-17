@@ -10,12 +10,12 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { RecipesService } from './recipes.service';
-import type { CreateRecipeDto } from './dto/create-recipe.dto';
-import type { UpdateRecipeDto } from './dto/update-recipe.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { UserRole } from '@repo/db';
+import { RecipesService } from './recipes.service.js';
+import type { CreateRecipeDto } from './dto/create-recipe.dto.js';
+import type { UpdateRecipeDto } from './dto/update-recipe.dto.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 import type { Request } from 'express';
+import { UserRole } from '@repo/types';
 
 @Controller('recipes')
 export class RecipesController {

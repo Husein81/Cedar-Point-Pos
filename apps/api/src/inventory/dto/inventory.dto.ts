@@ -1,4 +1,4 @@
-import { decimal, InventoryChangeType } from '@repo/types';
+import { InventoryChangeType } from '@repo/types';
 import { z } from 'zod';
 
 export const inventoryQuerySchema = z.object({
@@ -20,11 +20,11 @@ export const createInventoryHistorySchema = z.object({
   productId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
   changeType: z.enum(InventoryChangeType).optional(),
-  beforeStock: decimal.optional(),
-  afterStock: decimal.optional(),
-  adjustment: decimal.optional(),
-  beforeMinStock: decimal.optional(),
-  afterMinStock: decimal.optional(),
+  beforeStock: z.number().optional(),
+  afterStock: z.number().optional(),
+  adjustment: z.number().optional(),
+  beforeMinStock: z.number().optional(),
+  afterMinStock: z.number().optional(),
   reason: z.string().optional(),
   createdAt: z.date().default(new Date()).optional(),
 });

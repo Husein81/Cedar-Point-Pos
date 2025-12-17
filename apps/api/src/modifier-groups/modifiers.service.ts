@@ -3,11 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
-import { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto';
+import { CreateModifierDto, UpdateModifierDto } from './dto/modifier.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ModifiersService {
+  constructor(private readonly prisma: PrismaService) {}
   /**
    * Create a new modifier in a group
    */
@@ -19,7 +21,7 @@ export class ModifiersService {
     const { name, price, productId } = createDto;
 
     // Verify the modifier group exists and belongs to this tenant
-    const group = await prisma.modifierGroup.findFirst({
+    const group = await this.prisma.modifierGroup.findFirst({
       where: {
         id: groupId,
         tenantId,
@@ -33,7 +35,7 @@ export class ModifiersService {
 
     // If productId is provided, verify the product exists and belongs to this tenant
     if (productId) {
-      const product = await prisma.product.findFirst({
+      const product = await this.prisma.product.findFirst({
         where: {
           id: productId,
           tenantId,
@@ -47,7 +49,7 @@ export class ModifiersService {
     }
 
     // Check if modifier with same name already exists in this group
-    const existing = await prisma.modifier.findFirst({
+    const existing = await this.prisma.modifier.findFirst({
       where: {
         groupId,
         name: {
@@ -64,7 +66,7 @@ export class ModifiersService {
       );
     }
 
-    const modifier = await prisma.modifier.create({
+    const modifier = await this.prisma.modifier.create({
       data: {
         tenantId,
         groupId,
@@ -98,7 +100,7 @@ export class ModifiersService {
     const { includeDeleted = false } = params;
 
     // Verify the modifier group exists and belongs to this tenant
-    const group = await prisma.modifierGroup.findFirst({
+    const group = await this.prisma.modifierGroup.findFirst({
       where: {
         id: groupId,
         tenantId,
@@ -110,7 +112,7 @@ export class ModifiersService {
       throw new NotFoundException('Modifier group not found');
     }
 
-    const modifiers = await prisma.modifier.findMany({
+    const modifiers = await this.prisma.modifier.findMany({
       where: {
         groupId,
         tenantId,
@@ -136,7 +138,7 @@ export class ModifiersService {
    * Get a specific modifier by ID
    */
   async findOne(tenantId: string, groupId: string, id: string) {
-    const modifier = await prisma.modifier.findFirst({
+    const modifier = await this.prisma.modifier.findFirst({
       where: {
         id,
         groupId,
@@ -176,7 +178,7 @@ export class ModifiersService {
     id: string,
     updateDto: UpdateModifierDto,
   ) {
-    const modifier = await prisma.modifier.findFirst({
+    const modifier = await this.prisma.modifier.findFirst({
       where: {
         id,
         groupId,
@@ -192,7 +194,7 @@ export class ModifiersService {
     // If updating productId, verify the product exists and belongs to this tenant
     if (updateDto.productId !== undefined) {
       if (updateDto.productId) {
-        const product = await prisma.product.findFirst({
+        const product = await this.prisma.product.findFirst({
           where: {
             id: updateDto.productId,
             tenantId,
@@ -208,7 +210,7 @@ export class ModifiersService {
 
     // If updating name, check for duplicates in the same group
     if (updateDto.name && updateDto.name !== modifier.name) {
-      const duplicate = await prisma.modifier.findFirst({
+      const duplicate = await this.prisma.modifier.findFirst({
         where: {
           groupId,
           name: {
@@ -229,7 +231,7 @@ export class ModifiersService {
       }
     }
 
-    const updated = await prisma.modifier.update({
+    const updated = await this.prisma.modifier.update({
       where: { id },
       data: {
         ...(updateDto.name && { name: updateDto.name }),
@@ -255,7 +257,7 @@ export class ModifiersService {
    * Soft delete a modifier
    */
   async remove(tenantId: string, groupId: string, id: string) {
-    const modifier = await prisma.modifier.findFirst({
+    const modifier = await this.prisma.modifier.findFirst({
       where: {
         id,
         groupId,
@@ -268,7 +270,7 @@ export class ModifiersService {
       throw new NotFoundException('Modifier not found');
     }
 
-    await prisma.modifier.update({
+    await this.prisma.modifier.update({
       where: { id },
       data: { isDeleted: true },
     });
@@ -285,7 +287,7 @@ export class ModifiersService {
     modifiers: CreateModifierDto[],
   ) {
     // Verify the modifier group exists and belongs to this tenant
-    const group = await prisma.modifierGroup.findFirst({
+    const group = await this.prisma.modifierGroup.findFirst({
       where: {
         id: groupId,
         tenantId,
@@ -303,7 +305,7 @@ export class ModifiersService {
       .filter((id): id is string => !!id);
 
     if (productIds.length > 0) {
-      const products = await prisma.product.findMany({
+      const products = await this.prisma.product.findMany({
         where: {
           id: { in: productIds },
           tenantId,
@@ -317,7 +319,7 @@ export class ModifiersService {
     }
 
     // Check for duplicate names within the group
-    const existingModifiers = await prisma.modifier.findMany({
+    const existingModifiers = await this.prisma.modifier.findMany({
       where: {
         groupId,
         isDeleted: false,
@@ -338,9 +340,9 @@ export class ModifiersService {
     }
 
     // Create all modifiers
-    const created = await prisma.$transaction(
+    const created = await this.prisma.$transaction(
       modifiers.map((modifier) =>
-        prisma.modifier.create({
+        this.prisma.modifier.create({
           data: {
             tenantId,
             groupId,

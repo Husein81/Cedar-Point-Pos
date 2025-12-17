@@ -2,12 +2,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
 import { InventoryChangeType, QueryParams } from '@repo/types';
-import { CreateInventoryHistoryDto } from './dto/inventory.dto';
+import type { CreateInventoryHistoryDto } from './dto/inventory.dto.js';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma.service.js';
 
 @Injectable()
 export class InventoryService {
+  constructor(private prisma: PrismaService) {}
   async getInventoryByBranch(branchId: string, params: QueryParams) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
@@ -24,8 +26,8 @@ export class InventoryService {
     };
 
     const [totalCount, data] = await Promise.all([
-      prisma.inventory.count({ where }),
-      prisma.inventory.findMany({
+      this.prisma.inventory.count({ where }),
+      this.prisma.inventory.findMany({
         where,
         include: { product: true },
         skip,
@@ -46,7 +48,7 @@ export class InventoryService {
   }
 
   async getInventoryItem(branchId: string, productId: string) {
-    const item = await prisma.inventory.findUnique({
+    const item = await this.prisma.inventory.findUnique({
       where: {
         branchId_productId: {
           branchId,
@@ -70,7 +72,7 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const existing = await tx.inventory.findUnique({
         where: {
           branchId_productId: {
@@ -128,7 +130,7 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const existing = await tx.inventory.findUnique({
         where: { branchId_productId: { branchId, productId } },
       });
@@ -182,7 +184,7 @@ export class InventoryService {
     const skip = (page - 1) * limit;
 
     // Get all inventory items with minStock > 0
-    const allItems = await prisma.inventory.findMany({
+    const allItems = await this.prisma.inventory.findMany({
       where: {
         branchId,
         minStock: { gt: 0 },
@@ -239,7 +241,7 @@ export class InventoryService {
     };
 
     // Get all inventory items with minStock > 0
-    const allItems = await prisma.inventory.findMany({
+    const allItems = await this.prisma.inventory.findMany({
       where,
       include: {
         product: {
@@ -300,7 +302,7 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const existing = await tx.inventory.findUnique({
         where: {
           branchId_productId: {
@@ -365,7 +367,7 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       // First, get existing inventory items
       const existingItems = await tx.inventory.findMany({
         where: {
@@ -464,8 +466,8 @@ export class InventoryService {
     };
 
     const [totalCount, data] = (await Promise.all([
-      prisma.inventoryHistory.count({ where }),
-      prisma.inventoryHistory.findMany({
+      this.prisma.inventoryHistory.count({ where }),
+      this.prisma.inventoryHistory.findMany({
         where,
         include: {
           product: {

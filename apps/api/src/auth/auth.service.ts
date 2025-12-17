@@ -1,8 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, prisma, User } from '@repo/db';
-import * as bcrypt from 'bcrypt';
-import { TokenBlacklistService } from './token-blacklist.service';
+import bcrypt from 'bcrypt';
+import { TokenBlacklistService } from './token-blacklist.service.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { User } from '@repo/types';
+import { PrismaService } from '../prisma.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -14,24 +16,24 @@ export interface JwtPayload {
 @Injectable()
 export class AuthService {
   constructor(
+    private prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
-  async createUser(
-    data: Prisma.UserCreateInput,
-  ): Promise<Omit<User, 'password'>> {
-    const existedUser = await prisma.user.findUnique({
-      where: { email: data.email },
+  async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
+    const { email, password } = data;
+    const existedUser = await this.prisma.user.findUnique({
+      where: { email },
     });
 
     if (existedUser) {
       throw new UnauthorizedException('User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...data,
         password: hashedPassword,
@@ -51,11 +53,11 @@ export class AuthService {
     };
   }
 
-  async login({ email, password }: Prisma.UserCreateInput): Promise<{
+  async login({ email, password }: CreateUserDto): Promise<{
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {
-    const user = await prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email },
       include: { tenant: true },
     });
@@ -68,7 +70,10 @@ export class AuthService {
       throw new UnauthorizedException('Account is deactivated');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      String(user.password),
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -121,10 +126,10 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async validateUser(payload: JwtPayload) {
-    const user = await prisma.user.findUnique({
+  async validateUser(payload: JwtPayload): Promise<User> {
+    const user = (await this.prisma.user.findUnique({
       where: { id: payload.sub },
-    });
+    })) as User;
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found or inactive');

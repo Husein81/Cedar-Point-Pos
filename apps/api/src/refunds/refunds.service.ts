@@ -4,17 +4,20 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
-
-import { CreateRefundDto } from './dto/create-refund.dto';
+import { CreateRefundDto } from './dto/create-refund.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class RefundsService {
   private readonly logger = new Logger(RefundsService.name);
 
+  constructor(private readonly prisma: PrismaService) {}
+
   async createRefund(tenantId: string, createRefundDto: CreateRefundDto) {
     const { orderId, productId, quantity, reason } = createRefundDto;
-    const order = await prisma.order.findFirst({
+
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -38,7 +41,7 @@ export class RefundsService {
     if (!order) {
       throw new NotFoundException('Order not found');
     }
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: {
         id: productId,
         tenantId,
@@ -56,7 +59,7 @@ export class RefundsService {
       (sum, item) => sum.plus(new Prisma.Decimal(item.quantity)),
       new Prisma.Decimal(0),
     );
-    const existingRefunds = await prisma.refund.findMany({
+    const existingRefunds = await this.prisma.refund.findMany({
       where: {
         orderId,
         productId,
@@ -88,7 +91,7 @@ export class RefundsService {
       if (remainingToRefund.lte(0)) {
         break;
       }
-      const itemRefunds = await prisma.refundItem.findMany({
+      const itemRefunds = await this.prisma.refundItem.findMany({
         where: {
           orderItemId: orderItem.id,
         },
@@ -124,7 +127,7 @@ export class RefundsService {
       totalRefundAmount = totalRefundAmount.plus(itemSubtotal);
       remainingToRefund = remainingToRefund.minus(refundFromItem);
     }
-    const refund = await prisma.refund.create({
+    const refund = await this.prisma.refund.create({
       data: {
         orderId,
         productId,

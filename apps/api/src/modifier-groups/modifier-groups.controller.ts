@@ -1,27 +1,27 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
-  Put,
+  Controller,
   Delete,
-  Query,
-  UseGuards,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ModifierGroupsService } from './modifier-groups.service';
+import type { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 import type {
   CreateModifierGroupDto,
   UpdateModifierGroupDto,
-} from './dto/modifier-group.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { ModifierType } from '@repo/db';
-import type { Request } from 'express';
+} from './dto/modifier-group.dto.js';
+import { ModifierGroupsService } from './modifier-groups.service.js';
+import { ModifierType } from '@repo/types';
 
 @Controller('modifier-groups')
 @UseGuards(JwtAuthGuard, RolesGuard)

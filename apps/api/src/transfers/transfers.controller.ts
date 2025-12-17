@@ -1,19 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Req,
-  Query,
-  Patch,
-} from '@nestjs/common';
-import { TransfersService } from './transfers.service';
-import type { CreateTransferDto } from './dto/create-transfer.dto';
-import type { UpdateTransferDto } from './dto/update-transfer.dto';
-import { Roles } from '@/common/decorators/roles.decorator';
-import { TransferStatus, UserRole } from '@repo/db';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { QueryParams, TransferStatus, UserRole } from '@repo/types';
 import type { Request } from 'express';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import type { CreateTransferDto } from './dto/create-transfer.dto.js';
+import type { UpdateTransferDto } from './dto/update-transfer.dto.js';
+import { TransfersService } from './transfers.service.js';
 
 @Controller('transfers')
 export class TransfersController {
@@ -38,22 +29,17 @@ export class TransfersController {
    */
   @Get()
   @Roles(UserRole.OWNER, UserRole.MANAGER)
-  findAll(
-    @Req() req: Request,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('status') status?: TransferStatus,
-    @Query('fromBranchId') fromBranchId?: string,
-    @Query('toBranchId') toBranchId?: string,
-  ) {
+  findAll(@Req() req: Request) {
     const user = req.user as { tenantId: string };
-    return this.transfersService.findAll(user.tenantId, {
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      status,
-      fromBranchId,
-      toBranchId,
-    });
+    const query = req.query as QueryParams & {
+      page?: string;
+      limit?: string;
+      status?: TransferStatus;
+      fromBranchId?: string;
+      toBranchId?: string;
+    };
+
+    return this.transfersService.findAll(user.tenantId, query);
   }
 
   /**

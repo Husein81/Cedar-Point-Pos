@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+
 import { QueryParams } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma.service.js';
 
 @Injectable()
 export class CategoryService {
+  constructor(private prisma: PrismaService) {}
   async createCategory(
     tenantId: string,
     data: Prisma.CategoryCreateWithoutTenantInput,
   ) {
-    return prisma.category.create({
+    return await this.prisma.category.create({
       data: {
         ...data,
         tenantId,
@@ -34,8 +37,8 @@ export class CategoryService {
     }
 
     const [totalCount, data] = await Promise.all([
-      prisma.category.count({ where: whereClause }),
-      prisma.category.findMany({
+      this.prisma.category.count({ where: whereClause }),
+      this.prisma.category.findMany({
         where: whereClause,
         skip: (page - 1) * limit,
         take: limit,
@@ -59,7 +62,7 @@ export class CategoryService {
   }
 
   async getCategories(tenantId: string) {
-    return prisma.category.findMany({
+    return this.prisma.category.findMany({
       where: {
         tenantId,
         isDeleted: false,
@@ -73,7 +76,7 @@ export class CategoryService {
   }
 
   async getCategory(tenantId: string, id: string) {
-    const category = await prisma.category.findFirst({
+    const category = await this.prisma.category.findFirst({
       where: {
         id,
         tenantId,
@@ -100,7 +103,7 @@ export class CategoryService {
   ) {
     await this.getCategory(tenantId, id);
 
-    return prisma.category.update({
+    return this.prisma.category.update({
       where: { id },
       data,
     });
@@ -109,7 +112,7 @@ export class CategoryService {
   async deleteCategory(tenantId: string, id: string) {
     await this.getCategory(tenantId, id);
 
-    return prisma.category.update({
+    return this.prisma.category.update({
       where: { id },
       data: { isDeleted: true },
     });
@@ -120,7 +123,7 @@ export class CategoryService {
     categoryId: string,
     data: Prisma.SubcategoryCreateWithoutCategoryInput,
   ) {
-    const category = await prisma.category.findFirst({
+    const category = await this.prisma.category.findFirst({
       where: { id: categoryId, tenantId, isDeleted: false },
     });
 
@@ -128,7 +131,7 @@ export class CategoryService {
       throw new NotFoundException('Category not found');
     }
 
-    return prisma.subcategory.create({
+    return this.prisma.subcategory.create({
       data: {
         ...data,
         categoryId,
@@ -141,7 +144,7 @@ export class CategoryService {
     id: string,
     data: Prisma.SubcategoryUpdateInput,
   ) {
-    const subcategory = await prisma.subcategory.findFirst({
+    const subcategory = await this.prisma.subcategory.findFirst({
       where: {
         id,
         category: { tenantId },
@@ -153,14 +156,14 @@ export class CategoryService {
       throw new NotFoundException('Subcategory not found');
     }
 
-    return prisma.subcategory.update({
+    return this.prisma.subcategory.update({
       where: { id },
       data,
     });
   }
 
   async deleteSubcategory(tenantId: string, id: string) {
-    const subcategory = await prisma.subcategory.findFirst({
+    const subcategory = await this.prisma.subcategory.findFirst({
       where: {
         id,
         category: { tenantId },
@@ -172,7 +175,7 @@ export class CategoryService {
       throw new NotFoundException('Subcategory not found');
     }
 
-    return prisma.subcategory.update({
+    return this.prisma.subcategory.update({
       where: { id },
       data: { isDeleted: true },
     });

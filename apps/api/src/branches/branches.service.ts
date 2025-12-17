@@ -1,18 +1,20 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma.service.js';
 
 @Injectable()
 export class BranchesService {
+  constructor(private prisma: PrismaService) {}
+
   async getBranches() {
-    return await prisma.branch.findMany();
+    return await this.prisma.branch.findMany();
   }
 
   async createBranch(data: Prisma.BranchCreateInput) {
     try {
-      const result = await prisma.branch.create({
+      await this.prisma.branch.create({
         data,
       });
-      return result;
     } catch (error) {
       console.error('Error creating branch:', error);
       throw new InternalServerErrorException(
@@ -23,7 +25,7 @@ export class BranchesService {
 
   async updateBranch(id: string, data: Prisma.BranchUpdateInput) {
     try {
-      const result = await prisma.branch.update({
+      const result = await this.prisma.branch.update({
         where: { id },
         data,
       });
@@ -39,7 +41,7 @@ export class BranchesService {
 
   async deleteBranch(id: string) {
     try {
-      await prisma.branch.delete({
+      await this.prisma.branch.delete({
         where: { id },
       });
     } catch (error) {
@@ -51,13 +53,13 @@ export class BranchesService {
   }
 
   async getBranchById(id: string) {
-    return await prisma.branch.findUnique({
+    return await this.prisma.branch.findUnique({
       where: { id },
     });
   }
 
   async getBranchesByTenantId(tenantId: string) {
-    return await prisma.branch.findMany({
+    return await this.prisma.branch.findMany({
       where: { tenantId },
     });
   }

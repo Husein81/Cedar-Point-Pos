@@ -1,14 +1,18 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
-import { Prisma, prisma, TransferStatus } from '@repo/db';
-import { CreateTransferDto } from './dto/create-transfer.dto';
-import { UpdateTransferDto } from './dto/update-transfer.dto';
+import { QueryParams, TransferStatus } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma.service.js';
+import { CreateTransferDto } from './dto/create-transfer.dto.js';
+import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 
 @Injectable()
 export class TransfersService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async create(
     tenantId: string,
     userId: string,
@@ -18,10 +22,10 @@ export class TransfersService {
 
     // Validate branches exist and belong to tenant
     const [fromBranch, toBranch] = await Promise.all([
-      prisma.branch.findFirst({
+      this.prisma.branch.findFirst({
         where: { id: fromBranchId, tenantId },
       }),
-      prisma.branch.findFirst({
+      this.prisma.branch.findFirst({
         where: { id: toBranchId, tenantId },
       }),
     ]);
@@ -40,7 +44,7 @@ export class TransfersService {
 
     // Validate products and check stock availability
     const productIds = items.map((item) => item.productId);
-    const products = await prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where: {
         id: { in: productIds },
         tenantId,
@@ -52,7 +56,7 @@ export class TransfersService {
     }
 
     // Check stock availability in source branch
-    const inventoryRecords = await prisma.inventory.findMany({
+    const inventoryRecords = await this.prisma.inventory.findMany({
       where: {
         branchId: fromBranchId,
         productId: { in: productIds },
@@ -108,7 +112,7 @@ export class TransfersService {
     }
 
     // Create transfer with items in a transaction
-    const transfer = await prisma.$transaction(async (tx) => {
+    const transfer = await this.prisma.$transaction(async (tx) => {
       const newTransfer = await tx.transfer.create({
         data: {
           tenantId,
@@ -169,7 +173,7 @@ export class TransfersService {
    * This moves stock from source to destination branch
    */
   async completeTransfer(tenantId: string, userId: string, transferId: string) {
-    const transfer = await prisma.transfer.findFirst({
+    const transfer = await this.prisma.transfer.findFirst({
       where: {
         id: transferId,
         tenantId,
@@ -196,7 +200,7 @@ export class TransfersService {
     }
 
     // Validate stock is still available
-    const inventoryRecords = await prisma.inventory.findMany({
+    const inventoryRecords = await this.prisma.inventory.findMany({
       where: {
         branchId: transfer.fromBranchId,
         productId: { in: transfer.items.map((item) => item.productId) },
@@ -236,7 +240,7 @@ export class TransfersService {
     }
 
     // Execute transfer atomically
-    const completedTransfer = await prisma.$transaction(async (tx) => {
+    const completedTransfer = await this.prisma.$transaction(async (tx) => {
       // Update inventory for each item
       for (const item of transfer.items) {
         const quantity = new Prisma.Decimal(String(item.quantity));
@@ -355,7 +359,7 @@ export class TransfersService {
    * Cancel a pending transfer
    */
   async cancelTransfer(tenantId: string, transferId: string) {
-    const transfer = await prisma.transfer.findFirst({
+    const transfer = await this.prisma.transfer.findFirst({
       where: {
         id: transferId,
         tenantId,
@@ -374,7 +378,7 @@ export class TransfersService {
       throw new BadRequestException('Transfer already cancelled');
     }
 
-    const updated = await prisma.transfer.update({
+    const updated = await this.prisma.transfer.update({
       where: { id: transferId },
       data: {
         status: TransferStatus.CANCELLED,
@@ -421,15 +425,18 @@ export class TransfersService {
    */
   async findAll(
     tenantId: string,
-    params: {
-      page?: number;
-      limit?: number;
+    params: QueryParams & {
+      page?: string;
+      limit?: string;
       status?: TransferStatus;
       fromBranchId?: string;
       toBranchId?: string;
     },
   ) {
-    const { page = 1, limit = 10, status, fromBranchId, toBranchId } = params;
+    const page = params.page ? parseInt(params.page, 10) : 1;
+    const limit = params.limit ? parseInt(params.limit, 10) : 20;
+    const { status, fromBranchId, toBranchId } = params;
+
     const skip = (page - 1) * limit;
 
     const where: Prisma.TransferWhereInput = {
@@ -440,8 +447,8 @@ export class TransfersService {
     };
 
     const [totalCount, transfers] = await Promise.all([
-      prisma.transfer.count({ where }),
-      prisma.transfer.findMany({
+      this.prisma.transfer.count({ where }),
+      this.prisma.transfer.findMany({
         where,
         include: {
           items: {
@@ -505,7 +512,7 @@ export class TransfersService {
    * Get a specific transfer by ID
    */
   async findOne(tenantId: string, id: string) {
-    const transfer = await prisma.transfer.findFirst({
+    const transfer = await this.prisma.transfer.findFirst({
       where: {
         id,
         tenantId,
@@ -566,7 +573,7 @@ export class TransfersService {
     transferId: string,
     updateTransferDto: UpdateTransferDto,
   ) {
-    const transfer = await prisma.transfer.findFirst({
+    const transfer = await this.prisma.transfer.findFirst({
       where: {
         id: transferId,
         tenantId,
@@ -588,7 +595,7 @@ export class TransfersService {
       );
     }
 
-    const updated = await prisma.transfer.update({
+    const updated = await this.prisma.transfer.update({
       where: { id: transferId },
       data: {
         ...(updateTransferDto.status && { status: updateTransferDto.status }),

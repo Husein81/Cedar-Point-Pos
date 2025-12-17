@@ -1,18 +1,18 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   Put,
-  Delete,
-  Body,
-  Param,
   Req,
 } from '@nestjs/common';
-import { CategoryService } from './category.service';
-import { Prisma, User, UserRole } from '@repo/db';
+import { User, UserRole } from '@repo/types';
 import type { Request } from 'express';
-import { Roles } from '../common/decorators/roles.decorator';
-
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CategoryService } from './category.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}

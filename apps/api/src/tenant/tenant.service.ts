@@ -1,15 +1,18 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Prisma, prisma } from '@repo/db';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class TenantService {
+  constructor(private readonly prisma: PrismaService) {}
+
   async getTenants() {
-    return await prisma.tenant.findMany();
+    return await this.prisma.tenant.findMany();
   }
 
   async createTenant(data: Prisma.TenantCreateInput) {
     try {
-      const tenant = await prisma.tenant.create({
+      const tenant = await this.prisma.tenant.create({
         data,
       });
       return tenant;

@@ -1,13 +1,10 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider     = "prisma-client"
-  output       = "../generated/prisma"
-  moduleFormat = "cjs"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -83,12 +80,11 @@ enum TransferStatus {
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-  id           String       @id @default(cuid())
-  name         String
-  businessType BusinessType
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
+  id               String             @id @default(cuid())
+  name             String
+  businessType     BusinessType
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   users            User[]
   branches         Branch[]
   products         Product[]
@@ -103,37 +99,34 @@ model Tenant {
   shifts           Shift[]
   taxes            Tax[]
   transfers        Transfer[]
-
-  settings   Json? // feature flags, tax rates, etc.
-  modifiers  Modifier[]
-  categories Category[]
-  currencies Currency[]
+  settings         Json? // feature flags, tax rates, etc.
+  modifiers        Modifier[]
+  categories       Category[]
+  currencies       Currency[]
 }
 
 model Currency {
-  code         String   @id // e.g., USD, EUR, LBP
+  code         String    @id // e.g., USD, EUR, LBP
   name         String // "United States Dollar"
   symbol       String? // "$"
-  exchangeRate Decimal? @db.Decimal(10, 2) // Optional: relative to base currency (usually USD)
-  isActive     Boolean  @default(true)
-
-  tenants  Tenant[]
-  payments Payment[]
+  exchangeRate Decimal?  @db.Decimal(10, 2) // Optional: relative to base currency (usually USD)
+  isActive     Boolean   @default(true)
+  tenants      Tenant[]
+  payments     Payment[]
 }
 
 //
 // ---------- USERS & AUTH ----------
 //
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole @default(CASHIER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id                 String             @id @default(cuid())
+  name               String
+  email              String             @unique
+  password           String
+  role               UserRole           @default(CASHIER)
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   tenantId           String?
   tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   orders             Order[]
@@ -147,13 +140,12 @@ model User {
 // ---------- BRANCHES (Physical Locations) ----------
 //
 model Branch {
-  id        String  @id @default(cuid())
-  tenantId  String
-  name      String
-  address   String?
-  phone     String?
-  isDeleted Boolean @default(false) // Soft delete
-
+  id               String             @id @default(cuid())
+  tenantId         String
+  name             String
+  address          String?
+  phone            String?
+  isDeleted        Boolean            @default(false) // Soft delete
   tenant           Tenant             @relation(fields: [tenantId], references: [id])
   tables           Table[]
   devices          POSDevice[]
@@ -177,61 +169,56 @@ model POSDevice {
   lastSync DateTime?
   isActive Boolean   @default(true)
   isKDS    Boolean   @default(false) // New: Flag to identify Kitchen Display Systems
-
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  branch Branch  @relation(fields: [branchId], references: [id])
-  orders Order[]
-  shifts Shift[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  orders   Order[]
+  shifts   Shift[]
 }
 
 //
 // ---------- PRODUCTS & INGREDIENTS ----------
 //
 model Category {
-  id          String  @id @default(cuid())
-  tenantId    String
-  name        String
-  code        String? @unique
-  description String?
-  isDeleted   Boolean @default(false)
-
+  id            String        @id @default(cuid())
+  tenantId      String
+  name          String
+  code          String?       @unique
+  description   String?
+  isDeleted     Boolean       @default(false)
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
   products      Product[]
   subcategories Subcategory[]
 }
 
 model Subcategory {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   categoryId  String
   name        String
   description String?
-  isDeleted   Boolean @default(false)
-
-  category Category  @relation(fields: [categoryId], references: [id])
-  products Product[]
+  isDeleted   Boolean   @default(false)
+  category    Category  @relation(fields: [categoryId], references: [id])
+  products    Product[]
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  tenantId      String
-  name          String
-  description   String?
-  imageUrl      String?
-  sku           String?  @unique
-  barcode       String?  @unique // retail
-  price         Decimal? @default(0) @db.Decimal(10, 2)
-  cost          Decimal? @default(0) @db.Decimal(10, 2)
-  categoryId    String?
-  subcategoryId String?
-  isActive      Boolean  @default(true)
-  isDeleted     Boolean  @default(false) // Soft delete
-  isIngredient  Boolean  @default(false) // New: Differentiates raw ingredients from sellable items
-  isModifiable  Boolean  @default(false) // restaurant
-  createdAt     DateTime @default(now())
-
-  taxId String?
-  tax   Tax?    @relation(fields: [taxId], references: [id])
-
+  id               String             @id @default(cuid())
+  tenantId         String
+  name             String
+  description      String?
+  imageUrl         String?
+  sku              String?            @unique
+  barcode          String?            @unique // retail
+  price            Decimal?           @default(0) @db.Decimal(10, 2)
+  cost             Decimal?           @default(0) @db.Decimal(10, 2)
+  categoryId       String?
+  subcategoryId    String?
+  isActive         Boolean            @default(true)
+  isDeleted        Boolean            @default(false) // Soft delete
+  isIngredient     Boolean            @default(false) // New: Differentiates raw ingredients from sellable items
+  isModifiable     Boolean            @default(false) // restaurant
+  createdAt        DateTime           @default(now())
+  taxId            String?
+  tax              Tax?               @relation(fields: [taxId], references: [id])
   tenant           Tenant             @relation(fields: [tenantId], references: [id])
   inventory        Inventory[]
   inventoryHistory InventoryHistory[]
@@ -249,31 +236,28 @@ model Product {
 // 
 // ---------- OFFERS & DISCOUNTS (Future Enhancement) ----------
 model Offer {
-  id        String  @id @default(cuid())
-  name      String
-  basePrice Decimal @default(0) @db.Decimal(10, 2)
-
+  id          String       @id @default(cuid())
+  name        String
+  basePrice   Decimal      @default(0) @db.Decimal(10, 2)
   offerGroups OfferGroup[]
 }
 
 model OfferGroup {
-  id             String @id @default(cuid())
-  offerId        String
-  name           String
-  freeItemsCount Int    @default(0)
-
+  id              String           @id @default(cuid())
+  offerId         String
+  name            String
+  freeItemsCount  Int              @default(0)
   offer           Offer            @relation(fields: [offerId], references: [id])
   offerGroupItems OfferGroupItem[]
 }
 
 model OfferGroupItem {
-  id           String  @id @default(cuid())
+  id           String     @id @default(cuid())
   offerGroupId String
   productId    String
-  extraPrice   Decimal @default(0) @db.Decimal(10, 2)
-
-  offerGroup OfferGroup @relation(fields: [offerGroupId], references: [id])
-  product    Product    @relation(fields: [productId], references: [id])
+  extraPrice   Decimal    @default(0) @db.Decimal(10, 2)
+  offerGroup   OfferGroup @relation(fields: [offerGroupId], references: [id])
+  product      Product    @relation(fields: [productId], references: [id])
 }
 
 //
@@ -287,10 +271,9 @@ model Inventory {
   stock        Decimal  @default(0) @db.Decimal(10, 4)
   minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
   lastAdjusted DateTime @updatedAt
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
-  branch  Branch  @relation(fields: [branchId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  product      Product  @relation(fields: [productId], references: [id])
 
   // Composite key to ensure unique inventory per branch-product combination
   @@unique([branchId, productId])
@@ -313,11 +296,10 @@ model InventoryHistory {
   afterMinStock  Decimal?            @db.Decimal(10, 4) // Min stock after change (if applicable)
   reason         String? // Reason for the adjustment
   createdAt      DateTime            @default(now())
-
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
-  branch  Branch  @relation(fields: [branchId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
+  branch         Branch              @relation(fields: [branchId], references: [id])
+  product        Product             @relation(fields: [productId], references: [id])
+  user           User                @relation(fields: [userId], references: [id])
 
   @@index([tenantId, branchId, createdAt])
   @@index([productId, createdAt])
@@ -327,7 +309,6 @@ model InventoryHistory {
 //
 // ---------- INVENTORY TRANSFERS ----------
 //
-
 model Transfer {
   id           String         @id @default(cuid())
   tenantId     String
@@ -340,13 +321,12 @@ model Transfer {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   completedAt  DateTime?
-
-  tenant     Tenant         @relation(fields: [tenantId], references: [id])
-  fromBranch Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
-  toBranch   Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
-  requestor  User           @relation("TransferRequests", fields: [requestedBy], references: [id])
-  approver   User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
-  items      TransferItem[]
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  fromBranch   Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
+  toBranch     Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
+  requestor    User           @relation("TransferRequests", fields: [requestedBy], references: [id])
+  approver     User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
+  items        TransferItem[]
 
   @@index([tenantId, status])
   @@index([fromBranchId])
@@ -354,13 +334,12 @@ model Transfer {
 }
 
 model TransferItem {
-  id         String  @id @default(cuid())
+  id         String   @id @default(cuid())
   transferId String
   productId  String
-  quantity   Decimal @db.Decimal(10, 4)
-
-  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  product  Product  @relation(fields: [productId], references: [id])
+  quantity   Decimal  @db.Decimal(10, 4)
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
 
   @@unique([transferId, productId])
 }
@@ -368,31 +347,28 @@ model TransferItem {
 // 
 // ---------- REFUNDS (Audit Trail) ----------
 // 
-
 model Refund {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   orderId     String
   productId   String
-  quantity    Decimal  @default(0) @db.Decimal(10, 4)
-  totalAmount Decimal  @default(0) @db.Decimal(10, 2)
+  quantity    Decimal      @default(0) @db.Decimal(10, 4)
+  totalAmount Decimal      @default(0) @db.Decimal(10, 2)
   reason      String?
-  refundedAt  DateTime @default(now())
-
+  refundedAt  DateTime     @default(now())
   order       Order        @relation(fields: [orderId], references: [id])
   product     Product      @relation(fields: [productId], references: [id])
   refundItems RefundItem[]
 }
 
 model RefundItem {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   refundId    String
   orderItemId String
-  quantity    Decimal @db.Decimal(10, 4)
-  unitPrice   Decimal @db.Decimal(10, 2)
-  subtotal    Decimal @db.Decimal(10, 2)
-
-  refund    Refund    @relation(fields: [refundId], references: [id])
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  quantity    Decimal   @db.Decimal(10, 4)
+  unitPrice   Decimal   @db.Decimal(10, 2)
+  subtotal    Decimal   @db.Decimal(10, 2)
+  refund      Refund    @relation(fields: [refundId], references: [id])
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
 }
 
 //
@@ -407,10 +383,9 @@ model Table {
   capacity    Int     @default(4)
   isActive    Boolean @default(true)
   isDeleted   Boolean @default(false)
-
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  branch Branch  @relation(fields: [branchId], references: [id])
-  orders Order[]
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  branch      Branch  @relation(fields: [branchId], references: [id])
+  orders      Order[]
 }
 
 //
@@ -422,20 +397,18 @@ model ModifierGroup {
   name      String
   type      ModifierType
   isDeleted Boolean      @default(false)
-
-  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
   modifiers Modifier[]
 }
 
 model Modifier {
-  id        String  @id @default(cuid())
-  tenantId  String
-  groupId   String
-  productId String? // optional parent product
-  name      String
-  price     Decimal @default(0)
-  isDeleted Boolean @default(false)
-
+  id            String              @id @default(cuid())
+  tenantId      String
+  groupId       String
+  productId     String? // optional parent product
+  name          String
+  price         Decimal             @default(0)
+  isDeleted     Boolean             @default(false)
   tenant        Tenant              @relation(fields: [tenantId], references: [id])
   group         ModifierGroup       @relation(fields: [groupId], references: [id])
   product       Product?            @relation(fields: [productId], references: [id])
@@ -451,10 +424,9 @@ model Recipe {
   productId    String // The finished product this recipe creates
   ingredientId String // The raw material (Product with isIngredient=true)
   quantity     Decimal @db.Decimal(10, 4) // Amount of ingredient required for one unit of product
-
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
-  product    Product @relation("SellableRecipe", fields: [productId], references: [id])
-  ingredient Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  product      Product @relation("SellableRecipe", fields: [productId], references: [id])
+  ingredient   Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
 
   // Enforce unique ingredient per product (a product can only have one recipe per ingredient)
   @@unique([productId, ingredientId])
@@ -464,41 +436,34 @@ model Recipe {
 // ---------- ORDERS (Sales Transaction) ----------
 //
 model Order {
-  id       String  @id @default(cuid())
-  tenantId String
-  userId   String? // Cashier/user who created the order
-  branchId String
-  tableId  String? // restaurant only
-  deviceId String? // POS device that created the order
-
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
-
-  shiftId String?
-  shift   Shift?  @relation(fields: [shiftId], references: [id])
-
+  id          String      @id @default(cuid())
+  tenantId    String
+  userId      String? // Cashier/user who created the order
+  branchId    String
+  tableId     String? // restaurant only
+  deviceId    String? // POS device that created the order
+  customerId  String?
+  customer    Customer?   @relation(fields: [customerId], references: [id])
+  shiftId     String?
+  shift       Shift?      @relation(fields: [shiftId], references: [id])
   orderNumber String? // Friendly ID (e.g. "1001")
-
-  type   OrderType
-  status OrderStatus @default(DRAFT) // Changed default to DRAFT
-
+  type        OrderType
+  status      OrderStatus @default(DRAFT) // Changed default to DRAFT
   // Financial fields
-  subtotal  Decimal  @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
-  taxAmount Decimal  @default(0) @db.Decimal(10, 2) // New: Total tax collected
-  total     Decimal  @default(0) @db.Decimal(10, 2) // Final amount due/paid
-  discount  Decimal? @default(0) @db.Decimal(10, 2)
-
-  createdAt   DateTime  @default(now())
+  subtotal    Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
+  taxAmount   Decimal     @default(0) @db.Decimal(10, 2) // New: Total tax collected
+  total       Decimal     @default(0) @db.Decimal(10, 2) // Final amount due/paid
+  discount    Decimal?    @default(0) @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now())
   completedAt DateTime? // New: Timestamp for final closure/payment
-
-  user     User?       @relation(fields: [userId], references: [id])
-  tenant   Tenant      @relation(fields: [tenantId], references: [id])
-  branch   Branch      @relation(fields: [branchId], references: [id])
-  table    Table?      @relation(fields: [tableId], references: [id])
-  device   POSDevice?  @relation(fields: [deviceId], references: [id])
-  items    OrderItem[]
-  payments Payment[] // FIXED: Relation to new Payment model
-  refunds  Refund[]
+  user        User?       @relation(fields: [userId], references: [id])
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  branch      Branch      @relation(fields: [branchId], references: [id])
+  table       Table?      @relation(fields: [tableId], references: [id])
+  device      POSDevice?  @relation(fields: [deviceId], references: [id])
+  items       OrderItem[]
+  payments    Payment[] // FIXED: Relation to new Payment model
+  refunds     Refund[]
 
   @@index([tenantId, branchId, createdAt])
 }
@@ -506,19 +471,17 @@ model Order {
 //
 // ---------- ORDER ITEMS (Line Items) ----------
 //
-
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Decimal @default(1) @db.Decimal(10, 4)
-  unitPrice Decimal @db.Decimal(10, 2) // New: Price of one unit
-  taxRate   Decimal @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
-  taxAmount Decimal @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
-  total     Decimal @db.Decimal(10, 2) // Item subtotal (qty * unitPrice + taxAmount)
+  id          String              @id @default(cuid())
+  orderId     String
+  productId   String
+  quantity    Decimal             @default(1) @db.Decimal(10, 4)
+  unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
+  taxRate     Decimal             @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
+  taxAmount   Decimal             @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
+  total       Decimal             @db.Decimal(10, 2) // Item subtotal (qty * unitPrice + taxAmount)
   // KDS tracking
-  notes     String? // e.g., "Extra crispy"
-
+  notes       String? // e.g., "Extra crispy"
   order       Order               @relation(fields: [orderId], references: [id])
   product     Product             @relation(fields: [productId], references: [id])
   modifiers   OrderItemModifier[]
@@ -534,25 +497,22 @@ model OrderItemTicket {
   orderItemId String
   station     String? // e.g., "Main Kitchen," "Bar"
   status      OrderStatus @default(SENT_TO_KITCHEN)
-
   // Important KDS Timestamps
-  sentAt   DateTime  @default(now())
-  bumpedAt DateTime? // Time it was removed/completed from the KDS screen
-
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  sentAt      DateTime    @default(now())
+  bumpedAt    DateTime? // Time it was removed/completed from the KDS screen
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id])
 }
 
 //
 // ---------- ORDER ITEM MODIFIERS ----------
 //
 model OrderItemModifier {
-  id          String  @id @default(cuid())
+  id          String    @id @default(cuid())
   orderItemId String
   modifierId  String
-  price       Decimal @db.Decimal(10, 2) // Price charged for this modifier
-
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
-  modifier  Modifier  @relation(fields: [modifierId], references: [id])
+  price       Decimal   @db.Decimal(10, 2) // Price charged for this modifier
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  modifier    Modifier  @relation(fields: [modifierId], references: [id])
 }
 
 //
@@ -567,9 +527,8 @@ model Payment {
   exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
   transactionId String? // Reference ID from card processor (Stripe, etc.)
   paidAt        DateTime      @default(now())
-
-  order    Order    @relation(fields: [orderId], references: [id])
-  currency Currency @relation(fields: [currencyCode], references: [code])
+  order         Order         @relation(fields: [orderId], references: [id])
+  currency      Currency      @relation(fields: [currencyCode], references: [code])
 }
 
 //
@@ -584,9 +543,8 @@ model Customer {
   address   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  orders Order[]
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  orders    Order[]
 
   @@index([tenantId])
 }
@@ -608,12 +566,11 @@ model Shift {
   difference Decimal?    @db.Decimal(10, 2) // Over/Short amount
   status     ShiftStatus @default(OPEN)
   notes      String?
-
-  tenant Tenant     @relation(fields: [tenantId], references: [id])
-  branch Branch     @relation(fields: [branchId], references: [id])
-  user   User       @relation(fields: [userId], references: [id])
-  device POSDevice? @relation(fields: [deviceId], references: [id])
-  orders Order[]
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+  device     POSDevice?  @relation(fields: [deviceId], references: [id])
+  orders     Order[]
 
   @@index([tenantId, branchId, status])
 }
@@ -622,12 +579,11 @@ model Shift {
 // ---------- TAXES ----------
 //
 model Tax {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   tenantId  String
   name      String // e.g. "VAT", "Sales Tax"
-  rate      Decimal @db.Decimal(5, 2) // e.g. 10.00
-  isDefault Boolean @default(false)
-
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  products Product[]
+  rate      Decimal   @db.Decimal(5, 2) // e.g. 10.00
+  isDefault Boolean   @default(false)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  products  Product[]
 }

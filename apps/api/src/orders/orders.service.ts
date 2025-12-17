@@ -1,36 +1,39 @@
-import { InventoryDeductionService } from '@/inventory/inventory-deduction.service';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { BusinessType, OrderStatus, OrderType, Prisma, prisma } from '@repo/db';
-import { QueryParams } from '@repo/types';
-import { AddItemDto } from './dto/add-item.dto';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
+import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
+import type { AddItemDto } from './dto/add-item.dto.js';
+import type { CreateOrderDto } from './dto/create-order.dto.js';
+import { PrismaService } from '../prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
-    private readonly logger = new Logger(OrdersService.name),
     private readonly inventoryDeductionService: InventoryDeductionService,
+    private prisma: PrismaService,
   ) {}
 
   private calculateItemTotals(
-    quantity: Prisma.Decimal,
-    unitPrice: Prisma.Decimal,
-    modifiersTotal: Prisma.Decimal,
-    taxRate: Prisma.Decimal,
+    quantity: number,
+    unitPrice: number,
+    modifiersTotal: number,
+    taxRate: number,
   ): {
-    itemSubtotal: Prisma.Decimal;
-    itemTaxAmount: Prisma.Decimal;
-    itemTotal: Prisma.Decimal;
+    itemSubtotal: number;
+    itemTaxAmount: number;
+    itemTotal: number;
   } {
-    const itemSubtotal = quantity.times(unitPrice.plus(modifiersTotal));
-    const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
+    const itemSubtotal = quantity * unitPrice + modifiersTotal;
+    const itemTaxAmount = itemSubtotal * (taxRate / 100);
 
-    const itemTotal = itemSubtotal.plus(itemTaxAmount);
+    const itemTotal = itemSubtotal + itemTaxAmount;
 
     return {
       itemSubtotal,
@@ -39,33 +42,8 @@ export class OrdersService {
     };
   }
 
-  async recalculateOrderTotals(
-    tenantId: string,
-    orderId: string,
-  ): Promise<
-    Awaited<
-      ReturnType<
-        typeof prisma.order.findFirst<{
-          include: {
-            items: {
-              include: {
-                modifiers: true;
-                product: {
-                  include: { tax: true };
-                };
-              };
-            };
-            user: { select: { id: true; name: true; email: true } };
-            branch: { select: { id: true; name: true } };
-            table: { select: { id: true; tableNumber: true; name: true } };
-            device: { select: { id: true; name: true } };
-            customer: { select: { id: true; name: true; phone: true } };
-          };
-        }>
-      >
-    >
-  > {
-    const order = await prisma.order.findFirst({
+  async recalculateOrderTotals(tenantId: string, orderId: string) {
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -88,32 +66,32 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    let subtotal = new Prisma.Decimal(0);
-    let taxAmount = new Prisma.Decimal(0);
+    let subtotal = 0;
+    let taxAmount = 0;
     for (const item of order.items) {
-      const quantity = new Prisma.Decimal(item.quantity);
-      const unitPrice = item.unitPrice || new Prisma.Decimal(0);
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unitPrice);
       const modifiersTotal = item.modifiers.reduce(
-        (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
-        new Prisma.Decimal(0),
+        (sum, mod) => sum + Number(mod.price),
+        0,
       );
-      const taxRate = item.product.tax?.rate || new Prisma.Decimal(0);
+      const taxRate = Number(item.product.tax?.rate);
       const { itemSubtotal, itemTaxAmount, itemTotal } =
         this.calculateItemTotals(quantity, unitPrice, modifiersTotal, taxRate);
-      await prisma.orderItem.update({
-        where: { id: item.id },
+      await this.prisma.orderItem.update({
+        where: { id: String(item.id) },
         data: {
           taxRate,
           taxAmount: itemTaxAmount,
           total: itemTotal,
         },
       });
-      subtotal = subtotal.plus(itemSubtotal);
-      taxAmount = taxAmount.plus(itemTaxAmount);
+      subtotal = subtotal + itemSubtotal;
+      taxAmount = taxAmount + itemTaxAmount;
     }
-    const discount = order.discount || new Prisma.Decimal(0);
-    const total = subtotal.plus(taxAmount).minus(discount);
-    const updatedOrder = await prisma.order.update({
+    const discount = order.discount || 0;
+    const total = subtotal + taxAmount - Number(discount);
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: {
         subtotal,
@@ -190,7 +168,7 @@ export class OrdersService {
     } = createOrderDto;
 
     // Validate branch exists and belongs to tenant
-    const branch = await prisma.branch.findFirst({
+    const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, tenantId },
     });
 
@@ -199,7 +177,7 @@ export class OrdersService {
     }
 
     // Get tenant to check business type
-    const tenant = await prisma.tenant.findUnique({
+    const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
     });
 
@@ -221,7 +199,7 @@ export class OrdersService {
 
       // For DINE_IN orders, table is recommended
       if (type === OrderType.DINE_IN && tableId) {
-        const table = await prisma.table.findFirst({
+        const table = await this.prisma.table.findFirst({
           where: { id: tableId, branchId, tenantId },
         });
 
@@ -237,7 +215,7 @@ export class OrdersService {
 
     // Validate device if provided
     if (deviceId) {
-      const device = await prisma.pOSDevice.findFirst({
+      const device = await this.prisma.pOSDevice.findFirst({
         where: { id: deviceId, branchId, tenantId },
       });
 
@@ -252,7 +230,7 @@ export class OrdersService {
 
     // Validate shift if provided
     if (shiftId) {
-      const shift = await prisma.shift.findFirst({
+      const shift = await this.prisma.shift.findFirst({
         where: { id: shiftId, tenantId },
       });
 
@@ -263,7 +241,7 @@ export class OrdersService {
 
     // Validate customer if provided
     if (customerId) {
-      const customer = await prisma.customer.findFirst({
+      const customer = await this.prisma.customer.findFirst({
         where: { id: customerId, tenantId },
       });
 
@@ -273,7 +251,7 @@ export class OrdersService {
     }
 
     // Generate order number (simple sequential number)
-    const orderCount = await prisma.order.count({
+    const orderCount = await this.prisma.order.count({
       where: { tenantId, branchId },
     });
     const orderNumber = `${branchId.slice(-4).toUpperCase()}-${String(orderCount + 1).padStart(4, '0')}`;
@@ -302,7 +280,7 @@ export class OrdersService {
     if (items && items.length > 0) {
       // Validate all products exist
       const productIds = items.map((item) => item.productId);
-      const products = await prisma.product.findMany({
+      const products = await this.prisma.product.findMany({
         where: {
           id: { in: productIds },
           tenantId,
@@ -324,11 +302,11 @@ export class OrdersService {
 
       let modifierMap = new Map<
         string,
-        Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+        Awaited<ReturnType<typeof this.prisma.modifier.findMany>>[number]
       >();
 
       if (allModifierIds.length > 0) {
-        const modifiers = await prisma.modifier.findMany({
+        const modifiers = await this.prisma.modifier.findMany({
           where: {
             id: { in: allModifierIds },
             tenantId,
@@ -359,8 +337,8 @@ export class OrdersService {
           throw new BadRequestException(`Product ${item.productId} not found`);
         }
 
-        const quantity = new Prisma.Decimal(item.quantity);
-        const unitPrice = product.price || new Prisma.Decimal(0);
+        const quantity = item.quantity;
+        const unitPrice = Number(product.price || 0);
 
         const itemModifiers = (item.modifiers || [])
           .map((modifierId) => modifierMap.get(modifierId))
@@ -368,16 +346,16 @@ export class OrdersService {
             (
               m,
             ): m is Awaited<
-              ReturnType<typeof prisma.modifier.findMany>
+              ReturnType<typeof this.prisma.modifier.findMany>
             >[number] => m !== undefined,
           );
 
         const modifiersTotal = itemModifiers.reduce(
-          (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
-          new Prisma.Decimal(0),
+          (sum, mod) => sum + Number(mod.price),
+          0,
         );
 
-        const taxRate = product.tax?.rate || new Prisma.Decimal(0);
+        const taxRate = Number(product.tax?.rate) || 0;
         const { itemSubtotal, itemTaxAmount, itemTotal } =
           this.calculateItemTotals(
             quantity,
@@ -419,7 +397,7 @@ export class OrdersService {
     }
 
     // Create order
-    const order = await prisma.order.create({
+    const order = await this.prisma.order.create({
       data: orderData,
       include: {
         items: {
@@ -482,7 +460,7 @@ export class OrdersService {
    * Get order by ID
    */
   async findOne(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -601,8 +579,8 @@ export class OrdersService {
     }
 
     const [totalCount, orders] = await Promise.all([
-      prisma.order.count({ where }),
-      prisma.order.findMany({
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
         where,
         include: {
           items: {
@@ -660,7 +638,7 @@ export class OrdersService {
    * Handles both regular products and recipe-based ingredient deduction
    */
   async completeOrder(tenantId: string, orderId: string, userId?: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -692,7 +670,7 @@ export class OrdersService {
       );
 
     // Update order status to COMPLETED
-    const completedOrder = await prisma.order.update({
+    const completedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: {
         status: OrderStatus.COMPLETED,
@@ -741,60 +719,119 @@ export class OrdersService {
    * Update order status
    * If status is COMPLETED, triggers stock deduction
    */
-  async updateStatus(tenantId: string, orderId: string, status: OrderStatus) {
-    const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        tenantId,
-      },
-    });
+  async updateStatus(
+    tenantId: string,
+    orderId: string,
+    nextStatus: OrderStatus,
+  ) {
+    const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.DRAFT]: [OrderStatus.PENDING],
+      [OrderStatus.PENDING]: [OrderStatus.SENT_TO_KITCHEN],
+      [OrderStatus.SENT_TO_KITCHEN]: [OrderStatus.READY],
+      [OrderStatus.READY]: [OrderStatus.COMPLETED],
+      [OrderStatus.COMPLETED]: [],
+      [OrderStatus.CANCELLED]: [],
+    };
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
+    return await this.prisma.$transaction(async (tx) => {
+      // 1️⃣ Load minimal order data
+      const order = await tx.order.findFirst({
+        where: {
+          id: orderId,
+          tenantId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
 
-    // If completing the order, use the complete order flow
-    if (status === OrderStatus.COMPLETED) {
-      return this.completeOrder(tenantId, orderId);
-    }
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
 
-    // For other status updates, just update the status
-    const updated = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status,
-        ...(status === OrderStatus.CANCELLED && { completedAt: new Date() }),
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                price: true,
+      // 2️⃣ COMPLETED must go through completeOrder()
+      if (nextStatus === OrderStatus.COMPLETED) {
+        if (order.status !== OrderStatus.READY) {
+          throw new BadRequestException(
+            `Order must be READY before completing`,
+          );
+        }
+
+        // Delegate to your existing logic
+        return this.completeOrder(tenantId, orderId);
+      }
+
+      // 3️⃣ Prevent transitions from terminal states
+      if (
+        order.status === OrderStatus.COMPLETED ||
+        order.status === OrderStatus.CANCELLED
+      ) {
+        throw new BadRequestException(
+          `Cannot change status of a ${order.status} order`,
+        );
+      }
+
+      // 4️⃣ Enforce strict transition order
+      const allowedNextStatuses = allowedTransitions[order.status];
+
+      if (!allowedNextStatuses.includes(nextStatus)) {
+        throw new BadRequestException(
+          `Invalid order status transition: ${order.status} → ${nextStatus}`,
+        );
+      }
+
+      // 5️⃣ Business validations per transition
+      if (nextStatus === OrderStatus.SENT_TO_KITCHEN) {
+        const hasItems = await tx.orderItem.findFirst({
+          where: { orderId },
+          select: { id: true },
+        });
+
+        if (!hasItems) {
+          throw new BadRequestException(
+            'Cannot send an empty order to kitchen',
+          );
+        }
+      }
+
+      // 6️⃣ Apply status update
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: nextStatus,
+        },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  price: true,
+                },
               },
             },
           },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      });
 
-    return updated;
+      return updated;
+    });
   }
 
   async updateDiscount(
@@ -804,7 +841,7 @@ export class OrdersService {
   ): Promise<
     Awaited<
       ReturnType<
-        typeof prisma.order.findFirst<{
+        typeof this.prisma.order.findFirst<{
           include: {
             items: {
               include: {
@@ -828,7 +865,7 @@ export class OrdersService {
       throw new BadRequestException('Discount cannot be negative');
     }
 
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -851,7 +888,7 @@ export class OrdersService {
       );
     }
 
-    await prisma.order.update({
+    await this.prisma.order.update({
       where: { id: orderId },
       data: {
         discount: new Prisma.Decimal(discount),
@@ -865,7 +902,7 @@ export class OrdersService {
    * Shows what will be deducted without executing
    */
   async previewOrderStockDeductions(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -900,7 +937,7 @@ export class OrdersService {
    * Updates status to SENT_TO_KITCHEN and creates KDS tickets
    */
   async sendToKitchen(tenantId: string, orderId: string) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
       include: { items: true },
     });
@@ -918,7 +955,7 @@ export class OrdersService {
       );
     }
 
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.SENT_TO_KITCHEN },
@@ -957,7 +994,7 @@ export class OrdersService {
     orderId: string,
     addItemDto: AddItemDto,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -976,7 +1013,7 @@ export class OrdersService {
       throw new BadRequestException('Cannot add items to a cancelled order');
     }
 
-    const product = await prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: {
         id: addItemDto.productId,
         tenantId,
@@ -992,11 +1029,11 @@ export class OrdersService {
     }
     let modifierMap = new Map<
       string,
-      Awaited<ReturnType<typeof prisma.modifier.findMany>>[number]
+      Awaited<ReturnType<typeof this.prisma.modifier.findMany>>[number]
     >();
 
     if (addItemDto.modifiers && addItemDto.modifiers.length > 0) {
-      const modifiers = await prisma.modifier.findMany({
+      const modifiers = await this.prisma.modifier.findMany({
         where: {
           id: { in: addItemDto.modifiers },
           tenantId,
@@ -1017,31 +1054,32 @@ export class OrdersService {
         );
       }
     }
-    const quantity = new Prisma.Decimal(addItemDto.quantity);
-    const unitPrice = product.price || new Prisma.Decimal(0);
+    const quantity = Number(addItemDto.quantity);
+    const unitPrice = Number(product.price || 0);
 
     const itemModifiers = (addItemDto.modifiers || [])
       .map((modifierId) => modifierMap.get(modifierId))
       .filter(
         (
           m,
-        ): m is Awaited<ReturnType<typeof prisma.modifier.findMany>>[number] =>
-          m !== undefined,
+        ): m is Awaited<
+          ReturnType<typeof this.prisma.modifier.findMany>
+        >[number] => m !== undefined,
       );
 
     const modifiersTotal = itemModifiers.reduce(
-      (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
-      new Prisma.Decimal(0),
+      (sum, mod) => sum + Number(mod.price),
+      0,
     );
 
-    const taxRate = product.tax?.rate || new Prisma.Decimal(0);
+    const taxRate = Number(product.tax?.rate) || 0;
     const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
       quantity,
       unitPrice,
       modifiersTotal,
       taxRate,
     );
-    await prisma.orderItem.create({
+    await this.prisma.orderItem.create({
       data: {
         orderId: order.id,
         productId: product.id,
@@ -1069,7 +1107,7 @@ export class OrdersService {
     orderItemId: string,
     quantity: number,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1088,7 +1126,7 @@ export class OrdersService {
       throw new BadRequestException('Cannot update items in a cancelled order');
     }
 
-    const orderItem = await prisma.orderItem.findFirst({
+    const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
         orderId: order.id,
@@ -1107,15 +1145,15 @@ export class OrdersService {
       throw new NotFoundException('Order item not found');
     }
 
-    const newQuantity = new Prisma.Decimal(quantity);
-    const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
+    const newQuantity = Number(quantity);
+    const unitPrice = Number(orderItem.unitPrice || 0);
 
     const modifiersTotal = orderItem.modifiers.reduce(
-      (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
-      new Prisma.Decimal(0),
+      (sum, mod) => sum + Number(mod.price),
+      0,
     );
 
-    const taxRate = orderItem.product.tax?.rate || new Prisma.Decimal(0);
+    const taxRate = Number(orderItem.product.tax?.rate) || 0;
     const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
       newQuantity,
       unitPrice,
@@ -1123,7 +1161,7 @@ export class OrdersService {
       taxRate,
     );
 
-    await prisma.orderItem.update({
+    await this.prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
         quantity: newQuantity,
@@ -1141,7 +1179,7 @@ export class OrdersService {
     orderId: string,
     orderItemId: string,
   ) {
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1163,7 +1201,7 @@ export class OrdersService {
         'Cannot remove items from a cancelled order',
       );
     }
-    const orderItem = await prisma.orderItem.findFirst({
+    const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
         orderId: order.id,
@@ -1173,7 +1211,7 @@ export class OrdersService {
     if (!orderItem) {
       throw new NotFoundException('Order item not found');
     }
-    await prisma.orderItem.delete({
+    await this.prisma.orderItem.delete({
       where: { id: orderItemId },
     });
 
@@ -1198,7 +1236,7 @@ export class OrdersService {
     };
 
     // 1️⃣ Fetch minimal order data (fast & safe)
-    const order = await prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
         tenantId,
@@ -1226,7 +1264,7 @@ export class OrdersService {
 
     // 2️⃣ Unassign table
     if (!tableId) {
-      return prisma.order.update({
+      return this.prisma.order.update({
         where: { id: orderId },
         data: { tableId: null },
         include: orderInclude,
@@ -1235,14 +1273,14 @@ export class OrdersService {
 
     // 3️⃣ If same table is already assigned → no-op
     if (order.tableId === tableId) {
-      return prisma.order.findUnique({
+      return this.prisma.order.findUnique({
         where: { id: orderId },
         include: orderInclude,
       });
     }
 
     // 4️⃣ Validate table
-    const table = await prisma.table.findFirst({
+    const table = await this.prisma.table.findFirst({
       where: {
         id: tableId,
         branchId: order.branchId,
@@ -1271,7 +1309,7 @@ export class OrdersService {
     ];
 
     // 5️⃣ Transaction → prevents race conditions
-    return prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const existingOrder = await tx.order.findFirst({
         where: {
           tenantId,

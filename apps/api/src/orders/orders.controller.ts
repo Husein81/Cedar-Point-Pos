@@ -1,4 +1,4 @@
-import { Roles } from '@/common/decorators/roles.decorator';
+import { Roles } from '../common/decorators/roles.decorator.js';
 import {
   Body,
   Controller,
@@ -10,14 +10,13 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, UserRole } from '@repo/db';
-import { SortOrder } from '@repo/types';
+import { OrderStatus, OrderType, SortOrder, UserRole } from '@repo/types';
 import type { Request } from 'express';
-import type { AddItemDto } from './dto/add-item.dto';
-import type { AssignTableDto } from './dto/assign-table.dto';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import type { UpdateQuantityDto } from './dto/update-quantity.dto';
-import { OrdersService } from './orders.service';
+import type { AddItemDto } from './dto/add-item.dto.js';
+import type { AssignTableDto } from './dto/assign-table.dto.js';
+import type { CreateOrderDto } from './dto/create-order.dto.js';
+import type { UpdateQuantityDto } from './dto/update-quantity.dto.js';
+import { OrdersService } from './orders.service.js';
 
 @Controller('orders')
 export class OrdersController {

@@ -25,6 +25,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    PrismaModule,
     AuthModule,
     BranchesModule,
     CategoryModule,
@@ -38,7 +39,6 @@ import { PrismaModule } from './prisma/prisma.module.js';
     TransfersModule,
     OrdersModule,
     ModifierGroupsModule,
-    PrismaModule,
     RefundsModule,
   ],
   controllers: [AppController],

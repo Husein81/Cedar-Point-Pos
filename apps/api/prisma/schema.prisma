@@ -80,11 +80,12 @@ enum TransferStatus {
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-  id               String             @id @default(cuid())
-  name             String
-  businessType     BusinessType
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id           String       @id @default(cuid())
+  name         String
+  businessType BusinessType
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
   users            User[]
   branches         Branch[]
   products         Product[]

@@ -229,7 +229,6 @@ model Product {
   orderItems       OrderItem[]
   category         Category?          @relation(fields: [categoryId], references: [id])
   subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
-  refunds          Refund[]
   offerGroupItems  OfferGroupItem[]
   transferItems    TransferItem[]
 }
@@ -351,25 +350,27 @@ model TransferItem {
 model Refund {
   id          String       @id @default(cuid())
   orderId     String
-  productId   String
-  quantity    Decimal      @default(0) @db.Decimal(10, 4)
   totalAmount Decimal      @default(0) @db.Decimal(10, 2)
   reason      String?
   refundedAt  DateTime     @default(now())
   order       Order        @relation(fields: [orderId], references: [id])
-  product     Product      @relation(fields: [productId], references: [id])
   refundItems RefundItem[]
 }
 
 model RefundItem {
-  id          String    @id @default(cuid())
+  id          String @id @default(cuid())
   refundId    String
   orderItemId String
-  quantity    Decimal   @db.Decimal(10, 4)
-  unitPrice   Decimal   @db.Decimal(10, 2)
-  subtotal    Decimal   @db.Decimal(10, 2)
-  refund      Refund    @relation(fields: [refundId], references: [id])
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+
+  quantity  Decimal @db.Decimal(10, 4)
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  refund    Refund    @relation(fields: [refundId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+
+  @@unique([refundId, orderItemId])
+  @@index([orderItemId])
 }
 
 //

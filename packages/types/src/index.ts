@@ -89,7 +89,7 @@ export const decimal = z
   .refine((v) => /^-?\d+(\.\d+)?$/.test(v), "Invalid decimal string");
 export type Decimal = z.infer<typeof decimal>;
 
-export const cuid = z.string().min(1);
+export const cuid = z.string().regex(/^c[0-9a-z]{24,}$/, "Invalid CUID");
 export const isoDate = z.coerce.date();
 // ===========================================
 //       Schemas
@@ -287,26 +287,25 @@ export const TransferItemSchema = z.object({
 export type TransferItem = z.infer<typeof TransferItemSchema>;
 
 // Refund / RefundItem
-export const RefundSchema = z.object({
-  id: cuid,
-  orderId: cuid,
-  productId: cuid,
-  quantity: decimal.default("0"),
-  totalAmount: decimal.default("0"),
-  reason: z.string().nullable().optional(),
-  refundedAt: isoDate,
-});
-export type Refund = z.infer<typeof RefundSchema>;
-
 export const RefundItemSchema = z.object({
-  id: cuid,
-  refundId: cuid,
+  id: cuid.optional(),
+  refundId: cuid.optional(),
   orderItemId: cuid,
   quantity: decimal,
   unitPrice: decimal,
   subtotal: decimal,
 });
 export type RefundItem = z.infer<typeof RefundItemSchema>;
+
+export const RefundSchema = z.object({
+  id: cuid,
+  orderId: cuid,
+  totalAmount: decimal.default("0"),
+  reason: z.string().nullable().optional(),
+  refundedAt: isoDate,
+  items: z.array(RefundItemSchema).optional(),
+});
+export type Refund = z.infer<typeof RefundSchema>;
 
 // Table
 export const TableSchema = z.object({

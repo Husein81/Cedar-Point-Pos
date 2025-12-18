@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
-import { TokenBlacklistService } from './token-blacklist.service.js';
-import { CreateUserDto } from './dto/create-user.dto.js';
-import { User } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -53,7 +53,50 @@ export class AuthService {
     };
   }
 
-  async login({ email, password }: CreateUserDto): Promise<{
+  async adminLogin({ email, password }: LoginDto): Promise<{
+    user: Omit<User, 'password'>;
+    accessToken: string;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email, role: UserRole.ADMIN },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      String(user.password),
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: true,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    };
+  }
+
+  async login({ email, password }: LoginDto): Promise<{
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {

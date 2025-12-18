@@ -10,6 +10,7 @@ import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
+import type { LoginDto } from './dto/create-user.dto.js';
 
 @Controller('auth')
 export class AuthController {
@@ -25,9 +26,16 @@ export class AuthController {
   }
 
   @Public()
+  @Post('admin-sign-in')
+  @HttpCode(HttpStatus.OK)
+  adminLogin(@Body() loginDto: LoginDto) {
+    return this.authService.adminLogin(loginDto);
+  }
+
+  @Public()
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginDto: Prisma.UserCreateInput) {
+  login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 

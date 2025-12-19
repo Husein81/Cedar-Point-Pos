@@ -4,8 +4,11 @@ packages:
 
 onlyBuiltDependencies:
   - '@nestjs/core'
+  - '@parcel/watcher'
   - '@prisma/engines'
   - '@swc/core'
+  - electron
+  - electron-winstaller
   - esbuild
   - prisma
   - sharp

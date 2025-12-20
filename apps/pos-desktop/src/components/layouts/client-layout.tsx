@@ -7,7 +7,7 @@ type Props = {
 
 const ClientLayout = ({ children }: Props) => {
   return (
-    <Shad.SidebarProvider>
+    <Shad.SidebarProvider defaultOpen={false}>
       <Sidebar />
       <Shad.SidebarInset>
         <div className="container mt-12 pl-4">{children}</div>

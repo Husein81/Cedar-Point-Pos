@@ -1,7 +1,10 @@
 import { cn, Icon, Button } from "@repo/ui";
-import { useId } from "react";
+import { Activity, useId } from "react";
+import { ModeToggle } from "./mode-toggle";
+import { useAuthStore } from "@/store/authStore";
 
 export function Header() {
+  const { user } = useAuthStore();
   const frameActions = [
     {
       id: "minimize",
@@ -29,10 +32,25 @@ export function Header() {
 
   return (
     <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
-      <img src="/assets/icon.png" alt="point verse" width={24} height={24} />
-      <h2 className="text-sm font-semibold text-text">
-        Point <span className="text-primary">Verse</span>
-      </h2>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center">
+          <img
+            src="/assets/icon.png"
+            alt="point verse"
+            width={24}
+            height={24}
+          />
+          <h2 className="text-sm font-semibold text-text">
+            Point <span className="text-primary">Verse</span>
+          </h2>
+        </div>
+        <ModeToggle />
+      </div>
+
+      <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
+        {user?.tenant?.name}
+      </Activity>
+
       <div className="flex items-center h-full no-drag">
         {frameActions.map((action) => (
           <Button

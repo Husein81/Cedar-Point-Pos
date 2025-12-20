@@ -8,7 +8,7 @@ import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
   id: string;
-  email: string;
+  username: string;
   tenantId?: string;
   role: string;
 }
@@ -22,9 +22,9 @@ export class AuthService {
   ) {}
 
   async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
-    const { email, password } = data;
+    const { username, password } = data;
     const existedUser = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existedUser) {
@@ -44,7 +44,7 @@ export class AuthService {
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      username: String(user.username),
       role: user.role,
       tenantId: user.tenantId,
       isActive: user.isActive,
@@ -53,12 +53,12 @@ export class AuthService {
     };
   }
 
-  async adminLogin({ email, password }: LoginDto): Promise<{
+  async adminLogin({ username, password }: LoginDto): Promise<{
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { email, role: UserRole.ADMIN },
+      where: { username, role: UserRole.ADMIN },
     });
 
     if (!user) {
@@ -76,7 +76,7 @@ export class AuthService {
 
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
+      username: user.username,
       role: user.role,
     };
 
@@ -87,7 +87,7 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        username: user.username,
         role: user.role,
         isActive: true,
         createdAt: user.createdAt,
@@ -96,12 +96,12 @@ export class AuthService {
     };
   }
 
-  async login({ email, password }: LoginDto): Promise<{
+  async login({ username, password }: LoginDto): Promise<{
     user: Omit<User, 'password'>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
       include: { tenant: true },
     });
 
@@ -124,7 +124,7 @@ export class AuthService {
 
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
+      username: user.username,
       tenantId: user.tenantId ?? undefined,
       role: user.role,
     };
@@ -136,9 +136,10 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        username: user.username,
         role: user.role,
         tenantId: user.tenantId,
+        tenant: user.tenant,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

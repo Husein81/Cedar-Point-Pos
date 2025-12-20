@@ -36,7 +36,7 @@
   --primary: oklch(0.63 0.23 270); /* #525FF9 */
   --primary-foreground: oklch(0.98 0.01 260);
 
-  --accent: oklch(0.18 0.03 260); /* #5D9EFF */
+  --accent: oklch(0.18 0.03 260); 
   --accent-foreground: oklch(0.94 0.02 260);
 
   --secondary: oklch(0.92 0.03 260);

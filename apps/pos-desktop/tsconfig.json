@@ -3,15 +3,20 @@
   "compilerOptions": {
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "ES2017",
+    "module": "NodeNext",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
     "outDir": "dist",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   }
 }

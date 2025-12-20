@@ -2,7 +2,10 @@ import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { CreateRefundDto } from './dto/create-refund.dto.js';
+import type {
+  CreateRefundDto,
+  RefundQueryDto,
+} from './dto/create-refund.dto.js';
 import { RefundsService } from './refunds.service.js';
 
 @Controller('refunds')
@@ -30,11 +33,12 @@ export class RefundsController {
     @Query('orderId') orderId?: string,
   ) {
     const user = req.user as { tenantId: string };
-    return this.refundsService.findAll(user.tenantId, {
+    const query = {
       from,
       to,
       productId,
       orderId,
-    });
+    } as RefundQueryDto;
+    return this.refundsService.findAll(user.tenantId, query);
   }
 }

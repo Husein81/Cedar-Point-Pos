@@ -15,6 +15,7 @@ import { ProductsModule } from './products/products.module.js';
 import { RecipesModule } from './recipes/recipes.module.js';
 import { RefundsModule } from './refunds/refunds.module.js';
 import { TablesModule } from './tables/tables.module.js';
+import { TaxModule } from './tax/tax.module.js';
 import { TenantModule } from './tenant/tenant.module.js';
 import { TransfersModule } from './transfers/transfers.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -34,6 +35,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ProductsModule,
     RecipesModule,
     TablesModule,
+    TaxModule,
     TenantModule,
     UsersModule,
     TransfersModule,

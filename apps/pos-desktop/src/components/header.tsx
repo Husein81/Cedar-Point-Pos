@@ -1,4 +1,4 @@
-import { cn, Icon, SButton } from "@repo/ui";
+import { cn, Icon, Button } from "@repo/ui";
 import { useId } from "react";
 
 export function Header() {
@@ -6,14 +6,14 @@ export function Header() {
     {
       id: "minimize",
       name: "MINIMIZE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400/70",
       icon: "Minus",
       onClick: () => window.electron?.sendFrameAction("MINIMIZE"),
     },
     {
       id: "maximize",
       name: "MAXIMIZE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400/70",
       icon: "OverlapSquare",
       onClick: () => window.electron?.sendFrameAction("MAXIMIZE"),
     },
@@ -28,14 +28,14 @@ export function Header() {
   ];
 
   return (
-    <header className="bg-[#040F2A]/90 h-10 flex items-center justify-between window-drag">
-      <div className="flex items-center h-full px-3">
-        <img src="/assets/logo.png" alt="" className="size-12" />
-        <span className="text-xs font-medium text-gray-200">PointVerse</span>
-      </div>
+    <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
+      <img src="/assets/icon.png" alt="point verse" width={24} height={24} />
+      <h2 className="text-sm font-semibold text-text">
+        Point <span className="text-primary">Verse</span>
+      </h2>
       <div className="flex items-center h-full no-drag">
         {frameActions.map((action) => (
-          <SButton
+          <Button
             id={action.id}
             key={action.id}
             className={cn(action.className, "relative")}
@@ -44,15 +44,15 @@ export function Header() {
             {action.icon === "OverlapSquare" ? (
               <OverlapSquareIcon
                 size={14}
-                className="pointer-events-none text-gray-200"
+                className="pointer-events-none text-text"
               />
             ) : (
               <Icon
                 name={action.icon}
-                className="pointer-events-none text-gray-200"
+                className="pointer-events-none text-text"
               />
             )}
-          </SButton>
+          </Button>
         ))}
       </div>
     </header>

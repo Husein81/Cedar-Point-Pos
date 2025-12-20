@@ -4,7 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { CreateRefundDto } from './dto/create-refund.dto.js';
+import { CreateRefundDto, RefundQueryDto } from './dto/create-refund.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { RefundItem } from '@repo/types';
@@ -141,15 +141,7 @@ export class RefundsService {
     return new Prisma.Decimal(result._sum.quantity || 0);
   }
 
-  async findAll(
-    tenantId: string,
-    params: {
-      from?: string;
-      to?: string;
-      productId?: string;
-      orderId?: string;
-    },
-  ) {
+  async findAll(tenantId: string, params: RefundQueryDto) {
     const { from, to, productId, orderId } = params;
 
     const where: Prisma.RefundWhereInput = {

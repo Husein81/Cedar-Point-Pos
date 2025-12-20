@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -18,5 +18,23 @@ export class RefundsController {
       user.id,
       createRefundDto,
     );
+  }
+
+  @Get()
+  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  findAll(
+    @Req() req: Request,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('productId') productId?: string,
+    @Query('orderId') orderId?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.refundsService.findAll(user.tenantId, {
+      from,
+      to,
+      productId,
+      orderId,
+    });
   }
 }

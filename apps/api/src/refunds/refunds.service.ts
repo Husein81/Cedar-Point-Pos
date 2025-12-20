@@ -7,6 +7,7 @@ import {
 import { CreateRefundDto } from './dto/create-refund.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import type { RefundItem } from '@repo/types';
 
 @Injectable()
 export class RefundsService {
@@ -14,169 +15,129 @@ export class RefundsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createRefund(tenantId: string, createRefundDto: CreateRefundDto) {
-    const { orderId, productId, quantity, reason } = createRefundDto;
+  async createRefund(tenantId: string, userId: string, dto: CreateRefundDto) {
+    const { orderId, reason, items } = dto;
 
-    const order = await this.prisma.order.findFirst({
-      where: {
-        id: orderId,
-        tenantId,
-      },
-      include: {
-        items: {
-          where: {
-            productId,
-          },
-          include: {
-            product: {
-              include: {
-                tax: true,
-              },
-            },
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        include: {
+          items: true,
         },
-      },
-    });
+      });
 
-    if (!order) {
-      throw new NotFoundException('Order not found');
-    }
-    const product = await this.prisma.product.findFirst({
-      where: {
-        id: productId,
-        tenantId,
-        isDeleted: false,
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-    if (order.items.length === 0) {
-      throw new BadRequestException('Product is not part of this order');
-    }
-    const totalOrderedQuantity = order.items.reduce(
-      (sum, item) => sum.plus(new Prisma.Decimal(item.quantity)),
-      new Prisma.Decimal(0),
-    );
-    const existingRefunds = await this.prisma.refund.findMany({
-      where: {
-        orderId,
-        productId,
-      },
-    });
-
-    const totalRefundedQuantity = existingRefunds.reduce(
-      (sum, refund) => sum.plus(new Prisma.Decimal(refund.quantity)),
-      new Prisma.Decimal(0),
-    );
-
-    const availableQuantity = totalOrderedQuantity.minus(totalRefundedQuantity);
-    const refundQuantity = new Prisma.Decimal(quantity);
-    if (refundQuantity.greaterThan(availableQuantity)) {
-      throw new BadRequestException(
-        `Refund quantity (${quantity}) exceeds available quantity (${Number(availableQuantity)})`,
-      );
-    }
-    let remainingToRefund = refundQuantity;
-    let totalRefundAmount = new Prisma.Decimal(0);
-    const refundItems: Array<{
-      orderItemId: string;
-      quantity: Prisma.Decimal;
-      unitPrice: Prisma.Decimal;
-      subtotal: Prisma.Decimal;
-    }> = [];
-
-    for (const orderItem of order.items) {
-      if (remainingToRefund.lte(0)) {
-        break;
+      if (!order) {
+        throw new NotFoundException('Order not found');
       }
-      const itemRefunds = await this.prisma.refundItem.findMany({
-        where: {
+
+      if (order.status !== 'COMPLETED') {
+        throw new BadRequestException('Only completed orders can be refunded');
+      }
+
+      let totalRefundAmount = new Prisma.Decimal(0);
+      const refundItems: RefundItem[] = [];
+
+      for (const item of items) {
+        const orderItem = order.items.find((oi) => oi.id === item.orderItemId);
+
+        if (!orderItem) {
+          throw new BadRequestException(
+            `Order item ${item.orderItemId} not found in order`,
+          );
+        }
+
+        // Prevent over-refund
+        const alreadyRefunded = await this.getAlreadyRefundedQuantity(
+          orderItem.id,
+        );
+
+        const refundableQuantity = new Prisma.Decimal(orderItem.quantity).minus(
+          alreadyRefunded,
+        );
+
+        const requestedQty = new Prisma.Decimal(item.quantity);
+
+        if (requestedQty.greaterThan(refundableQuantity)) {
+          throw new BadRequestException(
+            `Refund exceeds remaining quantity (${refundableQuantity.toString()})`,
+          );
+        }
+
+        const unitPrice = new Prisma.Decimal(orderItem.unitPrice);
+        const subtotal = requestedQty.mul(unitPrice);
+
+        refundItems.push({
           orderItemId: orderItem.id,
-        },
-      });
+          quantity: requestedQty.toFixed(4),
+          unitPrice: unitPrice.toFixed(2),
+          subtotal: subtotal.toFixed(2),
+        });
 
-      const itemRefundedQuantity = itemRefunds.reduce(
-        (sum, refundItem) => sum.plus(new Prisma.Decimal(refundItem.quantity)),
-        new Prisma.Decimal(0),
-      );
+        totalRefundAmount = totalRefundAmount.plus(subtotal);
 
-      const itemAvailableQuantity = new Prisma.Decimal(
-        orderItem.quantity,
-      ).minus(itemRefundedQuantity);
-
-      if (itemAvailableQuantity.lte(0)) {
-        continue;
-      }
-      const refundFromItem = Prisma.Decimal.min(
-        remainingToRefund,
-        itemAvailableQuantity,
-      );
-
-      const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
-      const itemSubtotal = refundFromItem.times(unitPrice);
-
-      refundItems.push({
-        orderItemId: orderItem.id,
-        quantity: refundFromItem,
-        unitPrice,
-        subtotal: itemSubtotal,
-      });
-
-      totalRefundAmount = totalRefundAmount.plus(itemSubtotal);
-      remainingToRefund = remainingToRefund.minus(refundFromItem);
-    }
-    const refund = await this.prisma.refund.create({
-      data: {
-        orderId,
-        productId,
-        quantity: refundQuantity,
-        totalAmount: totalRefundAmount,
-        reason: reason || null,
-        refundedAt: new Date(),
-        refundItems: {
-          create: refundItems.map((item) => ({
-            orderItemId: item.orderItemId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            subtotal: item.subtotal,
-          })),
-        },
-      },
-      include: {
-        order: {
-          select: {
-            id: true,
-            orderNumber: true,
-            total: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-            sku: true,
-          },
-        },
-        refundItems: {
-          include: {
-            orderItem: {
-              select: {
-                id: true,
-                quantity: true,
-                unitPrice: true,
-              },
+        // 🔁 RESTORE INVENTORY (CORRECT MODEL)
+        const inventory = await tx.inventory.findUnique({
+          where: {
+            branchId_productId: {
+              branchId: order.branchId,
+              productId: orderItem.productId,
             },
           },
+        });
+
+        if (!inventory) {
+          throw new NotFoundException(
+            'Inventory record not found for refunded item',
+          );
+        }
+
+        const beforeStock = inventory.stock;
+        const afterStock = beforeStock.plus(requestedQty);
+
+        await tx.inventory.update({
+          where: { id: inventory.id },
+          data: { stock: afterStock },
+        });
+
+        // 🧾 INVENTORY HISTORY (AUDIT)
+        await tx.inventoryHistory.create({
+          data: {
+            tenantId,
+            branchId: order.branchId,
+            productId: orderItem.productId,
+            userId,
+            changeType: 'ORDER_RETURN',
+            beforeStock,
+            afterStock,
+            adjustment: requestedQty,
+            reason: `Refund for order ${order.orderNumber ?? order.id}`,
+          },
+        });
+      }
+
+      // Create refund record
+      return tx.refund.create({
+        data: {
+          orderId,
+          reason,
+          totalAmount: totalRefundAmount.toFixed(2),
+          refundedAt: new Date(),
+          refundItems: {
+            create: refundItems,
+          },
         },
-      },
+        include: {
+          refundItems: true,
+        },
+      });
     });
+  }
 
-    this.logger.log(
-      `Refund created: ${refund.id} for order ${orderId}, product ${productId}, quantity ${quantity}`,
-    );
-
-    return refund;
+  private async getAlreadyRefundedQuantity(orderItemId: string) {
+    const result = await this.prisma.refundItem.aggregate({
+      where: { orderItemId },
+      _sum: { quantity: true },
+    });
+    return new Prisma.Decimal(result._sum.quantity || 0);
   }
 }

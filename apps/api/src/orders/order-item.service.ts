@@ -2,19 +2,23 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { OrderStatus } from '@repo/types';
-import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { OrdersService } from './orders.service.js';
+import { TaxService } from './tax.service.js';
 
 @Injectable()
 export class OrderItemService {
   constructor(
+    @Inject(forwardRef(() => OrdersService))
     private readonly ordersService: OrdersService,
     private prisma: PrismaService,
+    private readonly taxService: TaxService,
   ) {}
 
   async addModifier(orderItemId: string, addModifierDto: AddModifierDto) {
@@ -60,6 +64,23 @@ export class OrderItemService {
     return this.recalculateOrderItemTotal(modifier.orderItemId);
   }
 
+  calculateItemPricing(
+    quantity: number,
+    unitPrice: number,
+    modifiersUnitPrice: number,
+    taxRate: number,
+  ): { subtotal: number; taxAmount: number; total: number } {
+    const subtotal = this.round(quantity * (unitPrice + modifiersUnitPrice));
+    const taxAmount = this.taxService.calculateItemTax(subtotal, taxRate);
+    const total = this.round(subtotal + taxAmount);
+
+    return { subtotal, taxAmount, total };
+  }
+
+  private round(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
   private async recalculateOrderItemTotal(orderItemId: string) {
     const orderItem = await this.prisma.orderItem.findUnique({
       where: { id: orderItemId },
@@ -78,22 +99,30 @@ export class OrderItemService {
       throw new NotFoundException('Order item not found');
     }
 
-    const quantity = new Prisma.Decimal(orderItem.quantity);
-    const unitPrice = orderItem.unitPrice || new Prisma.Decimal(0);
+    const quantity = Number(orderItem.quantity);
+    const unitPrice = Number(orderItem.unitPrice || 0);
 
-    const modifiersTotal = orderItem.modifiers.reduce(
-      (sum, mod) => sum.plus(new Prisma.Decimal(mod.price)),
-      new Prisma.Decimal(0),
+    const modifiersUnitPrice = orderItem.modifiers.reduce(
+      (sum, mod) => sum + Number(mod.price),
+      0,
     );
-    const taxRate = orderItem.product.tax?.rate || new Prisma.Decimal(0);
+    const taxRate = Number(orderItem.product.tax?.rate || 0);
 
-    const itemSubtotal = quantity.times(unitPrice.plus(modifiersTotal));
-    const itemTaxAmount = itemSubtotal.times(taxRate).dividedBy(100);
-    const itemTotal = itemSubtotal.plus(itemTaxAmount);
+    const {
+      subtotal: itemSubtotal,
+      taxAmount: itemTaxAmount,
+      total: itemTotal,
+    } = this.calculateItemPricing(
+      quantity,
+      unitPrice,
+      modifiersUnitPrice,
+      taxRate,
+    );
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
+        subtotal: itemSubtotal,
         taxRate,
         taxAmount: itemTaxAmount,
         total: itemTotal,

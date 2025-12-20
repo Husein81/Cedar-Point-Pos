@@ -12,7 +12,11 @@ export class RefundsController {
   @Post()
   @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
   createRefund(@Req() req: Request, @Body() createRefundDto: CreateRefundDto) {
-    const user = req.user as { tenantId: string };
-    return this.refundsService.createRefund(user.tenantId, createRefundDto);
+    const user = req.user as { id: string; tenantId: string };
+    return this.refundsService.createRefund(
+      user.tenantId,
+      user.id,
+      createRefundDto,
+    );
   }
 }

@@ -7,7 +7,7 @@ import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
 import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
-  sub: string;
+  id: string;
   email: string;
   tenantId?: string;
   role: string;
@@ -75,7 +75,7 @@ export class AuthService {
     }
 
     const payload: JwtPayload = {
-      sub: user.id,
+      id: user.id,
       email: user.email,
       role: user.role,
     };
@@ -123,7 +123,7 @@ export class AuthService {
     }
 
     const payload: JwtPayload = {
-      sub: user.id,
+      id: user.id,
       email: user.email,
       tenantId: user.tenantId ?? undefined,
       role: user.role,
@@ -171,7 +171,7 @@ export class AuthService {
 
   async validateUser(payload: JwtPayload): Promise<User> {
     const user = (await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: payload.id },
     })) as User;
 
     if (!user || !user.isActive) {

@@ -63,6 +63,7 @@ import {
 } from "./tooltip";
 
 export { Button as SButton } from "./button";
+export { Icon } from "./icon";
 export { Input } from "./input";
 export { Label } from "./label";
 export { Textarea } from "./textarea";

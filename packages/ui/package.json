@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./globals": "./src/styles/globals.css",
     "./lib/*": "./src/libs/*.ts",
+    "./hooks/*": "./src/hooks/*.ts",
     "./postcss.config.mjs": "./postcss.config.mjs"
   },
   "sideEffects": [

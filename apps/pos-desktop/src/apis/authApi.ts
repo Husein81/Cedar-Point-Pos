@@ -1,4 +1,4 @@
-import { User } from "@repo/types";
+import type { User } from "@repo/types";
 import { api } from "./api";
 
 export const authApi = {

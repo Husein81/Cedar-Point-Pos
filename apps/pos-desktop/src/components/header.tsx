@@ -40,7 +40,6 @@ export function Header() {
             Point <span className="text-primary">Verse</span>
           </h2>
         </div>
-        <ModeToggle />
       </div>
 
       <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>

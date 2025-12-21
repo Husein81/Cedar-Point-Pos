@@ -1,592 +1,837 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// =============================================================================
+// SYSTEM SCHEMA (public) - Global tables shared across all tenants
+// =============================================================================
+//
+// ARCHITECTURE OVERVIEW:
+// ----------------------
+// This file defines the SYSTEM/GLOBAL layer that lives in the PostgreSQL 
+// `public` schema. These tables are:
+//   - Tenant registry (master list of all tenants and their schema names)
+//   - License management
+//   - System-level device activation
+//   - Future admin/system tables
+//
+// These tables are NEVER duplicated per tenant. They are accessed directly
+// without schema switching.
+//
+// The application uses `search_path` to route tenant-specific queries to
+// the appropriate schema (e.g., `t_abc123`), while global queries always
+// target the `public` schema explicitly.
+// =============================================================================
+
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+    provider = "prisma-client"
+    output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
+    schemas  = ["public", "tenant"]
 }
 
-//
-// ---------- ENUMS ----------
-//
-enum UserRole {
-  OWNER
-  ADMIN
-  MANAGER
-  CASHIER
-  KITCHEN
+// =============================================================================
+// ENUMS (System-level)
+// =============================================================================
+
+enum TenantStatus {
+    ACTIVE // Tenant is active and can operate normally
+    SUSPENDED // Tenant is suspended (e.g., payment issues)
+    TRIAL // Tenant is in trial period
+    ONBOARDING // Tenant is being provisioned (schema creation in progress)
+    TERMINATED // Tenant is terminated (soft delete, data retained)
+
+    @@schema("public")
 }
 
 enum BusinessType {
-  RETAIL
-  RESTAURANT
+    RETAIL
+    RESTAURANT
+
+    @@schema("public")
+}
+
+enum LicenseType {
+    TRIAL
+    BASIC
+    PROFESSIONAL
+    ENTERPRISE
+
+    @@schema("public")
+}
+
+enum DeviceActivationStatus {
+    PENDING // Device registered but not yet activated
+    ACTIVE // Device is active and licensed
+    SUSPENDED // Device temporarily suspended
+    REVOKED // Device license revoked
+
+    @@schema("public")
+}
+
+// =============================================================================
+// TENANT REGISTRY
+// =============================================================================
+// Master record for each tenant. The `schemaName` field stores the PostgreSQL
+// schema where all tenant data resides (e.g., "t_abc123").
+// =============================================================================
+
+model Tenant {
+    id           String       @id @default(cuid())
+    name         String
+    slug         String       @unique // URL-friendly identifier
+    businessType BusinessType
+    schemaName   String       @unique // PostgreSQL schema name (e.g., "t_abc123")
+    status       TenantStatus @default(ONBOARDING)
+    settings     Json? // Feature flags, configuration
+
+    // Metadata
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    activatedAt DateTime? // When tenant was fully provisioned
+    suspendedAt DateTime? // When tenant was suspended (if applicable)
+
+    // Relations
+    licenses License[]
+    devices  SystemDevice[]
+
+    @@index([status])
+    @@index([slug])
+    @@schema("public")
+}
+
+// =============================================================================
+// LICENSE MANAGEMENT
+// =============================================================================
+// Tracks subscription/license information per tenant
+// =============================================================================
+
+model License {
+    id          String      @id @default(cuid())
+    tenantId    String
+    type        LicenseType @default(TRIAL)
+    maxDevices  Int         @default(1) // Maximum allowed devices
+    maxBranches Int         @default(1) // Maximum allowed branches
+    maxUsers    Int         @default(5) // Maximum allowed users
+
+    // Validity
+    startsAt  DateTime  @default(now())
+    expiresAt DateTime?
+    isActive  Boolean   @default(true)
+
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId, isActive])
+    @@schema("public")
+}
+
+// =============================================================================
+// SYSTEM DEVICE REGISTRY
+// =============================================================================
+// Global device activation/licensing table. This tracks which devices are
+// registered and activated across the entire system. The actual device
+// configuration and operational data lives in the tenant schema.
+// =============================================================================
+
+model SystemDevice {
+    id          String                 @id @default(cuid())
+    tenantId    String
+    deviceCode  String                 @unique // Unique activation code
+    name        String
+    fingerprint String? // Hardware fingerprint for validation
+    status      DeviceActivationStatus @default(PENDING)
+
+    // Activation tracking
+    activatedAt   DateTime?
+    lastHeartbeat DateTime?
+
+    // Metadata
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations
+    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId, status])
+    @@index([deviceCode])
+    @@schema("public")
+}
+
+// =============================================================================
+// AUDIT LOG (System-level)
+// =============================================================================
+// Tracks system-level administrative actions (tenant management, etc.)
+// =============================================================================
+
+model SystemAuditLog {
+    id         String   @id @default(cuid())
+    action     String // e.g., "TENANT_CREATED", "TENANT_SUSPENDED"
+    entityType String // e.g., "Tenant", "License"
+    entityId   String
+    actorId    String? // User/system that performed the action
+    actorEmail String?
+    details    Json? // Additional context
+    ipAddress  String?
+    createdAt  DateTime @default(now())
+
+    @@index([entityType, entityId])
+    @@index([actorId])
+    @@index([createdAt])
+    @@schema("public")
+}
+
+// =============================================================================
+// TENANT SCHEMA (per-tenant data)
+// =============================================================================
+
+// =============================================================================
+// ENUMS (Tenant-level)
+// =============================================================================
+
+enum UserRole {
+    OWNER
+    ADMIN
+    MANAGER
+    CASHIER
+    KITCHEN
+
+    @@schema("tenant")
 }
 
 enum InventoryChangeType {
-  SET_STOCK // Direct stock set
-  ADJUST_STOCK // Stock adjustment (increment/decrement)
-  SET_MIN_STOCK // Minimum stock threshold change
-  ORDER_DEDUCT // Stock deducted from order
-  ORDER_RETURN // Stock returned from refund
-  MANUAL_ADJUST // Manual adjustment
+    SET_STOCK
+    ADJUST_STOCK
+    SET_MIN_STOCK
+    ORDER_DEDUCT
+    ORDER_RETURN
+    MANUAL_ADJUST
+
+    @@schema("tenant")
 }
 
 enum OrderType {
-  DINE_IN
-  TAKEAWAY
-  DELIVERY
+    DINE_IN
+    TAKEAWAY
+    DELIVERY
+
+    @@schema("tenant")
 }
 
 enum OrderStatus {
-  DRAFT // New: For orders being built on the POS
-  PENDING // Order created but not processed
-  SENT_TO_KITCHEN // Order sent to kitchen/bar
-  READY // Ready for pickup/serve
-  COMPLETED
-  CANCELLED
+    DRAFT
+    PENDING
+    SENT_TO_KITCHEN
+    READY
+    COMPLETED
+    CANCELLED
+
+    @@schema("tenant")
 }
 
 enum PaymentMethod {
-  CASH
-  CARD
-  CREDIT
-  VOUCHER
-  ONLINE
+    CASH
+    CARD
+    CREDIT
+    VOUCHER
+    ONLINE
+
+    @@schema("tenant")
 }
 
 enum ModifierType {
-  SINGLE
-  MULTIPLE
+    SINGLE
+    MULTIPLE
+
+    @@schema("tenant")
 }
 
 enum ShiftStatus {
-  OPEN
-  CLOSED
+    OPEN
+    CLOSED
+
+    @@schema("tenant")
 }
 
 enum TransferStatus {
-  PENDING
-  IN_TRANSIT
-  COMPLETED
-  CANCELLED
+    PENDING
+    IN_TRANSIT
+    COMPLETED
+    CANCELLED
+
+    @@schema("tenant")
 }
 
-//
-// ---------- TENANT (Multi-Tenancy Root) ----------
-//
-model Tenant {
-  id           String       @id @default(cuid())
-  name         String
-  businessType BusinessType
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+// =============================================================================
+// USERS & AUTH
+// =============================================================================
+// Note: No tenantId - users belong to the tenant whose schema they're in
+// =============================================================================
 
-  users            User[]
-  branches         Branch[]
-  products         Product[]
-  inventory        Inventory[] // Inventory records still belong to the Tenant scope
-  inventoryHistory InventoryHistory[]
-  orders           Order[]
-  tables           Table[]
-  modifierGroups   ModifierGroup[]
-  recipes          Recipe[]
-  devices          POSDevice[]
-  customers        Customer[]
-  shifts           Shift[]
-  taxes            Tax[]
-  transfers        Transfer[]
-  settings         Json? // feature flags, tax rates, etc.
-  modifiers        Modifier[]
-  categories       Category[]
-  currencies       Currency[]
-}
-
-model Currency {
-  code         String    @id // e.g., USD, EUR, LBP
-  name         String // "United States Dollar"
-  symbol       String? // "$"
-  exchangeRate Decimal?  @db.Decimal(10, 2) // Optional: relative to base currency (usually USD)
-  isActive     Boolean   @default(true)
-  tenants      Tenant[]
-  payments     Payment[]
-}
-
-//
-// ---------- USERS & AUTH ----------
-//
 model User {
-  id                 String             @id @default(cuid())
-  name               String
-  email              String             @unique
-  password           String
-  role               UserRole           @default(CASHIER)
-  isActive           Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  tenantId           String?
-  tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  orders             Order[]
-  shifts             Shift[]
-  inventoryHistory   InventoryHistory[]
-  transfersRequested Transfer[]         @relation("TransferRequests")
-  transfersApproved  Transfer[]         @relation("TransferApprovals")
+    id        String   @id @default(cuid())
+    name      String
+    email     String   @unique
+    password  String
+    role      UserRole @default(CASHIER)
+    isActive  Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relations (all tenant-internal)
+    orders             Order[]
+    shifts             Shift[]
+    inventoryHistory   InventoryHistory[]
+    transfersRequested Transfer[]         @relation("TransferRequests")
+    transfersApproved  Transfer[]         @relation("TransferApprovals")
+
+    @@schema("tenant")
 }
 
-//
-// ---------- BRANCHES (Physical Locations) ----------
-//
+// =============================================================================
+// BRANCHES (Physical Locations)
+// =============================================================================
+// No tenantId - each tenant schema has its own branches
+// =============================================================================
+
 model Branch {
-  id               String             @id @default(cuid())
-  tenantId         String
-  name             String
-  address          String?
-  phone            String?
-  isDeleted        Boolean            @default(false) // Soft delete
-  tenant           Tenant             @relation(fields: [tenantId], references: [id])
-  tables           Table[]
-  devices          POSDevice[]
-  inventory        Inventory[] // Inventory is tracked at the Branch level
-  orders           Order[]
-  shifts           Shift[]
-  inventoryHistory InventoryHistory[]
-  transfersFrom    Transfer[]         @relation("TransfersFrom")
-  transfersTo      Transfer[]         @relation("TransfersTo")
+    id        String  @id @default(cuid())
+    name      String
+    address   String?
+    phone     String?
+    isDeleted Boolean @default(false)
+
+    // Relations
+    tables           Table[]
+    devices          POSDevice[]
+    inventory        Inventory[]
+    orders           Order[]
+    shifts           Shift[]
+    inventoryHistory InventoryHistory[]
+    transfersFrom    Transfer[]         @relation("TransfersFrom")
+    transfersTo      Transfer[]         @relation("TransfersTo")
+
+    @@schema("tenant")
 }
 
-//
-// ---------- POS DEVICES (For Sync & Auth) ----------
-//
+// =============================================================================
+// POS DEVICES
+// =============================================================================
+// Operational device data within the tenant schema.
+// Activation/licensing is tracked in the system schema (SystemDevice).
+// =============================================================================
+
 model POSDevice {
-  id       String    @id @default(cuid())
-  tenantId String
-  branchId String
-  name     String
-  token    String    @unique // device authentication token
-  lastSync DateTime?
-  isActive Boolean   @default(true)
-  isKDS    Boolean   @default(false) // New: Flag to identify Kitchen Display Systems
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  branch   Branch    @relation(fields: [branchId], references: [id])
-  orders   Order[]
-  shifts   Shift[]
+    id       String    @id @default(cuid())
+    branchId String
+    name     String
+    token    String    @unique
+    lastSync DateTime?
+    isActive Boolean   @default(true)
+    isKDS    Boolean   @default(false)
+
+    // Relations
+    branch Branch  @relation(fields: [branchId], references: [id])
+    orders Order[]
+    shifts Shift[]
+
+    @@schema("tenant")
 }
 
-//
-// ---------- PRODUCTS & INGREDIENTS ----------
-//
+// =============================================================================
+// CATEGORIES & PRODUCTS
+// =============================================================================
+
 model Category {
-  id            String        @id @default(cuid())
-  tenantId      String
-  name          String
-  code          String?       @unique
-  description   String?
-  isDeleted     Boolean       @default(false)
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  products      Product[]
-  subcategories Subcategory[]
+    id          String  @id @default(cuid())
+    name        String
+    code        String? @unique
+    description String?
+    isDeleted   Boolean @default(false)
+
+    // Relations
+    products      Product[]
+    subcategories Subcategory[]
+
+    @@schema("tenant")
 }
 
 model Subcategory {
-  id          String    @id @default(cuid())
-  categoryId  String
-  name        String
-  description String?
-  isDeleted   Boolean   @default(false)
-  category    Category  @relation(fields: [categoryId], references: [id])
-  products    Product[]
+    id          String  @id @default(cuid())
+    categoryId  String
+    name        String
+    description String?
+    isDeleted   Boolean @default(false)
+
+    // Relations
+    category Category  @relation(fields: [categoryId], references: [id])
+    products Product[]
+
+    @@schema("tenant")
 }
 
 model Product {
-  id               String             @id @default(cuid())
-  tenantId         String
-  name             String
-  description      String?
-  imageUrl         String?
-  sku              String?            @unique
-  barcode          String?            @unique // retail
-  price            Decimal?           @default(0) @db.Decimal(10, 2)
-  cost             Decimal?           @default(0) @db.Decimal(10, 2)
-  categoryId       String?
-  subcategoryId    String?
-  isActive         Boolean            @default(true)
-  isDeleted        Boolean            @default(false) // Soft delete
-  isIngredient     Boolean            @default(false) // New: Differentiates raw ingredients from sellable items
-  isModifiable     Boolean            @default(false) // restaurant
-  createdAt        DateTime           @default(now())
-  taxId            String?
-  tax              Tax?               @relation(fields: [taxId], references: [id])
-  tenant           Tenant             @relation(fields: [tenantId], references: [id])
-  inventory        Inventory[]
-  inventoryHistory InventoryHistory[]
-  modifiers        Modifier[]
-  recipesUsedIn    Recipe[]           @relation("SellableRecipe") // Recipe output product
-  ingredientIn     Recipe[]           @relation("IngredientRecipe") // Product used as ingredient
-  orderItems       OrderItem[]
-  category         Category?          @relation(fields: [categoryId], references: [id])
-  subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
-  offerGroupItems  OfferGroupItem[]
-  transferItems    TransferItem[]
+    id            String   @id @default(cuid())
+    name          String
+    description   String?
+    imageUrl      String?
+    sku           String?  @unique
+    barcode       String?  @unique
+    price         Decimal? @default(0) @db.Decimal(10, 2)
+    cost          Decimal? @default(0) @db.Decimal(10, 2)
+    categoryId    String?
+    subcategoryId String?
+    isActive      Boolean  @default(true)
+    isDeleted     Boolean  @default(false)
+    isIngredient  Boolean  @default(false)
+    isModifiable  Boolean  @default(false)
+    createdAt     DateTime @default(now())
+    taxId         String?
+
+    // Relations
+    tax              Tax?               @relation(fields: [taxId], references: [id])
+    category         Category?          @relation(fields: [categoryId], references: [id])
+    subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
+    inventory        Inventory[]
+    inventoryHistory InventoryHistory[]
+    modifiers        Modifier[]
+    recipesUsedIn    Recipe[]           @relation("SellableRecipe")
+    ingredientIn     Recipe[]           @relation("IngredientRecipe")
+    orderItems       OrderItem[]
+    offerGroupItems  OfferGroupItem[]
+    transferItems    TransferItem[]
+
+    @@schema("tenant")
 }
 
-// 
-// ---------- OFFERS & DISCOUNTS (Future Enhancement) ----------
+// =============================================================================
+// CURRENCIES
+// =============================================================================
+
+model Currency {
+    code         String   @id // e.g., USD, EUR, LBP
+    name         String
+    symbol       String?
+    exchangeRate Decimal? @db.Decimal(10, 2)
+    isActive     Boolean  @default(true)
+
+    // Relations
+    payments Payment[]
+
+    @@schema("tenant")
+}
+
+// =============================================================================
+// OFFERS & DISCOUNTS
+// =============================================================================
+
 model Offer {
-  id          String       @id @default(cuid())
-  name        String
-  basePrice   Decimal      @default(0) @db.Decimal(10, 2)
-  offerGroups OfferGroup[]
+    id        String  @id @default(cuid())
+    name      String
+    basePrice Decimal @default(0) @db.Decimal(10, 2)
+
+    // Relations
+    offerGroups OfferGroup[]
+
+    @@schema("tenant")
 }
 
 model OfferGroup {
-  id              String           @id @default(cuid())
-  offerId         String
-  name            String
-  freeItemsCount  Int              @default(0)
-  offer           Offer            @relation(fields: [offerId], references: [id])
-  offerGroupItems OfferGroupItem[]
+    id             String @id @default(cuid())
+    offerId        String
+    name           String
+    freeItemsCount Int    @default(0)
+
+    // Relations
+    offer           Offer            @relation(fields: [offerId], references: [id])
+    offerGroupItems OfferGroupItem[]
+
+    @@schema("tenant")
 }
 
 model OfferGroupItem {
-  id           String     @id @default(cuid())
-  offerGroupId String
-  productId    String
-  extraPrice   Decimal    @default(0) @db.Decimal(10, 2)
-  offerGroup   OfferGroup @relation(fields: [offerGroupId], references: [id])
-  product      Product    @relation(fields: [productId], references: [id])
+    id           String  @id @default(cuid())
+    offerGroupId String
+    productId    String
+    extraPrice   Decimal @default(0) @db.Decimal(10, 2)
+
+    // Relations
+    offerGroup OfferGroup @relation(fields: [offerGroupId], references: [id])
+    product    Product    @relation(fields: [productId], references: [id])
+
+    @@unique([offerGroupId, productId])
+    @@schema("tenant")
 }
 
-//
-// ---------- INVENTORY (Branch-Scoped) ----------
-//
+// =============================================================================
+// INVENTORY
+// =============================================================================
+// Branch-scoped inventory (no tenantId needed - schema provides isolation)
+// =============================================================================
+
 model Inventory {
-  id           String   @id @default(cuid())
-  tenantId     String
-  branchId     String // FIXED: Link to Branch
-  productId    String
-  stock        Decimal  @default(0) @db.Decimal(10, 4)
-  minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
-  lastAdjusted DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  branch       Branch   @relation(fields: [branchId], references: [id])
-  product      Product  @relation(fields: [productId], references: [id])
+    id           String   @id @default(cuid())
+    branchId     String
+    productId    String
+    stock        Decimal  @default(0) @db.Decimal(10, 4)
+    minStock     Decimal  @default(0) @db.Decimal(10, 4)
+    lastAdjusted DateTime @updatedAt
 
-  // Composite key to ensure unique inventory per branch-product combination
-  @@unique([branchId, productId])
+    // Relations
+    branch  Branch  @relation(fields: [branchId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+
+    @@unique([branchId, productId])
+    @@schema("tenant")
 }
 
-//
-// ---------- INVENTORY HISTORY (Audit Trail) ----------
-//
 model InventoryHistory {
-  id             String              @id @default(cuid())
-  tenantId       String
-  branchId       String
-  productId      String
-  userId         String // User who made the change
-  changeType     InventoryChangeType
-  beforeStock    Decimal             @db.Decimal(10, 4) // Stock quantity before change
-  afterStock     Decimal             @db.Decimal(10, 4) // Stock quantity after change
-  adjustment     Decimal             @db.Decimal(10, 4) // Net change (afterStock - beforeStock)
-  beforeMinStock Decimal?            @db.Decimal(10, 4) // Min stock before change (if applicable)
-  afterMinStock  Decimal?            @db.Decimal(10, 4) // Min stock after change (if applicable)
-  reason         String? // Reason for the adjustment
-  createdAt      DateTime            @default(now())
-  tenant         Tenant              @relation(fields: [tenantId], references: [id])
-  branch         Branch              @relation(fields: [branchId], references: [id])
-  product        Product             @relation(fields: [productId], references: [id])
-  user           User                @relation(fields: [userId], references: [id])
+    id             String              @id @default(cuid())
+    branchId       String
+    productId      String
+    userId         String
+    changeType     InventoryChangeType
+    beforeStock    Decimal             @db.Decimal(10, 4)
+    afterStock     Decimal             @db.Decimal(10, 4)
+    adjustment     Decimal             @db.Decimal(10, 4)
+    beforeMinStock Decimal?            @db.Decimal(10, 4)
+    afterMinStock  Decimal?            @db.Decimal(10, 4)
+    reason         String?
+    createdAt      DateTime            @default(now())
 
-  @@index([tenantId, branchId, createdAt])
-  @@index([productId, createdAt])
-  @@index([userId, createdAt])
+    // Relations
+    branch  Branch  @relation(fields: [branchId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+    user    User    @relation(fields: [userId], references: [id])
+
+    @@index([branchId, createdAt])
+    @@index([productId, createdAt])
+    @@index([userId, createdAt])
+    @@schema("tenant")
 }
 
-//
-// ---------- INVENTORY TRANSFERS ----------
-//
-model Transfer {
-  id           String         @id @default(cuid())
-  tenantId     String
-  fromBranchId String
-  toBranchId   String
-  status       TransferStatus @default(PENDING)
-  requestedBy  String // User ID who initiated the transfer
-  approvedBy   String? // User ID who approved/completed the transfer
-  notes        String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  completedAt  DateTime?
-  tenant       Tenant         @relation(fields: [tenantId], references: [id])
-  fromBranch   Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
-  toBranch     Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
-  requestor    User           @relation("TransferRequests", fields: [requestedBy], references: [id])
-  approver     User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
-  items        TransferItem[]
+// =============================================================================
+// INVENTORY TRANSFERS
+// =============================================================================
 
-  @@index([tenantId, status])
-  @@index([fromBranchId])
-  @@index([toBranchId])
+model Transfer {
+    id           String         @id @default(cuid())
+    fromBranchId String
+    toBranchId   String
+    status       TransferStatus @default(PENDING)
+    requestedBy  String
+    approvedBy   String?
+    notes        String?
+    createdAt    DateTime       @default(now())
+    updatedAt    DateTime       @updatedAt
+    completedAt  DateTime?
+
+    // Relations
+    fromBranch Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
+    toBranch   Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
+    requestor  User           @relation("TransferRequests", fields: [requestedBy], references: [id])
+    approver   User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
+    items      TransferItem[]
+
+    @@index([status])
+    @@index([fromBranchId])
+    @@index([toBranchId])
+    @@schema("tenant")
 }
 
 model TransferItem {
-  id         String   @id @default(cuid())
-  transferId String
-  productId  String
-  quantity   Decimal  @db.Decimal(10, 4)
-  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id])
+    id         String  @id @default(cuid())
+    transferId String
+    productId  String
+    quantity   Decimal @db.Decimal(10, 4)
 
-  @@unique([transferId, productId])
+    // Relations
+    transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+    product  Product  @relation(fields: [productId], references: [id])
+
+    @@unique([transferId, productId])
+    @@schema("tenant")
 }
 
-// 
-// ---------- REFUNDS (Audit Trail) ----------
-// 
+// =============================================================================
+// REFUNDS
+// =============================================================================
+
 model Refund {
-  id          String       @id @default(cuid())
-  orderId     String
-  totalAmount Decimal      @default(0) @db.Decimal(10, 2)
-  reason      String?
-  refundedAt  DateTime     @default(now())
-  order       Order        @relation(fields: [orderId], references: [id])
-  refundItems RefundItem[]
+    id          String   @id @default(cuid())
+    orderId     String
+    totalAmount Decimal  @default(0) @db.Decimal(10, 2)
+    reason      String?
+    refundedAt  DateTime @default(now())
+
+    // Relations
+    order       Order        @relation(fields: [orderId], references: [id])
+    refundItems RefundItem[]
+
+    @@schema("tenant")
 }
 
 model RefundItem {
-  id          String @id @default(cuid())
-  refundId    String
-  orderItemId String
+    id          String  @id @default(cuid())
+    refundId    String
+    orderItemId String
+    quantity    Decimal @db.Decimal(10, 4)
+    unitPrice   Decimal @db.Decimal(10, 2)
+    subtotal    Decimal @db.Decimal(10, 2)
 
-  quantity  Decimal @db.Decimal(10, 4)
-  unitPrice Decimal @db.Decimal(10, 2)
-  subtotal  Decimal @db.Decimal(10, 2)
+    // Relations
+    refund    Refund    @relation(fields: [refundId], references: [id])
+    orderItem OrderItem @relation(fields: [orderItemId], references: [id])
 
-  refund    Refund    @relation(fields: [refundId], references: [id])
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
-
-  @@unique([refundId, orderItemId])
-  @@index([orderItemId])
+    @@unique([refundId, orderItemId])
+    @@index([orderItemId])
+    @@schema("tenant")
 }
 
-//
-// ---------- RESTAURANT MODULE (TABLES) ----------
-//
+// =============================================================================
+// TABLES (Restaurant)
+// =============================================================================
+
 model Table {
-  id          String  @id @default(cuid())
-  tableNumber Int
-  tenantId    String
-  branchId    String
-  name        String
-  capacity    Int     @default(4)
-  isActive    Boolean @default(true)
-  isDeleted   Boolean @default(false)
-  tenant      Tenant  @relation(fields: [tenantId], references: [id])
-  branch      Branch  @relation(fields: [branchId], references: [id])
-  orders      Order[]
+    id          String  @id @default(cuid())
+    tableNumber Int
+    branchId    String
+    name        String
+    capacity    Int     @default(4)
+    isActive    Boolean @default(true)
+    isDeleted   Boolean @default(false)
+
+    // Relations
+    branch Branch  @relation(fields: [branchId], references: [id])
+    orders Order[]
+
+    @@schema("tenant")
 }
 
-//
-// ---------- MODIFIERS (Toppings/Add-ons) ----------
-//
+// =============================================================================
+// MODIFIERS (Toppings/Add-ons)
+// =============================================================================
+
 model ModifierGroup {
-  id        String       @id @default(cuid())
-  tenantId  String
-  name      String
-  type      ModifierType
-  isDeleted Boolean      @default(false)
-  tenant    Tenant       @relation(fields: [tenantId], references: [id])
-  modifiers Modifier[]
+    id        String       @id @default(cuid())
+    name      String
+    type      ModifierType
+    isDeleted Boolean      @default(false)
+
+    // Relations
+    modifiers Modifier[]
+
+    @@schema("tenant")
 }
 
 model Modifier {
-  id            String              @id @default(cuid())
-  tenantId      String
-  groupId       String
-  productId     String? // optional parent product
-  name          String
-  price         Decimal             @default(0)
-  isDeleted     Boolean             @default(false)
-  tenant        Tenant              @relation(fields: [tenantId], references: [id])
-  group         ModifierGroup       @relation(fields: [groupId], references: [id])
-  product       Product?            @relation(fields: [productId], references: [id])
-  orderItemMods OrderItemModifier[]
+    id        String  @id @default(cuid())
+    groupId   String
+    productId String?
+    name      String
+    price     Decimal @default(0)
+    isDeleted Boolean @default(false)
+
+    // Relations
+    group         ModifierGroup       @relation(fields: [groupId], references: [id])
+    product       Product?            @relation(fields: [productId], references: [id])
+    orderItemMods OrderItemModifier[]
+
+    @@schema("tenant")
 }
 
-//
-// ---------- RECIPE (for restaurant inventory deduction) ----------
-//
+// =============================================================================
+// RECIPES
+// =============================================================================
+
 model Recipe {
-  id           String  @id @default(cuid())
-  tenantId     String
-  productId    String // The finished product this recipe creates
-  ingredientId String // The raw material (Product with isIngredient=true)
-  quantity     Decimal @db.Decimal(10, 4) // Amount of ingredient required for one unit of product
-  tenant       Tenant  @relation(fields: [tenantId], references: [id])
-  product      Product @relation("SellableRecipe", fields: [productId], references: [id])
-  ingredient   Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
+    id           String  @id @default(cuid())
+    productId    String
+    ingredientId String
+    quantity     Decimal @db.Decimal(10, 4)
 
-  // Enforce unique ingredient per product (a product can only have one recipe per ingredient)
-  @@unique([productId, ingredientId])
+    // Relations
+    product    Product @relation("SellableRecipe", fields: [productId], references: [id])
+    ingredient Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
+
+    @@unique([productId, ingredientId])
+    @@schema("tenant")
 }
 
-//
-// ---------- ORDERS (Sales Transaction) ----------
-//
+// =============================================================================
+// ORDERS
+// =============================================================================
+
 model Order {
-  id          String      @id @default(cuid())
-  tenantId    String
-  userId      String? // Cashier/user who created the order
-  branchId    String
-  tableId     String? // restaurant only
-  deviceId    String? // POS device that created the order
-  customerId  String?
-  customer    Customer?   @relation(fields: [customerId], references: [id])
-  shiftId     String?
-  shift       Shift?      @relation(fields: [shiftId], references: [id])
-  orderNumber String? // Friendly ID (e.g. "1001")
-  type        OrderType
-  status      OrderStatus @default(DRAFT) // Changed default to DRAFT
-  // Financial fields
-  subtotal    Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
-  taxAmount   Decimal     @default(0) @db.Decimal(10, 2) // New: Total tax collected
-  total       Decimal     @default(0) @db.Decimal(10, 2) // Final amount due/paid
-  discount    Decimal?    @default(0) @db.Decimal(10, 2)
-  createdAt   DateTime    @default(now())
-  completedAt DateTime? // New: Timestamp for final closure/payment
-  user        User?       @relation(fields: [userId], references: [id])
-  tenant      Tenant      @relation(fields: [tenantId], references: [id])
-  branch      Branch      @relation(fields: [branchId], references: [id])
-  table       Table?      @relation(fields: [tableId], references: [id])
-  device      POSDevice?  @relation(fields: [deviceId], references: [id])
-  items       OrderItem[]
-  payments    Payment[] // FIXED: Relation to new Payment model
-  refunds     Refund[]
+    id          String      @id @default(cuid())
+    userId      String?
+    branchId    String
+    tableId     String?
+    deviceId    String?
+    customerId  String?
+    shiftId     String?
+    orderNumber String?
+    type        OrderType
+    status      OrderStatus @default(DRAFT)
+    subtotal    Decimal     @default(0) @db.Decimal(10, 2)
+    taxAmount   Decimal     @default(0) @db.Decimal(10, 2)
+    total       Decimal     @default(0) @db.Decimal(10, 2)
+    discount    Decimal?    @default(0) @db.Decimal(10, 2)
+    createdAt   DateTime    @default(now())
+    completedAt DateTime?
 
-  @@index([tenantId, branchId, createdAt])
+    // Relations
+    user     User?       @relation(fields: [userId], references: [id])
+    branch   Branch      @relation(fields: [branchId], references: [id])
+    table    Table?      @relation(fields: [tableId], references: [id])
+    device   POSDevice?  @relation(fields: [deviceId], references: [id])
+    customer Customer?   @relation(fields: [customerId], references: [id])
+    shift    Shift?      @relation(fields: [shiftId], references: [id])
+    items    OrderItem[]
+    payments Payment[]
+    refunds  Refund[]
+
+    @@index([branchId, createdAt])
+    @@index([status])
+    @@schema("tenant")
 }
 
-//
-// ---------- ORDER ITEMS (Line Items) ----------
-//
+// =============================================================================
+// ORDER ITEMS
+// =============================================================================
+
 model OrderItem {
-  id          String              @id @default(cuid())
-  orderId     String
-  productId   String
-  quantity    Decimal             @default(1) @db.Decimal(10, 4)
-  unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
-  subtotal    Decimal             @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
-  taxRate     Decimal             @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
-  taxAmount   Decimal             @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
-  total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
-  // KDS tracking
-  notes       String? // e.g., "Extra crispy"
-  order       Order               @relation(fields: [orderId], references: [id])
-  product     Product             @relation(fields: [productId], references: [id])
-  modifiers   OrderItemModifier[]
-  tickets     OrderItemTicket[] // FIXED: Relation to new KDS ticket model
-  refundItems RefundItem[]
+    id        String  @id @default(cuid())
+    orderId   String
+    productId String
+    quantity  Decimal @default(1) @db.Decimal(10, 4)
+    unitPrice Decimal @db.Decimal(10, 2)
+    subtotal  Decimal @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
+    taxRate   Decimal @default(0) @db.Decimal(10, 2)
+    taxAmount Decimal @default(0) @db.Decimal(10, 2)
+    total     Decimal @db.Decimal(10, 2)
+    notes     String?
+
+    // Relations
+    order       Order               @relation(fields: [orderId], references: [id])
+    product     Product             @relation(fields: [productId], references: [id])
+    modifiers   OrderItemModifier[]
+    tickets     OrderItemTicket[]
+    refundItems RefundItem[]
+
+    @@schema("tenant")
 }
 
-//
-// ---------- KDS/TICKET TRACKING (Granular Kitchen Workflow) ----------
-//
 model OrderItemTicket {
-  id          String      @id @default(cuid())
-  orderItemId String
-  station     String? // e.g., "Main Kitchen," "Bar"
-  status      OrderStatus @default(SENT_TO_KITCHEN)
-  // Important KDS Timestamps
-  sentAt      DateTime    @default(now())
-  bumpedAt    DateTime? // Time it was removed/completed from the KDS screen
-  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id])
+    id          String      @id @default(cuid())
+    orderItemId String
+    station     String?
+    status      OrderStatus @default(SENT_TO_KITCHEN)
+    sentAt      DateTime    @default(now())
+    bumpedAt    DateTime?
+
+    // Relations
+    orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+
+    @@schema("tenant")
 }
 
-//
-// ---------- ORDER ITEM MODIFIERS ----------
-//
 model OrderItemModifier {
-  id          String    @id @default(cuid())
-  orderItemId String
-  modifierId  String
-  price       Decimal   @db.Decimal(10, 2) // Price charged for this modifier
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
-  modifier    Modifier  @relation(fields: [modifierId], references: [id])
+    id          String  @id @default(cuid())
+    orderItemId String
+    modifierId  String
+    price       Decimal @db.Decimal(10, 2)
+
+    // Relations
+    orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+    modifier  Modifier  @relation(fields: [modifierId], references: [id])
+
+    @@schema("tenant")
 }
 
-//
-// ---------- PAYMENTS (Financial Compliance) ----------
-//
+// =============================================================================
+// PAYMENTS
+// =============================================================================
+
 model Payment {
-  id            String        @id @default(cuid())
-  orderId       String
-  method        PaymentMethod
-  currencyCode  String        @default("USD")
-  amount        Decimal
-  exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
-  transactionId String? // Reference ID from card processor (Stripe, etc.)
-  paidAt        DateTime      @default(now())
-  order         Order         @relation(fields: [orderId], references: [id])
-  currency      Currency      @relation(fields: [currencyCode], references: [code])
+    id            String        @id @default(cuid())
+    orderId       String
+    method        PaymentMethod
+    currencyCode  String        @default("USD")
+    amount        Decimal
+    exchangeRate  Decimal?
+    transactionId String?
+    paidAt        DateTime      @default(now())
+
+    // Relations
+    order    Order    @relation(fields: [orderId], references: [id])
+    currency Currency @relation(fields: [currencyCode], references: [code])
+
+    @@schema("tenant")
 }
 
-//
-// ---------- CUSTOMERS (CRM) ----------
-//
+// =============================================================================
+// CUSTOMERS
+// =============================================================================
+
 model Customer {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  orders    Order[]
+    id        String   @id @default(cuid())
+    name      String
+    email     String?
+    phone     String?
+    address   String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@index([tenantId])
+    // Relations
+    orders Order[]
+
+    @@schema("tenant")
 }
 
-//
-// ---------- SHIFTS (Cash Management) ----------
-//
+// =============================================================================
+// SHIFTS
+// =============================================================================
+
 model Shift {
-  id         String      @id @default(cuid())
-  tenantId   String
-  branchId   String
-  userId     String // Cashier who opened the shift
-  deviceId   String? // Device used
-  startTime  DateTime    @default(now())
-  endTime    DateTime?
-  startCash  Decimal     @default(0) @db.Decimal(10, 2)
-  endCash    Decimal?    @db.Decimal(10, 2) // Counted cash at close
-  actualCash Decimal?    @db.Decimal(10, 2) // System calculated cash
-  difference Decimal?    @db.Decimal(10, 2) // Over/Short amount
-  status     ShiftStatus @default(OPEN)
-  notes      String?
-  tenant     Tenant      @relation(fields: [tenantId], references: [id])
-  branch     Branch      @relation(fields: [branchId], references: [id])
-  user       User        @relation(fields: [userId], references: [id])
-  device     POSDevice?  @relation(fields: [deviceId], references: [id])
-  orders     Order[]
+    id         String      @id @default(cuid())
+    branchId   String
+    userId     String
+    deviceId   String?
+    startTime  DateTime    @default(now())
+    endTime    DateTime?
+    startCash  Decimal     @default(0) @db.Decimal(10, 2)
+    endCash    Decimal?    @db.Decimal(10, 2)
+    actualCash Decimal?    @db.Decimal(10, 2)
+    difference Decimal?    @db.Decimal(10, 2)
+    status     ShiftStatus @default(OPEN)
+    notes      String?
 
-  @@index([tenantId, branchId, status])
+    // Relations
+    branch Branch     @relation(fields: [branchId], references: [id])
+    user   User       @relation(fields: [userId], references: [id])
+    device POSDevice? @relation(fields: [deviceId], references: [id])
+    orders Order[]
+
+    @@index([branchId, status])
+    @@schema("tenant")
 }
 
-//
-// ---------- TAXES ----------
-//
+// =============================================================================
+// TAXES
+// =============================================================================
+
 model Tax {
-  id        String    @id @default(cuid())
-  tenantId  String
-  name      String // e.g. "VAT", "Sales Tax"
-  rate      Decimal   @db.Decimal(5, 2) // e.g. 10.00
-  isDefault Boolean   @default(false)
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  products  Product[]
+    id        String  @id @default(cuid())
+    name      String
+    rate      Decimal @db.Decimal(5, 2)
+    isDefault Boolean @default(false)
+
+    // Relations
+    products Product[]
+
+    @@schema("tenant")
 }

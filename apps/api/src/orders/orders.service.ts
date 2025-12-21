@@ -3,8 +3,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
@@ -20,8 +18,7 @@ export class OrdersService {
 
   constructor(
     private readonly inventoryDeductionService: InventoryDeductionService,
-    private prisma: PrismaService,
-    @Inject(forwardRef(() => OrderItemService))
+    private readonly prisma: PrismaService,
     private readonly orderItemService: OrderItemService,
   ) {}
 

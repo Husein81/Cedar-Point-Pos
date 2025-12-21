@@ -156,7 +156,7 @@ export class TransfersService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
         },
@@ -338,14 +338,14 @@ export class TransfersService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
           approver: {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
         },
@@ -411,7 +411,7 @@ export class TransfersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
       },
@@ -478,14 +478,14 @@ export class TransfersService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
           approver: {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
         },
@@ -545,14 +545,14 @@ export class TransfersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         approver: {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
       },
@@ -631,14 +631,14 @@ export class TransfersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         approver: {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
       },

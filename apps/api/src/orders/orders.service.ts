@@ -116,7 +116,7 @@ export class OrdersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         branch: {
@@ -416,7 +416,7 @@ export class OrdersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         branch: {
@@ -482,7 +482,7 @@ export class OrdersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         branch: {
@@ -599,7 +599,7 @@ export class OrdersService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
           branch: {
@@ -693,7 +693,7 @@ export class OrdersService {
           select: {
             id: true,
             name: true,
-            email: true,
+            username: true,
           },
         },
         branch: {
@@ -818,7 +818,7 @@ export class OrdersService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
           branch: {
@@ -851,7 +851,7 @@ export class OrdersService {
                 };
               };
             };
-            user: { select: { id: true; name: true; email: true } };
+            user: { select: { id: true; name: true; username: true } };
             branch: { select: { id: true; name: true } };
             table: { select: { id: true; tableNumber: true; name: true } };
             device: { select: { id: true; name: true } };
@@ -1228,7 +1228,7 @@ export class OrdersService {
           },
         },
       },
-      user: { select: { id: true, name: true, email: true } },
+      user: { select: { id: true, name: true, username: true } },
       branch: { select: { id: true, name: true } },
       table: { select: { id: true, tableNumber: true, name: true } },
       device: { select: { id: true, name: true } },

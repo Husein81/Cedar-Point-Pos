@@ -1,27 +1,33 @@
-import { Icon, Shad } from "@repo/ui";
-import { sidebarSections } from "./config";
+import { cn, Icon, Shad } from "@repo/ui";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import NavUser from "../nav-user";
+import { sidebarSections } from "./config";
+import Settings from "./settings";
 
 const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
+  const [active, setActive] = useState("Home");
+  const isActive = (label: string) => label === active;
   return (
     <Shad.Sidebar className="top-10" collapsible="icon" {...props}>
       {/* Content */}
-      <Shad.SidebarTrigger className="ml-3 hover:bg-background" />
       <Shad.SidebarContent>
         {/* POS */}
         {sidebarSections.map((section) => (
           <Shad.SidebarGroup key={section.label}>
             <Shad.SidebarGroupLabel>{section.label}</Shad.SidebarGroupLabel>
-            <Shad.SidebarMenu>
+            <Shad.SidebarMenu className="space-y-1">
               {section.items.map((item) => (
                 <Shad.SidebarMenuItem key={item.label}>
-                  <Shad.SidebarMenuButton
-                    className="hover:text-gray-200"
-                    tooltip={item.tooltip}
-                  >
-                    <Icon name={item.icon} />
-                    <span>{item.label}</span>
-                  </Shad.SidebarMenuButton>
+                  <Link to={item.href || "/"}>
+                    <Shad.SidebarMenuButton
+                      className="hover:text-gray-200"
+                      tooltip={item.tooltip}
+                    >
+                      <Icon name={item.icon} />
+                      <span>{item.label}</span>
+                    </Shad.SidebarMenuButton>
+                  </Link>
                 </Shad.SidebarMenuItem>
               ))}
             </Shad.SidebarMenu>
@@ -32,16 +38,7 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
       {/* Footer */}
       <Shad.SidebarFooter className="border-t mb-10">
         <NavUser />
-
-        <Shad.SidebarMenuItem>
-          <Shad.SidebarMenuButton
-            className="hover:text-gray-200"
-            tooltip="Settings"
-          >
-            <Icon name="Settings" />
-            <span>Settings</span>
-          </Shad.SidebarMenuButton>
-        </Shad.SidebarMenuItem>
+        <Settings />
       </Shad.SidebarFooter>
     </Shad.Sidebar>
   );

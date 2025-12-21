@@ -120,13 +120,14 @@ export type Currency = z.infer<typeof CurrencySchema>;
 export const UserSchema = z.object({
   id: cuid,
   name: z.string(),
-  email: z.string().email(),
+  username: z.string(),
   password: z.string(), // usually not returned in responses; keep for internal/admin usage
   role: z.enum(UserRole),
   isActive: z.boolean().default(true),
   createdAt: isoDate,
   updatedAt: isoDate,
   tenantId: cuid.nullable().optional(),
+  tenant: TenantSchema.nullable().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
 

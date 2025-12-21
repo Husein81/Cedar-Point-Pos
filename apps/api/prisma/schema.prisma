@@ -122,7 +122,7 @@ model Currency {
 model User {
   id                 String             @id @default(cuid())
   name               String
-  email              String             @unique
+  username           String             @unique
   password           String
   role               UserRole           @default(CASHIER)
   isActive           Boolean            @default(true)
@@ -451,6 +451,7 @@ model Order {
   orderNumber String? // Friendly ID (e.g. "1001")
   type        OrderType
   status      OrderStatus @default(DRAFT) // Changed default to DRAFT
+
   // Financial fields
   subtotal    Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
   taxAmount   Decimal     @default(0) @db.Decimal(10, 2) // New: Total tax collected

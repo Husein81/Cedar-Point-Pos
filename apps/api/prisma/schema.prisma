@@ -21,7 +21,7 @@
 
 generator client {
     provider = "prisma-client"
-    output   = "../generated/prisma"
+    output   = "../generated/prisma-client"
 }
 
 datasource db {
@@ -185,11 +185,7 @@ model SystemAuditLog {
 }
 
 // =============================================================================
-// TENANT SCHEMA (per-tenant data)
-// =============================================================================
-
-// =============================================================================
-// ENUMS (Tenant-level)
+// TENANT ENUMS
 // =============================================================================
 
 enum UserRole {

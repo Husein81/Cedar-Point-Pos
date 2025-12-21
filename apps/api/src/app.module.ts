@@ -19,6 +19,7 @@ import { TenantModule } from './tenant/tenant.module.js';
 import { TransfersModule } from './transfers/transfers.module.js';
 import { UsersModule } from './users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { SystemAdminModule } from './system-admin/system-admin.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     OrdersModule,
     ModifierGroupsModule,
     RefundsModule,
+    SystemAdminModule, // System-level administration (multi-tenant)
   ],
   controllers: [AppController],
   providers: [

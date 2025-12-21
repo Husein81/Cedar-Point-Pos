@@ -1,6 +1,7 @@
 import { useLogin } from "@/hooks/auth";
 import { Button, Input, Label, Shad } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
+import logo from "/assets/logo.png";
 
 const PIN_LENGTH = 4;
 
@@ -36,7 +37,7 @@ const SignIn = () => {
       <div className="w-full max-w-md">
         {/* Mobile brand */}
         <div className="md:hidden flex flex-col items-center mb-8">
-          <img src="/assets/logo.png" alt="Logo" className="size-20 mb-3" />
+          <img src={logo} alt="Logo" className="size-20 mb-3" />
           <h1 className="text-2xl font-bold">
             Point<span className="text-primary">Verse</span>
           </h1>

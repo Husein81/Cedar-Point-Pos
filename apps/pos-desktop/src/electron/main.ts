@@ -44,7 +44,17 @@ const createWindow = () => {
 
   mainWindow.setMinimumSize(800, 600);
 
-  mainWindow.loadFile(path.join(__dirname, `../index.html`));
+  if (isDev()) {
+    // ✅ DEV → Vite dev server
+    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.webContents.openDevTools();
+  } else {
+    // ✅ PROD → Vite build output
+    mainWindow.loadFile(
+      path.join(__dirname, "../renderer/index.html")
+      // or ../dist/index.html depending on your build output
+    );
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;

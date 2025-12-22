@@ -1,7 +1,6 @@
-import { cn, Icon, Button } from "@repo/ui";
-import { Activity, useId } from "react";
-import { ModeToggle } from "./mode-toggle";
 import { useAuthStore } from "@/store/authStore";
+import { Button, cn, Icon } from "@repo/ui";
+import { Activity, useId } from "react";
 import logo from "/assets/logo.png";
 
 export function Header() {
@@ -25,7 +24,7 @@ export function Header() {
     {
       id: "close",
       name: "CLOSE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-red-500",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-red-600",
       icon: "X",
       onClick: () => window.electron?.sendFrameAction("CLOSE"),
     },
@@ -43,7 +42,7 @@ export function Header() {
       </div>
 
       <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
-        {user?.tenant?.name}
+        <span className="text-sm">{user?.tenant?.name}</span>
       </Activity>
 
       <div className="flex items-center h-full no-drag">

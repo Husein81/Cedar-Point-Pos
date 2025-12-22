@@ -10,7 +10,7 @@ export interface JwtPayload {
   id: string;
   username: string;
   tenantId?: string;
-  role: string;
+  role: UserRole;
 }
 
 @Injectable()
@@ -41,12 +41,16 @@ export class AuthService {
       },
     });
 
+    if (!user) {
+      throw new UnauthorizedException('Failed to create user');
+    }
+
     return {
       id: user.id,
       name: user.name,
       username: String(user.username),
       role: user.role,
-      tenantId: user.tenantId,
+      tenantId: String(user.tenantId),
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -54,7 +58,7 @@ export class AuthService {
   }
 
   async adminLogin({ username, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
+    user: Omit<User, 'password' | 'tenantId'>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
@@ -97,7 +101,7 @@ export class AuthService {
   }
 
   async login({ username, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
+    user: Partial<User>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
@@ -107,6 +111,13 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.tenantId) {
+      throw new UnauthorizedException('User has no tenant assigned');
+    }
+
+    if (!user.tenant) {
+      throw new UnauthorizedException('Tenant is deactivated');
     }
 
     if (!user.isActive) {
@@ -125,7 +136,7 @@ export class AuthService {
     const payload: JwtPayload = {
       id: user.id,
       username: user.username,
-      tenantId: user.tenantId ?? undefined,
+      tenantId: String(user.tenantId),
       role: user.role,
     };
 
@@ -138,7 +149,7 @@ export class AuthService {
         name: user.name,
         username: user.username,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: String(user.tenantId),
         tenant: user.tenant,
         isActive: user.isActive,
         createdAt: user.createdAt,

@@ -32,7 +32,7 @@ export class ModifierGroupsController {
    * Create a new modifier group
    */
   @Post()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async create(@Req() req: Request, @Body() createDto: CreateModifierGroupDto) {
     const { tenantId } = req.user as { tenantId: string };
     return this.modifierGroupsService.create(tenantId, createDto);
@@ -42,7 +42,7 @@ export class ModifierGroupsController {
    * Get all modifier groups with optional filters
    */
   @Get()
-  @Roles('OWNER', 'MANAGER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async findAll(
     @Req() req: Request,
     @Query('page') page?: string,
@@ -63,7 +63,7 @@ export class ModifierGroupsController {
    * Get modifier groups by type
    */
   @Get('by-type/:type')
-  @Roles('OWNER', 'MANAGER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async findByType(@Req() req: Request, @Param('type') type: ModifierType) {
     const { tenantId } = req.user as { tenantId: string };
     return this.modifierGroupsService.findByType(tenantId, type);
@@ -73,7 +73,7 @@ export class ModifierGroupsController {
    * Get a specific modifier group
    */
   @Get(':id')
-  @Roles('OWNER', 'MANAGER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async findOne(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     return this.modifierGroupsService.findOne(tenantId, id);
@@ -83,7 +83,7 @@ export class ModifierGroupsController {
    * Update a modifier group
    */
   @Put(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async update(
     @Req() req: Request,
     @Param('id') id: string,
@@ -97,7 +97,7 @@ export class ModifierGroupsController {
    * Soft delete a modifier group
    */
   @Delete(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };

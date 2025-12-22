@@ -36,7 +36,7 @@ export class CategoryController {
   }
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createCategory(
     @Req() req: Request,
     @Body() data: Prisma.CategoryCreateWithoutTenantInput,
@@ -49,7 +49,7 @@ export class CategoryController {
   }
 
   @Put(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateCategory(
     @Req() req: Request,
     @Param('id') id: string,
@@ -63,7 +63,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteCategory(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as User;
     if (!user.tenantId) {
@@ -73,7 +73,7 @@ export class CategoryController {
   }
 
   @Post(':id/subcategories')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createSubcategory(
     @Req() req: Request,
     @Param('id') categoryId: string,

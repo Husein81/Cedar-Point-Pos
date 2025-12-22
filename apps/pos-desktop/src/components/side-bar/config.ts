@@ -1,30 +1,49 @@
-export const sidebarSections = [
+import type { BusinessType } from "@repo/types";
+
+export type SidebarItem = {
+  label: string;
+  icon: string;
+  tooltip?: string;
+  href?: string;
+  showFor: BusinessType[];
+};
+
+type SidebarSection = {
+  label: string;
+  items: SidebarItem[];
+};
+
+export const sidebarSections: SidebarSection[] = [
   {
     label: "POS",
     items: [
       {
         label: "Home",
         icon: "House",
-        tooltip: "Home",
         href: "/",
+        tooltip: "Home",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Dashboard",
         icon: "LayoutDashboard",
         href: "/dashboard",
         tooltip: "Dashboard",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Orders",
         icon: "ShoppingCart",
         href: "/orders",
         tooltip: "Orders",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
       {
-        label: "Products",
-        href: "/products",
-        icon: "Package",
-        tooltip: "Products",
+        label: "Tables",
+        icon: "Grid2x2",
+        href: "/tables",
+        tooltip: "Tables",
+        showFor: ["RESTAURANT"],
       },
     ],
   },
@@ -32,16 +51,32 @@ export const sidebarSections = [
     label: "Inventory",
     items: [
       {
+        label: "Products",
+        icon: "Package",
+        href: "/products",
+        tooltip: "Products",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
         label: "Stock",
         icon: "Warehouse",
         href: "/stock",
         tooltip: "Stock",
+        showFor: ["RETAIL"],
+      },
+      {
+        label: "Recipes",
+        icon: "ChefHat",
+        href: "/recipes",
+        tooltip: "Recipes",
+        showFor: ["RESTAURANT"],
       },
       {
         label: "Transfers",
-        href: "/transfers",
         icon: "ArrowLeftRight",
+        href: "/transfers",
         tooltip: "Transfers",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
     ],
   },
@@ -53,12 +88,14 @@ export const sidebarSections = [
         icon: "CreditCard",
         href: "/payments",
         tooltip: "Payments",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Reports",
-        href: "/reports",
         icon: "ChartBar",
+        href: "/reports",
         tooltip: "Reports",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
     ],
   },

@@ -26,7 +26,7 @@ export class StockAdjustmentController {
    * Create a stock adjustment (ADD, REMOVE, or SET)
    */
   @Post()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async adjustStock(
     @Req() req: Request,
     @Body() adjustmentDto: CreateStockAdjustmentDto,
@@ -46,7 +46,7 @@ export class StockAdjustmentController {
    * Get adjustment history with filters
    */
   @Get()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async getAdjustmentHistory(@Req() req: Request) {
     const queryDto = req.query;
     const { tenantId } = req.user as { tenantId: string };
@@ -57,7 +57,7 @@ export class StockAdjustmentController {
    * Get adjustment summary statistics
    */
   @Get('summary')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async getAdjustmentSummary(
     @Req() req: Request,
     @Query('branchId') branchId?: string,
@@ -77,7 +77,7 @@ export class StockAdjustmentController {
    * Get adjustment history for a specific inventory item
    */
   @Get('inventory/:branchId/:productId')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async getInventoryAdjustmentHistory(
     @Req() req: Request,
     @Param('branchId') branchId: string,

@@ -1,22 +1,20 @@
 import { useLogin } from "@/hooks/auth";
-import { Button, Input, Label, Shad } from "@repo/ui";
+import { Button, Input, Label } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 import logo from "/assets/logo.png";
-
-const PIN_LENGTH = 4;
 
 const SignIn = () => {
   const login = useLogin();
   const form = useForm({
     defaultValues: {
       username: "",
-      pin: "",
+      password: "",
     },
     onSubmit: async ({ value }) => {
       try {
         await login.mutateAsync({
           username: value.username,
-          password: value.pin,
+          password: value.password,
         });
       } catch (error) {
         console.error("Verification error:", error);
@@ -50,7 +48,7 @@ const SignIn = () => {
           </h2>
 
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Enter your username and {PIN_LENGTH}-digit PIN
+            Enter your username and Password to continue
           </p>
 
           {/* USERNAME INPUT */}
@@ -74,25 +72,20 @@ const SignIn = () => {
           </form.Field>
 
           {/* PIN INPUT */}
-          <form.Field name="pin">
+          <form.Field name="password">
             {(field) => (
-              <div className="flex justify-center w-full">
-                <Shad.InputOTP
+              <div className="justify-center w-full">
+                <Label htmlFor={field.name} className="mb-2 block w-full">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
                   value={field.state.value}
-                  onChange={field.handleChange}
-                  maxLength={PIN_LENGTH}
-                  inputMode="numeric"
-                >
-                  <Shad.InputOTPGroup className="justify-center">
-                    {Array.from({ length: PIN_LENGTH }).map((_, index) => (
-                      <Shad.InputOTPSlot
-                        key={index}
-                        index={index}
-                        className="text-xl"
-                      />
-                    ))}
-                  </Shad.InputOTPGroup>
-                </Shad.InputOTP>
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  autoComplete="current-password"
+                />
               </div>
             )}
           </form.Field>
@@ -115,7 +108,7 @@ const SignIn = () => {
                   variant="ghost"
                   className="text-sm text-muted-foreground"
                 >
-                  Forgot PIN?
+                  Forgot Password?
                 </Button>
               </div>
             )}

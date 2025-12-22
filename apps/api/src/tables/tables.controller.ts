@@ -26,14 +26,14 @@ export class TablesController {
     return this.tablesService.getTableById(id);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Post()
   createTable(@Req() req: Request) {
     const body = req.body as Prisma.TableCreateInput;
     return this.tablesService.createTable(body);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Put('/:id')
   updateTable(@Req() req: Request) {
     const { id } = req.params;
@@ -44,7 +44,7 @@ export class TablesController {
     return this.tablesService.updateTable(id, body);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
   deleteTable(@Req() req: Request) {
     const { id } = req.params;

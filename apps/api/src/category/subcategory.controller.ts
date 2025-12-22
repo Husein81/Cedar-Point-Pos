@@ -10,7 +10,7 @@ export class SubcategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Put(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateSubcategory(
     @Req() req: Request,
     @Param('id') id: string,
@@ -21,7 +21,7 @@ export class SubcategoryController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteSubcategory(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as User;
     if (!user.tenantId) {

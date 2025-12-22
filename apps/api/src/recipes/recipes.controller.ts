@@ -25,7 +25,7 @@ export class RecipesController {
    * Create a new recipe
    */
   @Post()
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   create(@Req() req: Request, @Body() createRecipeDto: CreateRecipeDto) {
     const user = req.user as { tenantId: string };
     return this.recipesService.create(user.tenantId, createRecipeDto);
@@ -35,7 +35,7 @@ export class RecipesController {
    * Get all recipes with optional filters
    */
   @Get()
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findAll(
     @Req() req: Request,
     @Query('page') page?: string,
@@ -56,7 +56,7 @@ export class RecipesController {
    * Get all recipes for a specific product
    */
   @Get('product/:productId')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findByProduct(@Req() req: Request, @Param('productId') productId: string) {
     const user = req.user as { tenantId: string };
     return this.recipesService.findByProduct(user.tenantId, productId);
@@ -66,7 +66,7 @@ export class RecipesController {
    * Calculate ingredient requirements for a quantity of product
    */
   @Get('product/:productId/calculate')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   calculateRequirements(
     @Req() req: Request,
     @Param('productId') productId: string,
@@ -84,7 +84,7 @@ export class RecipesController {
    * Get a specific recipe by ID
    */
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findOne(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.recipesService.findOne(user.tenantId, id);
@@ -94,7 +94,7 @@ export class RecipesController {
    * Update a recipe
    */
   @Put(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   update(
     @Req() req: Request,
     @Param('id') id: string,
@@ -108,7 +108,7 @@ export class RecipesController {
    * Delete a recipe
    */
   @Delete(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   remove(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.recipesService.remove(user.tenantId, id);
@@ -118,7 +118,7 @@ export class RecipesController {
    * Bulk create/update recipes for a product
    */
   @Post('product/:productId/bulk')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   bulkCreate(
     @Req() req: Request,
     @Param('productId') productId: string,

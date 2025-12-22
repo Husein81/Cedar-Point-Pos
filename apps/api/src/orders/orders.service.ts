@@ -10,6 +10,7 @@ import type { AddItemDto } from './dto/add-item.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { OrderItemService } from './order-item.service.js';
 
 @Injectable()
 export class OrdersService {
@@ -17,29 +18,12 @@ export class OrdersService {
 
   constructor(
     private readonly inventoryDeductionService: InventoryDeductionService,
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
+    private readonly orderItemService: OrderItemService,
   ) {}
 
-  private calculateItemTotals(
-    quantity: number,
-    unitPrice: number,
-    modifiersTotal: number,
-    taxRate: number,
-  ): {
-    itemSubtotal: number;
-    itemTaxAmount: number;
-    itemTotal: number;
-  } {
-    const itemSubtotal = quantity * unitPrice + modifiersTotal;
-    const itemTaxAmount = itemSubtotal * (taxRate / 100);
-
-    const itemTotal = itemSubtotal + itemTaxAmount;
-
-    return {
-      itemSubtotal,
-      itemTaxAmount,
-      itemTotal,
-    };
+  private round(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 
   async recalculateOrderTotals(tenantId: string, orderId: string) {
@@ -49,16 +33,7 @@ export class OrdersService {
         tenantId,
       },
       include: {
-        items: {
-          include: {
-            modifiers: true,
-            product: {
-              include: {
-                tax: true,
-              },
-            },
-          },
-        },
+        items: true,
       },
     });
 
@@ -68,29 +43,20 @@ export class OrdersService {
 
     let subtotal = 0;
     let taxAmount = 0;
+
     for (const item of order.items) {
-      const quantity = Number(item.quantity);
-      const unitPrice = Number(item.unitPrice);
-      const modifiersTotal = item.modifiers.reduce(
-        (sum, mod) => sum + Number(mod.price),
-        0,
-      );
-      const taxRate = Number(item.product.tax?.rate);
-      const { itemSubtotal, itemTaxAmount, itemTotal } =
-        this.calculateItemTotals(quantity, unitPrice, modifiersTotal, taxRate);
-      await this.prisma.orderItem.update({
-        where: { id: String(item.id) },
-        data: {
-          taxRate,
-          taxAmount: itemTaxAmount,
-          total: itemTotal,
-        },
-      });
-      subtotal = subtotal + itemSubtotal;
-      taxAmount = taxAmount + itemTaxAmount;
+      const itemSub = Number(item.subtotal);
+      const itemTax = Number(item.taxAmount);
+
+      subtotal += itemSub;
+      taxAmount += itemTax;
     }
-    const discount = order.discount || 0;
-    const total = subtotal + taxAmount - Number(discount);
+
+    subtotal = this.round(subtotal);
+    taxAmount = this.round(taxAmount);
+    const discount = Number(order.discount || 0);
+    const total = this.round(subtotal + taxAmount - discount);
+
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: {
@@ -328,8 +294,8 @@ export class OrdersService {
         }
       }
 
-      let subtotal = new Prisma.Decimal(0);
-      let taxAmount = new Prisma.Decimal(0);
+      let subtotal = 0;
+      let taxAmount = 0;
 
       const orderItems = items.map((item) => {
         const product = productMap.get(item.productId);
@@ -356,21 +322,25 @@ export class OrdersService {
         );
 
         const taxRate = Number(product.tax?.rate) || 0;
-        const { itemSubtotal, itemTaxAmount, itemTotal } =
-          this.calculateItemTotals(
-            quantity,
-            unitPrice,
-            modifiersTotal,
-            taxRate,
-          );
+        const {
+          subtotal: itemSubtotal,
+          taxAmount: itemTaxAmount,
+          total: itemTotal,
+        } = this.orderItemService.calculateItemPricing(
+          quantity,
+          unitPrice,
+          modifiersTotal,
+          taxRate,
+        );
 
-        subtotal = subtotal.plus(itemSubtotal);
-        taxAmount = taxAmount.plus(itemTaxAmount);
+        subtotal += itemSubtotal;
+        taxAmount += itemTaxAmount;
 
         return {
           productId: item.productId,
           quantity,
           unitPrice,
+          subtotal: itemSubtotal,
           taxRate,
           taxAmount: itemTaxAmount,
           total: itemTotal,
@@ -383,13 +353,16 @@ export class OrdersService {
           },
         };
       });
-      const total = subtotal.plus(taxAmount).minus(orderDiscount);
+
+      subtotal = this.round(subtotal);
+      taxAmount = this.round(taxAmount);
+      const total = this.round(subtotal + taxAmount - Number(orderDiscount));
 
       orderData = {
         ...orderData,
-        subtotal,
-        taxAmount,
-        total,
+        subtotal: new Prisma.Decimal(subtotal),
+        taxAmount: new Prisma.Decimal(taxAmount),
+        total: new Prisma.Decimal(total),
         items: {
           create: orderItems,
         },
@@ -1073,7 +1046,11 @@ export class OrdersService {
     );
 
     const taxRate = Number(product.tax?.rate) || 0;
-    const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
+    const {
+      subtotal: itemSubtotal,
+      taxAmount: itemTaxAmount,
+      total: itemTotal,
+    } = this.orderItemService.calculateItemPricing(
       quantity,
       unitPrice,
       modifiersTotal,
@@ -1085,6 +1062,7 @@ export class OrdersService {
         productId: product.id,
         quantity,
         unitPrice,
+        subtotal: itemSubtotal,
         taxRate,
         taxAmount: itemTaxAmount,
         total: itemTotal,
@@ -1154,7 +1132,11 @@ export class OrdersService {
     );
 
     const taxRate = Number(orderItem.product.tax?.rate) || 0;
-    const { itemTaxAmount, itemTotal } = this.calculateItemTotals(
+    const {
+      subtotal: itemSubtotal,
+      taxAmount: itemTaxAmount,
+      total: itemTotal,
+    } = this.orderItemService.calculateItemPricing(
       newQuantity,
       unitPrice,
       modifiersTotal,
@@ -1165,6 +1147,7 @@ export class OrdersService {
       where: { id: orderItemId },
       data: {
         quantity: newQuantity,
+        subtotal: itemSubtotal,
         taxRate,
         taxAmount: itemTaxAmount,
         total: itemTotal,

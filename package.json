@@ -24,5 +24,21 @@
     "axios": "^1.13.2",
     "zod": "^4.1.13",
     "zustand": "^5.0.9"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@parcel/watcher",
+      "@prisma/engines",
+      "@swc/core",
+      "bcrypt",
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver",
+      "ws"
+    ]
   }
 }

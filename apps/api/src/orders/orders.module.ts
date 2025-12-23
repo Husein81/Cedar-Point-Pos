@@ -1,5 +1,5 @@
-import { InventoryModule } from '../inventory/inventory.module.js';
 import { Module } from '@nestjs/common';
+import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrderItemController } from './order-item.controller.js';
 import { OrderItemService } from './order-item.service.js';
 import { OrdersController } from './orders.controller.js';

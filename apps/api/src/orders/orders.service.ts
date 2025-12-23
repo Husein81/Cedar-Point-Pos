@@ -1,16 +1,18 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { QueryParams, OrderStatus, OrderType, BusinessType } from '@repo/types';
+import { BusinessType, OrderStatus, OrderType, QueryParams } from '@repo/types';
+import { Prisma } from '../../generated/prisma/client.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma } from '../../generated/prisma/client.js';
-import { OrderItemService } from './order-item.service.js';
+import { TaxService } from './tax.service.js';
 
 @Injectable()
 export class OrdersService {
@@ -19,7 +21,8 @@ export class OrdersService {
   constructor(
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly prisma: PrismaService,
-    private readonly orderItemService: OrderItemService,
+    @Inject(forwardRef(() => TaxService))
+    private readonly taxService: TaxService,
   ) {}
 
   private round(value: number): number {
@@ -326,7 +329,7 @@ export class OrdersService {
           subtotal: itemSubtotal,
           taxAmount: itemTaxAmount,
           total: itemTotal,
-        } = this.orderItemService.calculateItemPricing(
+        } = this.calculateItemPricing(
           quantity,
           unitPrice,
           modifiersTotal,
@@ -1050,12 +1053,7 @@ export class OrdersService {
       subtotal: itemSubtotal,
       taxAmount: itemTaxAmount,
       total: itemTotal,
-    } = this.orderItemService.calculateItemPricing(
-      quantity,
-      unitPrice,
-      modifiersTotal,
-      taxRate,
-    );
+    } = this.calculateItemPricing(quantity, unitPrice, modifiersTotal, taxRate);
     await this.prisma.orderItem.create({
       data: {
         orderId: order.id,
@@ -1136,7 +1134,7 @@ export class OrdersService {
       subtotal: itemSubtotal,
       taxAmount: itemTaxAmount,
       total: itemTotal,
-    } = this.orderItemService.calculateItemPricing(
+    } = this.calculateItemPricing(
       newQuantity,
       unitPrice,
       modifiersTotal,
@@ -1317,5 +1315,18 @@ export class OrdersService {
         include: orderInclude,
       });
     });
+  }
+
+  private calculateItemPricing(
+    quantity: number,
+    unitPrice: number,
+    modifiersUnitPrice: number,
+    taxRate: number,
+  ): { subtotal: number; taxAmount: number; total: number } {
+    const subtotal = this.round(quantity * (unitPrice + modifiersUnitPrice));
+    const taxAmount = this.taxService.calculateItemTax(subtotal, taxRate);
+    const total = this.round(subtotal + taxAmount);
+
+    return { subtotal, taxAmount, total };
   }
 }

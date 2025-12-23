@@ -4,7 +4,7 @@ export type SidebarItem = {
   label: string;
   icon: string;
   tooltip?: string;
-  href?: string;
+  href: string;
   showFor: BusinessType[];
 };
 

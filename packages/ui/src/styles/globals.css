@@ -1,3 +1,4 @@
+@import "./fonts.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -20,6 +21,10 @@
    LIGHT MODE (DEFAULT)
 ========================= */
 :root {
+  /* Fonts */
+  --font-sans: 'Roboto', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  
   /* Base */
   --background: oklch(0.98 0.01 260);
   --foreground: oklch(0.18 0.03 260);
@@ -212,9 +217,17 @@
   }
 }
 
+
 /* =========================
-   UI POLISH
+UI POLISH
 ========================= */
+body {
+  font-family: var(--font-sans);
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
 button {
   transition: background-color 120ms ease, box-shadow 120ms ease;
 }

@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./components/*": "./src/components/*.tsx",
     "./globals": "./src/styles/globals.css",
+    "./fonts": "./src/styles/fonts.css",
     "./lib/*": "./src/libs/*.ts",
     "./hooks/*": "./src/hooks/*.ts",
     "./postcss.config.mjs": "./postcss.config.mjs"

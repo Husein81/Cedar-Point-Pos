@@ -42,7 +42,7 @@ export function Header() {
       </div>
 
       <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
-        <span className="text-sm">{user?.tenant?.name}</span>
+        <span className="text-sm font-heading">{user?.tenant?.name}</span>
       </Activity>
 
       <div className="flex items-center h-full no-drag">

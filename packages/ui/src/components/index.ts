@@ -76,6 +76,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "./popover";
+import { ScrollArea, ScrollBar } from "./scroll-area";
 import {
   Select,
   SelectContent,
@@ -142,7 +143,7 @@ import {
 
 // Exports
 export { Badge } from "./badge";
-export { Button } from "./button";
+export { Button as SButton } from "./button";
 export { Checkbox } from "./checkbox";
 export { Icon } from "./icon";
 export { Input } from "./input";
@@ -220,6 +221,8 @@ export const Shad = {
   PopoverTrigger,
   PopoverContent,
   PopoverAnchor,
+  ScrollArea,
+  ScrollBar,
   Select,
   SelectContent,
   SelectGroup,

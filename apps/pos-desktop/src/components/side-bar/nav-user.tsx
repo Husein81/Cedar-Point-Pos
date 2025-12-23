@@ -4,13 +4,13 @@ import { useAuthStore } from "@/store/authStore";
 import { Icon, Shad } from "@repo/ui";
 
 const NavUser = () => {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const logoutMutation = useLogout();
 
   const handleLogout = async () => {
-    logout();
     await logoutMutation.mutateAsync();
   };
+
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
@@ -32,15 +32,19 @@ const NavUser = () => {
           </div>
         </Shad.DropdownMenuLabel>
         <Shad.DropdownMenuSeparator />
-        {isAuthenticated && (
-          <Shad.DropdownMenuItem
-            className="hover:bg-destructive hover:text-gray-200"
-            onSelect={() => handleLogout()}
-          >
-            <Icon name="LogOut" className="mr-2 hover:text-gray-200" />
-            <span>Logout</span>
-          </Shad.DropdownMenuItem>
-        )}
+        <Shad.DropdownMenuItem>
+          <Icon name="Brush" className="mr-2" />
+          <span>Appearance</span>
+        </Shad.DropdownMenuItem>
+        <Shad.DropdownMenuSeparator />
+
+        <Shad.DropdownMenuItem
+          className="hover:bg-destructive hover:text-gray-200"
+          onSelect={() => handleLogout()}
+        >
+          <Icon name="LogOut" className="mr-2 hover:text-gray-200" />
+          <span>Logout</span>
+        </Shad.DropdownMenuItem>
       </Shad.DropdownMenuContent>
     </Shad.DropdownMenu>
   );

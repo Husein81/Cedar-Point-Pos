@@ -10,7 +10,7 @@ const ClientLayout = ({ children }: Props) => {
     <Shad.SidebarProvider defaultOpen={false}>
       <Sidebar />
       <Shad.SidebarInset>
-        <div className="container mt-12 pl-4">{children}</div>
+        <div className="w-full mt-12 pl-4">{children}</div>
       </Shad.SidebarInset>
     </Shad.SidebarProvider>
   );

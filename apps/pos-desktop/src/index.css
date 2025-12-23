@@ -4,3 +4,9 @@
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+body {
+  margin: 0;
+  font-family: 'Poppins', 'Roboto', sans-serif;
+}
+

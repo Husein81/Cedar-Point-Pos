@@ -59,8 +59,11 @@ const createWindow = () => {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-};
 
+  if (process.env.NODE_ENV === "production") {
+    mainWindow.webContents.closeDevTools();
+  }
+};
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {

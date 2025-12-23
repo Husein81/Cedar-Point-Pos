@@ -10,12 +10,14 @@ import type { Request } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
 import type { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../../generated/prisma/client.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
+  @Roles(UserRole.SYSTEM_ADMIN)
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
   createUser(@Req() request: Request) {

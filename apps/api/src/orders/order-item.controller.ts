@@ -21,7 +21,7 @@ export class OrderItemController {
   }
 
   @Post('tickets')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   createTicket(@Req() req: Request, @Body() createTicketDto: CreateTicketDto) {
     const user = req.user as { tenantId: string };
     return this.orderItemService.createTicket(user.tenantId, createTicketDto);

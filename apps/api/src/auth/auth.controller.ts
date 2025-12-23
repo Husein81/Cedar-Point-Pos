@@ -7,10 +7,9 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Prisma } from '../../generated/prisma/client.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
-import type { LoginDto } from './dto/create-user.dto.js';
+import type { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
 
 @Controller('auth')
 export class AuthController {
@@ -20,7 +19,7 @@ export class AuthController {
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
   createUser(@Req() request: Request) {
-    const body = request.body as Prisma.UserCreateInput;
+    const body = request.body as CreateUserDto;
 
     return this.authService.createUser(body);
   }
@@ -39,6 +38,7 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request) {

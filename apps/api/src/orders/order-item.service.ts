@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,8 +15,9 @@ import { TaxService } from './tax.service.js';
 @Injectable()
 export class OrderItemService {
   constructor(
+    @Inject(forwardRef(() => OrdersService))
     private readonly ordersService: OrdersService,
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
     private readonly taxService: TaxService,
   ) {}
 
@@ -128,7 +131,7 @@ export class OrderItemService {
     });
 
     await this.ordersService.recalculateOrderTotals(
-      orderItem.order.tenantId,
+      String(orderItem.order.tenantId),
       orderItem.orderId,
     );
 
@@ -137,9 +140,14 @@ export class OrderItemService {
 
   async createTicket(tenantId: string, createTicketDto: CreateTicketDto) {
     const { orderItemId, station, status } = createTicketDto;
+    if (!orderItemId || !tenantId) {
+      throw new BadRequestException('Order item ID is required');
+    }
+
     const orderItem = await this.prisma.orderItem.findFirst({
       where: {
         id: orderItemId,
+        order: { tenantId },
       },
       select: {
         id: true,

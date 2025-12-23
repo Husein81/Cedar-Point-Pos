@@ -8,9 +8,9 @@ import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
   id: string;
-  email: string;
+  username: string;
   tenantId?: string;
-  role: string;
+  role: UserRole;
 }
 
 @Injectable()
@@ -22,9 +22,9 @@ export class AuthService {
   ) {}
 
   async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
-    const { email, password } = data;
+    const { username, password } = data;
     const existedUser = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existedUser) {
@@ -41,24 +41,28 @@ export class AuthService {
       },
     });
 
+    if (!user) {
+      throw new UnauthorizedException('Failed to create user');
+    }
+
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      username: String(user.username),
       role: user.role,
-      tenantId: user.tenantId,
+      tenantId: String(user.tenantId),
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
   }
 
-  async adminLogin({ email, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
+  async adminLogin({ username, password }: LoginDto): Promise<{
+    user: Omit<User, 'password' | 'tenantId'>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { email, role: UserRole.ADMIN },
+      where: { username, role: UserRole.ADMIN },
     });
 
     if (!user) {
@@ -76,7 +80,7 @@ export class AuthService {
 
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
+      username: user.username,
       role: user.role,
     };
 
@@ -87,7 +91,7 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        username: user.username,
         role: user.role,
         isActive: true,
         createdAt: user.createdAt,
@@ -96,17 +100,24 @@ export class AuthService {
     };
   }
 
-  async login({ email, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
+  async login({ username, password }: LoginDto): Promise<{
+    user: Partial<User>;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
       include: { tenant: true },
     });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.tenantId) {
+      throw new UnauthorizedException('User has no tenant assigned');
+    }
+
+    if (!user.tenant) {
+      throw new UnauthorizedException('Tenant is deactivated');
     }
 
     if (!user.isActive) {
@@ -124,8 +135,8 @@ export class AuthService {
 
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
-      tenantId: user.tenantId ?? undefined,
+      username: user.username,
+      tenantId: String(user.tenantId),
       role: user.role,
     };
 
@@ -136,9 +147,10 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        username: user.username,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: String(user.tenantId),
+        tenant: user.tenant,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

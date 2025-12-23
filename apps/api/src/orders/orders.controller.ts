@@ -26,7 +26,7 @@ export class OrdersController {
    * Create a new order in DRAFT status
    */
   @Post()
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   create(@Req() req: Request, @Body() createOrderDto: CreateOrderDto) {
     const user = req.user as { tenantId: string; id: string };
     return this.ordersService.create(user.tenantId, user.id, createOrderDto);
@@ -36,7 +36,7 @@ export class OrdersController {
    * Get all orders with optional filters
    */
   @Get()
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findAll(
     @Req() req: Request,
     @Query('page') page?: string,
@@ -73,7 +73,7 @@ export class OrdersController {
    * Get a specific order by ID
    */
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findOne(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.ordersService.findOne(user.tenantId, id);
@@ -83,7 +83,7 @@ export class OrdersController {
    * Complete an order (triggers automatic stock deduction)
    */
   @Post(':id/complete')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   completeOrder(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string; userId: string };
     return this.ordersService.completeOrder(user.tenantId, id, user.userId);
@@ -94,7 +94,7 @@ export class OrdersController {
    * If status is COMPLETED, triggers automatic stock deduction
    */
   @Patch(':id/status')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   updateStatus(
     @Req() req: Request,
     @Param('id') id: string,
@@ -105,7 +105,7 @@ export class OrdersController {
   }
 
   @Patch(':id/discount')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   updateDiscount(
     @Req() req: Request,
     @Param('id') id: string,
@@ -116,7 +116,7 @@ export class OrdersController {
   }
 
   @Patch(':id/table')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   assignTableToOrder(
     @Req() req: Request,
     @Param('id') id: string,
@@ -131,7 +131,7 @@ export class OrdersController {
   }
 
   @Post(':id/items')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   addItemToOrder(
     @Req() req: Request,
     @Param('id') id: string,
@@ -142,7 +142,7 @@ export class OrdersController {
   }
 
   @Patch(':id/items/:itemId')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   updateItemQuantity(
     @Req() req: Request,
     @Param('id') id: string,
@@ -159,7 +159,7 @@ export class OrdersController {
   }
 
   @Delete(':id/items/:itemId')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   removeItemFromOrder(
     @Req() req: Request,
     @Param('id') id: string,
@@ -174,7 +174,7 @@ export class OrdersController {
    * Shows what inventory will be affected without executing
    */
   @Get(':id/preview-deductions')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   previewDeductions(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.ordersService.previewOrderStockDeductions(user.tenantId, id);
@@ -185,7 +185,7 @@ export class OrdersController {
    * Transitions status to SENT_TO_KITCHEN and creates tickets
    */
   @Post(':id/send-to-kitchen')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async sendToKitchen(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.ordersService.sendToKitchen(user.tenantId, id);

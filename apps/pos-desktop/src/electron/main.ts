@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
+import { isDev } from "../utils";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -33,28 +34,36 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 500,
-    minHeight: 400,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
+      devTools: isDev(),
     },
   });
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  mainWindow.setMinimumSize(800, 600);
+
+  if (isDev()) {
+    // ✅ DEV → Vite dev server
+    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.webContents.openDevTools();
   } else {
+    // ✅ PROD → Vite build output
     mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+      path.join(__dirname, "../renderer/index.html")
+      // or ../dist/index.html depending on your build output
     );
   }
 
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-};
 
+  if (process.env.NODE_ENV === "production") {
+    mainWindow.webContents.closeDevTools();
+  }
+};
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {

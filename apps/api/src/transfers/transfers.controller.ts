@@ -14,7 +14,7 @@ export class TransfersController {
    * Create a new transfer request
    */
   @Post()
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   create(@Req() req: Request, @Body() createTransferDto: CreateTransferDto) {
     const user = req.user as { tenantId: string; id: string };
     return this.transfersService.create(
@@ -28,7 +28,7 @@ export class TransfersController {
    * Get all transfers with optional filters
    */
   @Get()
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   findAll(@Req() req: Request) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {
@@ -46,7 +46,7 @@ export class TransfersController {
    * Get a specific transfer by ID
    */
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   findOne(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.transfersService.findOne(user.tenantId, id);
@@ -56,7 +56,7 @@ export class TransfersController {
    * Complete a transfer (moves inventory atomically)
    */
   @Post(':id/complete')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   complete(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string; id: string };
     return this.transfersService.completeTransfer(user.tenantId, user.id, id);
@@ -66,7 +66,7 @@ export class TransfersController {
    * Cancel a pending transfer
    */
   @Post(':id/cancel')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   cancel(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
     return this.transfersService.cancelTransfer(user.tenantId, id);
@@ -76,7 +76,7 @@ export class TransfersController {
    * Update transfer (status or notes)
    */
   @Patch(':id')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   update(
     @Req() req: Request,
     @Param('id') id: string,

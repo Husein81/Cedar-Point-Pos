@@ -20,6 +20,7 @@ import { TenantModule } from './tenant/tenant.module.js';
 import { TransfersModule } from './transfers/transfers.module.js';
 import { UsersModule } from './users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     OrdersModule,
     ModifierGroupsModule,
     RefundsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -55,4 +57,4 @@ import { PrismaModule } from './prisma/prisma.module.js';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -4,15 +4,14 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("sa_token")?.value;
   const { pathname } = req.nextUrl;
 
-  // Allow login page
-  if (pathname.startsWith("/login")) {
-    return NextResponse.next();
+  const isLoginPage = pathname.startsWith("/login");
+
+  if (token && isLoginPage) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // Protect everything else
-  if (!token) {
-    const loginUrl = new URL("/login", req.url);
-    return NextResponse.redirect(loginUrl);
+  if (!token && !isLoginPage) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return NextResponse.next();

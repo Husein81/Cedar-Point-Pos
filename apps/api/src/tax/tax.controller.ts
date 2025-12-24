@@ -1,4 +1,5 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { TaxService } from './tax.service.js';
@@ -15,6 +16,16 @@ export class TaxController {
       throw new Error('Tenant ID is required');
     }
     return this.taxService.getTaxesByTenant(tenantId);
+  }
+
+  @Get('/paginated')
+  getTaxesPaginated(@Req() req: Request) {
+    const { tenantId } = req.user as { tenantId: string };
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    const query = req.query as QueryParams;
+    return this.taxService.getTaxesPaginated(tenantId, query);
   }
 
   @Roles('OWNER', 'MANAGER')

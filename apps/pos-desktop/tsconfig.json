@@ -5,7 +5,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "../../dist-react",
     "types": [
-      "../types",
       "vite/client"
     ],
     "paths": {

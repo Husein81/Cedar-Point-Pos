@@ -10,7 +10,7 @@ export const Route = createFileRoute("/products/")({
 function RouteComponent() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  const totalPages = 0;
   return (
     <div>
       <DataTable
@@ -19,7 +19,7 @@ function RouteComponent() {
         pagination={{
           page,
           pageSize,
-          totalPages: 5,
+          totalPages,
           onPageChange: setPage,
           onPageSizeChange: setPageSize,
         }}

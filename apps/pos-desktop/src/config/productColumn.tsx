@@ -1,56 +1,70 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Button, Badge, Shad } from "@repo/ui";
-import { MoreVertical } from "lucide-react";
 import { Product } from "@repo/types";
+import { Checkbox } from "@repo/ui";
+import { Badge } from "@repo/ui";
 
 export const productColumns: ColumnDef<Product>[] = [
   {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
   },
+
   {
-    accessorKey: "category",
-    header: "Category",
+    accessorKey: "name",
+    header: "Product",
+    cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
   },
+
+  {
+    accessorKey: "sku",
+    header: "SKU",
+    cell: ({ row }) => row.original.sku ?? "—",
+  },
+
   {
     accessorKey: "price",
     header: "Price",
-    cell: ({ row }) => `${row.original.price.toLocaleString()} LBP`,
+    cell: ({ row }) => (row.original.price ? `$${row.original.price}` : "—"),
   },
+
   {
-    accessorKey: "status",
+    accessorKey: "cost",
+    header: "Cost",
+    cell: ({ row }) => (row.original.cost ? `$${row.original.cost}` : "—"),
+  },
+
+  {
+    accessorKey: "isIngredient",
+    header: "Type",
+    cell: ({ row }) =>
+      row.original.isIngredient ? (
+        <Badge variant="secondary">Ingredient</Badge>
+      ) : (
+        <Badge>Product</Badge>
+      ),
+  },
+
+  {
+    accessorKey: "isActive",
     header: "Status",
-    cell: ({ row }) => (
-      <Badge
-        variant={row.original.status === "ACTIVE" ? "default" : "destructive"}
-      >
-        {row.original.status.replace("_", " ")}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: "stock",
-    header: "Stock",
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: () => (
-      <Shad.DropdownMenu>
-        <Shad.DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </Shad.DropdownMenuTrigger>
-        <Shad.DropdownMenuContent align="end">
-          <Shad.DropdownMenuItem>Edit</Shad.DropdownMenuItem>
-          <Shad.DropdownMenuItem>Duplicate</Shad.DropdownMenuItem>
-          <Shad.DropdownMenuItem className="text-destructive">
-            Delete
-          </Shad.DropdownMenuItem>
-        </Shad.DropdownMenuContent>
-      </Shad.DropdownMenu>
-    ),
+    cell: ({ row }) =>
+      row.original.isActive ? (
+        <Badge className="bg-green-500">Active</Badge>
+      ) : (
+        <Badge variant="destructive">Inactive</Badge>
+      ),
   },
 ];

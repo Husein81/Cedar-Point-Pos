@@ -13,10 +13,11 @@ type Props = {
 const Pagination = ({
   page = 1,
   pageSize = 10,
-  totalPages = 1,
+  totalPages = 0,
   onPageChange,
   onPageSizeChange,
 }: Props) => {
+  console.log({ page, pageSize, totalPages });
   const options = [
     { value: "10", label: "10" },
     { value: "20", label: "20" },
@@ -35,7 +36,7 @@ const Pagination = ({
           value={pageSize?.toString() ?? "10"}
           onChange={(option) => onPageSizeChange(Number(option.value))}
           options={options}
-          side={"top"}
+          side={"bottom"}
           className="w-20"
         />
       </div>

@@ -1,7 +1,13 @@
 {
   "name": "pos-desktop",
   "private": true,
-  "version": "0.0.0",
+  "productName": "PointVerse POS",
+  "version": "0.1.0",
+  "description": "PointVerse is an offline-first POS system for retail and restaurants.", 
+  "author": {
+    "name": "Cedar Core",
+    "email": "support@cedarcore.io"
+  },
   "type": "module",
   "main": ".vite/build/pos-desktop.cjs",
   "scripts": {

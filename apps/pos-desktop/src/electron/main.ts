@@ -1,13 +1,12 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
-import started from "electron-squirrel-startup";
-import { isDev } from "../utils";
+import { isDev } from "./utils.js";
+import { getPreloadPath } from "./pathResolver.js";
 
 let mainWindow: BrowserWindow | null = null;
 
-if (started) {
-  app.quit();
-}
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_NAME: string;
 
 // ✅ IPC HANDLER (ONCE)
 ipcMain.on("frame-action", (_event, action) => {
@@ -36,7 +35,7 @@ const createWindow = () => {
     height: 800,
     frame: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: getPreloadPath(),
       contextIsolation: true,
       devTools: isDev(),
     },
@@ -44,15 +43,11 @@ const createWindow = () => {
 
   mainWindow.setMinimumSize(800, 600);
 
-  if (isDev()) {
-    // ✅ DEV → Vite dev server
-    mainWindow.loadURL("http://localhost:5173");
-    mainWindow.webContents.openDevTools();
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    // ✅ PROD → Vite build output
     mainWindow.loadFile(
-      path.join(__dirname, "../renderer/index.html")
-      // or ../dist/index.html depending on your build output
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
     );
   }
 

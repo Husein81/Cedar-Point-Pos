@@ -48,7 +48,6 @@ export function Header() {
       <div className="flex items-center h-full no-drag">
         {frameActions.map((action) => (
           <Button
-            id={action.id}
             key={action.id}
             className={cn(action.className, "relative")}
             onClick={action.onClick}

@@ -1,15 +1,23 @@
 {
+  "extends": "@repo/typescript-config/vite.json",
   "compilerOptions": {
     "strict": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "../../dist-react",
+    "types": [
+      "../types",
+      "vite/client"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/types": [
+        "../../packages/types/src/index"
+      ],
+      "@repo/ui": [
+        "../../packages/ui/src/index"
+      ]
     }
-  ]
+  },
 }

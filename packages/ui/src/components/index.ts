@@ -38,12 +38,6 @@ import {
   DropdownMenuSubContent,
 } from "./dropdown-menu";
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from "./input-otp";
-import {
   Menubar,
   MenubarCheckboxItem,
   MenubarContent,
@@ -190,10 +184,6 @@ export const Shad = {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
   Menubar,
   MenubarPortal,
   MenubarMenu,

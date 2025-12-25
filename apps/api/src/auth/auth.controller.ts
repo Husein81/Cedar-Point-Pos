@@ -56,7 +56,7 @@ export class AuthController {
         ? req.cookies.sa_token
         : undefined;
 
-    const token = headerToken ?? cookieToken;
+    const token = headerToken || cookieToken;
 
     // Always clear cookie (even if token missing)
     res.clearCookie('sa_token');

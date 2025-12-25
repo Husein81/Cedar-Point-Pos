@@ -15,7 +15,7 @@ export const useLogin = () => {
     },
   });
 };
- 
+
 export const useLogout = () => {
   const { logout, clearUser } = useAuthStore();
   const queryClient = useQueryClient();
@@ -34,4 +34,3 @@ export const useLogout = () => {
     },
   });
 };
-

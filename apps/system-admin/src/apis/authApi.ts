@@ -1,4 +1,4 @@
-import { api } from "../apis/api";
+import { api } from "./api";
 
 export type AdminLoginPayload = {
   email: string;

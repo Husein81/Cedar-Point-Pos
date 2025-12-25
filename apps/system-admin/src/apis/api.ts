@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T = unknown>(
+export async function api<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {

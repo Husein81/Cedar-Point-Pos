@@ -1,76 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { MetricCard, MetricCardSkeleton } from "@/components/MetricCard";
 import { StatusCard, StatusCardSkeleton } from "@/components/StatusCard";
 import { AlertCard, AlertCardSkeleton } from "@/components/AlertCard";
 import { SectionHeader } from "@/components/SectionHeader";
-import { dashboardApi } from "@/apis/dashboardApi";
-import type {
-  DashboardOverview,
-  DashboardFinance,
-  DashboardOperations,
-  DashboardAlerts,
-} from "@/types/dashboard";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@repo/ui/components/alert";
+import { useDashboard } from "@/hooks/dashboard";
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import { Icon } from "@repo/ui";
 
-interface DashboardState {
-  overview: DashboardOverview | null;
-  finance: DashboardFinance | null;
-  operations: DashboardOperations | null;
-  alerts: DashboardAlerts | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
 export function Dashboard() {
-  const [state, setState] = useState<DashboardState>({
-    overview: null,
-    finance: null,
-    operations: null,
-    alerts: null,
-    isLoading: true,
-    error: null,
-  });
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-        // Fetch all data in parallel
-        const [overview, finance, operations, alerts] = await Promise.all([
-          dashboardApi.getOverview(),
-          dashboardApi.getFinance(),
-          dashboardApi.getOperations(),
-          dashboardApi.getAlerts(),
-        ]);
-
-        setState({
-          overview,
-          finance,
-          operations,
-          alerts,
-          isLoading: false,
-          error: null,
-        });
-      } catch (err) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error:
-            err instanceof Error ? err.message : "Failed to load dashboard data",
-        }));
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
+  const { overview, finance, operations, alerts, isLoading, error } =
+    useDashboard();
 
   // Format currency helper
   const formatCurrency = (value: string | number | null): string => {
@@ -84,8 +24,6 @@ export function Dashboard() {
     }).format(num);
   };
 
-  const { overview, finance, operations, alerts, isLoading, error } = state;
-
   // Error state
   if (error) {
     return (
@@ -93,7 +31,11 @@ export function Dashboard() {
         <Alert variant="destructive">
           <Icon name="CircleAlert" size={16} />
           <AlertTitle>Error Loading Dashboard</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error instanceof Error
+              ? error.message
+              : "Failed to load dashboard data"}
+          </AlertDescription>
         </Alert>
       </div>
     );
@@ -140,7 +82,10 @@ export function Dashboard() {
 
       {/* Section 2: Operational & Financial Health */}
       <section>
-        <SectionHeader title="Operational & Financial Health" icon="SquarePlus" />
+        <SectionHeader
+          title="Operational & Financial Health"
+          icon="SquarePlus"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {isLoading ? (

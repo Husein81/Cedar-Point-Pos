@@ -1,7 +1,20 @@
 import { QueryClient } from "@tanstack/react-query";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function api(path: string, options: RequestInit = {}) {
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+export async function api<T = unknown>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: "include",
@@ -11,9 +24,14 @@ export async function api(path: string, options: RequestInit = {}) {
     },
   });
 
+  // Handle auth errors
+  if (res.status === 401 || res.status === 403) {
+    throw new ApiError("Unauthorized", res.status);
+  }
+
   if (!res.ok) {
     const error = await res.json().catch(() => null);
-    throw new Error(error?.message || "Request failed");
+    throw new ApiError(error?.message || "Request failed", res.status);
   }
 
   return res.json();

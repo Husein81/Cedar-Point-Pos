@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@repo/ui";
+import { Button, Icon, Shad } from "@repo/ui";
 import {
   Avatar,
   AvatarFallback,
@@ -8,11 +8,15 @@ import {
 } from "@repo/ui/components/avatar";
 import { adminAuthApi } from "@/apis/authApi";
 
-export function Header() {
+interface HeaderProps {
+  title?: string;
+  description?: string;
+}
+
+export function Header({ title = "Dashboard", description }: HeaderProps) {
   const handleSignOut = async () => {
     try {
       await adminAuthApi.logout();
-      // Redirect to login page or handle logout state
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed:", error);
@@ -20,19 +24,33 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b px-6 py-4">
+    <header className="bg-white border-b border-border px-4 py-3">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Dashboard - TO BE UPDATED!!!!!!
-        </h1>
-        <div className="flex items-center space-x-4">
-          <Button variant="outline">Notifications</Button>
+        <div className="flex items-center gap-3">
+          <Shad.SidebarTrigger className="-ml-1" />
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+            {description && (
+              <p className="text-sm text-muted-foreground">{description}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" className="relative">
+            <Icon name="Bell" size={18} />
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+              3
+            </span>
+          </Button>
           <Button variant="outline" onClick={handleSignOut}>
+            <Icon name="LogOut" size={16} className="mr-2" />
             Sign Out
           </Button>
-          <Avatar>
-            <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
-            <AvatarFallback>U</AvatarFallback>
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="/placeholder-avatar.jpg" alt="Admin" />
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              SA
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>

@@ -103,14 +103,14 @@ const SystemAdminSignIn = () => {
 
           {/* Actions */}
           <form.Subscribe selector={(state) => [state.canSubmit]}>
-            {([canSubmit, isSubmitting]) => (
+            {([canSubmit]) => (
               <div className="mt-6 flex flex-col gap-3">
                 <Button
                   className="w-full"
-                  disabled={!canSubmit || isSubmitting}
+                  disabled={!canSubmit || login.isPending}
                   type="submit"
                 >
-                  {isSubmitting ? "Signing in…" : "Sign in"}
+                  {login.isPending ? "Signing in…" : "Sign in"}
                 </Button>
               </div>
             )}

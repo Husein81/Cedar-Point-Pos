@@ -9,7 +9,6 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (payload: AdminLoginPayload) => adminAuthApi.login(payload),
     onSuccess: (data) => {
-      console.log("Logged in admin:", data.user);
       setUser(data.user);
       queryClient.invalidateQueries({ queryKey: ["current-admin"] });
     },

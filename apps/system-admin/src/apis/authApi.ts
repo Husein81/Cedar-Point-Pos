@@ -1,4 +1,4 @@
-import { apiFetch } from '../apis/api';
+import { api } from "../apis/api";
 
 export type AdminLoginPayload = {
   email: string;
@@ -19,15 +19,15 @@ export type AdminLoginResponse = {
 
 export const adminAuthApi = {
   login: async (payload: AdminLoginPayload): Promise<AdminLoginResponse> => {
-    return apiFetch('/auth/admin-sign-in', {
-      method: 'POST',
+    return api("/auth/admin-sign-in", {
+      method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   logout: async (): Promise<void> => {
-    await apiFetch('/auth/logout', {
-      method: 'POST',
+    await api("/auth/logout", {
+      method: "POST",
     });
   },
 };

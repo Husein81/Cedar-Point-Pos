@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { Button, Input, Label } from "@repo/ui";
-import { useState } from "react";
-import { adminAuthApi } from "../../../apis/authApi";
+import { useEffect } from "react";
+import { useLogin } from "@/hooks/auth";
 
 const SystemAdminSignIn = () => {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const login = useLogin();
 
   const form = useForm({
     defaultValues: {
@@ -17,20 +17,22 @@ const SystemAdminSignIn = () => {
     },
     onSubmit: async ({ value }) => {
       try {
-        setError(null);
 
-        await adminAuthApi.login({
+        await login.mutateAsync({
           email: value.email,
           password: value.password,
         });
-
-        // ✅ Cookie is set by backend
-        router.replace("/");
-      } catch (err: any) {
-        setError(err.message || "Invalid credentials");
+      } catch (error) {
+        console.error("Verification error:", error);
       }
     },
   });
+  // Handle successful login redirect
+  useEffect(() => {
+    if (login.isSuccess) {
+      router.replace("/");
+    }
+  }, [login.isSuccess, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +55,11 @@ const SystemAdminSignIn = () => {
             Sign in using your admin email and password
           </p>
 
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+          {login.isError && (
+            <p className="text-sm text-red-500 text-center">
+              {login.error?.message || "Invalid credentials"}
+            </p>
+          )}
 
           {/* EMAIL INPUT */}
           <form.Field name="email">
@@ -97,9 +103,7 @@ const SystemAdminSignIn = () => {
           </form.Field>
 
           {/* Actions */}
-          <form.Subscribe
-            selector={(state) => [state.canSubmit, state.isSubmitting]}
-          >
+          <form.Subscribe selector={(state) => [state.canSubmit]}>
             {([canSubmit, isSubmitting]) => (
               <div className="mt-6 flex flex-col gap-3">
                 <Button
@@ -108,14 +112,6 @@ const SystemAdminSignIn = () => {
                   type="submit"
                 >
                   {isSubmitting ? "Signing in…" : "Sign in"}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  type="button"
-                  className="text-sm text-muted-foreground"
-                >
-                  Forgot Password?
                 </Button>
               </div>
             )}

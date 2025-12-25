@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { api } from "./api";
 import type {
   DashboardOverview,
   DashboardFinance,
@@ -16,7 +16,7 @@ export const dashboardApi = {
    * Returns tenant count, user count, branch count, and orders today
    */
   getOverview: async (): Promise<DashboardOverview> => {
-    return apiFetch("/system-admin/dashboard/overview");
+    return api("/system-admin/dashboard/overview");
   },
 
   /**
@@ -24,7 +24,7 @@ export const dashboardApi = {
    * Returns total revenue for today
    */
   getFinance: async (): Promise<DashboardFinance> => {
-    return apiFetch("/system-admin/dashboard/finance");
+    return api("/system-admin/dashboard/finance");
   },
 
   /**
@@ -32,7 +32,7 @@ export const dashboardApi = {
    * Returns open shifts, inactive devices, pending transfers
    */
   getOperations: async (): Promise<DashboardOperations> => {
-    return apiFetch("/system-admin/dashboard/operations");
+    return api("/system-admin/dashboard/operations");
   },
 
   /**
@@ -40,6 +40,6 @@ export const dashboardApi = {
    * Returns low stock items count and stale devices count
    */
   getAlerts: async (): Promise<DashboardAlerts> => {
-    return apiFetch("/system-admin/dashboard/alerts");
+    return api("/system-admin/dashboard/alerts");
   },
 };

@@ -1,7 +1,8 @@
 // import { Shad } from "@repo/ui";
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
-import { Icon, Shad } from "@repo/ui";
+import { Avatar, Icon, Shad } from "@repo/ui";
+import Appearance from "./appearance";
 
 const NavUser = () => {
   const { user } = useAuthStore();
@@ -14,27 +15,25 @@ const NavUser = () => {
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
-        <Shad.Avatar>
-          <Shad.AvatarFallback>
-            {user?.name ? user.name.charAt(0).toUpperCase() : "UN"}
-          </Shad.AvatarFallback>
-        </Shad.Avatar>
+        <Avatar fallback={user?.name[0]?.charAt(0).toUpperCase()} />
       </Shad.DropdownMenuTrigger>
-      <Shad.DropdownMenuContent align="start" className="w-48">
+
+      <Shad.DropdownMenuContent align="start" className="sm:max-w-lg">
         <Shad.DropdownMenuLabel>
           <div className="flex items-center gap-2">
-            <Shad.Avatar>
-              <Shad.AvatarFallback>
-                {user?.name ? user.name.charAt(0).toUpperCase() : "UN"}
-              </Shad.AvatarFallback>
-            </Shad.Avatar>
+            <Avatar fallback={user?.name[0]?.charAt(0).toUpperCase()} />
             <span className="">{user?.name || "Unknown User"}</span>
           </div>
         </Shad.DropdownMenuLabel>
+
         <Shad.DropdownMenuSeparator />
-        <Shad.DropdownMenuItem>
-          <Icon name="Brush" className="mr-2" />
-          <span>Appearance</span>
+
+        <Shad.DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+          }}
+        >
+          <Appearance />
         </Shad.DropdownMenuItem>
         <Shad.DropdownMenuSeparator />
 

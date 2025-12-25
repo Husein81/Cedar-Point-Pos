@@ -21,6 +21,18 @@ import {
   CommandSeparator,
 } from "./command";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";
+import {
   DropdownMenu,
   DropdownMenuPortal,
   DropdownMenuTrigger,
@@ -37,12 +49,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "./dropdown-menu";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
-} from "./input-otp";
 import {
   Menubar,
   MenubarCheckboxItem,
@@ -152,6 +158,16 @@ export { Progress } from "./progress";
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Textarea } from "./textarea";
+export {Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,} from "./dialog";
 
 export const Shad = {
   Avatar,
@@ -175,6 +191,16 @@ export const Shad = {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
   DropdownMenu,
   DropdownMenuPortal,
   DropdownMenuTrigger,
@@ -190,10 +216,6 @@ export const Shad = {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
   Menubar,
   MenubarPortal,
   MenubarMenu,

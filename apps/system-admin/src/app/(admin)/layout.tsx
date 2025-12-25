@@ -1,5 +1,7 @@
-import { Sidebar } from "@/components/Sidebar";
-import { Header } from "@/components/Header";
+"use client";
+
+import { Shad } from "@repo/ui";
+import Sidebar from "@/components/side-bar";
 
 export default function AdminLayout({
   children,
@@ -7,12 +9,11 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen bg-gray-100">
+    <Shad.SidebarProvider defaultOpen={false}>
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
-      </div>
-    </div>
+      <Shad.SidebarInset className="flex-1 flex flex-col overflow-hidden">
+        {children}
+      </Shad.SidebarInset>
+    </Shad.SidebarProvider>
   );
 }

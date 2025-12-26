@@ -140,4 +140,75 @@ export class RefundsService {
     });
     return new Prisma.Decimal(result._sum.quantity || 0);
   }
+
+  async findAll(
+    tenantId: string,
+    params: {
+      from?: string;
+      to?: string;
+      productId?: string;
+      orderId?: string;
+    },
+  ) {
+    const { from, to, productId, orderId } = params;
+
+    const where: Prisma.RefundWhereInput = {
+      order: {
+        tenantId,
+        ...(orderId && { id: orderId }),
+      },
+      ...((from || to) && {
+        refundedAt: {
+          ...(from && { gte: new Date(from) }),
+          ...(to && { lte: new Date(to) }),
+        },
+      }),
+      ...(productId && {
+        refundItems: {
+          some: {
+            orderItem: {
+              productId,
+            },
+          },
+        },
+      }),
+    };
+
+    const refunds = await this.prisma.refund.findMany({
+      where,
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        refundItems: {
+          include: {
+            orderItem: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        refundedAt: 'desc',
+      },
+    });
+
+    return refunds;
+  }
 }

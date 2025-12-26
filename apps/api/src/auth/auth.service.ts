@@ -4,13 +4,15 @@ import { User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import type { AdminLoginDto } from './dto/admin-login.dto.js';
+import type { Response } from 'express';
 import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
   id: string;
-  email: string;
+  username: string;
   tenantId?: string;
-  role: string;
+  role: UserRole;
 }
 
 @Injectable()
@@ -22,9 +24,9 @@ export class AuthService {
   ) {}
 
   async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
-    const { email, password } = data;
+    const { username, password } = data;
     const existedUser = await this.prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existedUser) {
@@ -41,68 +43,30 @@ export class AuthService {
       },
     });
 
+    if (!user) {
+      throw new UnauthorizedException('Failed to create user');
+    }
+
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      username: String(user.username),
       role: user.role,
-      tenantId: user.tenantId,
+      tenantId: String(user.tenantId),
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
   }
 
-  async adminLogin({ email, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
-    accessToken: string;
+  async adminLogin(
+    { email, password }: AdminLoginDto,
+    res: Response,
+  ): Promise<{
+    user: Omit<User, 'password' | 'tenantId'>;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { email, role: UserRole.ADMIN },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      String(user.password),
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const payload: JwtPayload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = await this.jwtService.signAsync(payload);
-
-    return {
-      accessToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isActive: true,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-    };
-  }
-
-  async login({ email, password }: LoginDto): Promise<{
-    user: Omit<User, 'password'>;
-    accessToken: string;
-  }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      include: { tenant: true },
+      where: { email, role: UserRole.SYSTEM_ADMIN },
     });
 
     if (!user) {
@@ -124,8 +88,70 @@ export class AuthService {
 
     const payload: JwtPayload = {
       id: user.id,
-      email: user.email,
-      tenantId: user.tenantId ?? undefined,
+      username: user.username,
+      role: user.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+    // ✅ Cookie for system-admin web app
+    res.cookie('sa_token', accessToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 8, // 8 hours
+    });
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        isActive: true,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    };
+  }
+
+  async login({ username, password }: LoginDto): Promise<{
+    user: Partial<User>;
+    accessToken: string;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      include: { tenant: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.tenantId) {
+      throw new UnauthorizedException('User has no tenant assigned');
+    }
+
+    if (!user.tenant) {
+      throw new UnauthorizedException('Tenant is deactivated');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      String(user.password),
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload: JwtPayload = {
+      id: user.id,
+      username: user.username,
+      tenantId: String(user.tenantId),
       role: user.role,
     };
 
@@ -136,9 +162,10 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
+        username: user.username,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: String(user.tenantId),
+        tenant: user.tenant,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

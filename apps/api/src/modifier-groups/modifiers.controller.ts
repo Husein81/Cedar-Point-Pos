@@ -31,7 +31,7 @@ export class ModifiersController {
    * Create a new modifier in a group
    */
   @Post()
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async create(
     @Req() req: Request,
     @Param('groupId') groupId: string,
@@ -45,7 +45,7 @@ export class ModifiersController {
    * Bulk create modifiers for a group
    */
   @Post('bulk')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async bulkCreate(
     @Req() req: Request,
     @Param('groupId') groupId: string,
@@ -59,7 +59,7 @@ export class ModifiersController {
    * Get all modifiers in a group
    */
   @Get()
-  @Roles('OWNER', 'MANAGER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async findAll(
     @Req() req: Request,
     @Param('groupId') groupId: string,
@@ -75,7 +75,7 @@ export class ModifiersController {
    * Get a specific modifier
    */
   @Get(':id')
-  @Roles('OWNER', 'MANAGER', 'CASHIER')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async findOne(
     @Req() req: Request,
     @Param('groupId') groupId: string,
@@ -89,7 +89,7 @@ export class ModifiersController {
    * Update a modifier
    */
   @Put(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   async update(
     @Req() req: Request,
     @Param('groupId') groupId: string,
@@ -104,7 +104,7 @@ export class ModifiersController {
    * Soft delete a modifier
    */
   @Delete(':id')
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Req() req: Request,

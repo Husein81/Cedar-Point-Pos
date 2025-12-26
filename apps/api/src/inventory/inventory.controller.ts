@@ -18,7 +18,7 @@ import { InventoryChangeType, QueryParams, UserRole } from '@repo/types';
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
   @Get('low-stock')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getLowStock(
     @Req() req: Request,
     @Query('page') page?: string,
@@ -37,7 +37,7 @@ export class InventoryController {
    * Get low stock products for a specific branch
    */
   @Get(':branchId/low-stock')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getLowStockByBranch(
     @Param('branchId') branchId: string,
     @Query('page') page?: string,
@@ -64,7 +64,7 @@ export class InventoryController {
     return this.inventoryService.getInventoryItem(branchId, productId);
   }
 
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @Put(':branchId/product/:productId')
   async setStock(
     @Req() req: Request,
@@ -84,13 +84,13 @@ export class InventoryController {
     );
   }
 
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER, UserRole.KITCHEN)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @Post(':branchId/product/:productId/adjust')
   async adjustStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
-    @Body('adjustment', ParseFloatPipe) adjustment: number,
+    @Body('adjustment') adjustment: number,
     @Body('reason') reason?: string,
   ) {
     const user = req.user as { tenantId: string; id: string };
@@ -108,7 +108,7 @@ export class InventoryController {
    * Set minimum stock threshold for a product at a branch
    */
   @Put(':branchId/product/:productId/min-stock')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async setMinStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
@@ -131,7 +131,7 @@ export class InventoryController {
    * Bulk set minimum stock thresholds for multiple products at a branch
    */
   @Post(':branchId/min-stock/bulk')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async bulkSetMinStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
@@ -155,7 +155,7 @@ export class InventoryController {
    * Get inventory history log with filtering and pagination
    */
   @Get('history')
-  @Roles(UserRole.OWNER, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getInventoryHistory(@Req() req: Request) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {
@@ -173,7 +173,7 @@ export class InventoryController {
    * Get inventory history for a specific branch
    */
   @Get(':branchId/history')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getInventoryHistoryByBranch(@Req() req: Request) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {
@@ -191,7 +191,7 @@ export class InventoryController {
    * Get inventory history for a specific product
    */
   @Get(':branchId/product/:productId/history')
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getInventoryHistoryByProduct(@Req() req: Request) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {

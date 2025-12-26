@@ -1,12 +1,12 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
-import started from "electron-squirrel-startup";
+import { isDev } from "./utils.js";
+import { getPreloadPath } from "./pathResolver.js";
 
 let mainWindow: BrowserWindow | null = null;
 
-if (started) {
-  app.quit();
-}
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
+declare const MAIN_WINDOW_VITE_NAME: string;
 
 // ✅ IPC HANDLER (ONCE)
 ipcMain.on("frame-action", (_event, action) => {
@@ -33,14 +33,15 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    minWidth: 500,
-    minHeight: 400,
     frame: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: getPreloadPath(),
       contextIsolation: true,
+      devTools: isDev(),
     },
   });
+
+  mainWindow.setMinimumSize(800, 600);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -53,8 +54,11 @@ const createWindow = () => {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-};
 
+  if (process.env.NODE_ENV === "production") {
+    mainWindow.webContents.closeDevTools();
+  }
+};
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {

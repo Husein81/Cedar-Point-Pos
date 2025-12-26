@@ -8,13 +8,13 @@ import { Prisma } from '../../generated/prisma/client.js';
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SYSTEM_ADMIN)
   @Get()
   getTenants() {
     return this.tenantService.getTenants();
   }
 
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SYSTEM_ADMIN)
   @Post()
   async createTenant(@Body() body: Prisma.TenantCreateInput) {
     await this.tenantService.createTenant(body);

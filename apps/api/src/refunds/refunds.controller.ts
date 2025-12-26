@@ -10,7 +10,7 @@ export class RefundsController {
   constructor(private readonly refundsService: RefundsService) {}
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   createRefund(@Req() req: Request, @Body() createRefundDto: CreateRefundDto) {
     const user = req.user as { id: string; tenantId: string };
     return this.refundsService.createRefund(

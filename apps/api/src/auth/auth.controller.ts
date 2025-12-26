@@ -5,22 +5,25 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { Request } from 'express';
-import { Prisma } from '../../generated/prisma/client.js';
+import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
-import type { LoginDto } from './dto/create-user.dto.js';
+import type { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import type { AdminLoginDto } from './dto/admin-login.dto.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { UserRole } from '../../generated/prisma/client.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
+  @Roles(UserRole.SYSTEM_ADMIN)
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
   createUser(@Req() request: Request) {
-    const body = request.body as Prisma.UserCreateInput;
+    const body = request.body as CreateUserDto;
 
     return this.authService.createUser(body);
   }
@@ -28,8 +31,11 @@ export class AuthController {
   @Public()
   @Post('admin-sign-in')
   @HttpCode(HttpStatus.OK)
-  adminLogin(@Body() loginDto: LoginDto) {
-    return this.authService.adminLogin(loginDto);
+  adminLogin(
+    @Body() adminLoginDto: AdminLoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.adminLogin(adminLoginDto, res);
   }
 
   @Public()
@@ -39,11 +45,21 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Req() req: Request) {
+  logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
+    const headerToken = authHeader?.replace('Bearer ', '');
+    const cookieToken =
+      typeof req.cookies?.sa_token === 'string'
+        ? req.cookies.sa_token
+        : undefined;
+
+    const token = headerToken || cookieToken;
+
+    // Always clear cookie (even if token missing)
+    res.clearCookie('sa_token');
 
     if (!token) {
       return { message: 'No token provided' };

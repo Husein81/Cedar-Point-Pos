@@ -19,6 +19,7 @@ import { TaxModule } from './tax/tax.module.js';
 import { TenantModule } from './tenant/tenant.module.js';
 import { TransfersModule } from './transfers/transfers.module.js';
 import { UsersModule } from './users/users.module.js';
+import { SystemAdminModule } from './system-admin/system-admin.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 
@@ -44,6 +45,7 @@ import { ReportsModule } from './reports/reports.module.js';
     ModifierGroupsModule,
     RefundsModule,
     ReportsModule,
+    SystemAdminModule,
   ],
   controllers: [AppController],
   providers: [

@@ -63,7 +63,7 @@ export class RefundsService {
           );
         }
 
-        const unitPrice = new Prisma.Decimal(orderItem.unitPrice);
+        const unitPrice = new Prisma.Decimal(Number(orderItem.unitPrice));
         const subtotal = requestedQty.mul(unitPrice);
 
         refundItems.push({

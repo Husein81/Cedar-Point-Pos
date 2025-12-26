@@ -12,7 +12,7 @@ export class BranchesController {
     return this.branchesService.getBranches();
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Post()
   createBranch(@Req() req: Request) {
     const body = req.body as Prisma.BranchCreateInput;
@@ -23,7 +23,7 @@ export class BranchesController {
     });
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Post('/:id')
   updateBranch(@Req() req: Request) {
     const { id } = req.params;
@@ -34,7 +34,7 @@ export class BranchesController {
     return this.branchesService.updateBranch(id, body);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
   deleteBranch(@Req() req: Request) {
     const { id } = req.params;

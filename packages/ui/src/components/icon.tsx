@@ -1,6 +1,5 @@
 import { icons } from "lucide-react";
 import type { LucideProps } from "lucide-react";
-import { useId } from "react";
 
 interface IconProps extends LucideProps {
   name: string;

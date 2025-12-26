@@ -3,15 +3,20 @@
   "compilerOptions": {
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "target": "ESNext",
-    "module": "ESNext",
-    "allowJs": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "noImplicitAny": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true
-  }
+    "outDir": "../../dist-react",
+    "types": [
+      "vite/client"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/types": [
+        "../../packages/types/src/index"
+      ],
+      "@repo/ui": [
+        "../../packages/ui/src/index"
+      ]
+    }
+  },
 }

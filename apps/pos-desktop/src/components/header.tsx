@@ -1,19 +1,22 @@
-import { cn, Icon, SButton } from "@repo/ui";
-import { useId } from "react";
+import { useAuthStore } from "@/store/authStore";
+import { Button, cn, Icon } from "@repo/ui";
+import { Activity, useId } from "react";
+import logo from "/assets/logo.png";
 
 export function Header() {
+  const { user } = useAuthStore();
   const frameActions = [
     {
       id: "minimize",
       name: "MINIMIZE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400/70",
       icon: "Minus",
       onClick: () => window.electron?.sendFrameAction("MINIMIZE"),
     },
     {
       id: "maximize",
       name: "MAXIMIZE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-gray-400/70",
       icon: "OverlapSquare",
       onClick: () => window.electron?.sendFrameAction("MAXIMIZE"),
     },
@@ -21,22 +24,30 @@ export function Header() {
     {
       id: "close",
       name: "CLOSE",
-      className: "bg-transparent h-full w-13 rounded-none hover:bg-red-500",
+      className: "bg-transparent h-full w-13 rounded-none hover:bg-red-600",
       icon: "X",
       onClick: () => window.electron?.sendFrameAction("CLOSE"),
     },
   ];
 
   return (
-    <header className="bg-[#040F2A]/90 h-10 flex items-center justify-between window-drag">
-      <div className="flex items-center h-full px-3">
-        <img src="/assets/logo.png" alt="" className="size-12" />
-        <span className="text-xs font-medium text-gray-200">PointVerse</span>
+    <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center">
+          <img src={logo} alt="point verse" width={24} height={24} />
+          <h2 className="text-sm font-semibold text-text">
+            Point <span className="text-primary">Verse</span>
+          </h2>
+        </div>
       </div>
+
+      <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
+        <span className="text-sm font-heading">{user?.tenant?.name}</span>
+      </Activity>
+
       <div className="flex items-center h-full no-drag">
         {frameActions.map((action) => (
-          <SButton
-            id={action.id}
+          <Button
             key={action.id}
             className={cn(action.className, "relative")}
             onClick={action.onClick}
@@ -44,15 +55,15 @@ export function Header() {
             {action.icon === "OverlapSquare" ? (
               <OverlapSquareIcon
                 size={14}
-                className="pointer-events-none text-gray-200"
+                className="pointer-events-none text-text"
               />
             ) : (
               <Icon
                 name={action.icon}
-                className="pointer-events-none text-gray-200"
+                className="pointer-events-none text-text"
               />
             )}
-          </SButton>
+          </Button>
         ))}
       </div>
     </header>

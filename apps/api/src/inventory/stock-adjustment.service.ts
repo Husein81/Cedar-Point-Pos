@@ -238,7 +238,7 @@ export class StockAdjustmentService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
         },
@@ -269,7 +269,7 @@ export class StockAdjustmentService {
             select: {
               id: true;
               name: true;
-              email: true;
+              username: true;
             };
           };
         };
@@ -355,7 +355,7 @@ export class StockAdjustmentService {
             select: {
               id: true,
               name: true,
-              email: true,
+              username: true,
             },
           },
         },

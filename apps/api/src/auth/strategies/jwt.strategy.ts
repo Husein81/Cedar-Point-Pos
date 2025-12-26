@@ -6,6 +6,13 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService, JwtPayload } from '../auth.service.js';
 import { TokenBlacklistService } from '../token-blacklist.service.js';
 
+function cookieExtractor(req: Request): string | null {
+  // requires cookie-parser middleware
+  return typeof req.cookies?.sa_token === 'string'
+    ? req.cookies.sa_token
+    : null;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -19,7 +26,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        cookieExtractor, // ✅ admin cookie
+        ExtractJwt.fromAuthHeaderAsBearerToken(), // ✅ POS bearer
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
       passReqToCallback: true,
@@ -28,7 +38,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(req: Request, payload: JwtPayload) {
     // Extract token from request
-    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    const token =
+      ExtractJwt.fromAuthHeaderAsBearerToken()(req) || cookieExtractor(req);
 
     // Check if token is blacklisted
     if (token && this.tokenBlacklistService.isBlacklisted(token)) {

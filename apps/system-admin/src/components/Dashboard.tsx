@@ -1,0 +1,161 @@
+"use client";
+
+import { MetricCard, MetricCardSkeleton } from "@/components/MetricCard";
+import { StatusCard, StatusCardSkeleton } from "@/components/StatusCard";
+import { AlertCard, AlertCardSkeleton } from "@/components/AlertCard";
+import { SectionHeader } from "@/components/SectionHeader";
+import { useDashboard } from "@/hooks/dashboard";
+import { Shad } from "@repo/ui";
+import { Icon } from "@repo/ui";
+
+export function Dashboard() {
+  const { overview, finance, operations, alerts, isLoading, error } =
+    useDashboard();
+
+  // Format currency helper
+  const formatCurrency = (value: string | number | null): string => {
+    if (value === null) return "$0.00";
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-4">
+        <Shad.Alert variant="destructive">
+          <Icon name="CircleAlert" size={16} />
+          <Shad.AlertTitle>Error Loading Dashboard</Shad.AlertTitle>
+          <Shad.AlertDescription>
+            {error instanceof Error
+              ? error.message
+              : "Failed to load dashboard data"}
+          </Shad.AlertDescription>
+        </Shad.Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Section 1: System Overview KPIs */}
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {isLoading ? (
+            <>
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+              <MetricCardSkeleton />
+            </>
+          ) : (
+            <>
+              <MetricCard
+                title="Total Tenants"
+                value={overview?.tenants ?? 0}
+                icon="Building2"
+              />
+              <MetricCard
+                title="Total Users"
+                value={overview?.users ?? 0}
+                icon="Users"
+              />
+              <MetricCard
+                title="Total Branches"
+                value={overview?.branches ?? 0}
+                icon="MapPin"
+              />
+              <MetricCard
+                title="Orders Today"
+                value={overview?.ordersToday ?? 0}
+                icon="ShoppingCart"
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Section 2: Operational & Financial Health */}
+      <section>
+        <SectionHeader
+          title="Operational & Financial Health"
+          icon="SquarePlus"
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {isLoading ? (
+            <>
+              <StatusCardSkeleton />
+              <StatusCardSkeleton />
+              <StatusCardSkeleton />
+              <StatusCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatusCard
+                title="Total Revenue (Today)"
+                value={formatCurrency(
+                  finance?.totalRevenueToday?._sum?.total ?? null
+                )}
+                icon="DollarSign"
+                variant="success"
+              />
+              <StatusCard
+                title="Open Shifts"
+                value={operations?.openShifts ?? 0}
+                icon="Clock"
+                variant="warning"
+              />
+              <StatusCard
+                title="Inactive Devices"
+                value={operations?.inactiveDevices ?? 0}
+                icon="LayoutGrid"
+                variant="default"
+              />
+              <StatusCard
+                title="Pending Transfers"
+                value={operations?.pendingTransfers ?? 0}
+                icon="ArrowLeftRight"
+                variant="default"
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Section 3: System Alerts */}
+      <section>
+        <SectionHeader title="System Alerts" icon="TriangleAlert" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {isLoading ? (
+            <>
+              <AlertCardSkeleton />
+              <AlertCardSkeleton />
+            </>
+          ) : (
+            <>
+              <AlertCard
+                title="Low Stock Items Detected"
+                description={`${alerts?.lowStockItems ?? 0} SKUs are below safety stock levels across all tenants.`}
+                icon="LayoutGrid"
+                variant="error"
+              />
+              <AlertCard
+                title="Stale Devices (6+ Hours)"
+                description={`${alerts?.staleDevices ?? 0} POS terminals have not synced since last check.`}
+                icon="WifiOff"
+                variant="warning"
+              />
+            </>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}

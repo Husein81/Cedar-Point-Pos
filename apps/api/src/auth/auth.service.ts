@@ -4,6 +4,8 @@ import { User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import type { AdminLoginDto } from './dto/admin-login.dto.js';
+import type { Response } from 'express';
 import { TokenBlacklistService } from './token-blacklist.service.js';
 
 export interface JwtPayload {
@@ -57,16 +59,22 @@ export class AuthService {
     };
   }
 
-  async adminLogin({ username, password }: LoginDto): Promise<{
+  async adminLogin(
+    { email, password }: AdminLoginDto,
+    res: Response,
+  ): Promise<{
     user: Omit<User, 'password' | 'tenantId'>;
-    accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
-      where: { username, role: UserRole.ADMIN },
+      where: { email, role: UserRole.SYSTEM_ADMIN },
     });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -85,9 +93,16 @@ export class AuthService {
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
+    // ✅ Cookie for system-admin web app
+    res.cookie('sa_token', accessToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 8, // 8 hours
+    });
 
     return {
-      accessToken,
       user: {
         id: user.id,
         name: user.name,

@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
+import { Alert, AlertTitle, AlertDescription } from "./alert";
 import { Calendar, CalendarDayButton } from "./calendar";
 import {
   Card,
@@ -158,7 +159,8 @@ export { Progress } from "./progress";
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Textarea } from "./textarea";
-export {Dialog,
+export {
+  Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -167,12 +169,16 @@ export {Dialog,
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,} from "./dialog";
+  DialogTrigger,
+} from "./dialog";
 
 export const Shad = {
   Avatar,
   AvatarImage,
   AvatarFallback,
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Calendar,
   CalendarDayButton,
   Card,

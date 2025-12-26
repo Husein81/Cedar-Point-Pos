@@ -1,0 +1,13 @@
+{
+  "extends": "@repo/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/*": [
+        "../../packages/*/src"
+      ]
+    }
+  }
+}

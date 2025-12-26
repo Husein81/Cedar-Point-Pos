@@ -1,11 +1,6 @@
 "use client";
 
 import { Button, Icon, Shad } from "@repo/ui";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@repo/ui/components/avatar";
 import { adminAuthApi } from "@/apis/authApi";
 
 interface HeaderProps {
@@ -46,12 +41,12 @@ export function Header({ title = "Dashboard", description }: HeaderProps) {
             <Icon name="LogOut" size={16} className="mr-2" />
             Sign Out
           </Button>
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="/placeholder-avatar.jpg" alt="Admin" />
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+          <Shad.Avatar className="h-9 w-9">
+            <Shad.AvatarImage src="/placeholder-avatar.jpg" alt="Admin" />
+            <Shad.AvatarFallback className="bg-primary text-primary-foreground text-sm">
               SA
-            </AvatarFallback>
-          </Avatar>
+            </Shad.AvatarFallback>
+          </Shad.Avatar>
         </div>
       </div>
     </header>

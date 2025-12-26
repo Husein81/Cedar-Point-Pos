@@ -5,7 +5,7 @@ import { StatusCard, StatusCardSkeleton } from "@/components/StatusCard";
 import { AlertCard, AlertCardSkeleton } from "@/components/AlertCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useDashboard } from "@/hooks/dashboard";
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Shad } from "@repo/ui";
 import { Icon } from "@repo/ui";
 
 export function Dashboard() {
@@ -28,15 +28,15 @@ export function Dashboard() {
   if (error) {
     return (
       <div className="p-4">
-        <Alert variant="destructive">
+        <Shad.Alert variant="destructive">
           <Icon name="CircleAlert" size={16} />
-          <AlertTitle>Error Loading Dashboard</AlertTitle>
-          <AlertDescription>
+          <Shad.AlertTitle>Error Loading Dashboard</Shad.AlertTitle>
+          <Shad.AlertDescription>
             {error instanceof Error
               ? error.message
               : "Failed to load dashboard data"}
-          </AlertDescription>
-        </Alert>
+          </Shad.AlertDescription>
+        </Shad.Alert>
       </div>
     );
   }

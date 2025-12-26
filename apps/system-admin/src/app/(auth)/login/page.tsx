@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
-import { Button, Input, Label } from "@repo/ui";
+import { Button, InputField } from "@repo/ui";
 import { useEffect } from "react";
 import { useLogin } from "@/hooks/auth";
 
@@ -63,41 +63,29 @@ const SystemAdminSignIn = () => {
           {/* EMAIL INPUT */}
           <form.Field name="email">
             {(field) => (
-              <div>
-                <Label htmlFor={field.name} className="mb-2 block">
-                  Email
-                </Label>
-
-                <Input
-                  id={field.name}
-                  type="email"
-                  placeholder="admin@company.com"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  autoComplete="email"
-                  autoFocus
-                />
-              </div>
+              <InputField
+                label="Email"
+                field={field}
+                type="email"
+                placeholder="admin@company.com"
+                autoComplete="email"
+                autoFocus
+                required
+              />
             )}
           </form.Field>
 
           {/* PASSWORD INPUT */}
           <form.Field name="password">
             {(field) => (
-              <div>
-                <Label htmlFor={field.name} className="mb-2 block">
-                  Password
-                </Label>
-
-                <Input
-                  id={field.name}
-                  type="password"
-                  placeholder="Enter your password"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
+              <InputField
+                label="Password"
+                field={field}
+                type="password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                required
+              />
             )}
           </form.Field>
 

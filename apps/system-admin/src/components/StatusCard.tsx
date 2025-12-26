@@ -1,10 +1,4 @@
-import { Icon, Skeleton } from "@repo/ui";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/card";
+import { Icon, Skeleton, Shad } from "@repo/ui";
 
 type StatusVariant = "default" | "success" | "warning" | "info";
 
@@ -52,18 +46,18 @@ export function StatusCard({
   const styles = variantStyles[variant];
 
   return (
-    <Card className={styles.card}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <Shad.Card className={styles.card}>
+      <Shad.CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Shad.CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {title}
-        </CardTitle>
+        </Shad.CardTitle>
         {icon && (
           <div className={styles.icon}>
             <Icon name={icon} size={18} />
           </div>
         )}
-      </CardHeader>
-      <CardContent>
+      </Shad.CardHeader>
+      <Shad.CardContent>
         {isLoading ? (
           <Skeleton className="h-8 w-16 bg-[#5d9eff]/20" />
         ) : (
@@ -71,21 +65,21 @@ export function StatusCard({
             {typeof value === "number" ? value.toLocaleString() : value}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </Shad.CardContent>
+    </Shad.Card>
   );
 }
 
 export function StatusCardSkeleton() {
   return (
-    <Card className="bg-white border-[#5d9eff]/20">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Shad.Card className="bg-white border-[#5d9eff]/20">
+      <Shad.CardHeader className="flex flex-row items-center justify-between pb-2">
         <Skeleton className="h-3 w-28 bg-[#5d9eff]/20" />
         <Skeleton className="h-5 w-5 rounded bg-[#525ff9]/20" />
-      </CardHeader>
-      <CardContent>
+      </Shad.CardHeader>
+      <Shad.CardContent>
         <Skeleton className="h-8 w-16 bg-[#5d9eff]/20" />
-      </CardContent>
-    </Card>
+      </Shad.CardContent>
+    </Shad.Card>
   );
 }

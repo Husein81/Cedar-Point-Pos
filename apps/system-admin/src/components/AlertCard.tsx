@@ -1,5 +1,5 @@
 import { Icon, Skeleton } from "@repo/ui";
-import { Card, CardContent } from "@repo/ui/components/card";
+import { Shad } from "@repo/ui";
 
 type AlertVariant = "warning" | "error" | "info";
 
@@ -46,8 +46,8 @@ export function AlertCard({
   }
 
   return (
-    <Card className={`${styles.card} rounded-lg`}>
-      <CardContent className="flex items-start gap-4 py-4">
+    <Shad.Card className={`${styles.card} rounded-lg`}>
+      <Shad.CardContent className="flex items-start gap-4 py-4">
         <div className={`p-2 rounded-md ${styles.icon}`}>
           <Icon name={icon} size={18} />
         </div>
@@ -55,21 +55,21 @@ export function AlertCard({
           <h4 className={`font-semibold text-sm ${styles.title}`}>{title}</h4>
           <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         </div>
-      </CardContent>
-    </Card>
+      </Shad.CardContent>
+    </Shad.Card>
   );
 }
 
 export function AlertCardSkeleton() {
   return (
-    <Card className="bg-[#5d9eff]/5 rounded-lg border-[#5d9eff]/20">
-      <CardContent className="flex items-start gap-4 py-4">
+    <Shad.Card className="bg-[#5d9eff]/5 rounded-lg border-[#5d9eff]/20">
+      <Shad.CardContent className="flex items-start gap-4 py-4">
         <Skeleton className="h-9 w-9 rounded-md bg-[#525ff9]/20" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-40 bg-[#5d9eff]/20" />
           <Skeleton className="h-3 w-64 bg-[#5d9eff]/15" />
         </div>
-      </CardContent>
-    </Card>
+      </Shad.CardContent>
+    </Shad.Card>
   );
 }

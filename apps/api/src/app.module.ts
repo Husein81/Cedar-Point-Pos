@@ -21,6 +21,7 @@ import { TransfersModule } from './transfers/transfers.module.js';
 import { UsersModule } from './users/users.module.js';
 import { SystemAdminModule } from './system-admin/system-admin.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     OrdersModule,
     ModifierGroupsModule,
     RefundsModule,
+    ReportsModule,
     SystemAdminModule,
   ],
   controllers: [AppController],
@@ -57,4 +59,4 @@ import { PrismaModule } from './prisma/prisma.module.js';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

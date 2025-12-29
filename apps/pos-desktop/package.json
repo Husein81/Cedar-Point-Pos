@@ -12,6 +12,7 @@
   "main": ".vite/build/pos-desktop.cjs",
   "scripts": {
     "dev": "electron-forge start",
+    "build:web": "vite build",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish"

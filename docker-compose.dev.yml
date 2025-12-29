@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: deps
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+      # We assume node_modules are inside the container from 'deps' stage
+    command: pnpm --filter api dev
+
+  system-admin:
+    build:
+      context: .
+      dockerfile: apps/system-admin/Dockerfile
+      target: deps
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/system-admin/src:/app/apps/system-admin/src
+      - ./packages:/app/packages
+      - ./apps/system-admin/public:/app/apps/system-admin/public
+    command: pnpm --filter admin dev --port 3000
+
+  pos:
+    build:
+      context: .
+      dockerfile: apps/pos-desktop/Dockerfile
+      target: deps
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/pos-desktop/src:/app/apps/pos-desktop/src
+      - ./packages:/app/packages
+    # We use 'vite' directly or via a new script. Using npx for flexibility.
+    # --host is required to bind to 0.0.0.0
+    command: sh -c "cd apps/pos-desktop && npx vite --host"

@@ -17,7 +17,6 @@ const Pagination = ({
   onPageChange,
   onPageSizeChange,
 }: Props) => {
-  console.log({ page, pageSize, totalPages });
   const options = [
     { value: "10", label: "10" },
     { value: "20", label: "20" },

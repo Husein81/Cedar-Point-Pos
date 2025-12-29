@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  postgres:
+    restart: always
+
+  api:
+    build:
+      target: runner
+    restart: always
+    environment:
+      NODE_ENV: production
+    # Remove port mapping if using reverse proxy in front, 
+    # but keeping it for simplicity as per requirements.
+
+  system-admin:
+    build:
+      target: runner
+    restart: always
+    environment:
+      NODE_ENV: production
+
+  pos:
+    build:
+      target: runner
+    restart: always
+    # Nginx static server doesn't need NODE_ENV, but good for consistency
+    environment:
+      NODE_ENV: production

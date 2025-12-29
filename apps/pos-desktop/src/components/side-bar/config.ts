@@ -14,6 +14,9 @@ type SidebarSection = {
 };
 
 export const sidebarSections: SidebarSection[] = [
+  /* =========================
+     SALES / POS
+  ========================= */
   {
     label: "POS",
     items: [
@@ -28,25 +31,36 @@ export const sidebarSections: SidebarSection[] = [
         label: "Dashboard",
         icon: "LayoutDashboard",
         href: "/dashboard",
-        tooltip: "Dashboard",
+        tooltip: "Overview & KPIs",
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Orders",
         icon: "ShoppingCart",
         href: "/orders",
-        tooltip: "Orders",
+        tooltip: "Sales Orders",
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Tables",
         icon: "Grid2x2",
         href: "/tables",
-        tooltip: "Tables",
+        tooltip: "Restaurant Tables",
+        showFor: ["RESTAURANT"],
+      },
+      {
+        label: "Kitchen (KDS)",
+        icon: "Flame",
+        href: "/kds",
+        tooltip: "Kitchen Display System",
         showFor: ["RESTAURANT"],
       },
     ],
   },
+
+  /* =========================
+     PRODUCTS & INVENTORY
+  ========================= */
   {
     label: "Inventory",
     items: [
@@ -54,32 +68,43 @@ export const sidebarSections: SidebarSection[] = [
         label: "Products",
         icon: "Package",
         href: "/products",
-        tooltip: "Products",
+        tooltip: "Products & Menu Items",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
+        label: "Categories",
+        icon: "Tags",
+        href: "/categories",
+        tooltip: "Categories",
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Stock",
         icon: "Warehouse",
-        href: "/stock",
-        tooltip: "Stock",
-        showFor: ["RETAIL"],
+        href: "/inventory",
+        tooltip: "Branch Inventory",
+        showFor: ["RETAIL", "RESTAURANT"],
       },
       {
         label: "Recipes",
         icon: "ChefHat",
         href: "/recipes",
-        tooltip: "Recipes",
+        tooltip: "Ingredient Recipes",
         showFor: ["RESTAURANT"],
       },
       {
         label: "Transfers",
         icon: "ArrowLeftRight",
         href: "/transfers",
-        tooltip: "Transfers",
+        tooltip: "Stock Transfers",
         showFor: ["RETAIL", "RESTAURANT"],
       },
     ],
   },
+
+  /* =========================
+     FINANCE
+  ========================= */
   {
     label: "Finance",
     items: [
@@ -87,14 +112,67 @@ export const sidebarSections: SidebarSection[] = [
         label: "Payments",
         icon: "CreditCard",
         href: "/payments",
-        tooltip: "Payments",
+        tooltip: "Payment Records",
         showFor: ["RETAIL", "RESTAURANT"],
       },
+      {
+        label: "Shifts",
+        icon: "Clock",
+        href: "/shifts",
+        tooltip: "Cashier Shifts",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
+        label: "Refunds",
+        icon: "Undo2",
+        href: "/refunds",
+        tooltip: "Refund History",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+    ],
+  },
+
+  /* =========================
+     CUSTOMERS & CRM
+  ========================= */
+  {
+    label: "Customers",
+    items: [
+      {
+        label: "Customers",
+        icon: "Users",
+        href: "/customers",
+        tooltip: "Customer Management",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+    ],
+  },
+
+  /* =========================
+     MANAGEMENT
+  ========================= */
+  {
+    label: "Management",
+    items: [
       {
         label: "Reports",
         icon: "ChartBar",
         href: "/reports",
-        tooltip: "Reports",
+        tooltip: "Sales & Inventory Reports",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
+        label: "Taxes",
+        icon: "Percent",
+        href: "/taxes",
+        tooltip: "Tax Configuration",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
+        label: "Settings",
+        icon: "Settings",
+        href: "/settings",
+        tooltip: "System Settings",
         showFor: ["RETAIL", "RESTAURANT"],
       },
     ],

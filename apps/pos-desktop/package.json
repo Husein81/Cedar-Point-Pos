@@ -3,7 +3,7 @@
   "private": true,
   "productName": "PointVerse POS",
   "version": "0.1.0",
-  "description": "PointVerse is an offline-first POS system for retail and restaurants.", 
+  "description": "PointVerse is an offline-first POS system for retail and restaurants.",
   "author": {
     "name": "Cedar Core",
     "email": "support@cedarcore.io"
@@ -19,9 +19,11 @@
   "dependencies": {
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
+    "better-sqlite3": "^11.10.0",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
@@ -34,9 +36,11 @@
     "@repo/typescript-config": "workspace:*",
     "@tanstack/react-router": "^1.143.3",
     "@tanstack/router-plugin": "^1.143.3",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react-swc": "^4.2.2",
     "cross-env": "^10.1.0",
     "electron": "^39.2.7",

@@ -16,40 +16,43 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
   return (
     <Shad.Sidebar className="top-10" collapsible="icon" {...props}>
       {/* Content */}
+      <Shad.SidebarTrigger className="ml-2"/>
       <Shad.SidebarContent>
         {/* POS */}
-        {sidebarSections.map((section) => (
-          <Shad.SidebarGroup key={section.label}>
-            <Shad.SidebarGroupLabel>{section.label}</Shad.SidebarGroupLabel>
-            <Shad.SidebarMenu className="space-y-1">
-              {section.items
-                .filter((item) =>
-                  item.showFor.includes(
-                    (user?.tenant?.businessType as BusinessType) ?? "RETAIL"
+        <Shad.ScrollArea>
+          {sidebarSections.map((section) => (
+            <Shad.SidebarGroup key={section.label}>
+              <Shad.SidebarGroupLabel>{section.label}</Shad.SidebarGroupLabel>
+              <Shad.SidebarMenu className="space-y-1">
+                {section.items
+                  .filter((item) =>
+                    item.showFor.includes(
+                      (user?.tenant?.businessType as BusinessType) ?? "RETAIL"
+                    )
                   )
-                )
-                .map((item) => (
-                  <Shad.SidebarMenuItem key={item.label}>
-                    <Link to={item.href || "/"}>
-                      <Shad.SidebarMenuButton
-                        // onClick={() => setActive(item.href)}
-                        className={cn(
-                          "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200 ",
-                          {
-                            "bg-primary text-gray-200": isActive(item.href),
-                          }
-                        )}
-                        tooltip={item.tooltip}
-                      >
-                        <Icon name={item.icon} />
-                        <span>{item.label}</span>
-                      </Shad.SidebarMenuButton>
-                    </Link>
-                  </Shad.SidebarMenuItem>
-                ))}
-            </Shad.SidebarMenu>
-          </Shad.SidebarGroup>
-        ))}
+                  .map((item) => (
+                    <Shad.SidebarMenuItem key={item.label}>
+                      <Link to={item.href || "/"}>
+                        <Shad.SidebarMenuButton
+                          // onClick={() => setActive(item.href)}
+                          className={cn(
+                            "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200 ",
+                            {
+                              "bg-primary text-gray-200": isActive(item.href),
+                            }
+                          )}
+                          tooltip={item.tooltip}
+                        >
+                          <Icon name={item.icon} />
+                          <span>{item.label}</span>
+                        </Shad.SidebarMenuButton>
+                      </Link>
+                    </Shad.SidebarMenuItem>
+                  ))}
+              </Shad.SidebarMenu>
+            </Shad.SidebarGroup>
+          ))}
+        </Shad.ScrollArea>
       </Shad.SidebarContent>
 
       {/* Footer */}

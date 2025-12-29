@@ -65,12 +65,18 @@ export const UserRole = {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const PaymentMethod = {
-  CASH: "CASH",
-  CREDIT_CARD: "CREDIT_CARD",
-  DEBIT_CARD: "DEBIT_CARD",
-  MOBILE_PAYMENT: "MOBILE_PAYMENT",
-  GIFT_CARD: "GIFT_CARD",
-  OTHER: "OTHER",
+  CASH: "CASH", // LBP / USD cash
+  CARD: "CARD", // Debit / Credit card (limited)
+  CASH_CARD: "CASH_CARD", // Split payment
+  WHISH_MONEY: "WHISH_MONEY", // Whish Money wallet
+  OMT: "OMT", // OMT wallet / transfer
+  WESTERN_UNION: "WESTERN_UNION", // Rare but exists
+  QR_PAYMENT: "QR_PAYMENT", // Local QR wallets
+  STORE_CREDIT: "STORE_CREDIT", // House account
+  PAY_LATER: "PAY_LATER", // Trusted customers / tabs
+  ONLINE_PREPAID: "ONLINE_PREPAID", // Paid online before arrival
+  DELIVERY_CASH: "DELIVERY_CASH", // Cash collected by driver
+  REFUND: "REFUND",
 } as const;
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 

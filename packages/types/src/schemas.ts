@@ -268,9 +268,11 @@ export const OrderItemSchema = z.object({
   quantity: decimal.default("1"),
   unitPrice: decimal,
   taxRate: decimal.default("0"),
+  subtotal: decimal,
   taxAmount: decimal.default("0"),
   total: decimal,
   notes: z.string().nullable().optional(),
+  modifiers: z.array(ModifierSchema).optional(),
   product: ProductSchema.optional(), // For combo products
 });
 export type OrderItem = z.infer<typeof OrderItemSchema>;
@@ -297,6 +299,9 @@ export const OrderSchema = z.object({
   total: decimal.default("0"),
   discount: decimal.nullable().optional(),
 
+  syncedAt: isoDate,
+  syncVersion: z.number().nullable().optional(),
+  source: z.string().nullable().optional(),
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
   items: z.array(OrderItemSchema).optional(), // OrderItem[]
@@ -330,6 +335,10 @@ export const PaymentSchema = z.object({
   method: z.enum(PaymentMethod),
   currencyCode: z.string().default("USD"),
   amount: decimal,
+  deviceId: cuid.nullable().optional(),
+  syncedAt: isoDate,
+  syncVersion: z.number().optional().default(1),
+  source: z.string().nullable().optional(),
   exchangeRate: decimal.nullable().optional(),
   transactionId: z.string().nullable().optional(),
   paidAt: isoDate,
@@ -344,6 +353,10 @@ export const CustomerSchema = z.object({
   email: z.string().email().nullable().optional(),
   phone: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
+  deviceId: cuid.nullable().optional(),
+  syncedAt: isoDate,
+  syncVersion: z.number().optional().default(1),
+  source: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });
@@ -364,6 +377,10 @@ export const ShiftSchema = z.object({
   difference: decimal.nullable().optional(),
   status: z.enum(ShiftStatus).default("OPEN"),
   notes: z.string().nullable().optional(),
+
+  syncedAt: isoDate,
+  syncVersion: z.number().optional().default(1),
+  source: z.string().nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
 

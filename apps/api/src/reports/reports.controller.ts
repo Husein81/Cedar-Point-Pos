@@ -22,7 +22,7 @@ export class ReportsController {
      * GET /reports/sales?from=2024-01-01&to=2024-12-31&branchId=optional
      */
     @Get('sales')
-    @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
     async getSalesReport(@Req() req: Request, @Query() query: Record<string, unknown>) {
         const user = req.user as { tenantId: string };
         const parsedQuery = this.parseQuery(query);
@@ -34,7 +34,7 @@ export class ReportsController {
      * GET /reports/payments?from=2024-01-01&to=2024-12-31&branchId=optional
      */
     @Get('payments')
-    @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
     async getPaymentsReport(@Req() req: Request, @Query() query: Record<string, unknown>) {
         const user = req.user as { tenantId: string };
         const parsedQuery = this.parseQuery(query);
@@ -46,7 +46,7 @@ export class ReportsController {
      * GET /reports/orders?from=2024-01-01&to=2024-12-31&branchId=optional
      */
     @Get('orders')
-    @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
     async getOrdersReport(@Req() req: Request, @Query() query: Record<string, unknown>) {
         const user = req.user as { tenantId: string };
         const parsedQuery = this.parseQuery(query);
@@ -58,7 +58,7 @@ export class ReportsController {
      * GET /reports/inventory?from=2024-01-01&to=2024-12-31&branchId=optional
      */
     @Get('inventory')
-    @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
     async getInventoryReport(@Req() req: Request, @Query() query: Record<string, unknown>) {
         const user = req.user as { tenantId: string };
         const parsedQuery = this.parseQuery(query);
@@ -70,7 +70,7 @@ export class ReportsController {
      * GET /reports/taxes?from=2024-01-01&to=2024-12-31&branchId=optional
      */
     @Get('taxes')
-    @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+    @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
     async getTaxesReport(@Req() req: Request, @Query() query: Record<string, unknown>) {
         const user = req.user as { tenantId: string };
         const parsedQuery = this.parseQuery(query);

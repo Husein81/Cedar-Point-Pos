@@ -1,75 +1,41 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: point-verse-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
-      POSTGRES_DB: ${POSTGRES_DB:-pointverse}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - point-verse-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d pointverse"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: point-verse-api
+    container_name: pointverse-api
     ports:
-      - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - "5000:5000"
     environment:
-      # Use the container name 'postgres' for host
-      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-admin123}@postgres:5432/${POSTGRES_DB:-pointverse}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-dev_secret}
-      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5000
     networks:
-      - point-verse-network
-
-  system-admin:
-    build:
-      context: .
-      dockerfile: apps/system-admin/Dockerfile
-    container_name: point-verse-admin
-    ports:
-      - "3002:3000"
-    depends_on:
-      - api
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3000 # Client side
-      API_URL: http://api:3000 # Server side (if needed)
-    networks:
-      - point-verse-network
+      - pointverse-network
 
   pos:
     build:
       context: .
       dockerfile: apps/pos-desktop/Dockerfile
-    container_name: point-verse-pos-web
+    container_name: pointverse-pos
     ports:
-      - "3001:80"
-    depends_on:
-      - api
+      - "3001:3001"
     environment:
-      VITE_API_URL: http://localhost:3000
+      PORT: 3001
     networks:
-      - point-verse-network
+      - pointverse-network
+
+  system-admin:
+    build:
+      context: .
+      dockerfile: apps/system-admin/Dockerfile
+    container_name: pointverse-admin
+    ports:
+      - "3002:3002"
+
+    environment:
+      PORT: 3002
+    networks:
+      - pointverse-network
 
 networks:
-  point-verse-network:
+  pointverse-network:
     driver: bridge
-
-volumes:
-  postgres_data:

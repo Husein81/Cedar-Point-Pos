@@ -4,8 +4,8 @@
         "emitDeclarationOnly": false,
         "outDir": "dist",
         "rootDir": "src",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
         "declaration": true,
         "strict": true,
         "sourceMap": true

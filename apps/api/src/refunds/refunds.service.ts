@@ -18,7 +18,7 @@ export class RefundsService {
   async createRefund(tenantId: string, userId: string, dto: CreateRefundDto) {
     const { orderId, reason, items } = dto;
 
-    return this.prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
         include: {

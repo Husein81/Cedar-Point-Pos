@@ -1,70 +1,77 @@
+# ==============================================================================
+# Base
+# ==============================================================================
 FROM node:20-alpine AS base
+
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+ENV CI=true
 
-# ------------------------------------------------------------------------------
-# Pruner Stage (Isolate needed files)
-# ------------------------------------------------------------------------------
+RUN npm install -g pnpm@10.26.1
+
+# ==============================================================================
+# Prune stage (Turbo)
+# ==============================================================================
 FROM base AS pruner
 WORKDIR /app
-RUN pnpm add -g turbo
+
+RUN pnpm install turbo@2.6.1 --global
 COPY . .
 RUN turbo prune --scope=api --docker
 
-# ------------------------------------------------------------------------------
-# Deps Stage (Install isolated deps)
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# Dependencies stage
+# ==============================================================================
 FROM base AS deps
 WORKDIR /app
 
-# Copy only package.json's from pruner
+# Copy pruned workspace metadata
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Install only allowed dependencies
+# Install deps (cached layer)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code from pruner
+# Copy actual source
 COPY --from=pruner /app/out/full/ .
 
-# Generate Prisma
+# Generate Prisma client
 WORKDIR /app/apps/api
 RUN pnpm db:generate
 
-# ------------------------------------------------------------------------------
-# Build Stage
-# ------------------------------------------------------------------------------
-FROM deps AS build-prod
-WORKDIR /app/apps/api
-RUN pnpm build
-# Prune for production
+# ==============================================================================
+# Build stage
+# ==============================================================================
+FROM deps AS build
+WORKDIR /app
+RUN pnpm turbo run build --filter=api...
+
+# Remove dev deps
 WORKDIR /app
 RUN pnpm prune --prod
 
-# ------------------------------------------------------------------------------
-# Runner Stage
-# ------------------------------------------------------------------------------
-FROM base AS runner
+# ==============================================================================
+# Runtime stage
+# ==============================================================================
+FROM node:20-alpine AS runner
 WORKDIR /app
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
-
-# Copy artifacts
-COPY --from=build-prod --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=build-prod --chown=nestjs:nodejs /app/packages ./packages
-COPY --from=build-prod --chown=nestjs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=build-prod --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=build-prod --chown=nestjs:nodejs /app/apps/api/package.json ./apps/api/package.json
-COPY --from=build-prod --chown=nestjs:nodejs /app/apps/api/prisma ./apps/api/prisma
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Non-root user
+RUN addgroup -S nodejs && adduser -S nestjs -G nodejs
+
+# Copy runtime artifacts only
+COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nestjs:nodejs /app/packages ./packages
+COPY --from=build --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=build --chown=nestjs:nodejs /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build --chown=nestjs:nodejs /app/apps/api/prisma ./apps/api/prisma
+
 USER nestjs
-EXPOSE 3000
+EXPOSE 5000
 
 WORKDIR /app/apps/api
-CMD /bin/sh -c "npx prisma migrate deploy && node dist/main"
+CMD ["node", "dist/main.js"]

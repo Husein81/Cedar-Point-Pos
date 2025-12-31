@@ -1,35 +1,17 @@
-# General
-node_modules
-.bash_history
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/build
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
 .git
+.github
 .gitignore
 .dockerignore
-.DS_Store
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Environment
-.env
-.env.*
-!.env.example
-
-# Dist/Build folders
-dist
-out
-build
-.next
-.turbo
-.vercel
-coverage
-
-# Editor directories
-.idea
-.vscode
-*.swp
-*.swo
-
-# Temporary files
-tmp
-temp
+LICENSE
+README.md
+apps/*/node_modules
+packages/*/node_modules

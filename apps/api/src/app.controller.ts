@@ -1,10 +1,19 @@
 import { Controller, Get } from '@nestjs/common';
 import { Public } from './common/decorators/public.decorator.js';
 
-@Controller('test')
+@Controller()
 export class AppController {
   @Public()
-  @Get()
+  @Get('health')
+  getHealth(): { status: string; timestamp: string } {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Public()
+  @Get('test')
   getHello(): string {
     return 'Hello World!';
   }

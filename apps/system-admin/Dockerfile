@@ -1,62 +1,118 @@
-FROM node:20-alpine AS base
+# ==============================================================================
+# Base Stage - Node 20.x with pnpm
+# ==============================================================================
+FROM node:20.18.1-alpine AS base
+
+# Set pnpm version explicitly
+ENV PNPM_VERSION=10.26.1
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
 
-# ------------------------------------------------------------------------------
-# Pruner Stage
-# ------------------------------------------------------------------------------
+# Install pnpm using npm (more reliable than corepack prepare)
+RUN npm install -g pnpm@${PNPM_VERSION}
+
+WORKDIR /app
+
+# ==============================================================================
+# Pruner Stage - Extract only what's needed for Admin using Turbo
+# ==============================================================================
 FROM base AS pruner
-WORKDIR /app
-RUN pnpm add -g turbo
+
+# Install Turbo globally
+RUN pnpm add -g turbo@2.6.1
+
+# Copy entire monorepo
 COPY . .
-RUN turbo prune --scope=admin --docker
 
-# ------------------------------------------------------------------------------
-# Deps Stage
-# ------------------------------------------------------------------------------
+# Prune to only include admin dependencies and related packages
+RUN turbo prune admin --docker
+
+# ==============================================================================
+# Dependencies Stage - Install all dependencies
+# ==============================================================================
 FROM base AS deps
-WORKDIR /app
 
-# Ensure we have libc6 for some standard libraries
+# Install compatibility libraries for Next.js
 RUN apk add --no-cache libc6-compat
 
+# Copy pruned lockfile and package.json files
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-RUN pnpm install --frozen-lockfile
+# Install dependencies (frozen lockfile for deterministic builds)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
 
+# Copy full source code
 COPY --from=pruner /app/out/full/ .
 
-# ------------------------------------------------------------------------------
-# Build Stage
-# ------------------------------------------------------------------------------
-FROM deps AS build-prod
+# ==============================================================================
+# Development Stage - For local development with hot reload
+# ==============================================================================
+FROM deps AS dev
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Expose Next.js dev server port
+EXPOSE 3000
+
 WORKDIR /app/apps/system-admin
+
+# Default command (can be overridden in docker-compose.dev.yml)
+CMD ["pnpm", "dev"]
+
+# ==============================================================================
+# Builder Stage - Build Next.js app for production
+# ==============================================================================
+FROM deps AS builder
+
+WORKDIR /app/apps/system-admin
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build Next.js app (standalone output for minimal runtime)
 RUN pnpm build
 
-# ------------------------------------------------------------------------------
-# Runner Stage
-# ------------------------------------------------------------------------------
-FROM base AS runner
+# ==============================================================================
+# Runner Stage - Production runtime (minimal image)
+# ==============================================================================
+FROM node:20.18.1-alpine AS runner
+
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    curl
 
-COPY --from=build-prod /app/apps/system-admin/public ./apps/system-admin/public
-COPY --from=build-prod --chown=nextjs:nodejs /app/apps/system-admin/.next/standalone ./
-COPY --from=build-prod --chown=nextjs:nodejs /app/apps/system-admin/.next/static ./apps/system-admin/.next/static
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
+# Copy standalone Next.js build
+COPY --from=builder /app/apps/system-admin/public ./apps/system-admin/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/system-admin/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/system-admin/.next/static ./apps/system-admin/.next/static
+
+# Switch to non-root user
 USER nextjs
+
 EXPOSE 3000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
 WORKDIR /app/apps/system-admin
+
+# Start Next.js server
 CMD ["node", "server.js"]

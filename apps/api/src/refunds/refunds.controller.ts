@@ -21,7 +21,7 @@ export class RefundsController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findAll(
     @Req() req: Request,
     @Query('from') from?: string,

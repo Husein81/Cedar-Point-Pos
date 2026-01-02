@@ -21,8 +21,7 @@ export const authApi = {
     try {
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Logout error:", error);
-      throw error;
+      console.warn("Logout API call failed (possibly offline):", error);
     }
   },
 };

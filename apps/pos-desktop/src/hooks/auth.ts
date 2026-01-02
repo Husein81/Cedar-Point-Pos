@@ -31,5 +31,10 @@ export const useLogout = () => {
       logout();
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
+    onError: (error) => {
+      console.warn("Logout API failed, but logging out locally:", error);
+      logout();
+      queryClient.invalidateQueries({ queryKey: ["current-user"] });
+    },
   });
 };

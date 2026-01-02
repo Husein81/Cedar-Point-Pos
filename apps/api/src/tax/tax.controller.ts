@@ -28,7 +28,7 @@ export class TaxController {
     return this.taxService.getTaxesPaginated(tenantId, query);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Post()
   createTax(@Req() req: Request) {
     const body = req.body as Prisma.TaxCreateInput;
@@ -39,7 +39,7 @@ export class TaxController {
     });
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Put('/:id')
   updateTax(@Req() req: Request) {
     const { id } = req.params;
@@ -50,7 +50,7 @@ export class TaxController {
     return this.taxService.updateTax(id, body);
   }
 
-  @Roles('OWNER', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
   deleteTax(@Req() req: Request) {
     const { id } = req.params;

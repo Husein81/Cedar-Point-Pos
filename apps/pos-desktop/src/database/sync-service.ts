@@ -78,7 +78,6 @@ export class SyncService {
   private db: Database;
   private deviceId: string;
   private tenantId: string;
-  private branchId: string;
   private deviceToken: string;
   private apiBaseUrl: string;
   private isOnline: boolean = false;
@@ -90,14 +89,12 @@ export class SyncService {
     db: Database,
     deviceId: string,
     tenantId: string,
-    branchId: string,
     deviceToken: string,
     apiBaseUrl: string
   ) {
     this.db = db;
     this.deviceId = deviceId;
     this.tenantId = tenantId;
-    this.branchId = branchId;
     this.deviceToken = deviceToken;
     this.apiBaseUrl = apiBaseUrl;
 

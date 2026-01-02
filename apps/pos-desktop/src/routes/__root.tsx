@@ -10,8 +10,6 @@ export const Route = createRootRoute({
   notFoundComponent: UnderConstruction,
 });
 
-
-
 function RootLayout() {
   return (
     <Providers>

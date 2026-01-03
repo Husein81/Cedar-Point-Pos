@@ -19,32 +19,29 @@ interface QueryParams {
   limit?: number;
 }
 
-class DashboardApiClient {
-  private readonly basePath = "/reports/dashboard";
-
+const basePath = "/reports/dashboard";
+export const dashboardApi = {
   /**
    * Fetch dashboard summary metrics
    */
   async getSummary(branchId?: string): Promise<DashboardSummary> {
     const params: QueryParams = branchId ? { branchId } : {};
-    const { data } = await api.get<DashboardSummary>(
-      `${this.basePath}/summary`,
-      { params }
-    );
+    const { data } = await api.get<DashboardSummary>(`${basePath}/summary`, {
+      params,
+    });
     return data;
-  }
-
+  },
   /**
    * Fetch weekly sales data for the last 7 days
    */
   async getWeeklySales(branchId?: string): Promise<WeeklySalesData[]> {
     const params: QueryParams = branchId ? { branchId } : {};
     const { data } = await api.get<WeeklySalesData[]>(
-      `${this.basePath}/weekly-sales`,
+      `${basePath}/weekly-sales`,
       { params }
     );
     return data;
-  }
+  },
 
   /**
    * Fetch sales breakdown by category
@@ -59,11 +56,11 @@ class DashboardApiClient {
       to: to.toISOString(),
       ...(branchId && { branchId }),
     };
-    const response = await api.get(`${this.basePath}/sales-by-category`, {
+    const response = await api.get(`${basePath}/sales-by-category`, {
       params,
     });
     return response.data;
-  }
+  },
 
   /**
    * Fetch hourly revenue distribution for today
@@ -71,21 +68,21 @@ class DashboardApiClient {
   async getHourlyRevenue(branchId?: string): Promise<HourlyRevenueData[]> {
     const params: QueryParams = branchId ? { branchId } : {};
     const { data } = await api.get<HourlyRevenueData[]>(
-      `${this.basePath}/hourly-revenue`,
+      `${basePath}/hourly-revenue`,
       { params }
     );
     return data;
-  }
+  },
 
   /**
    * Fetch top selling products
    */
-  async getTopProducts(
+  getTopProducts: async (
     from: Date,
     to: Date,
     branchId?: string,
     limit = 5
-  ): Promise<TopProductData[]> {
+  ): Promise<TopProductData[]> => {
     const params: QueryParams = {
       from: from.toISOString(),
       to: to.toISOString(),
@@ -93,12 +90,9 @@ class DashboardApiClient {
       ...(branchId && { branchId }),
     };
     const { data } = await api.get<TopProductData[]>(
-      `${this.basePath}/top-products`,
+      `${basePath}/top-products`,
       { params }
     );
     return data;
-  }
-}
-
-// Export singleton instance
-export const dashboardApi = new DashboardApiClient();
+  },
+};

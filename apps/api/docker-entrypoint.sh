@@ -61,4 +61,5 @@ echo "   Port: $PORT"
 echo ""
 
 # Execute the main application
-exec node dist/main.js
+# NestJS outputs to dist/src/main.js (preserving src folder structure)
+exec node dist/src/main.js

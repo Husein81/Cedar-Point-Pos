@@ -9,11 +9,7 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.use(cookieParser());
     app.enableCors({
-      origin: [
-        'http://localhost:3000', // Admin dashboard
-        'http://localhost:5173', // POS web
-        'http://localhost:19006', // Expo / RN web
-      ],
+      origin: '*',
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [

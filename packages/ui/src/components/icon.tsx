@@ -43,8 +43,7 @@ export const Icon = ({ name, color, size, className, onClick }: IconProps) => {
   const LucideIcon = icons[name as keyof typeof icons];
 
   if (!LucideIcon) {
-    console.warn(`Icon "${name}" not found in lucide-react icons.`);
-    return undefined;
+    throw new Error(`Icon "${name}" not found in lucide-react icons.`);
   }
 
   return (

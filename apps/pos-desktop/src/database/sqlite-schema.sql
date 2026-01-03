@@ -219,85 +219,12 @@ CREATE TABLE IF NOT EXISTS device_metadata (
 );
 
 -- Store device token, tenant_id, branch_id, last_sync_time, etc.
-INSERT OR IGNORE INTO device_metadata (key, value) VALUES \
-    ('device_token', ''), 
-    ('tenant_id', ''), 
-    ('branch_id', ''), 
-    ('device_id', ''), 
-    ('last_sync_time', ''), 
+INSERT OR IGNORE INTO device_metadata (key, value) VALUES 
+    ('device_token', ''),
+    ('tenant_id', ''),
+    ('branch_id', ''),
+    ('device_id', ''),
+    ('last_sync_time', ''),
     ('last_full_sync_time', '');
 
--- ============================================
--- READ-ONLY DATA (Synced from Server)
--- ============================================
 
--- CATEGORIES
-CREATE TABLE IF NOT EXISTS categories (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    is_active INTEGER DEFAULT 1, -- Boolean
-    updated_at TEXT
-);
-
--- TAXES
-CREATE TABLE IF NOT EXISTS taxes (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    rate REAL NOT NULL, -- Percentage (e.g., 11.0 for 11%)
-    is_default INTEGER DEFAULT 0, -- Boolean
-    updated_at TEXT
-);
-
--- PRODUCTS
-CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    category_id TEXT,
-    tax_id TEXT,
-    name TEXT NOT NULL,
-    description TEXT,
-    sku TEXT,
-    barcode TEXT,
-    price REAL NOT NULL DEFAULT 0,
-    cost REAL DEFAULT 0,
-    image_url TEXT,
-    is_active INTEGER DEFAULT 1, -- Boolean
-    is_stock_tracked INTEGER DEFAULT 1, -- Boolean
-    stock_quantity REAL DEFAULT 0,
-    updated_at TEXT,
-    
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-    FOREIGN KEY (tax_id) REFERENCES taxes(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
-CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
-CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
-
--- MODIFIER GROUPS
-CREATE TABLE IF NOT EXISTS modifier_groups (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    min_selection INTEGER DEFAULT 0,
-    max_selection INTEGER DEFAULT 1,
-    updated_at TEXT
-);
-
--- MODIFIERS
-CREATE TABLE IF NOT EXISTS modifiers (
-    id TEXT PRIMARY KEY,
-    group_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    price REAL NOT NULL DEFAULT 0,
-    is_active INTEGER DEFAULT 1,
-    updated_at TEXT,
-    
-    FOREIGN KEY (group_id) REFERENCES modifier_groups(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_modifiers_group ON modifiers(group_id);
-
--- PRODUCT MODIFIERS (Link table if needed, or simple query)
--- For now we assume relational linking via application logic or extended schema if M-to-M

@@ -65,7 +65,7 @@ importers:
         version: 7.2.0
       '@prisma/client':
         specifier: ^7.2.0
-        version: 7.2.0(prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@11.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2))(typescript@5.9.2)
+        version: 7.2.0(prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@12.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2))(typescript@5.9.2)
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -156,7 +156,7 @@ importers:
         version: 3.6.2
       prisma:
         specifier: ^7.2.0
-        version: 7.2.0(@types/react@19.2.7)(better-sqlite3@11.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2)
+        version: 7.2.0(@types/react@19.2.7)(better-sqlite3@12.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2)
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
@@ -190,12 +190,9 @@ importers:
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@tanstack/react-query':
-        specifier: ^5.90.14
-        version: 5.90.14(react@19.2.3)
       better-sqlite3:
-        specifier: ^11.10.0
-        version: 11.10.0
+        specifier: ^12.5.0
+        version: 12.5.0
       electron-squirrel-startup:
         specifier: ^1.0.1
         version: 1.0.1
@@ -215,12 +212,18 @@ importers:
       '@electron-forge/maker-deb':
         specifier: ^7.10.2
         version: 7.10.2
+      '@electron-forge/maker-rpm':
+        specifier: ^7.10.2
+        version: 7.10.2
       '@electron-forge/maker-squirrel':
         specifier: ^7.10.2
         version: 7.10.2
       '@electron-forge/maker-zip':
         specifier: ^7.10.2
         version: 7.10.2
+      '@electron-forge/plugin-fuses':
+        specifier: ^7.10.2
+        version: 7.10.2(@electron/fuses@1.8.0)
       '@electron-forge/plugin-vite':
         specifier: ^7.10.2
         version: 7.10.2
@@ -794,6 +797,10 @@ packages:
     resolution: {integrity: sha512-4MPr9NW5UbEUbf9geZn5R/0O/QVIiy2EgUXOYOeKkA7oR8U6I1I3+BytYFHYcxbY6+PGhi1H1VTLJLITbHGVWw==}
     engines: {node: '>= 16.4.0'}
 
+  '@electron-forge/maker-rpm@7.10.2':
+    resolution: {integrity: sha512-LQoeYzbY/z1yuBBA+bNutCJmhCA4NcXUbFO4OTqsIX8B6y1zNTYZT4JEuhoK7eBsP4/Rz6u/JnNp0XOyjftOUQ==}
+    engines: {node: '>= 16.4.0'}
+
   '@electron-forge/maker-squirrel@7.10.2':
     resolution: {integrity: sha512-Y5EhNSBXf4a7qcq+BK/x5qVDlQ1Gez5V+arUpDvVxf1zwvsB1aSyAjmoBrOKGYD9A5pJzjkMWMDw95MStl1W4A==}
     engines: {node: '>= 16.4.0'}
@@ -805,6 +812,12 @@ packages:
   '@electron-forge/plugin-base@7.10.2':
     resolution: {integrity: sha512-+4YLmkLZxvS6JFXYNI4dHt8Il8iIvwk2o6lCJGwNysOUq2KOZ3Wu1He4Ko8HhKcO1VWbFvslbh57oQn963Aryw==}
     engines: {node: '>= 16.4.0'}
+
+  '@electron-forge/plugin-fuses@7.10.2':
+    resolution: {integrity: sha512-X8FaBL5pVvKCTBNaa9EjbH6vuaeIU7UcPSmP9501XF4zcKPCfTbQKz49LTMl7gd5YzUm82IlqRjte12LLpcSDQ==}
+    engines: {node: '>= 16.4.0'}
+    peerDependencies:
+      '@electron/fuses': ^1.0.0
 
   '@electron-forge/plugin-vite@7.10.2':
     resolution: {integrity: sha512-aHotwaVlbSwVDb+Z+JdU6cMYhestt8ncmXKv4Uwm7of/gWAdvS7o/ohQVWkjXhzSidriCTwFMRz4jELJbnkNeg==}
@@ -2919,9 +2932,6 @@ packages:
   '@tanstack/query-core@5.90.12':
     resolution: {integrity: sha512-T1/8t5DhV/SisWjDnaiU2drl6ySvsHj1bHBCWNXd+/T+Hh1cf6JodyEYMd5sgwm+b/mETT4EV3H+zCVczCU5hg==}
 
-  '@tanstack/query-core@5.90.14':
-    resolution: {integrity: sha512-/6di2yNI+YxpVrH9Ig74Q+puKnkCE+D0LGyagJEGndJHJc6ahkcc/UqirHKy8zCYE/N9KLggxcQvzYCsUBWgdw==}
-
   '@tanstack/react-form@1.27.3':
     resolution: {integrity: sha512-GLGJC5PuY1OUgkBy9ZHornOAucWrVOCNHyMBCTf1kjmuDCzIvufrQlkLja9jwVwye8tta1K4Z0IkC/pqPM1Hjg==}
     peerDependencies:
@@ -2933,11 +2943,6 @@ packages:
 
   '@tanstack/react-query@5.90.12':
     resolution: {integrity: sha512-graRZspg7EoEaw0a8faiUASCyJrqjKPdqJ9EwuDRUF9mEYJ1YPczI9H+/agJ0mOJkPCJDk0lsz5QTrLZ/jQ2rg==}
-    peerDependencies:
-      react: ^18 || ^19
-
-  '@tanstack/react-query@5.90.14':
-    resolution: {integrity: sha512-JAMuULej09hrZ14W9+mxoRZ44rR2BuZfCd6oKTQVNfynQxCN3muH3jh3W46gqZNw5ZqY0ZVaS43Imb3dMr6tgw==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -3852,8 +3857,9 @@ packages:
     resolution: {integrity: sha512-cU8v/EGSrnH+HnxV2z0J7/blxH8gq7Xh2JFT6Aroax7UohdmiJJlxApMxtKfuI7z68NvvVcmR78k2LbT6efhRg==}
     engines: {node: '>= 18'}
 
-  better-sqlite3@11.10.0:
-    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
+  better-sqlite3@12.5.0:
+    resolution: {integrity: sha512-WwCZ/5Diz7rsF29o27o0Gcc1Du+l7Zsv7SYtVPG0X3G/uUI1LqdxrQI7c9Hs2FWpqXXERjW9hp6g3/tH7DlVKg==}
+    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bin-version-check@5.1.0:
     resolution: {integrity: sha512-bYsvMqJ8yNGILLz1KP9zKLzQ6YpljV3ln1gqhuLkUtyfGi3qXKGuK2p+U4NAvjVFzDFiBBtOpCOSFNuYYEGZ5g==}
@@ -4496,6 +4502,12 @@ packages:
 
   electron-installer-debian@3.2.0:
     resolution: {integrity: sha512-58ZrlJ1HQY80VucsEIG9tQ//HrTlG6sfofA3nRGr6TmkX661uJyu4cMPPh6kXW+aHdq/7+q25KyQhDrXvRL7jw==}
+    engines: {node: '>= 10.0.0'}
+    os: [darwin, linux]
+    hasBin: true
+
+  electron-installer-redhat@3.4.0:
+    resolution: {integrity: sha512-gEISr3U32Sgtj+fjxUAlSDo3wyGGq6OBx7rF5UdpIgbnpUvMN4W5uYb0ThpnAZ42VEJh/3aODQXHbFS4f5J3Iw==}
     engines: {node: '>= 10.0.0'}
     os: [darwin, linux]
     hasBin: true
@@ -8549,6 +8561,16 @@ snapshots:
       - bluebird
       - supports-color
 
+  '@electron-forge/maker-rpm@7.10.2':
+    dependencies:
+      '@electron-forge/maker-base': 7.10.2
+      '@electron-forge/shared-types': 7.10.2
+    optionalDependencies:
+      electron-installer-redhat: 3.4.0
+    transitivePeerDependencies:
+      - bluebird
+      - supports-color
+
   '@electron-forge/maker-squirrel@7.10.2':
     dependencies:
       '@electron-forge/maker-base': 7.10.2
@@ -8574,6 +8596,15 @@ snapshots:
   '@electron-forge/plugin-base@7.10.2':
     dependencies:
       '@electron-forge/shared-types': 7.10.2
+    transitivePeerDependencies:
+      - bluebird
+      - supports-color
+
+  '@electron-forge/plugin-fuses@7.10.2(@electron/fuses@1.8.0)':
+    dependencies:
+      '@electron-forge/plugin-base': 7.10.2
+      '@electron-forge/shared-types': 7.10.2
+      '@electron/fuses': 1.8.0
     transitivePeerDependencies:
       - bluebird
       - supports-color
@@ -9916,11 +9947,11 @@ snapshots:
 
   '@prisma/client-runtime-utils@7.2.0': {}
 
-  '@prisma/client@7.2.0(prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@11.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2))(typescript@5.9.2)':
+  '@prisma/client@7.2.0(prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@12.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2))(typescript@5.9.2)':
     dependencies:
       '@prisma/client-runtime-utils': 7.2.0
     optionalDependencies:
-      prisma: 7.2.0(@types/react@19.2.7)(better-sqlite3@11.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2)
+      prisma: 7.2.0(@types/react@19.2.7)(better-sqlite3@12.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2)
       typescript: 5.9.2
 
   '@prisma/config@7.2.0':
@@ -10831,8 +10862,6 @@ snapshots:
 
   '@tanstack/query-core@5.90.12': {}
 
-  '@tanstack/query-core@5.90.14': {}
-
   '@tanstack/react-form@1.27.3(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       '@tanstack/form-core': 1.27.3
@@ -10857,11 +10886,6 @@ snapshots:
   '@tanstack/react-query@5.90.12(react@19.2.3)':
     dependencies:
       '@tanstack/query-core': 5.90.12
-      react: 19.2.3
-
-  '@tanstack/react-query@5.90.14(react@19.2.3)':
-    dependencies:
-      '@tanstack/query-core': 5.90.14
       react: 19.2.3
 
   '@tanstack/react-router@1.143.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
@@ -12109,7 +12133,7 @@ snapshots:
       node-addon-api: 8.5.0
       node-gyp-build: 4.8.4
 
-  better-sqlite3@11.10.0:
+  better-sqlite3@12.5.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -12835,6 +12859,19 @@ snapshots:
       electron-installer-common: 0.10.4
       fs-extra: 9.1.0
       get-folder-size: 2.0.1
+      lodash: 4.17.21
+      word-wrap: 1.2.5
+      yargs: 16.2.0
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  electron-installer-redhat@3.4.0:
+    dependencies:
+      '@malept/cross-spawn-promise': 1.1.1
+      debug: 4.4.3
+      electron-installer-common: 0.10.4
+      fs-extra: 9.1.0
       lodash: 4.17.21
       word-wrap: 1.2.5
       yargs: 16.2.0
@@ -15537,7 +15574,7 @@ snapshots:
       ansi-styles: 5.2.0
       react-is: 18.3.1
 
-  prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@11.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2):
+  prisma@7.2.0(@types/react@19.2.7)(better-sqlite3@12.5.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.2):
     dependencies:
       '@prisma/config': 7.2.0
       '@prisma/dev': 0.17.0(typescript@5.9.2)
@@ -15546,7 +15583,7 @@ snapshots:
       mysql2: 3.15.3
       postgres: 3.4.7
     optionalDependencies:
-      better-sqlite3: 11.10.0
+      better-sqlite3: 12.5.0
       typescript: 5.9.2
     transitivePeerDependencies:
       - '@types/react'

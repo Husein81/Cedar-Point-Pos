@@ -6,8 +6,8 @@ import {
 import { QueryParams, TransferStatus } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateTransferDto } from './dto/create-transfer.dto.js';
-import { UpdateTransferDto } from './dto/update-transfer.dto.js';
+import type { CreateTransferDto } from './dto/create-transfer.dto.js';
+import type { UpdateTransferDto } from './dto/update-transfer.dto.js';
 
 @Injectable()
 export class TransfersService {

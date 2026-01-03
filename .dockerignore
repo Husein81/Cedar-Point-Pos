@@ -1,0 +1,62 @@
+# Dependencies
+**/node_modules
+**/.pnpm-store
+
+# Build outputs
+**/dist
+**/.next
+**/.turbo
+**/build
+**/out
+
+# Environment files (will be injected at runtime)
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS
+.git
+.github
+.gitignore
+.dockerignore
+
+# Documentation
+LICENSE
+README.md
+**/README.md
+CHANGELOG.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+**/logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+**/coverage
+**/.nyc_output
+**/test-results
+
+# Electron specific (NOT building Electron in Docker)
+**/electron
+**/electron-builder.json
+**/forge.config.ts
+apps/pos-desktop/.vite/build
+
+# Temporary files
+**/.cache
+**/tmp
+**/.tmp

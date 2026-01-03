@@ -1,0 +1,123 @@
+# ==============================================================================
+# Development Docker Compose Override
+# ==============================================================================
+# This file extends docker-compose.yml for local development with:
+#   - Hot reload / watch mode
+#   - Source code mounted as volumes
+#   - Dev dependencies included
+#   - Faster builds (no optimizations)
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL - Development Configuration
+  # ----------------------------------------------------------------------------
+  postgres:
+    environment:
+      # More verbose logging in dev
+      POSTGRES_LOG_STATEMENT: all
+    volumes:
+      # Optional: persist data across restarts in dev
+      - postgres_dev_data:/var/lib/postgresql/data
+
+  # ----------------------------------------------------------------------------
+  # API - Development Configuration
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+      args:
+        - NODE_ENV=development
+    command: sh -c "pnpm --filter api db:generate && pnpm --filter api dev"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pointverse}:${POSTGRES_PASSWORD:-pointverse_dev}@postgres:5432/${POSTGRES_DB:-pointverse}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    volumes:
+      # Mount source code for hot reload
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      # Exclude node_modules (use container's version)
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+    ports:
+      - "${API_PORT:-5000}:5000"
+      # Debug port
+      - "9229:9229"
+
+  # ----------------------------------------------------------------------------
+  # POS - Development Configuration (Web only, Electron runs separately)
+  # ----------------------------------------------------------------------------
+  pos:
+    build:
+      context: .
+      dockerfile: apps/pos-desktop/Dockerfile
+      target: dev
+      args:
+        - NODE_ENV=development
+    command: pnpm --filter pos-desktop dev --host
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    volumes:
+      # Mount source code for hot reload
+      - ./apps/pos-desktop:/app/apps/pos-desktop
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      # Exclude node_modules and build artifacts
+      - /app/node_modules
+      - /app/apps/pos-desktop/node_modules
+      - /app/apps/pos-desktop/dist
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+    ports:
+      - "${POS_PORT:-3001}:5173"
+
+  # ----------------------------------------------------------------------------
+  # System Admin - Development Configuration
+  # ----------------------------------------------------------------------------
+  system-admin:
+    build:
+      context: .
+      dockerfile: apps/system-admin/Dockerfile
+      target: dev
+      args:
+        - NODE_ENV=development
+    command: pnpm --filter admin dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+      NEXT_TELEMETRY_DISABLED: 1
+    volumes:
+      # Mount source code for hot reload
+      - ./apps/system-admin:/app/apps/system-admin
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./turbo.json:/app/turbo.json
+      # Exclude node_modules and Next.js cache
+      - /app/node_modules
+      - /app/apps/system-admin/node_modules
+      - /app/apps/system-admin/.next
+      - /app/packages/types/node_modules
+      - /app/packages/ui/node_modules
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+
+volumes:
+  postgres_dev_data:

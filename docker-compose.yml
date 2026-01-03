@@ -1,0 +1,162 @@
+# ==============================================================================
+# Base Docker Compose Configuration
+# ==============================================================================
+# This file defines the core services and infrastructure for the Pointverse
+# POS system. It should be used in combination with:
+#   - docker-compose.dev.yml for local development
+#   - docker-compose.prod.yml for production deployment
+#
+# Usage:
+#   Development: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   Production:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: pointverse-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pointverse}
+      POSTGRES_USER: ${POSTGRES_USER:-pointverse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pointverse_dev}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pointverse-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-pointverse} -d ${POSTGRES_DB:-pointverse}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # API Service (NestJS + Prisma + PostgreSQL)
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: pointverse-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-5000}:5000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pointverse}:${POSTGRES_PASSWORD:-pointverse_dev}@postgres:5432/${POSTGRES_DB:-pointverse}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pointverse-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5000/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ----------------------------------------------------------------------------
+  # POS Web Frontend (React + Vite - NOT Electron)
+  # ----------------------------------------------------------------------------
+  pos:
+    build:
+      context: .
+      dockerfile: apps/pos-desktop/Dockerfile
+    container_name: pointverse-pos
+    restart: unless-stopped
+    ports:
+      - "${POS_PORT:-3001}:80"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    depends_on:
+      - api
+    networks:
+      - pointverse-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # System Admin Dashboard (Next.js)
+  # ----------------------------------------------------------------------------
+  system-admin:
+    build:
+      context: .
+      dockerfile: apps/system-admin/Dockerfile
+    container_name: pointverse-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+    depends_on:
+      - api
+    networks:
+      - pointverse-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  pointverse-network:
+    driver: bridge
+    name: pointverse-network
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+  postgres_data:
+    name: pointverse-postgres-data
+    driver: local

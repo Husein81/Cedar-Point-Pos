@@ -14,8 +14,8 @@ export const useLogin = () => {
       password: string;
     }) => authApi.login(username, password),
     onSuccess: (data) => {
-      console.log("Logged in user:", data.user);
-      setUser(data.user);
+      // Store both user data and access token
+      setUser(data.user, data.accessToken);
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
   });

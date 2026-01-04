@@ -45,34 +45,32 @@ export const Button = ({
   props,
 }: Props) => {
   return (
-    <>
+    <SButton
+      variant={variant ?? "default"}
+      onClick={onClick}
+      className={cn("flex-row gap-2 items-center cursor-pointer", className)}
+      disabled={disabled}
+      size={size}
+      type={type}
+      form={formId}
+      {...props}
+    >
       {isSubmitting ? (
-        <div className="flex items-center gap-2 h-10 px-4 rounded-md border">
-          <Skeleton className="h-5 w-5 rounded-sm" />
-          <Skeleton className="h-4 w-24 rounded-sm" />
-        </div>
+        <Icon
+          name="LoaderCircle"
+          className="animate-spin"
+          size={iconSize || 16}
+        />
       ) : (
-        <SButton
-          variant={variant ?? "default"}
-          onClick={onClick}
-          className={cn(
-            "flex-row gap-2 items-center cursor-pointer",
-            className
-          )}
-          disabled={disabled}
-          size={size}
-          type={type}
-          form={formId}
-          {...props}
-        >
+        <>
           {iconName && (
             <Icon onClick={onClick} name={iconName ?? "Info"} size={iconSize} />
           )}
           {children}
           {text && <span style={{ color: textColor }}>{text}</span>}
           {rightIconName && <Icon onClick={onClick} name={rightIconName} />}
-        </SButton>
+        </>
       )}
-    </>
+    </SButton>
   );
 };

@@ -23,7 +23,10 @@ export class CategoryController {
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.categoryService.getCategories(user.tenantId);
+    return this.categoryService.getCategories(
+      user.tenantId,
+      req.query.search as string,
+    );
   }
 
   @Get(':id')

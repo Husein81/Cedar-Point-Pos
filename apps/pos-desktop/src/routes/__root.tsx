@@ -4,6 +4,7 @@ import Providers from "../components/providers";
 import Footer from "../components/footer";
 import MainLayout from "../components/layouts/main-layout";
 import { Shad } from "@repo/ui";
+import { Modal } from "@/components/common/modal";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -32,6 +33,7 @@ function RootLayout() {
         <Footer />
         <Shad.ScrollBar />
       </Shad.ScrollArea>
+      <Modal />
     </Providers>
   );
 }

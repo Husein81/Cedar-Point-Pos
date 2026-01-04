@@ -46,7 +46,12 @@ export const WeeklySalesChart = ({
                 <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+            <CartesianGrid
+              horizontal
+              vertical={false}
+              strokeDasharray="3 3"
+              stroke="#e0e0e0"
+            />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} tickLine={false} />
             <YAxis
               tick={{ fontSize: 12 }}

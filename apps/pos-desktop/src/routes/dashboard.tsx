@@ -13,6 +13,8 @@ import {
   useTopProducts,
   useWeeklySales,
 } from "../hooks/useDashboard";
+import { Button, Icon } from "@repo/ui";
+import Heading from "@/components/heading";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -35,11 +37,27 @@ function DashboardPage() {
 
   const { data: summary } = summaryQuery;
 
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <DashboardHeader />
+        <Heading
+          title="Dashboard"
+          subtitle={currentDate}
+          actions={
+            <Button>
+              <Icon name="Download" className="w-4 h-4 mr-2" />
+              Export Report
+            </Button>
+          }
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -137,50 +155,6 @@ function DashboardPage() {
             onRetry={() => topProductsQuery.refetch()}
           />
         </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Dashboard Header Component
- */
-function DashboardHeader() {
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Dashboard
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          {currentDate}
-        </p>
-      </div>
-
-      <div className="mt-4 sm:mt-0">
-        <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-          <svg
-            className="w-4 h-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Export Report
-        </button>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Header } from "../components/header";
 import Providers from "../components/providers";
 import Footer from "../components/footer";
 import MainLayout from "../components/layouts/main-layout";
+import { Shad } from "@repo/ui";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -24,10 +25,13 @@ function RootLayout() {
   return (
     <Providers>
       <Header />
-      <MainLayout>
-        <Outlet />
-      </MainLayout>
-      <Footer />
+      <Shad.ScrollArea className="h-screen flex flex-col overflow-hidden">
+        <MainLayout>
+          <Outlet />
+        </MainLayout>
+        <Footer />
+        <Shad.ScrollBar />
+      </Shad.ScrollArea>
     </Providers>
   );
 }

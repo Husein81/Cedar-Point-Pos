@@ -16,7 +16,6 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
   return (
     <Shad.Sidebar className="top-10" collapsible="icon" {...props}>
       {/* Content */}
-      <Shad.SidebarTrigger className="ml-2 mt-2" />
       <Shad.SidebarContent>
         {/* POS */}
         {sidebarSections.map((section) => (

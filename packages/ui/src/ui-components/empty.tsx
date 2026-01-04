@@ -6,7 +6,7 @@ type Props = {
   icon?: string;
 };
 
-export const Empty = ({ title, description, icon }: Props) => {
+export function Empty({ title, description, icon }: Props) {
   return (
     <Shad.Empty>
       <Shad.EmptyMedia>

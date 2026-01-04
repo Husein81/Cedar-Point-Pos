@@ -40,7 +40,12 @@ export const HourlyRevenueChart = ({
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+            <CartesianGrid
+              horizontal
+              vertical={false}
+              strokeDasharray="3 3"
+              stroke="#e0e0e0"
+            />
             <XAxis dataKey="hour" tick={{ fontSize: 12 }} tickLine={false} />
             <YAxis
               tick={{ fontSize: 12 }}
@@ -54,7 +59,7 @@ export const HourlyRevenueChart = ({
               ]}
               contentStyle={{
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
-                border: "1px solid #e0e0e0",
+
                 borderRadius: "8px",
               }}
             />

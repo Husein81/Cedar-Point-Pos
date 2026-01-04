@@ -1,6 +1,6 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
-import { Badge, Button, Separator, Shad } from "@repo/ui";
+import { Avatar, Badge, Button, Separator, Shad } from "@repo/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Plus,
@@ -51,11 +51,7 @@ function RouteComponent() {
       <div className="flex items-center justify-between rounded-lg border bg-card shadow-sm  px-4 py-3">
         {/* LEFT — USER */}
         <div className="flex items-center gap-3">
-          <Shad.Avatar className="size-9">
-            <Shad.AvatarFallback className="font-semibold">
-              {user?.name?.[0].toUpperCase() ?? "UN"}
-            </Shad.AvatarFallback>
-          </Shad.Avatar>
+          <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
 
           <div className="leading-tight">
             <p className="text-sm font-medium">{user?.name}</p>

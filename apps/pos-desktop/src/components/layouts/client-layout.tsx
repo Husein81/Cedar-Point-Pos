@@ -9,8 +9,8 @@ const ClientLayout = ({ children }: Props) => {
   return (
     <Shad.SidebarProvider defaultOpen={false}>
       <Sidebar />
-      <Shad.SidebarInset>
-        <div className="w-full mt-12 pl-4">{children}</div>
+      <Shad.SidebarInset className="flex-1 overflow-hidden">
+        <div className="mt-12 pl-4 pr-4 container mx-auto pb-6">{children}</div>
       </Shad.SidebarInset>
     </Shad.SidebarProvider>
   );

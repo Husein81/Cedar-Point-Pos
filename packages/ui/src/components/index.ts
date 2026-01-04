@@ -51,6 +51,14 @@ import {
   DropdownMenuSubContent,
 } from "./dropdown-menu";
 import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+  EmptyMedia,
+} from "./empty";
+import {
   Menubar,
   MenubarCheckboxItem,
   MenubarContent,
@@ -222,6 +230,12 @@ export const Shad = {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+  EmptyMedia,
   Menubar,
   MenubarPortal,
   MenubarMenu,

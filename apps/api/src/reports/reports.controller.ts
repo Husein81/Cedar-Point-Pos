@@ -33,7 +33,7 @@ export class ReportsController {
    * GET /reports/sales?from=2024-01-01&to=2024-12-31&branchId=optional
    */
   @Get('sales')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getSalesReport(
     @Req() req: Request,
     @Query() query: Record<string, unknown>,
@@ -48,7 +48,7 @@ export class ReportsController {
    * GET /reports/payments?from=2024-01-01&to=2024-12-31&branchId=optional
    */
   @Get('payments')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getPaymentsReport(
     @Req() req: Request,
     @Query() query: Record<string, unknown>,
@@ -63,7 +63,7 @@ export class ReportsController {
    * GET /reports/orders?from=2024-01-01&to=2024-12-31&branchId=optional
    */
   @Get('orders')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getOrdersReport(
     @Req() req: Request,
     @Query() query: Record<string, unknown>,
@@ -78,7 +78,7 @@ export class ReportsController {
    * GET /reports/inventory?from=2024-01-01&to=2024-12-31&branchId=optional
    */
   @Get('inventory')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getInventoryReport(
     @Req() req: Request,
     @Query() query: Record<string, unknown>,
@@ -93,7 +93,7 @@ export class ReportsController {
    * GET /reports/taxes?from=2024-01-01&to=2024-12-31&branchId=optional
    */
   @Get('taxes')
-  @Roles(UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getTaxesReport(
     @Req() req: Request,
     @Query() query: Record<string, unknown>,
@@ -101,5 +101,82 @@ export class ReportsController {
     const user = req.user as { tenantId: string };
     const parsedQuery = this.parseQuery(query);
     return this.reportsService.getTaxesReport(user.tenantId, parsedQuery);
+  }
+
+  /**
+   * Dashboard Summary - Key metrics for today
+   * GET /reports/dashboard/summary?branchId=optional
+   */
+  @Get('dashboard/summary')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  async getDashboardSummary(
+    @Req() req: Request,
+    @Query('branchId') branchId?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.reportsService.getDashboardSummary(user.tenantId, branchId);
+  }
+
+  /**
+   * Weekly Sales - Last 7 days of sales data
+   * GET /reports/dashboard/weekly-sales?branchId=optional
+   */
+  @Get('dashboard/weekly-sales')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  async getWeeklySales(
+    @Req() req: Request,
+    @Query('branchId') branchId?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.reportsService.getWeeklySales(user.tenantId, branchId);
+  }
+
+  /**
+   * Sales by Category - Revenue breakdown by category
+   * GET /reports/dashboard/sales-by-category?from=2024-01-01&to=2024-12-31&branchId=optional
+   */
+  @Get('dashboard/sales-by-category')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  async getSalesByCategory(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getSalesByCategory(user.tenantId, parsedQuery);
+  }
+
+  /**
+   * Hourly Revenue - Revenue distribution by hour for today
+   * GET /reports/dashboard/hourly-revenue?branchId=optional
+   */
+  @Get('dashboard/hourly-revenue')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  async getHourlyRevenue(
+    @Req() req: Request,
+    @Query('branchId') branchId?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.reportsService.getHourlyRevenue(user.tenantId, branchId);
+  }
+
+  /**
+   * Top Products - Best selling products
+   * GET /reports/dashboard/top-products?from=2024-01-01&to=2024-12-31&branchId=optional&limit=5
+   */
+  @Get('dashboard/top-products')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  async getTopProducts(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    const limit = query.limit ? Number(query.limit) : 5;
+    return this.reportsService.getTopProducts(
+      user.tenantId,
+      parsedQuery,
+      limit,
+    );
   }
 }

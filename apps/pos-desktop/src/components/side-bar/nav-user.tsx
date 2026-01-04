@@ -15,7 +15,7 @@ const NavUser = () => {
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
-        <Avatar fallback={user?.name[0]?.charAt(0).toUpperCase()} />
+        <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
       </Shad.DropdownMenuTrigger>
 
       <Shad.DropdownMenuContent align="start" className="sm:max-w-lg">

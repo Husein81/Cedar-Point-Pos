@@ -9,11 +9,47 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TransfersRouteImport } from './routes/transfers'
+import { Route as TablesRouteImport } from './routes/tables'
+import { Route as StockRouteImport } from './routes/stock'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RecipesRouteImport } from './routes/recipes'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 
+const TransfersRoute = TransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TablesRoute = TablesRouteImport.update({
+  id: '/tables',
+  path: '/tables',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StockRoute = StockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecipesRoute = RecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -38,12 +74,24 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/payments': typeof PaymentsRoute
+  '/recipes': typeof RecipesRoute
+  '/reports': typeof ReportsRoute
+  '/stock': typeof StockRoute
+  '/tables': typeof TablesRoute
+  '/transfers': typeof TransfersRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/payments': typeof PaymentsRoute
+  '/recipes': typeof RecipesRoute
+  '/reports': typeof ReportsRoute
+  '/stock': typeof StockRoute
+  '/tables': typeof TablesRoute
+  '/transfers': typeof TransfersRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -51,26 +99,111 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/payments': typeof PaymentsRoute
+  '/recipes': typeof RecipesRoute
+  '/reports': typeof ReportsRoute
+  '/stock': typeof StockRoute
+  '/tables': typeof TablesRoute
+  '/transfers': typeof TransfersRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/orders' | '/products'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/payments'
+    | '/recipes'
+    | '/reports'
+    | '/stock'
+    | '/tables'
+    | '/transfers'
+    | '/orders'
+    | '/products'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/orders' | '/products'
-  id: '__root__' | '/' | '/dashboard' | '/orders/' | '/products/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/payments'
+    | '/recipes'
+    | '/reports'
+    | '/stock'
+    | '/tables'
+    | '/transfers'
+    | '/orders'
+    | '/products'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/payments'
+    | '/recipes'
+    | '/reports'
+    | '/stock'
+    | '/tables'
+    | '/transfers'
+    | '/orders/'
+    | '/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  PaymentsRoute: typeof PaymentsRoute
+  RecipesRoute: typeof RecipesRoute
+  ReportsRoute: typeof ReportsRoute
+  StockRoute: typeof StockRoute
+  TablesRoute: typeof TablesRoute
+  TransfersRoute: typeof TransfersRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/transfers': {
+      id: '/transfers'
+      path: '/transfers'
+      fullPath: '/transfers'
+      preLoaderRoute: typeof TransfersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tables': {
+      id: '/tables'
+      path: '/tables'
+      fullPath: '/tables'
+      preLoaderRoute: typeof TablesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stock': {
+      id: '/stock'
+      path: '/stock'
+      fullPath: '/stock'
+      preLoaderRoute: typeof StockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recipes': {
+      id: '/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof RecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -105,6 +238,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  PaymentsRoute: PaymentsRoute,
+  RecipesRoute: RecipesRoute,
+  ReportsRoute: ReportsRoute,
+  StockRoute: StockRoute,
+  TablesRoute: TablesRoute,
+  TransfersRoute: TransfersRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
 }

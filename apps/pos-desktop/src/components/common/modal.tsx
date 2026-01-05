@@ -6,11 +6,14 @@ export const Modal = () => {
 
   return (
     <Shad.Dialog open={isOpen} onOpenChange={closeModal}>
-      <Shad.DialogContent className="sm:max-w-125">
-        <Shad.DialogHeader>
+      <Shad.DialogContent className="sm:max-w-145">
+        <Shad.DialogHeader className="px-4">
           <Shad.DialogTitle>{modalTitle}</Shad.DialogTitle>
         </Shad.DialogHeader>
-        <div className="py-4">{modalContent}</div>
+        <Shad.ScrollArea className="max-h-[calc(100vh-10rem)] p-4">
+          {modalContent}
+          <Shad.ScrollBar />
+        </Shad.ScrollArea>
       </Shad.DialogContent>
     </Shad.Dialog>
   );

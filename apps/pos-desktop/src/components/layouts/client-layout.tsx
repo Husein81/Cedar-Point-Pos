@@ -10,7 +10,7 @@ const ClientLayout = ({ children }: Props) => {
     <Shad.SidebarProvider defaultOpen={false}>
       <Sidebar />
       <Shad.SidebarInset className="flex-1 overflow-hidden">
-        <div className="mt-12 px-8 py-4 container mx-auto">{children}</div>
+        <div className="mt-12 px-6 py-4 container mx-auto">{children}</div>
       </Shad.SidebarInset>
     </Shad.SidebarProvider>
   );

@@ -1,23 +1,26 @@
-import { Link, useMatches } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Shad } from "@repo/ui";
 
+function formatLabel(segment: string) {
+  // product-details → Product Details
+  return segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function AppBreadcrumbs() {
-  const matches = useMatches();
+  const { pathname } = useLocation();
 
-  const crumbs = matches
-    .map((match) => {
-      const breadcrumb = match.staticData.breadcrumb;
-      if (!breadcrumb) return null;
+  const segments = pathname.split("/").filter(Boolean); // remove empty parts
 
-      return {
-        label:
-          typeof breadcrumb === "function" ? breadcrumb(match) : breadcrumb,
-        to: match.pathname,
-      };
-    })
-    .filter(Boolean) as { label: string; to: string }[];
+  const crumbs = segments.map((segment, index) => {
+    const to = "/" + segments.slice(0, index + 1).join("/");
 
-  if (!crumbs.length) return null;
+    return {
+      label: formatLabel(segment),
+      to,
+    };
+  });
+
+  if (crumbs.length === 0) return null;
 
   return (
     <Shad.Breadcrumb>

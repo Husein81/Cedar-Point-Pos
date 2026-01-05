@@ -15,7 +15,7 @@ type Props = {
 
 const InputField = ({ label, field, placeholder }: Props) => {
   return (
-    <div>
+    <div className="space-y-2">
       <Label htmlFor={field.name}>{label}:</Label>
       <div className="relative">
         <Textarea

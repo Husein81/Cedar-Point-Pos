@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class ProductsService {
@@ -19,46 +19,75 @@ export class ProductsService {
 
   async getProductsPaginated(tenantId: string, params: QueryParams) {
     try {
-      const { search, sort, order } = params;
-      const page = Number(params.page) || 1;
-      const limit = Number(params.limit) || 10;
+      const { search, sort, order, page: rawPage, limit: rawLimit } = params;
 
+      const page = Math.max(Number(rawPage) || 1, 1);
+      const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
       const skip = (page - 1) * limit;
-      const where: Prisma.ProductWhereInput = { tenantId };
-      if (search) {
+
+      /**
+       * 🔎 WHERE
+       */
+      const where: Prisma.ProductWhereInput = {
+        tenantId,
+      };
+
+      const searchTerm = search?.trim();
+      if (searchTerm) {
         where.OR = [
           {
             name: {
-              contains: search,
+              contains: searchTerm,
               mode: Prisma.QueryMode.insensitive,
             },
           },
           {
             sku: {
-              contains: search,
+              contains: searchTerm,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            barcode: {
+              contains: searchTerm,
               mode: Prisma.QueryMode.insensitive,
             },
           },
         ];
       }
 
-      const orderBy: Prisma.ProductOrderByWithRelationInput = {};
-      if (sort) {
-        (orderBy as Record<string, any>)[sort] = order || 'asc';
-      } else {
-        orderBy.createdAt = 'desc';
-      }
+      /**
+       * 🔃 ORDER BY (SAFE)
+       */
+      const sortableFields: Record<string, true> = {
+        name: true,
+        price: true,
+        cost: true,
+        createdAt: true,
+        updatedAt: true,
+      };
 
-      const [totalCount, data] = (await Promise.all([
+      const sortField = sort && sortableFields[sort] ? sort : 'createdAt';
+      const sortOrder: Prisma.SortOrder =
+        order === 'asc' || order === 'desc' ? order : 'desc';
+
+      const orderBy: Prisma.ProductOrderByWithRelationInput[] = [
+        { [sortField]: sortOrder },
+        { id: 'desc' }, // ✅ stable pagination
+      ];
+
+      /**
+       * 📦 QUERY
+       */
+      const [totalCount, data] = await this.prisma.$transaction([
         this.prisma.product.count({ where }),
-
         this.prisma.product.findMany({
           where,
           orderBy,
           skip,
           take: limit,
         }),
-      ])) as [number, unknown[]];
+      ]);
 
       return {
         data,
@@ -78,6 +107,10 @@ export class ProductsService {
   async getProductById(id: string) {
     return await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        category: true,
+        subcategory: true,
+      },
     });
   }
 

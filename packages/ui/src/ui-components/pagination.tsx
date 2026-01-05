@@ -29,7 +29,7 @@ const Pagination = ({
   return (
     <Shad.Pagination className="flex items-center justify-between md:justify-center gap-2 p-2">
       <div className="flex gap-2 items-center">
-        <Label htmlFor="rows-per-page" className="whitespace-nowrap">
+        <Label htmlFor="rows-per-page" className="text-sm whitespace-nowrap">
           rows per page
         </Label>
         <Select
@@ -40,7 +40,7 @@ const Pagination = ({
           className="w-20"
         />
       </div>
-      <div className="flex items-cent gap-1">
+      <div className="flex text-sm items-cent gap-1">
         {page} of {totalPages}
       </div>
 

@@ -1,7 +1,7 @@
 {
   "extends": "./base.json",
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "allowJs": true,
     "skipLibCheck": true,
     "incremental": true,

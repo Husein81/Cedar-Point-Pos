@@ -31,14 +31,14 @@ export const SummaryCard = ({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-all hover:shadow-lg">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
           {title}
         </p>
         {icon && <div className="text-gray-400 dark:text-gray-500">{icon}</div>}
       </div>
 
       <div className="flex items-baseline justify-between">
-        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
           {value}
         </p>
 

@@ -29,7 +29,7 @@ const InputField = ({
   const isPassword = type === "password";
 
   return (
-    <div className="">
+    <div className="space-y-2">
       <Label htmlFor={field.name}>
         {label}
         {props.required && <span className="text-destructive"> *</span>}

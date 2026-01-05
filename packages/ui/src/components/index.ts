@@ -1,5 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Alert, AlertTitle, AlertDescription } from "./alert";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+} from "./breadcrumb";
 import { Calendar, CalendarDayButton } from "./calendar";
 import {
   Card,
@@ -167,18 +176,6 @@ export { Progress } from "./progress";
 export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Textarea } from "./textarea";
-export {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
-  DialogTrigger,
-} from "./dialog";
 
 export const Shad = {
   Avatar,
@@ -187,6 +184,13 @@ export const Shad = {
   Alert,
   AlertDescription,
   AlertTitle,
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
   Calendar,
   CalendarDayButton,
   Card,

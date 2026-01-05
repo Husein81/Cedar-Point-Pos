@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import { useMemo } from "react";
-import { HourlyRevenueChart } from "../components/dashboard/HourlyRevenueChart";
-import { SalesByCategoryChart } from "../components/dashboard/SalesByCategoryChart";
-import { SummaryCard } from "../components/dashboard/SummaryCard";
-import { TopProductsChart } from "../components/dashboard/TopProductsChart";
-import { WeeklySalesChart } from "../components/dashboard/WeeklySalesChart";
+import {
+  HourlyRevenueChart,
+  SalesByCategoryChart,
+  SummaryCard,
+  TopProductsChart,
+  WeeklySalesChart,
+} from "../components/dashboard";
 import {
   useDashboardSummary,
   useHourlyRevenue,
@@ -45,7 +47,7 @@ function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <Heading

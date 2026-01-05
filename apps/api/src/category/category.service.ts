@@ -61,11 +61,17 @@ export class CategoryService {
     };
   }
 
-  async getCategories(tenantId: string) {
+  async getCategories(tenantId: string, search?: string) {
     return this.prisma.category.findMany({
       where: {
         tenantId,
         isDeleted: false,
+        name: search
+          ? {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            }
+          : undefined,
       },
       include: {
         subcategories: {

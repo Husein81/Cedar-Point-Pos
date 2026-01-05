@@ -58,6 +58,13 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
+        label: "Categories",
+        icon: "FolderTree",
+        href: "/categories",
+        tooltip: "Categories",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
         label: "Stock",
         icon: "Warehouse",
         href: "/stock",

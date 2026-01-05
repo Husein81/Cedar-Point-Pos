@@ -19,6 +19,8 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
+import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
+import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
 
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
@@ -70,6 +72,16 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
   path: '/orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
+  id: '/categories/$categoryId',
+  path: '/categories/$categoryId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/categories': typeof CategoriesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -92,6 +106,8 @@ export interface FileRoutesByTo {
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/categories': typeof CategoriesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -105,6 +121,8 @@ export interface FileRoutesById {
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/categories/': typeof CategoriesIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
 }
@@ -119,6 +137,8 @@ export interface FileRouteTypes {
     | '/stock'
     | '/tables'
     | '/transfers'
+    | '/categories/$categoryId'
+    | '/categories'
     | '/orders'
     | '/products'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +151,8 @@ export interface FileRouteTypes {
     | '/stock'
     | '/tables'
     | '/transfers'
+    | '/categories/$categoryId'
+    | '/categories'
     | '/orders'
     | '/products'
   id:
@@ -143,6 +165,8 @@ export interface FileRouteTypes {
     | '/stock'
     | '/tables'
     | '/transfers'
+    | '/categories/$categoryId'
+    | '/categories/'
     | '/orders/'
     | '/products/'
   fileRoutesById: FileRoutesById
@@ -156,6 +180,8 @@ export interface RootRouteChildren {
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
   TransfersRoute: typeof TransfersRoute
+  CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
+  CategoriesIndexRoute: typeof CategoriesIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
 }
@@ -232,6 +258,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/categories/': {
+      id: '/categories/'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof CategoriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/$categoryId': {
+      id: '/categories/$categoryId'
+      path: '/categories/$categoryId'
+      fullPath: '/categories/$categoryId'
+      preLoaderRoute: typeof CategoriesCategoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -244,6 +284,8 @@ const rootRouteChildren: RootRouteChildren = {
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
   TransfersRoute: TransfersRoute,
+  CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
+  CategoriesIndexRoute: CategoriesIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
 }

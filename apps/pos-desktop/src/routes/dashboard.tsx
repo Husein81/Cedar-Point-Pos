@@ -47,7 +47,7 @@ function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <Heading

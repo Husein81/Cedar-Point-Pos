@@ -26,7 +26,6 @@ export interface CategoryWithSubcategories extends Category {
 export const categoryApi = {
   getCategories: async (params?: QueryParams): Promise<Category[]> => {
     const response = await api.get<Category[]>("/categories", { params });
-    console.log("Fetched categories:", response.data);
     return response.data;
   },
 

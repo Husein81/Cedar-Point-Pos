@@ -1,5 +1,4 @@
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
-import { Modal } from "@/components/common/modal";
 import Heading from "@/components/heading";
 import { getSubcategoryColumns } from "@/config/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
@@ -11,12 +10,17 @@ import { useState } from "react";
 
 export const Route = createFileRoute("/categories/$categoryId")({
   component: RouteComponent,
+  staticData: {
+    breadcrumb: `Category Details`,
+  },
 });
 
 function RouteComponent() {
   const { categoryId } = Route.useParams();
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: category, isLoading } = useCategory(categoryId);
   const openModal = useModalStore((state) => state.openModal);
@@ -60,10 +64,10 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Heading
         title={category.name}
-        subtitle={category.description || "No description provided"}
+        subtitle={category.description ?? ""}
         href={"/categories"}
       />
 
@@ -76,10 +80,6 @@ function RouteComponent() {
               {subcategories.length === 1 ? "subcategory" : "subcategories"}
             </p>
           </div>
-          <Button onClick={handleCreateSubcategory}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Subcategory
-          </Button>
         </div>
 
         {subcategories.length === 0 ? (
@@ -94,7 +94,17 @@ function RouteComponent() {
           <DataTable
             columns={getSubcategoryColumns(categoryId)}
             data={paginatedData}
+            search={{
+              term: searchQuery,
+              onTermChange: setSearchQuery,
+              keys: ["name", "description"],
+            }}
             isLoading={isLoading}
+            actions={
+              <Button onClick={handleCreateSubcategory} iconName="Plus">
+                Add Subcategory
+              </Button>
+            }
             pagination={{
               page,
               pageSize,
@@ -105,8 +115,6 @@ function RouteComponent() {
           />
         )}
       </div>
-
-      <Modal />
     </div>
   );
 }

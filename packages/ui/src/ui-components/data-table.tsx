@@ -14,11 +14,13 @@ type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   search?: {
-    term?: string; // controlled applied term
+    term?: string;
     onTermChange?: (term: string) => void;
     keys: (keyof TData)[];
   };
   isLoading?: boolean;
+  onRefetch?: () => void;
+  actions?: React.ReactNode;
   pagination?: {
     page: number;
     pageSize: number;
@@ -33,6 +35,8 @@ export function DataTable<TData, TValue>({
   data,
   search,
   isLoading,
+  onRefetch,
+  actions,
   pagination,
 }: DataTableProps<TData, TValue>) {
   // 🔹 internal fallback state
@@ -42,7 +46,7 @@ export function DataTable<TData, TValue>({
   const appliedTerm = search?.term ?? internalTerm;
 
   /**
-   * 🔍 Filter data (only when appliedTerm changes)
+   * 🔍 Filter data
    */
   const filteredData = useMemo(() => {
     if (!search || !appliedTerm.trim()) return data;
@@ -69,34 +73,56 @@ export function DataTable<TData, TValue>({
   const applySearch = () => {
     if (search?.onTermChange) {
       search.onTermChange(inputValue);
-    } else setInternalTerm(inputValue);
+    } else {
+      setInternalTerm(inputValue);
+    }
 
     pagination?.onPageChange(1);
   };
 
   return (
-    <>
-      {/* 🔍 Search bar */}
-      {search && (
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                applySearch();
-              }
-            }}
-            className="max-w-sm"
-          />
+    <div className="space-y-2">
+      {/* 🔍 Search + Actions bar */}
+      {(search || actions || onRefetch) && (
+        <div className="flex items-center justify-between gap-2">
+          {/* Left: Search */}
+          {search && (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search..."
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applySearch();
+                }}
+                className="max-w-sm"
+              />
 
-          <Button iconName="Search" onClick={applySearch}>
-            Search
-          </Button>
+              <Button iconName="Search" onClick={applySearch}>
+                Search
+              </Button>
+            </div>
+          )}
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            {onRefetch && (
+              <Button
+                variant="outline"
+                iconName="RefreshCw"
+                onClick={onRefetch}
+                disabled={isLoading}
+              >
+                Refresh
+              </Button>
+            )}
+
+            {actions}
+          </div>
         </div>
       )}
 
+      {/* Table */}
       {isLoading ? (
         <TableSkeleton />
       ) : (
@@ -151,6 +177,7 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
+      {/* Pagination */}
       {pagination && (
         <Pagination
           page={pagination.page}
@@ -160,6 +187,6 @@ export function DataTable<TData, TValue>({
           onPageSizeChange={pagination.onPageSizeChange}
         />
       )}
-    </>
+    </div>
   );
 }

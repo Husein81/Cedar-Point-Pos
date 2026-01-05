@@ -62,14 +62,14 @@ export const Button = ({
           size={iconSize || 16}
         />
       ) : (
-        <>
+        <div className="flex items-center gap-2">
           {iconName && (
             <Icon onClick={onClick} name={iconName ?? "Info"} size={iconSize} />
           )}
           {children}
           {text && <span style={{ color: textColor }}>{text}</span>}
           {rightIconName && <Icon onClick={onClick} name={rightIconName} />}
-        </>
+        </div>
       )}
     </SButton>
   );

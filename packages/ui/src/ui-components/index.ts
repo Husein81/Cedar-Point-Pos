@@ -6,3 +6,4 @@ export { default as InputField } from "./input-field";
 export { default as TextareaField } from "./textarea-field";
 export { default as SelectField } from "./select-field";
 export { Empty } from "./empty";
+export { AppBreadcrumbs } from "./app-breadcrumbs";

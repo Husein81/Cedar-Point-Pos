@@ -109,13 +109,10 @@ export const SubcategoryForm = ({
         </Button>
         <Button
           type="submit"
+          isSubmitting={createMutation.isPending || updateMutation.isPending}
           disabled={createMutation.isPending || updateMutation.isPending}
         >
-          {createMutation.isPending || updateMutation.isPending
-            ? "Saving..."
-            : subcategory
-              ? "Update"
-              : "Create"}
+          {subcategory ? "Update" : "Create"}
         </Button>
       </div>
     </form>

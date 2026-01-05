@@ -28,7 +28,7 @@ const SelectField = ({
   onChange,
 }: Props) => {
   return (
-    <div>
+    <div className="space-y-2">
       <Label htmlFor={field.name}>{label}</Label>
       <div className="relative">
         <Select
@@ -42,10 +42,7 @@ const SelectField = ({
           }}
         />
       </div>
-      <FieldInfo
-        field={field}
-        className={cn("text-destructive")}
-      />
+      <FieldInfo field={field} className={cn("text-destructive")} />
     </div>
   );
 };

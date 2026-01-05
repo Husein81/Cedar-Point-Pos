@@ -20,8 +20,8 @@
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
     "electron-squirrel-startup": "^1.0.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "recharts": "^3.6.0"
   },
   "devDependencies": {
@@ -38,8 +38,8 @@
     "@tanstack/react-router": "^1.143.3",
     "@tanstack/router-plugin": "^1.143.3",
     "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "@vitejs/plugin-react-swc": "^4.2.2",
     "cross-env": "^10.1.0",
     "electron": "^39.2.7",

@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Product } from "@repo/types";
 import { Checkbox } from "@repo/ui";
 import { Badge } from "@repo/ui";
+import { ProductActions } from "@/components/products/ProductActions";
 
 export const productColumns: ColumnDef<Product>[] = [
   {
@@ -66,5 +67,11 @@ export const productColumns: ColumnDef<Product>[] = [
       ) : (
         <Badge variant="destructive">Inactive</Badge>
       ),
+  },
+
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <ProductActions product={row.original} />,
   },
 ];

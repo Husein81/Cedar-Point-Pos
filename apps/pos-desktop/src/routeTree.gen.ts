@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
+import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
 
 const TransfersRoute = TransfersRouteImport.update({
@@ -77,6 +78,11 @@ const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
   path: '/categories/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
+  id: '/products/$productId',
+  path: '/products/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
   id: '/categories/$categoryId',
   path: '/categories/$categoryId',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/products/$productId': typeof ProductsProductIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
+    | '/products/$productId'
     | '/categories'
     | '/orders'
     | '/products'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
+    | '/products/$productId'
     | '/categories'
     | '/orders'
     | '/products'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
+    | '/products/$productId'
     | '/categories/'
     | '/orders/'
     | '/products/'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   TablesRoute: typeof TablesRoute
   TransfersRoute: typeof TransfersRoute
   CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
+  ProductsProductIdRoute: typeof ProductsProductIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/products/$productId': {
+      id: '/products/$productId'
+      path: '/products/$productId'
+      fullPath: '/products/$productId'
+      preLoaderRoute: typeof ProductsProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories/$categoryId': {
       id: '/categories/$categoryId'
       path: '/categories/$categoryId'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   TablesRoute: TablesRoute,
   TransfersRoute: TransfersRoute,
   CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
+  ProductsProductIdRoute: ProductsProductIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,

@@ -13,11 +13,10 @@ type Props = {
 const Pagination = ({
   page = 1,
   pageSize = 10,
-  totalPages = 0,
+  totalPages = 1,
   onPageChange,
   onPageSizeChange,
 }: Props) => {
-  console.log({ page, pageSize, totalPages });
   const options = [
     { value: "10", label: "10" },
     { value: "20", label: "20" },
@@ -27,50 +26,61 @@ const Pagination = ({
   ];
 
   return (
-    <Shad.Pagination className="flex items-center justify-between md:justify-center gap-2 p-2">
-      <div className="flex gap-2 items-center">
-        <Label htmlFor="rows-per-page" className="text-sm whitespace-nowrap">
-          rows per page
-        </Label>
-        <Select
-          value={pageSize?.toString() ?? "10"}
-          onChange={(option) => onPageSizeChange(Number(option.value))}
-          options={options}
-          side={"bottom"}
-          className="w-20"
-        />
-      </div>
-      <div className="flex text-sm items-cent gap-1">
-        {page} of {totalPages}
-      </div>
+    <Shad.Pagination className="flex items-center justify-between w-full p-2">
+      <span className="text-sm text-gray-700 dark:text-gray-300">
+        Total {totalPages * pageSize} rows
+      </span>
 
-      <div className="flex items-cent gap-1">
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(1)}
-          disabled={page <= 1}
-          className="hidden md:block"
-          iconName={"ChevronsLeft"}
-        />
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(Number(page) - 1)}
-          disabled={page <= 1}
-          iconName={"ChevronLeft"}
-        />
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(Number(page) + 1)}
-          disabled={page >= totalPages}
-          iconName={"ChevronRight"}
-        />
-        <Button
-          variant="outline"
-          onClick={() => onPageChange(totalPages)}
-          disabled={page >= totalPages}
-          className="hidden md:block"
-          iconName={"ChevronsRight"}
-        />
+      <div className="flex items-center justify-between md:justify-center gap-4">
+        <div className="flex gap-2 items-center">
+          <Label htmlFor="rows-per-page" className="text-sm whitespace-nowrap">
+            rows per page
+          </Label>
+          <Select
+            value={pageSize?.toString() ?? "10"}
+            onChange={(option) => onPageSizeChange(Number(option.value))}
+            options={options}
+            side={"bottom"}
+            className="w-20"
+          />
+        </div>
+
+        <div className="flex text-sm items-cent gap-1">
+          {page} of {totalPages}
+        </div>
+
+        <div className="flex items-cent gap-1">
+          <Button
+            variant="outline"
+            size={"sm"}
+            onClick={() => onPageChange(1)}
+            disabled={page <= 1}
+            className="hidden md:block"
+            iconName={"ChevronsLeft"}
+          />
+          <Button
+            variant="outline"
+            size={"sm"}
+            onClick={() => onPageChange(Number(page) - 1)}
+            disabled={page <= 1}
+            iconName={"ChevronLeft"}
+          />
+          <Button
+            variant="outline"
+            size={"sm"}
+            onClick={() => onPageChange(Number(page) + 1)}
+            disabled={page >= totalPages}
+            iconName={"ChevronRight"}
+          />
+          <Button
+            variant="outline"
+            size={"sm"}
+            onClick={() => onPageChange(totalPages)}
+            disabled={page >= totalPages}
+            className="hidden md:block"
+            iconName={"ChevronsRight"}
+          />
+        </div>
       </div>
     </Shad.Pagination>
   );

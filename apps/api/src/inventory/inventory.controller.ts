@@ -86,7 +86,7 @@ export class InventoryController {
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @Post(':branchId/product/:productId/adjust')
-  async adjustStock(
+  adjustStock(
     @Req() req: Request,
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
@@ -162,11 +162,18 @@ export class InventoryController {
       changeType?: InventoryChangeType;
       startDate?: string;
       endDate?: string;
-      productId: string;
-      branchId: string;
       userId: string;
     };
-    return this.inventoryService.getInventoryHistory(user.tenantId, query);
+    const params = {
+      branchId: req.params.branchId,
+      productId: req.params.productId,
+    };
+
+    return this.inventoryService.getInventoryHistory(
+      user.tenantId,
+      params,
+      query,
+    );
   }
 
   /**
@@ -180,11 +187,17 @@ export class InventoryController {
       changeType?: InventoryChangeType;
       startDate?: string;
       endDate?: string;
-      productId: string;
       userId: string;
-      branchId: string;
     };
-    return this.inventoryService.getInventoryHistory(user.tenantId, query);
+    const params = {
+      branchId: req.params.branchId,
+      productId: req.params.productId,
+    };
+    return this.inventoryService.getInventoryHistory(
+      user.tenantId,
+      params,
+      query,
+    );
   }
 
   /**
@@ -194,13 +207,20 @@ export class InventoryController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getInventoryHistoryByProduct(@Req() req: Request) {
     const user = req.user as { tenantId: string };
+    const params = {
+      branchId: req.params.branchId,
+      productId: req.params.productId,
+    };
     const query = req.query as QueryParams & {
       startDate?: string;
       endDate?: string;
-      branchId: string;
       productId: string;
       userId: string;
     };
-    return this.inventoryService.getInventoryHistory(user.tenantId, query);
+    return this.inventoryService.getInventoryHistory(
+      user.tenantId,
+      params,
+      query,
+    );
   }
 }

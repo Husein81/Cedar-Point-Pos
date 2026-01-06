@@ -8,8 +8,12 @@ import { Prisma } from '../../generated/prisma/client.js';
 export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
   @Get()
-  getBranches() {
-    return this.branchesService.getBranches();
+  getBranches(@Req() req: Request) {
+    const { tenantId } = req.user as { tenantId: string };
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    return this.branchesService.getBranchesByTenantId(tenantId);
   }
 
   @Roles('ADMIN', 'MANAGER')

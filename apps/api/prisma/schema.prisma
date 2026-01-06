@@ -84,6 +84,7 @@ model Tenant {
     businessType BusinessType
     createdAt    DateTime     @default(now())
     updatedAt    DateTime     @updatedAt
+    isActive     Boolean      @default(true)
 
     users            User[]
     branches         Branch[]
@@ -475,22 +476,22 @@ model Order {
 // ---------- ORDER ITEMS (Line Items) ----------
 //
 model OrderItem {
-  id          String              @id @default(cuid())
-  orderId     String
-  productId   String
-  quantity    Decimal             @default(1) @db.Decimal(10, 4)
-  unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
-  subtotal    Decimal             @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
-  taxRate     Decimal             @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
-  taxAmount   Decimal             @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
-  total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
-  // KDS tracking
-  notes       String? // e.g., "Extra crispy"
-  order       Order               @relation(fields: [orderId], references: [id])
-  product     Product             @relation(fields: [productId], references: [id])
-  modifiers   OrderItemModifier[]
-  tickets     OrderItemTicket[] // FIXED: Relation to new KDS ticket model
-  refundItems RefundItem[]
+    id          String              @id @default(cuid())
+    orderId     String
+    productId   String
+    quantity    Decimal             @default(1) @db.Decimal(10, 4)
+    unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
+    subtotal    Decimal             @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
+    taxRate     Decimal             @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
+    taxAmount   Decimal             @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
+    total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
+    // KDS tracking
+    notes       String? // e.g., "Extra crispy"
+    order       Order               @relation(fields: [orderId], references: [id])
+    product     Product             @relation(fields: [productId], references: [id])
+    modifiers   OrderItemModifier[]
+    tickets     OrderItemTicket[] // FIXED: Relation to new KDS ticket model
+    refundItems RefundItem[]
 }
 
 //

@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InventoryChangeType, QueryParams } from '@repo/types';
-import type { CreateInventoryHistoryDto } from './dto/inventory.dto.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreateInventoryHistoryDto } from './dto/inventory.dto.js';
 
 @Injectable()
 export class InventoryService {
@@ -72,54 +72,71 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.inventory.findUnique({
-        where: {
-          branchId_productId: {
-            branchId,
-            productId,
-          },
-        },
-      });
+    // Validate stock value
+    if (isNaN(stock) || !isFinite(stock) || stock < 0) {
+      throw new Error('Stock level must be a non-negative number');
+    }
 
-      const beforeStock = existing ? Number(existing.stock) : 0;
-      const afterStock = stock;
-
-      const result = await tx.inventory.upsert({
-        where: {
-          branchId_productId: {
-            branchId,
-            productId,
-          },
-        },
-        create: {
-          tenantId,
-          branchId,
-          productId,
-          stock: Number(stock),
-        },
-        update: {
-          stock: Number(stock),
-        },
-        include: { product: true },
-      });
-
-      // Log history if stock actually changed
-      if (beforeStock !== afterStock) {
-        await this.createHistoryLog(tx, {
-          tenantId,
-          branchId,
-          productId,
-          userId,
-          changeType: InventoryChangeType.SET_STOCK,
-          beforeStock,
-          afterStock,
-          reason,
-        });
-      }
-
-      return result;
+    // Validate product exists
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
     });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.inventory.findUnique({
+          where: {
+            branchId_productId: {
+              branchId,
+              productId,
+            },
+          },
+        });
+
+        const beforeStock = existing ? Number(existing.stock) : 0;
+        const afterStock = stock;
+
+        const result = await tx.inventory.upsert({
+          where: {
+            branchId_productId: {
+              branchId,
+              productId,
+            },
+          },
+          create: {
+            tenantId,
+            branchId,
+            productId,
+            stock: Number(stock),
+          },
+          update: {
+            stock: Number(stock),
+          },
+          include: { product: true },
+        });
+
+        // Log history if stock actually changed
+        if (beforeStock !== afterStock) {
+          await this.createHistoryLog(tx, {
+            tenantId,
+            branchId,
+            productId,
+            userId,
+            changeType: InventoryChangeType.SET_STOCK,
+            beforeStock,
+            afterStock,
+            reason,
+          });
+        }
+
+        return result;
+      },
+      { timeout: 30000 },
+    );
   }
 
   async adjustStock(
@@ -130,47 +147,78 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.inventory.findUnique({
-        where: { branchId_productId: { branchId, productId } },
-      });
+    // Validate adjustment value
+    if (isNaN(adjustment) || !isFinite(adjustment)) {
+      throw new Error('Invalid adjustment value');
+    }
 
-      const beforeStock = existing ? Number(existing.stock) : 0;
-      const afterStock = beforeStock + adjustment;
-
-      let result;
-      if (existing) {
-        result = await tx.inventory.update({
-          where: { branchId_productId: { branchId, productId } },
-          data: { stock: { increment: adjustment } },
-          include: { product: true },
-        });
-      } else {
-        result = await tx.inventory.create({
-          data: {
-            tenantId,
-            branchId,
-            productId,
-            stock: Number(adjustment),
-          },
-          include: { product: true },
-        });
-      }
-
-      // Log history
-      await this.createHistoryLog(tx, {
-        tenantId,
-        branchId,
-        productId,
-        userId,
-        changeType: InventoryChangeType.ADJUST_STOCK,
-        beforeStock,
-        afterStock,
-        reason,
-      });
-
-      return result;
+    // Validate product exists
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
     });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.inventory.findUnique({
+          where: { branchId_productId: { branchId, productId } },
+        });
+
+        const beforeStock = existing ? Number(existing.stock) : 0;
+        const afterStock = beforeStock + adjustment;
+
+        // Prevent negative stock
+        if (afterStock < 0) {
+          throw new Error(
+            `Cannot remove ${Math.abs(adjustment)} units. Only ${beforeStock} units available in stock.`,
+          );
+        }
+
+        let result: Prisma.InventoryGetPayload<{ include: { product: true } }>;
+        if (existing) {
+          result = await tx.inventory.update({
+            where: { branchId_productId: { branchId, productId } },
+            data: { stock: { increment: adjustment } },
+            include: { product: true },
+          });
+        } else {
+          // For new inventory, ensure non-negative stock
+          if (adjustment < 0) {
+            throw new Error(
+              'Cannot create inventory with negative stock. Add stock first.',
+            );
+          }
+
+          result = await tx.inventory.create({
+            data: {
+              tenantId,
+              branchId,
+              productId,
+              stock: Number(adjustment),
+            },
+            include: { product: true },
+          });
+        }
+
+        // Log history
+        await this.createHistoryLog(tx, {
+          tenantId,
+          branchId,
+          productId,
+          userId,
+          changeType: InventoryChangeType.ADJUST_STOCK,
+          beforeStock,
+          afterStock,
+          reason: reason || (adjustment > 0 ? 'Stock added' : 'Stock removed'),
+        });
+
+        return result;
+      },
+      { timeout: 30000 },
+    );
   }
 
   /**
@@ -302,59 +350,62 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.inventory.findUnique({
-        where: {
-          branchId_productId: {
-            branchId,
-            productId,
+    return await this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.inventory.findUnique({
+          where: {
+            branchId_productId: {
+              branchId,
+              productId,
+            },
           },
-        },
-      });
-
-      const beforeMinStock = existing ? Number(existing.minStock) : 0;
-      const afterMinStock = minStock;
-      const beforeStock = existing ? Number(existing.stock) : 0;
-      const afterStock = beforeStock; // Stock doesn't change, only minStock
-
-      const result = await tx.inventory.upsert({
-        where: {
-          branchId_productId: {
-            branchId,
-            productId,
-          },
-        },
-        create: {
-          tenantId,
-          branchId,
-          productId,
-          stock: Number(0),
-          minStock: Number(minStock),
-        },
-        update: {
-          minStock: Number(minStock),
-        },
-        include: { product: true, branch: true },
-      });
-
-      // Log history if minStock actually changed
-      if (beforeMinStock !== afterMinStock) {
-        await this.createHistoryLog(tx, {
-          tenantId,
-          branchId,
-          productId,
-          userId,
-          changeType: InventoryChangeType.SET_MIN_STOCK,
-          beforeStock,
-          afterStock,
-          beforeMinStock,
-          afterMinStock,
-          reason,
         });
-      }
 
-      return result;
-    });
+        const beforeMinStock = existing ? Number(existing.minStock) : 0;
+        const afterMinStock = minStock;
+        const beforeStock = existing ? Number(existing.stock) : 0;
+        const afterStock = beforeStock; // Stock doesn't change, only minStock
+
+        const result = await tx.inventory.upsert({
+          where: {
+            branchId_productId: {
+              branchId,
+              productId,
+            },
+          },
+          create: {
+            tenantId,
+            branchId,
+            productId,
+            stock: Number(0),
+            minStock: Number(minStock),
+          },
+          update: {
+            minStock: Number(minStock),
+          },
+          include: { product: true, branch: true },
+        });
+
+        // Log history if minStock actually changed
+        if (beforeMinStock !== afterMinStock) {
+          await this.createHistoryLog(tx, {
+            tenantId,
+            branchId,
+            productId,
+            userId,
+            changeType: InventoryChangeType.SET_MIN_STOCK,
+            beforeStock,
+            afterStock,
+            beforeMinStock,
+            afterMinStock,
+            reason,
+          });
+        }
+
+        return result;
+      },
+      { timeout: 30000 },
+    );
   }
 
   /**
@@ -367,70 +418,73 @@ export class InventoryService {
     userId: string,
     reason?: string,
   ) {
-    return await this.prisma.$transaction(async (tx) => {
-      // First, get existing inventory items
-      const existingItems = await tx.inventory.findMany({
-        where: {
-          branchId,
-          productId: { in: items.map((item) => item.productId) },
-        },
-      });
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // First, get existing inventory items
+        const existingItems = await tx.inventory.findMany({
+          where: {
+            branchId,
+            productId: { in: items.map((item) => item.productId) },
+          },
+        });
 
-      const existingMap = new Map(
-        existingItems.map((item) => [item.productId, item]),
-      );
+        const existingMap = new Map(
+          existingItems.map((item) => [item.productId, item]),
+        );
 
-      // Update inventory and create history logs
-      const results = await Promise.all(
-        items.map(async (item) => {
-          const existing = existingMap.get(item.productId);
-          const beforeMinStock = existing ? Number(existing.minStock) : 0;
-          const afterMinStock = item.minStock;
-          const beforeStock = existing ? Number(existing.stock) : 0;
-          const afterStock = beforeStock; // Stock doesn't change
+        // Update inventory and create history logs
+        const results = await Promise.all(
+          items.map(async (item) => {
+            const existing = existingMap.get(item.productId);
+            const beforeMinStock = existing ? Number(existing.minStock) : 0;
+            const afterMinStock = item.minStock;
+            const beforeStock = existing ? Number(existing.stock) : 0;
+            const afterStock = beforeStock; // Stock doesn't change
 
-          const result = await tx.inventory.upsert({
-            where: {
-              branchId_productId: {
+            const result = await tx.inventory.upsert({
+              where: {
+                branchId_productId: {
+                  branchId,
+                  productId: item.productId,
+                },
+              },
+              create: {
+                tenantId,
                 branchId,
                 productId: item.productId,
+                stock: Number(0),
+                minStock: Number(item.minStock),
               },
-            },
-            create: {
-              tenantId,
-              branchId,
-              productId: item.productId,
-              stock: Number(0),
-              minStock: Number(item.minStock),
-            },
-            update: {
-              minStock: Number(item.minStock),
-            },
-            include: { product: true },
-          });
-
-          // Log history if minStock actually changed
-          if (beforeMinStock !== afterMinStock) {
-            await this.createHistoryLog(tx, {
-              tenantId,
-              branchId,
-              productId: item.productId,
-              userId,
-              changeType: InventoryChangeType.SET_MIN_STOCK,
-              beforeStock,
-              afterStock,
-              beforeMinStock,
-              afterMinStock,
-              reason,
+              update: {
+                minStock: Number(item.minStock),
+              },
+              include: { product: true },
             });
-          }
 
-          return result;
-        }),
-      );
+            // Log history if minStock actually changed
+            if (beforeMinStock !== afterMinStock) {
+              await this.createHistoryLog(tx, {
+                tenantId,
+                branchId,
+                productId: item.productId,
+                userId,
+                changeType: InventoryChangeType.SET_MIN_STOCK,
+                beforeStock,
+                afterStock,
+                beforeMinStock,
+                afterMinStock,
+                reason,
+              });
+            }
 
-      return results;
-    });
+            return result;
+          }),
+        );
+
+        return results;
+      },
+      { timeout: 30000 },
+    );
   }
 
   /**
@@ -438,17 +492,17 @@ export class InventoryService {
    */
   async getInventoryHistory(
     tenantId: string,
-    params: QueryParams & {
+    params: { productId: string; branchId: string },
+    query: QueryParams & {
       startDate?: string;
       endDate?: string;
-      productId: string;
-      branchId: string;
       userId: string;
     },
   ) {
-    const { branchId, productId, userId, startDate, endDate } = params;
-    const page = Number(params.page) || 1;
-    const limit = Number(params.limit) || 20;
+    const { branchId, productId } = params;
+    const { userId, startDate, endDate } = query;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
 
     const skip = (page - 1) * limit;
 
@@ -527,10 +581,10 @@ export class InventoryService {
     const adjustment = Number(afterStock) - Number(beforeStock);
     await tx.inventoryHistory.create({
       data: {
-        tenantId: tenantId!,
-        branchId: branchId!,
-        productId: productId!,
-        userId: userId!,
+        tenant: { connect: { id: tenantId! } },
+        branch: { connect: { id: branchId! } },
+        product: { connect: { id: productId! } },
+        user: { connect: { id: userId! } },
         changeType: changeType!,
         beforeStock: Number(beforeStock),
         afterStock: Number(afterStock),

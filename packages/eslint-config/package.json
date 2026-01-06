@@ -6,6 +6,7 @@
   "exports": {
     "./base": "./base.js",
     "./next-js": "./next.js",
+    "./vite.js": "./vite.js",
     "./react-internal": "./react-internal.js"
   },
   "devDependencies": {

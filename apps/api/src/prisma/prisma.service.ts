@@ -8,7 +8,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     const adapter = new PrismaPg({
       connectionString: process.env.DATABASE_URL as string,
     });
-    super({ adapter });
+    super({
+      adapter,
+      transactionOptions: {
+        maxWait: 30000, // 30 seconds max wait to start transaction
+        timeout: 30000, // 30 seconds max time transaction can run
+      },
+    });
   }
 
   async onModuleInit() {

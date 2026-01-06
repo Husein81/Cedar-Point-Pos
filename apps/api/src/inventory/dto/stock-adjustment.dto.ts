@@ -1,12 +1,20 @@
 import { z } from 'zod';
 import { InventoryChangeType } from '@repo/types';
 
+export const adjustmentTypeEnum = z.enum([
+  'STOCK_IN',
+  'STOCK_OUT',
+  'SET_STOCK',
+]);
+export type AdjustmentType = z.infer<typeof adjustmentTypeEnum>;
+
 export const createStockAdjustmentSchema = z.object({
   branchId: z.string(),
   productId: z.string(),
-  operation: z.enum(InventoryChangeType),
-  quantity: z.number(), // For ADJUST_STOCK: positive to add, negative to remove. For SET_STOCK/MANUAL_ADJUST: absolute value
+  adjustmentType: adjustmentTypeEnum,
+  quantity: z.number().positive(), // Always positive, adjustmentType determines if adding or removing
   reason: z.string(),
+  minStock: z.number().optional(), // Optional minimum stock threshold
 });
 export type CreateStockAdjustmentDto = z.infer<
   typeof createStockAdjustmentSchema

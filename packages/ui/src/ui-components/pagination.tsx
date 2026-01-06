@@ -3,6 +3,7 @@ import { Button } from "./button";
 import Select from "./select";
 
 type Props = {
+  rows?: number;
   page?: number;
   pageSize?: number;
   totalPages?: number;
@@ -11,13 +12,14 @@ type Props = {
 };
 
 const Pagination = ({
+  rows = 0,
   page = 1,
   pageSize = 10,
   totalPages = 1,
   onPageChange,
   onPageSizeChange,
 }: Props) => {
-  const options = [
+  const options: { value: string; label: string }[] = [
     { value: "10", label: "10" },
     { value: "20", label: "20" },
     { value: "30", label: "30" },
@@ -28,7 +30,7 @@ const Pagination = ({
   return (
     <Shad.Pagination className="flex items-center justify-between w-full p-2">
       <span className="text-sm text-gray-700 dark:text-gray-300">
-        Total {totalPages * pageSize} rows
+        Total {rows} rows
       </span>
 
       <div className="flex items-center justify-between md:justify-center gap-4">

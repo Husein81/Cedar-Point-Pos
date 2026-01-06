@@ -9,16 +9,19 @@ import type {
 } from './dto/stock-adjustment.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryChangeType } from '@repo/types';
+import { InventoryTransactionService } from './inventory-transaction.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class StockAdjustmentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventoryTransactionService: InventoryTransactionService,
+  ) {}
   /**
    * Adjust stock for a product at a branch
-   * Supports ADD, REMOVE, and SET operations with reason tracking
-   * Updates lastAdjusted timestamp automatically via Prisma @updatedAt
-   * Creates audit trail in InventoryHistory
+   * Now uses InventoryTransactionService as single source of truth
+   * Supports STOCK_IN, STOCK_OUT, and SET_STOCK operations
    */
   async adjustStock(
     tenantId: string,
@@ -33,78 +36,24 @@ export class StockAdjustmentService {
       throw new BadRequestException('Quantity must be a positive number');
     }
 
-    // Verify branch belongs to tenant
-    const branch = await this.prisma.branch.findFirst({
-      where: {
-        id: branchId,
-        tenantId,
-        isDeleted: false,
-      },
-    });
-
-    if (!branch) {
-      throw new NotFoundException('Branch not found');
-    }
-
-    // Verify product belongs to tenant
-    const product = await this.prisma.product.findFirst({
-      where: {
-        id: productId,
-        tenantId,
-        isDeleted: false,
-      },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    // Get or create inventory record
-    let inventory = await this.prisma.inventory.findUnique({
-      where: {
-        branchId_productId: {
-          branchId,
-          productId,
-        },
-      },
-    });
-
-    if (!inventory) {
-      // Create inventory if it doesn't exist
-      inventory = await this.prisma.inventory.create({
-        data: {
-          tenantId,
-          branchId,
-          productId,
-          stock: 0,
-          minStock: 0,
-        },
-      });
-    }
-
-    const stockBefore = Number(inventory.stock);
-    const minStockBefore = Number(inventory.minStock);
-    let stockAfter: number;
+    // Map adjustment type to change type
     let changeType: InventoryChangeType;
+    let transactionQuantity: number;
 
-    // Calculate new stock level based on adjustment type
     switch (adjustmentType) {
       case 'STOCK_IN':
-        // Add quantity to current stock
-        stockAfter = stockBefore + quantity;
         changeType = 'ADJUST_STOCK';
+        transactionQuantity = quantity; // Positive: add to stock
         break;
 
       case 'STOCK_OUT':
-        // Remove quantity from current stock
-        stockAfter = stockBefore - quantity;
         changeType = 'MANUAL_ADJUST';
+        transactionQuantity = -Math.abs(quantity); // Negative: subtract from stock
         break;
 
       case 'SET_STOCK':
-        // Set stock to absolute value
-        stockAfter = quantity;
         changeType = 'SET_STOCK';
+        transactionQuantity = quantity; // Set absolute value
         break;
 
       default:
@@ -113,87 +62,75 @@ export class StockAdjustmentService {
         );
     }
 
-    // Validate stock doesn't go negative
-    if (stockAfter < 0) {
-      throw new BadRequestException(
-        `Stock cannot be negative. Attempted: ${stockAfter}, Current stock: ${stockBefore}, Adjustment: ${adjustmentType} ${quantity}`,
-      );
+    // Execute transaction through centralized service
+    const result = await this.inventoryTransactionService.executeTransaction({
+      tenantId,
+      branchId,
+      productId,
+      userId,
+      changeType,
+      quantity: transactionQuantity,
+      reason: reason || `${adjustmentType} adjustment`,
+      referenceType: 'ADJUSTMENT',
+      allowNegativeStock: false, // Strict: never allow negative stock
+    });
+
+    // Handle minStock update separately if provided
+    if (minStock !== undefined) {
+      await this.inventoryTransactionService.executeTransaction({
+        tenantId,
+        branchId,
+        productId,
+        userId,
+        changeType: 'SET_MIN_STOCK',
+        quantity: minStock,
+        reason: 'Minimum stock threshold updated',
+        referenceType: 'ADJUSTMENT',
+        minStock,
+      });
     }
 
-    // Perform adjustment in a transaction
-    const result = await this.prisma.$transaction(async (tx) => {
-      // Update inventory (lastAdjusted is auto-updated via @updatedAt)
-      const updatedInventory = await tx.inventory.update({
-        where: {
-          branchId_productId: {
-            branchId,
-            productId,
-          },
-        },
-        data: {
-          stock: new Prisma.Decimal(stockAfter),
-          ...(minStock !== undefined && {
-            minStock: new Prisma.Decimal(minStock),
-          }),
-        },
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              sku: true,
-            },
-          },
-          branch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      // Create history record for audit trail
-      // Tracks: user, timestamp, before/after quantities, and reason
-      await tx.inventoryHistory.create({
-        data: {
-          tenantId,
+    // Fetch updated inventory with relations
+    const updatedInventory = await this.prisma.inventory.findUnique({
+      where: {
+        branchId_productId: {
           branchId,
           productId,
-          userId,
-          changeType,
-          beforeStock: new Prisma.Decimal(stockBefore),
-          afterStock: new Prisma.Decimal(stockAfter),
-          adjustment: new Prisma.Decimal(stockAfter - stockBefore),
-          reason,
-          ...(minStock !== undefined && {
-            beforeMinStock: new Prisma.Decimal(minStockBefore),
-            afterMinStock: new Prisma.Decimal(minStock),
-          }),
         },
-      });
-
-      return updatedInventory;
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     return {
       message: 'Stock adjusted successfully',
       inventory: {
-        id: result.id,
-        stock: Number(result.stock),
-        minStock: Number(result.minStock),
-        lastAdjusted: result.lastAdjusted,
-        product: result.product,
-        branch: result.branch,
+        id: updatedInventory!.id,
+        stock: Number(updatedInventory!.stock),
+        minStock: Number(updatedInventory!.minStock),
+        lastAdjusted: updatedInventory!.lastAdjusted,
+        product: updatedInventory!.product,
+        branch: updatedInventory!.branch,
       },
       adjustment: {
         adjustmentType,
         changeType,
         quantity,
-        stockBefore,
-        stockAfter,
-        minStockBefore,
-        minStockAfter: minStock,
+        stockBefore: result.beforeStock,
+        stockAfter: result.afterStock,
         reason,
       },
     };

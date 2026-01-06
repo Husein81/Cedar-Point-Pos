@@ -1,10 +1,14 @@
 import { useForm } from "@tanstack/react-form";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { Button, InputField, SelectField, TextareaField } from "@repo/ui";
 import { useAdjustStock } from "@/hooks/useStock";
 import { useModalStore } from "@/store/modalStore";
 import { useProducts } from "@/hooks/useProduct";
 import { stockApi } from "@/apis/stockApi";
+import {
+  validateStockAdjustment,
+  calculateStockPreview,
+} from "@/utils/inventoryUtils";
 
 type AdjustmentType = "STOCK_IN" | "STOCK_OUT" | "SET_STOCK";
 
@@ -73,6 +77,15 @@ export const StockAdjustmentForm = ({
   const adjustStock = useAdjustStock();
 
   const [isValidating, setIsValidating] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<{
+    message: string;
+    severity: "error" | "warning" | "info";
+  } | null>(null);
+  const [stockPreview, setStockPreview] = useState<{
+    before: number;
+    after: number;
+    change: number;
+  } | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -90,18 +103,12 @@ export const StockAdjustmentForm = ({
       try {
         setIsValidating(true);
 
-        if (value.adjustmentType === "STOCK_OUT") {
-          const validation = await stockApi.validateStockAdjustment(
-            branchId,
-            value.productId,
-            quantity,
-            value.adjustmentType
-          );
-
-          if (!validation.valid) {
-            throw new Error(validation.message ?? "Invalid stock adjustment");
-          }
-        }
+        // Validate before submit (only STOCK_OUT)
+        await validateBeforeSubmit(
+          value.productId,
+          quantity,
+          value.adjustmentType
+        );
 
         await adjustStock.mutateAsync({
           branchId,
@@ -124,9 +131,74 @@ export const StockAdjustmentForm = ({
   });
 
   const adjustmentType = form.getFieldValue("adjustmentType");
+  const quantity = form.getFieldValue("quantity");
+  const minStock = form.getFieldValue("minStock");
+
   const quantityMeta = useMemo(
     () => getQuantityMeta(adjustmentType),
     [adjustmentType]
+  );
+
+  // Live validation and preview
+  useEffect(() => {
+    const currentStockNum = currentStock ? Number(currentStock) : 0;
+    const quantityNum = quantity ? Number(quantity) : 0;
+    const minStockNum = minStock ? Number(minStock) : undefined;
+
+    if (quantityNum > 0) {
+      // Validate
+      const validation = validateStockAdjustment(
+        adjustmentType,
+        quantityNum,
+        currentStockNum,
+        minStockNum
+      );
+
+      if (!validation.valid || validation.severity === "warning") {
+        setValidationMessage({
+          message: validation.message || "",
+          severity: validation.severity,
+        });
+      } else {
+        setValidationMessage(null);
+      }
+
+      // Calculate preview
+      const preview = calculateStockPreview(
+        adjustmentType,
+        quantityNum,
+        currentStockNum
+      );
+      setStockPreview(preview);
+    } else {
+      setValidationMessage(null);
+      setStockPreview(null);
+    }
+  }, [adjustmentType, quantity, currentStock, minStock]);
+
+  // Optimized validation - only for STOCK_OUT
+  const validateBeforeSubmit = useCallback(
+    async (productId: string, quantity: number, type: AdjustmentType) => {
+      // Only validate STOCK_OUT via API (backend check)
+      if (type !== "STOCK_OUT") return true;
+
+      try {
+        const validation = await stockApi.validateStockAdjustment(
+          branchId,
+          productId,
+          quantity,
+          type
+        );
+
+        if (!validation.valid) {
+          throw new Error(validation.message ?? "Invalid stock adjustment");
+        }
+        return true;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [branchId]
   );
 
   return (
@@ -144,6 +216,47 @@ export const StockAdjustmentForm = ({
           <p className="text-xs text-muted-foreground">
             Current stock: {currentStock}
           </p>
+        </div>
+      )}
+
+      {/* Validation message */}
+      {validationMessage && (
+        <div
+          className={`rounded-md border p-3 text-sm ${
+            validationMessage.severity === "error"
+              ? "bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-200"
+              : "bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200"
+          }`}
+        >
+          {validationMessage.message}
+        </div>
+      )}
+
+      {/* Stock preview */}
+      {stockPreview && (
+        <div className="rounded-md border p-3 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
+            Preview
+          </p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-blue-700 dark:text-blue-300">
+              {stockPreview.before}
+            </span>
+            <span className="text-blue-500">→</span>
+            <span className="font-medium text-blue-900 dark:text-blue-100">
+              {stockPreview.after}
+            </span>
+            <span
+              className={`ml-auto font-medium ${
+                stockPreview.change > 0
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {stockPreview.change > 0 ? "+" : ""}
+              {stockPreview.change}
+            </span>
+          </div>
         </div>
       )}
 

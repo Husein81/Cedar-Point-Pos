@@ -49,7 +49,7 @@ export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
     cell: ({ row }) => {
       const stock = row.original.stock;
       const minStock = row.original.minStock;
-      const isLowStock = stock <= minStock;
+      const isLowStock = Number(stock) <= Number(minStock);
 
       return (
         <div className="flex items-center gap-2">
@@ -87,8 +87,8 @@ export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
     id: "status",
     header: "Status",
     cell: ({ row }) => {
-      const stock = row.original.stock;
-      const minStock = row.original.minStock;
+      const stock = Number(row.original.stock);
+      const minStock = Number(row.original.minStock);
 
       if (stock === 0) {
         return <Badge variant="destructive">Out of Stock</Badge>;

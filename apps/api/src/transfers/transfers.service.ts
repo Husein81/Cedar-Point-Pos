@@ -4,14 +4,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { QueryParams, TransferStatus } from '@repo/types';
-import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 import { CreateTransferDto } from './dto/create-transfer.dto.js';
 import { UpdateTransferDto } from './dto/update-transfer.dto.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class TransfersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventoryTransactionService: InventoryTransactionService,
+  ) {}
 
   async create(
     tenantId: string,
@@ -239,117 +243,87 @@ export class TransfersService {
       });
     }
 
-    // Execute transfer atomically
-    const completedTransfer = await this.prisma.$transaction(async (tx) => {
-      // Update inventory for each item
-      for (const item of transfer.items) {
-        const quantity = new Prisma.Decimal(String(item.quantity));
+    // Execute transfer atomically through centralized inventory service
+    // This creates TWO history records per item (deduction + addition)
+    for (const item of transfer.items) {
+      const quantity = Number(item.quantity);
 
-        // Deduct from source branch
-        const sourceInventory = await tx.inventory.findUnique({
-          where: {
-            branchId_productId: {
-              branchId: transfer.fromBranchId,
-              productId: item.productId,
-            },
-          },
-        });
-
-        if (sourceInventory) {
-          await tx.inventory.update({
-            where: {
-              id: sourceInventory.id,
-            },
-            data: {
-              stock: {
-                decrement: quantity,
-              },
-            },
-          });
-        }
-
-        // Add to destination branch (create if not exists)
-        const destInventory = await tx.inventory.findUnique({
-          where: {
-            branchId_productId: {
-              branchId: transfer.toBranchId,
-              productId: item.productId,
-            },
-          },
-        });
-
-        if (destInventory) {
-          await tx.inventory.update({
-            where: {
-              id: destInventory.id,
-            },
-            data: {
-              stock: {
-                increment: quantity,
-              },
-            },
-          });
-        } else {
-          await tx.inventory.create({
-            data: {
-              tenantId,
-              branchId: transfer.toBranchId,
-              productId: item.productId,
-              stock: quantity,
-              minStock: new Prisma.Decimal(0),
-            },
-          });
-        }
-      }
-
-      // Update transfer status
-      return tx.transfer.update({
-        where: { id: transferId },
-        data: {
-          status: TransferStatus.COMPLETED,
-          approvedBy: userId,
-          completedAt: new Date(),
-        },
-        include: {
-          items: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  sku: true,
-                },
-              },
-            },
-          },
-          fromBranch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          toBranch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          requestor: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-            },
-          },
-          approver: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-            },
-          },
-        },
+      // Deduct from source branch
+      await this.inventoryTransactionService.executeTransaction({
+        tenantId,
+        branchId: transfer.fromBranchId,
+        productId: item.productId,
+        userId,
+        changeType: 'ORDER_DEDUCT', // Using ORDER_DEDUCT for outbound transfer
+        quantity,
+        reason: `Transfer ${transferId} to ${transfer.toBranchId}`,
+        referenceId: transferId,
+        referenceType: 'TRANSFER',
+        allowNegativeStock: false,
       });
+
+      // Add to destination branch
+      await this.inventoryTransactionService.executeTransaction({
+        tenantId,
+        branchId: transfer.toBranchId,
+        productId: item.productId,
+        userId,
+        changeType: 'ORDER_RETURN', // Using ORDER_RETURN for inbound transfer
+        quantity,
+        reason: `Transfer ${transferId} from ${transfer.fromBranchId}`,
+        referenceId: transferId,
+        referenceType: 'TRANSFER',
+        allowNegativeStock: false,
+      });
+    }
+
+    // Update transfer status
+    const completedTransfer = await this.prisma.transfer.update({
+      where: { id: transferId },
+      data: {
+        status: TransferStatus.COMPLETED,
+        approvedBy: userId,
+        completedAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+              },
+            },
+          },
+        },
+        fromBranch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        toBranch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        requestor: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+          },
+        },
+        approver: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+          },
+        },
+      },
     });
 
     return completedTransfer;

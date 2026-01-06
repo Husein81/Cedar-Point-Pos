@@ -16,6 +16,7 @@ export function DeleteTenantDialog({ open, onOpenChange, tenant }: Props) {
   if (!tenant) return null;
 
   const hasUsers = tenant._count.users > 0;
+  const hasBranches = tenant._count.branches > 0;
 
   const handleDelete = async () => {
     try {
@@ -44,35 +45,36 @@ export function DeleteTenantDialog({ open, onOpenChange, tenant }: Props) {
                 Are you sure you want to delete <strong>{tenant.name}</strong>?
               </p>
 
-              {hasUsers ? (
-                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <Icon
-                    name="AlertCircle"
-                    size={16}
-                    className="text-destructive mt-0.5 shrink-0"
-                  />
-                  <div className="text-sm text-destructive">
-                    <p className="font-medium">Cannot delete this tenant</p>
-                    <p>
-                      This tenant has {tenant._count.users} user
-                      {tenant._count.users !== 1 ? "s" : ""}. Please remove all
-                      users and associated data before deleting.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                  <Icon
-                    name="AlertTriangle"
-                    size={16}
-                    className="text-amber-600 mt-0.5 shrink-0"
-                  />
-                  <p className="text-sm text-amber-800">
-                    This action cannot be undone. The tenant and all its
-                    configuration will be permanently deleted.
+              <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <Icon
+                  name="AlertTriangle"
+                  size={16}
+                  className="text-destructive mt-0.5 shrink-0"
+                />
+                <div className="text-sm text-destructive">
+                  <p className="font-medium">This action cannot be undone</p>
+                  <p>
+                    This will permanently delete the tenant and{" "}
+                    <span className="font-semibold">all associated data</span>,
+                    including:
                   </p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    {hasBranches && (
+                      <li>
+                        {tenant._count.branches} branch
+                        {tenant._count.branches !== 1 ? "es" : ""}
+                      </li>
+                    )}
+                    {hasUsers && (
+                      <li>
+                        {tenant._count.users} user
+                        {tenant._count.users !== 1 ? "s" : ""}
+                      </li>
+                    )}
+                    <li>All products, orders, and other data</li>
+                  </ul>
                 </div>
-              )}
+              </div>
 
               {deleteTenant.isError && (
                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
@@ -93,7 +95,7 @@ export function DeleteTenantDialog({ open, onOpenChange, tenant }: Props) {
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={hasUsers || deleteTenant.isPending}
+            disabled={deleteTenant.isPending}
             isSubmitting={deleteTenant.isPending}
           >
             Delete Tenant

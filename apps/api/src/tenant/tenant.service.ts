@@ -102,35 +102,13 @@ export class TenantService {
   async deleteTenant(id: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
-      include: {
-        _count: {
-          select: {
-            users: true,
-            branches: true,
-            orders: true,
-            products: true,
-          },
-        },
-      },
     });
 
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
     }
 
-    // Check for dependent data
-    const hasData =
-      tenant._count.users > 0 ||
-      tenant._count.branches > 0 ||
-      tenant._count.orders > 0 ||
-      tenant._count.products > 0;
-
-    if (hasData) {
-      throw new BadRequestException(
-        `Cannot delete tenant. It has ${tenant._count.users} users, ${tenant._count.branches} branches, ${tenant._count.products} products, and ${tenant._count.orders} orders. Please remove all associated data first.`,
-      );
-    }
-
+    // Delete tenant and cascade delete all associated data
     await this.prisma.tenant.delete({
       where: { id },
     });

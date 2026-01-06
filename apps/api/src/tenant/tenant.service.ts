@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
@@ -7,13 +12,69 @@ export class TenantService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getTenants() {
-    return await this.prisma.tenant.findMany();
+    return await this.prisma.tenant.findMany({
+      include: {
+        _count: {
+          select: { users: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getTenantById(id: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { users: true },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    return tenant;
+  }
+
+  async getTenantUsers(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users;
   }
 
   async createTenant(data: Prisma.TenantCreateInput) {
     try {
       const tenant = await this.prisma.tenant.create({
         data,
+        include: {
+          _count: {
+            select: { users: true },
+          },
+        },
       });
       return tenant;
     } catch (error) {
@@ -22,5 +83,44 @@ export class TenantService {
         `Failed to create tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  async deleteTenant(id: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            branches: true,
+            orders: true,
+            products: true,
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    // Check for dependent data
+    const hasData =
+      tenant._count.users > 0 ||
+      tenant._count.branches > 0 ||
+      tenant._count.orders > 0 ||
+      tenant._count.products > 0;
+
+    if (hasData) {
+      throw new BadRequestException(
+        `Cannot delete tenant. It has ${tenant._count.users} users, ${tenant._count.branches} branches, ${tenant._count.products} products, and ${tenant._count.orders} orders. Please remove all associated data first.`,
+      );
+    }
+
+    await this.prisma.tenant.delete({
+      where: { id },
+    });
+
+    return { message: 'Tenant deleted successfully' };
   }
 }

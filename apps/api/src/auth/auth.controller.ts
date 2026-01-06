@@ -22,10 +22,8 @@ export class AuthController {
   @Roles(UserRole.SYSTEM_ADMIN)
   @Post('create-user')
   @HttpCode(HttpStatus.CREATED)
-  createUser(@Req() request: Request) {
-    const body = request.body as CreateUserDto;
-
-    return this.authService.createUser(body);
+  createUser(@Body() createUserDto: CreateUserDto) {
+    return this.authService.createUser(createUserDto);
   }
 
   @Public()

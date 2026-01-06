@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { decimal, isoDate, cuid } from "./config.js";
+import { decimal, isoDate, cuid } from "./config";
 import {
   BusinessType,
   InventoryChangeType,
@@ -11,7 +11,7 @@ import {
   SortOrder,
   TransferStatus,
   UserRole,
-} from "./enums.js";
+} from "./enums";
 
 // Tenant
 export const TenantSchema = z.object({

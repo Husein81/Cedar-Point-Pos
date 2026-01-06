@@ -6,10 +6,6 @@ import type {
   DashboardAlerts,
 } from "@/types/dashboard";
 
-/**
- * System Admin Dashboard API Client
- * All endpoints require SYSTEM_ADMIN role
- */
 export const dashboardApi = {
   /**
    * Get system overview statistics

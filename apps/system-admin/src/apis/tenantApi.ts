@@ -1,47 +1,10 @@
+import {
+  CreateTenantPayload,
+  CreateUserPayload,
+  TenantUser,
+  TenantWithCount,
+} from "@/dto/tenant.dto";
 import { api } from "./api";
-import type { BusinessType, UserRole } from "@repo/types";
-
-// ============ Types ============
-
-export type TenantWithCount = {
-  id: string;
-  name: string;
-  businessType: BusinessType;
-  createdAt: string;
-  updatedAt: string;
-  settings: unknown;
-  _count: {
-    users: number;
-    branches: number;
-  };
-};
-
-export type TenantUser = {
-  id: string;
-  name: string;
-  email: string | null;
-  username: string;
-  role: UserRole;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CreateTenantPayload = {
-  name: string;
-  businessType: BusinessType;
-};
-
-export type CreateUserPayload = {
-  name: string;
-  email: string;
-  username: string;
-  password: string;
-  role: UserRole;
-  tenantId: string;
-};
-
-// ============ API ============
 
 export const tenantApi = {
   /**

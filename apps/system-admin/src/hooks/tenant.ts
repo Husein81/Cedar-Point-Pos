@@ -1,19 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  tenantApi,
-  type CreateTenantPayload,
-  type CreateUserPayload,
-} from "@/apis/tenantApi";
-
-// ============ Query Keys ============
+import { tenantApi } from "@/apis/tenantApi";
+import { CreateTenantPayload, CreateUserPayload } from "@/dto/tenant.dto";
 
 export const tenantKeys = {
   all: ["tenants"] as const,
   detail: (id: string) => ["tenants", id] as const,
   users: (tenantId: string) => ["tenants", tenantId, "users"] as const,
 };
-
-// ============ Queries ============
 
 /**
  * Fetch all tenants with user counts
@@ -46,8 +39,6 @@ export const useTenantUsers = (tenantId: string) => {
     enabled: !!tenantId,
   });
 };
-
-// ============ Mutations ============
 
 /**
  * Create a new tenant

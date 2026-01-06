@@ -9,10 +9,18 @@ import {
 
 const PRODUCT_QUERY_KEY = ["products"];
 
-export const useProducts = (params?: QueryParams) => {
+export const useProducts = () => {
+  return useQuery({
+    queryKey: PRODUCT_QUERY_KEY,
+    queryFn: () => productsApi.getProducts(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useProductsPaginated = (params?: QueryParams) => {
   return useQuery({
     queryKey: [...PRODUCT_QUERY_KEY, params],
-    queryFn: () => productsApi.getProducts(params),
+    queryFn: () => productsApi.getProductsPaginated(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

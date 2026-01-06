@@ -17,9 +17,6 @@ export const Route = createFileRoute("/categories/$categoryId")({
 
 function RouteComponent() {
   const { categoryId } = Route.useParams();
-
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: category, isLoading } = useCategory(categoryId);
@@ -34,12 +31,6 @@ function RouteComponent() {
 
   const subcategories =
     category?.subcategories?.filter((sub) => !sub.isDeleted) || [];
-
-  // Calculate pagination
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = subcategories.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(subcategories.length / pageSize);
 
   if (isLoading) {
     return (
@@ -93,7 +84,7 @@ function RouteComponent() {
         ) : (
           <DataTable
             columns={getSubcategoryColumns(categoryId)}
-            data={paginatedData}
+            data={subcategories}
             search={{
               term: searchQuery,
               onTermChange: setSearchQuery,
@@ -105,13 +96,6 @@ function RouteComponent() {
                 Add Subcategory
               </Button>
             }
-            pagination={{
-              page,
-              pageSize,
-              totalPages,
-              onPageChange: setPage,
-              onPageSizeChange: setPageSize,
-            }}
           />
         )}
       </div>

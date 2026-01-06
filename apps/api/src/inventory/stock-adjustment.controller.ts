@@ -31,9 +31,9 @@ export class StockAdjustmentController {
     @Req() req: Request,
     @Body() adjustmentDto: CreateStockAdjustmentDto,
   ) {
-    const user = req.user as { tenantId: string; userId: string };
+    const user = req.user as { tenantId: string; id: string };
     const tenantId = user.tenantId;
-    const userId = user.userId;
+    const userId = user.id;
 
     return this.stockAdjustmentService.adjustStock(
       tenantId,

@@ -22,6 +22,7 @@ type DataTableProps<TData, TValue> = {
   onRefetch?: () => void;
   actions?: React.ReactNode;
   pagination?: {
+    rows: number;
     page: number;
     pageSize: number;
     totalPages: number;
@@ -180,6 +181,7 @@ export function DataTable<TData, TValue>({
       {/* Pagination */}
       {pagination && (
         <Pagination
+          rows={pagination.rows}
           page={pagination.page}
           pageSize={pagination.pageSize}
           totalPages={pagination.totalPages}

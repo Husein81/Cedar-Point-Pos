@@ -1,12 +1,12 @@
-import { productColumns } from "@/config/productColumn";
-import { DataTable, Button } from "@repo/ui";
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Plus } from "lucide-react";
-import { useProducts } from "@/hooks/useProduct";
-import { useModalStore } from "@/store/modalStore";
-import { ProductForm } from "@/components/products/ProductForm";
 import Heading from "@/components/heading";
+import { ProductForm } from "@/components/products/ProductForm";
+import { productColumns } from "@/config/productColumn";
+import { useProductsPaginated } from "@/hooks/useProduct";
+import { useModalStore } from "@/store/modalStore";
+import { Button, DataTable } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/products/")({
   component: RouteComponent,
@@ -17,7 +17,11 @@ function RouteComponent() {
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data, isLoading, refetch } = useProducts();
+  const { data, isLoading, refetch } = useProductsPaginated({
+    page: String(page),
+    limit: String(pageSize),
+    search: searchQuery,
+  });
   const products = data?.data ?? [];
   const openModal = useModalStore((state) => state.openModal);
 
@@ -53,6 +57,7 @@ function RouteComponent() {
           </Button>
         }
         pagination={{
+          rows: data?.pagination.totalCount ?? 0,
           page,
           pageSize,
           totalPages,

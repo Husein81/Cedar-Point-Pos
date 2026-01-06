@@ -24,13 +24,40 @@ export class AuthService {
   ) {}
 
   async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
-    const { username, password } = data;
+    const { username, password, tenantId, role } = data;
+
+    // Validate tenant exists
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw new UnauthorizedException('Tenant not found');
+    }
+
     const existedUser = await this.prisma.user.findUnique({
       where: { username },
     });
 
     if (existedUser) {
       throw new UnauthorizedException('User already exists');
+    }
+
+    // If creating a non-admin user, ensure tenant has at least one admin
+    if (role !== UserRole.ADMIN) {
+      const tenantAdmin = await this.prisma.user.findFirst({
+        where: {
+          tenantId,
+          role: UserRole.ADMIN,
+          isActive: true,
+        },
+      });
+
+      if (!tenantAdmin) {
+        throw new UnauthorizedException(
+          'Cannot create non-admin users. Tenant must have at least one active admin first',
+        );
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

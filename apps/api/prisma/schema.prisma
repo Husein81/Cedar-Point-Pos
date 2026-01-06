@@ -82,9 +82,9 @@ model Tenant {
     id           String       @id @default(cuid())
     name         String
     businessType BusinessType
+    isActive     Boolean      @default(true)
     createdAt    DateTime     @default(now())
     updatedAt    DateTime     @updatedAt
-    isActive     Boolean      @default(true)
 
     users            User[]
     branches         Branch[]
@@ -148,7 +148,7 @@ model Branch {
     address          String?
     phone            String?
     isDeleted        Boolean            @default(false) // Soft delete
-    tenant           Tenant             @relation(fields: [tenantId], references: [id])
+    tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     tables           Table[]
     devices          POSDevice[]
     inventory        Inventory[] // Inventory is tracked at the Branch level
@@ -171,8 +171,8 @@ model POSDevice {
     lastSync DateTime?
     isActive Boolean   @default(true)
     isKDS    Boolean   @default(false) // New: Flag to identify Kitchen Display Systems
-    tenant   Tenant    @relation(fields: [tenantId], references: [id])
-    branch   Branch    @relation(fields: [branchId], references: [id])
+    tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
     orders   Order[]
     shifts   Shift[]
 }
@@ -187,7 +187,7 @@ model Category {
     code          String?       @unique
     description   String?
     isDeleted     Boolean       @default(false)
-    tenant        Tenant        @relation(fields: [tenantId], references: [id])
+    tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     products      Product[]
     subcategories Subcategory[]
 }
@@ -198,7 +198,7 @@ model Subcategory {
     name        String
     description String?
     isDeleted   Boolean   @default(false)
-    category    Category  @relation(fields: [categoryId], references: [id])
+    category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
     products    Product[]
 }
 
@@ -221,7 +221,7 @@ model Product {
     createdAt        DateTime           @default(now())
     taxId            String?
     tax              Tax?               @relation(fields: [taxId], references: [id])
-    tenant           Tenant             @relation(fields: [tenantId], references: [id])
+    tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     inventory        Inventory[]
     inventoryHistory InventoryHistory[]
     modifiers        Modifier[]
@@ -272,9 +272,9 @@ model Inventory {
     stock        Decimal  @default(0) @db.Decimal(10, 4)
     minStock     Decimal  @default(0) @db.Decimal(10, 4) // Minimum stock threshold for low stock alerts
     lastAdjusted DateTime @updatedAt
-    tenant       Tenant   @relation(fields: [tenantId], references: [id])
-    branch       Branch   @relation(fields: [branchId], references: [id])
-    product      Product  @relation(fields: [productId], references: [id])
+    tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+    product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
     // Composite key to ensure unique inventory per branch-product combination
     @@unique([branchId, productId])
@@ -297,9 +297,9 @@ model InventoryHistory {
     afterMinStock  Decimal?            @db.Decimal(10, 4) // Min stock after change (if applicable)
     reason         String? // Reason for the adjustment
     createdAt      DateTime            @default(now())
-    tenant         Tenant              @relation(fields: [tenantId], references: [id])
-    branch         Branch              @relation(fields: [branchId], references: [id])
-    product        Product             @relation(fields: [productId], references: [id])
+    tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch         Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+    product        Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
     user           User                @relation(fields: [userId], references: [id])
 
     @@index([tenantId, branchId, createdAt])
@@ -322,9 +322,9 @@ model Transfer {
     createdAt    DateTime       @default(now())
     updatedAt    DateTime       @updatedAt
     completedAt  DateTime?
-    tenant       Tenant         @relation(fields: [tenantId], references: [id])
-    fromBranch   Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id])
-    toBranch     Branch         @relation("TransfersTo", fields: [toBranchId], references: [id])
+    tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    fromBranch   Branch         @relation("TransfersFrom", fields: [fromBranchId], references: [id], onDelete: Cascade)
+    toBranch     Branch         @relation("TransfersTo", fields: [toBranchId], references: [id], onDelete: Cascade)
     requestor    User           @relation("TransferRequests", fields: [requestedBy], references: [id])
     approver     User?          @relation("TransferApprovals", fields: [approvedBy], references: [id])
     items        TransferItem[]
@@ -340,7 +340,7 @@ model TransferItem {
     productId  String
     quantity   Decimal  @db.Decimal(10, 4)
     transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-    product    Product  @relation(fields: [productId], references: [id])
+    product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
     @@unique([transferId, productId])
 }
@@ -354,7 +354,7 @@ model Refund {
     totalAmount Decimal      @default(0) @db.Decimal(10, 2)
     reason      String?
     refundedAt  DateTime     @default(now())
-    order       Order        @relation(fields: [orderId], references: [id])
+    order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
     refundItems RefundItem[]
 }
 
@@ -367,8 +367,8 @@ model RefundItem {
     unitPrice Decimal @db.Decimal(10, 2)
     subtotal  Decimal @db.Decimal(10, 2)
 
-    refund    Refund    @relation(fields: [refundId], references: [id])
-    orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+    refund    Refund    @relation(fields: [refundId], references: [id], onDelete: Cascade)
+    orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
     @@unique([refundId, orderItemId])
     @@index([orderItemId])
@@ -386,8 +386,8 @@ model Table {
     capacity    Int     @default(4)
     isActive    Boolean @default(true)
     isDeleted   Boolean @default(false)
-    tenant      Tenant  @relation(fields: [tenantId], references: [id])
-    branch      Branch  @relation(fields: [branchId], references: [id])
+    tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch      Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
     orders      Order[]
 }
 
@@ -400,7 +400,7 @@ model ModifierGroup {
     name      String
     type      ModifierType
     isDeleted Boolean      @default(false)
-    tenant    Tenant       @relation(fields: [tenantId], references: [id])
+    tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     modifiers Modifier[]
 }
 
@@ -412,8 +412,8 @@ model Modifier {
     name          String
     price         Decimal             @default(0)
     isDeleted     Boolean             @default(false)
-    tenant        Tenant              @relation(fields: [tenantId], references: [id])
-    group         ModifierGroup       @relation(fields: [groupId], references: [id])
+    tenant        Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    group         ModifierGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
     product       Product?            @relation(fields: [productId], references: [id])
     orderItemMods OrderItemModifier[]
 }
@@ -427,7 +427,7 @@ model Recipe {
     productId    String // The finished product this recipe creates
     ingredientId String // The raw material (Product with isIngredient=true)
     quantity     Decimal @db.Decimal(10, 4) // Amount of ingredient required for one unit of product
-    tenant       Tenant  @relation(fields: [tenantId], references: [id])
+    tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     product      Product @relation("SellableRecipe", fields: [productId], references: [id])
     ingredient   Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
 
@@ -461,8 +461,8 @@ model Order {
     createdAt   DateTime    @default(now())
     completedAt DateTime? // New: Timestamp for final closure/payment
     user        User?       @relation(fields: [userId], references: [id])
-    tenant      Tenant      @relation(fields: [tenantId], references: [id])
-    branch      Branch      @relation(fields: [branchId], references: [id])
+    tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch      Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
     table       Table?      @relation(fields: [tableId], references: [id])
     device      POSDevice?  @relation(fields: [deviceId], references: [id])
     items       OrderItem[]
@@ -487,8 +487,8 @@ model OrderItem {
     total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
     // KDS tracking
     notes       String? // e.g., "Extra crispy"
-    order       Order               @relation(fields: [orderId], references: [id])
-    product     Product             @relation(fields: [productId], references: [id])
+    order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    product     Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
     modifiers   OrderItemModifier[]
     tickets     OrderItemTicket[] // FIXED: Relation to new KDS ticket model
     refundItems RefundItem[]
@@ -505,7 +505,7 @@ model OrderItemTicket {
     // Important KDS Timestamps
     sentAt      DateTime    @default(now())
     bumpedAt    DateTime? // Time it was removed/completed from the KDS screen
-    orderItem   OrderItem   @relation(fields: [orderItemId], references: [id])
+    orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 }
 
 //
@@ -516,8 +516,8 @@ model OrderItemModifier {
     orderItemId String
     modifierId  String
     price       Decimal   @db.Decimal(10, 2) // Price charged for this modifier
-    orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
-    modifier    Modifier  @relation(fields: [modifierId], references: [id])
+    orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+    modifier    Modifier  @relation(fields: [modifierId], references: [id], onDelete: Cascade)
 }
 
 //
@@ -532,7 +532,7 @@ model Payment {
     exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
     transactionId String? // Reference ID from card processor (Stripe, etc.)
     paidAt        DateTime      @default(now())
-    order         Order         @relation(fields: [orderId], references: [id])
+    order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
     currency      Currency      @relation(fields: [currencyCode], references: [code])
 }
 
@@ -548,7 +548,7 @@ model Customer {
     address   String?
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    tenant    Tenant   @relation(fields: [tenantId], references: [id])
+    tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     orders    Order[]
 
     @@index([tenantId])
@@ -571,8 +571,8 @@ model Shift {
     difference Decimal?    @db.Decimal(10, 2) // Over/Short amount
     status     ShiftStatus @default(OPEN)
     notes      String?
-    tenant     Tenant      @relation(fields: [tenantId], references: [id])
-    branch     Branch      @relation(fields: [branchId], references: [id])
+    tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch     Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
     user       User        @relation(fields: [userId], references: [id])
     device     POSDevice?  @relation(fields: [deviceId], references: [id])
     orders     Order[]
@@ -589,6 +589,6 @@ model Tax {
     name      String // e.g. "VAT", "Sales Tax"
     rate      Decimal   @db.Decimal(5, 2) // e.g. 10.00
     isDefault Boolean   @default(false)
-    tenant    Tenant    @relation(fields: [tenantId], references: [id])
+    tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     products  Product[]
 }

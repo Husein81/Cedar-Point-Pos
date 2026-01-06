@@ -4,15 +4,19 @@
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "scripts": {
-        "build": "tsc"  
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
     },
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "scripts": {
+        "build": "tsup"
     },
     "devDependencies": {
-        "@repo/typescript-config": "workspace:*"
+        "@repo/typescript-config": "workspace:*",
+        "tsup": "^8.5.1"
     },
     "dependencies": {
         "zod": "^4.1.13"

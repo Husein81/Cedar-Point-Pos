@@ -8,12 +8,16 @@ import { CreateRefundDto } from './dto/create-refund.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { RefundItem } from '@repo/types';
+import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 
 @Injectable()
 export class RefundsService {
   private readonly logger = new Logger(RefundsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventoryTransactionService: InventoryTransactionService,
+  ) {}
 
   async createRefund(tenantId: string, userId: string, dto: CreateRefundDto) {
     const { orderId, reason, items } = dto;
@@ -75,43 +79,19 @@ export class RefundsService {
 
         totalRefundAmount = totalRefundAmount.plus(subtotal);
 
-        // 🔁 RESTORE INVENTORY (CORRECT MODEL)
-        const inventory = await tx.inventory.findUnique({
-          where: {
-            branchId_productId: {
-              branchId: order.branchId,
-              productId: orderItem.productId,
-            },
-          },
-        });
-
-        if (!inventory) {
-          throw new NotFoundException(
-            'Inventory record not found for refunded item',
-          );
-        }
-
-        const beforeStock = inventory.stock;
-        const afterStock = beforeStock.plus(requestedQty);
-
-        await tx.inventory.update({
-          where: { id: inventory.id },
-          data: { stock: afterStock },
-        });
-
-        // 🧾 INVENTORY HISTORY (AUDIT)
-        await tx.inventoryHistory.create({
-          data: {
-            tenantId,
-            branchId: order.branchId,
-            productId: orderItem.productId,
-            userId,
-            changeType: 'ORDER_RETURN',
-            beforeStock,
-            afterStock,
-            adjustment: requestedQty,
-            reason: `Refund for order ${order.orderNumber ?? order.id}`,
-          },
+        // 🔁 RESTORE INVENTORY through centralized transaction service
+        // This ensures idempotency and consistent audit trail
+        await this.inventoryTransactionService.executeTransaction({
+          tenantId,
+          branchId: order.branchId,
+          productId: orderItem.productId,
+          userId,
+          changeType: 'ORDER_RETURN',
+          quantity: Number(requestedQty),
+          reason: `Refund for order ${order.orderNumber ?? order.id}`,
+          referenceId: orderId,
+          referenceType: 'REFUND',
+          allowNegativeStock: false,
         });
       }
 

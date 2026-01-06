@@ -47,7 +47,11 @@ export const inventoryHistoryColumns: ColumnDef<
         variant: "default",
       };
 
-      return <Badge variant={config.variant}>{config.label}</Badge>;
+      return (
+        <Badge variant={config.variant}>
+          {config.label.split("_").join(" ")}
+        </Badge>
+      );
     },
   },
 

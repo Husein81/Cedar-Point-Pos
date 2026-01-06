@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderItem, OrderStatus } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { Prisma } from '../../generated/prisma/client.js';
+import { InventoryTransactionService } from './inventory-transaction.service.js';
 
 interface StockDeductionItem {
   productId: string;
@@ -25,7 +25,10 @@ interface StockValidationResult {
 export class InventoryDeductionService {
   private readonly logger = new Logger(InventoryDeductionService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventoryTransactionService: InventoryTransactionService,
+  ) {}
   /**
    * Validate and deduct stock when order is completed
    * Handles both direct products and recipe-based ingredient deduction
@@ -224,6 +227,7 @@ export class InventoryDeductionService {
 
   /**
    * Execute stock deductions atomically with audit trail
+   * Now uses InventoryTransactionService for consistency
    */
   private async executeStockDeductions(
     tenantId: string,
@@ -232,57 +236,29 @@ export class InventoryDeductionService {
     orderId?: string,
     userId?: string,
   ) {
-    await this.prisma.$transaction(async (tx) => {
-      for (const deduction of deductions) {
-        const inventory = await tx.inventory.findUnique({
-          where: {
-            branchId_productId: {
-              branchId,
-              productId: deduction.productId,
-            },
-          },
-        });
+    if (!userId) {
+      throw new BadRequestException('userId is required for inventory transactions');
+    }
 
-        if (!inventory) {
-          throw new BadRequestException(
-            `Inventory record not found for product ${deduction.productId}`,
-          );
-        }
+    // Execute all deductions through centralized transaction service
+    for (const deduction of deductions) {
+      await this.inventoryTransactionService.executeTransaction({
+        tenantId,
+        branchId,
+        productId: deduction.productId,
+        userId,
+        changeType: 'ORDER_DEDUCT',
+        quantity: deduction.quantity,
+        reason: orderId ? `Order ${orderId}` : 'Order completion',
+        referenceId: orderId,
+        referenceType: 'ORDER',
+        allowNegativeStock: false,
+      });
+    }
 
-        const beforeStock = Number(inventory.stock);
-        const afterStock = beforeStock - deduction.quantity;
-        const adjustment = -deduction.quantity;
-
-        // Deduct stock
-        await tx.inventory.update({
-          where: { id: String(inventory.id) },
-          data: {
-            stock: {
-              decrement: Number(deduction.quantity),
-            },
-          },
-        });
-
-        // Create audit trail record (only if userId is provided)
-        if (userId) {
-          await tx.inventoryHistory.create({
-            data: {
-              tenantId,
-              branchId,
-              productId: deduction.productId,
-              userId,
-              changeType: 'ORDER_DEDUCT',
-              beforeStock: new Prisma.Decimal(beforeStock),
-              afterStock: new Prisma.Decimal(afterStock),
-              adjustment: new Prisma.Decimal(adjustment),
-              reason: orderId
-                ? `Order deduction for order ${orderId}`
-                : 'Order deduction',
-            },
-          });
-        }
-      }
-    });
+    this.logger.log(
+      `Executed ${deductions.length} inventory deductions for order ${orderId}`,
+    );
   }
 
   /**

@@ -2,6 +2,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button, cn, Icon } from "@repo/ui";
 import { Activity, useId } from "react";
 import logo from "/assets/logo.png";
+import { BranchSelector } from "./common/BranchSelector";
 
 export function Header() {
   const { user } = useAuthStore();
@@ -41,9 +42,17 @@ export function Header() {
         </div>
       </div>
 
-      <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
-        <span className="text-sm font-heading">{user?.tenant?.name}</span>
-      </Activity>
+      <div className="flex items-center gap-4">
+        <Activity mode={user?.tenant?.name ? "visible" : "hidden"}>
+          <span className="text-sm font-heading">{user?.tenant?.name}</span>
+        </Activity>
+
+        {user?.tenantId && (
+          <div className="no-drag">
+            <BranchSelector />
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center h-full no-drag">
         {frameActions.map((action) => (

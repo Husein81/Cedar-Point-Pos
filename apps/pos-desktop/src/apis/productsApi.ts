@@ -7,7 +7,11 @@ import {
 } from "@/dto/products.dto";
 
 export const productsApi = {
-  getProducts: async (
+  getProducts: async (): Promise<Product[]> => {
+    const response = await api.get("/products");
+    return response.data;
+  },
+  getProductsPaginated: async (
     params?: QueryParams
   ): Promise<PaginationResponse<Product>> => {
     const response = await api.get("/products/paginated", {
@@ -15,7 +19,6 @@ export const productsApi = {
     });
     return response.data;
   },
-
   getProduct: async (id: string): Promise<ProductWithRelations> => {
     const response = await api.get(`/products/${id}`);
     return response.data;

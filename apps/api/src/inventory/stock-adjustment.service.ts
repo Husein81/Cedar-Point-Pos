@@ -25,7 +25,13 @@ export class StockAdjustmentService {
     userId: string,
     adjustmentDto: CreateStockAdjustmentDto,
   ) {
-    const { branchId, productId, operation, quantity, reason } = adjustmentDto;
+    const { branchId, productId, adjustmentType, quantity, reason, minStock } =
+      adjustmentDto;
+
+    // Validate quantity is positive
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be a positive number');
+    }
 
     // Verify branch belongs to tenant
     const branch = await this.prisma.branch.findFirst({
@@ -77,40 +83,42 @@ export class StockAdjustmentService {
     }
 
     const stockBefore = Number(inventory.stock);
+    const minStockBefore = Number(inventory.minStock);
     let stockAfter: number;
+    let changeType: InventoryChangeType;
 
-    // Calculate new stock level based on operation type (matching Prisma InventoryChangeType)
-    switch (operation) {
+    // Calculate new stock level based on adjustment type
+    switch (adjustmentType) {
+      case 'STOCK_IN':
+        // Add quantity to current stock
+        stockAfter = stockBefore + quantity;
+        changeType = 'ADJUST_STOCK';
+        break;
+
+      case 'STOCK_OUT':
+        // Remove quantity from current stock
+        stockAfter = stockBefore - quantity;
+        changeType = 'MANUAL_ADJUST';
+        break;
+
       case 'SET_STOCK':
         // Set stock to absolute value
         stockAfter = quantity;
-        break;
-
-      case 'ADJUST_STOCK':
-        // Adjust stock by quantity (positive to add, negative to remove)
-        stockAfter = stockBefore + quantity;
-        break;
-
-      case 'MANUAL_ADJUST':
-        // Manual adjustment - set to absolute value
-        stockAfter = quantity;
+        changeType = 'SET_STOCK';
         break;
 
       default:
         throw new BadRequestException(
-          `Invalid operation type. Use SET_STOCK, ADJUST_STOCK, or MANUAL_ADJUST`,
+          `Invalid adjustment type. Use STOCK_IN, STOCK_OUT, or SET_STOCK`,
         );
     }
 
     // Validate stock doesn't go negative
     if (stockAfter < 0) {
       throw new BadRequestException(
-        `Stock cannot be negative. Attempted: ${stockAfter}, Current stock: ${stockBefore}`,
+        `Stock cannot be negative. Attempted: ${stockAfter}, Current stock: ${stockBefore}, Adjustment: ${adjustmentType} ${quantity}`,
       );
     }
-
-    // Use the operation directly as InventoryChangeType
-    const changeType = operation as InventoryChangeType;
 
     // Perform adjustment in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
@@ -124,6 +132,9 @@ export class StockAdjustmentService {
         },
         data: {
           stock: new Prisma.Decimal(stockAfter),
+          ...(minStock !== undefined && {
+            minStock: new Prisma.Decimal(minStock),
+          }),
         },
         include: {
           product: {
@@ -155,6 +166,10 @@ export class StockAdjustmentService {
           afterStock: new Prisma.Decimal(stockAfter),
           adjustment: new Prisma.Decimal(stockAfter - stockBefore),
           reason,
+          ...(minStock !== undefined && {
+            beforeMinStock: new Prisma.Decimal(minStockBefore),
+            afterMinStock: new Prisma.Decimal(minStock),
+          }),
         },
       });
 
@@ -172,11 +187,13 @@ export class StockAdjustmentService {
         branch: result.branch,
       },
       adjustment: {
-        operation,
+        adjustmentType,
         changeType,
         quantity,
         stockBefore,
         stockAfter,
+        minStockBefore,
+        minStockAfter: minStock,
         reason,
       },
     };

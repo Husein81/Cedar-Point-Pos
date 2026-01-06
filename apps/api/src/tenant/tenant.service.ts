@@ -15,7 +15,7 @@ export class TenantService {
     return await this.prisma.tenant.findMany({
       include: {
         _count: {
-          select: { users: true },
+          select: { users: true, branches: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -27,7 +27,7 @@ export class TenantService {
       where: { id },
       include: {
         _count: {
-          select: { users: true },
+          select: { users: true, branches: true },
         },
       },
     });
@@ -68,14 +68,28 @@ export class TenantService {
 
   async createTenant(data: Prisma.TenantCreateInput) {
     try {
-      const tenant = await this.prisma.tenant.create({
-        data,
-        include: {
-          _count: {
-            select: { users: true },
+      const tenant = await this.prisma.$transaction(async (tx) => {
+        // Create tenant
+        const newTenant = await tx.tenant.create({
+          data,
+          include: {
+            _count: {
+              select: { users: true, branches: true },
+            },
           },
-        },
+        });
+
+        // Create default "Main" branch
+        await tx.branch.create({
+          data: {
+            tenantId: newTenant.id,
+            name: 'Main',
+          },
+        });
+
+        return newTenant;
       });
+
       return tenant;
     } catch (error) {
       console.error('Error creating tenant:', error);

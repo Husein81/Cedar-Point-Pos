@@ -12,6 +12,7 @@ export type TenantWithCount = {
   settings: unknown;
   _count: {
     users: number;
+    branches: number;
   };
 };
 

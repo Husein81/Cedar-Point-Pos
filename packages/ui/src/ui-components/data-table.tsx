@@ -5,10 +5,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import { Input, Shad } from "../components";
+import { Icon, Input, Shad } from "../components";
 import Pagination from "./pagination";
 import { Button } from "./button";
 import { TableSkeleton } from "./table-skeleton";
+import { cn } from "../libs/utils";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -109,10 +110,12 @@ export function DataTable<TData, TValue>({
             {onRefetch && (
               <Button
                 variant="outline"
-                iconName="RefreshCw"
                 onClick={onRefetch}
                 disabled={isLoading}
               >
+                <Icon name="RefreshCw" size={16} className={cn("mr-2",
+                  isLoading ? "animate-spin" : ""
+                )} />
                 Refresh
               </Button>
             )}

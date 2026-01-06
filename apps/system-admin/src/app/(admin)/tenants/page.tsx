@@ -75,7 +75,21 @@ export default function TenantsPage() {
         cell: ({ row }) => (
           <div className="flex items-center gap-1">
             <Icon name="Users" size={14} className="text-muted-foreground" />
-            <span>{row.original._count.users}</span>
+            <span>{row.original._count.users || 0}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "_count.branches",
+        header: "Branches",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            <Icon
+              name="Building2"
+              size={14}
+              className="text-muted-foreground"
+            />
+            <span>{row.original._count.branches || 0}</span>
           </div>
         ),
       },

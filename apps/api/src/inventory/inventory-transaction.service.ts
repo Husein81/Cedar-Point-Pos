@@ -1,12 +1,11 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InventoryChangeType } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  InventoryTransactionInput,
+  TransactionResult,
+} from './dto/inventory.dto.js';
 
 /**
  * SINGLE SOURCE OF TRUTH FOR ALL INVENTORY MUTATIONS
@@ -21,32 +20,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
  * ⚠️ NO OTHER SERVICE SHOULD DIRECTLY MUTATE INVENTORY OR INVENTORY_HISTORY
  */
 
-interface InventoryTransactionInput {
-  tenantId: string;
-  branchId: string;
-  productId: string;
-  userId: string;
-  changeType: InventoryChangeType;
-  quantity: number; // Always positive; sign determined by changeType
-  reason?: string;
-  referenceId?: string; // orderId, refundId, transferId for idempotency
-  referenceType?: 'ORDER' | 'REFUND' | 'TRANSFER' | 'ADJUSTMENT';
-  allowNegativeStock?: boolean;
-  minStock?: number; // For SET_MIN_STOCK operations
-}
-
-interface TransactionResult {
-  inventoryId: string;
-  beforeStock: number;
-  afterStock: number;
-  adjustment: number;
-  historyId: string;
-}
-
 @Injectable()
 export class InventoryTransactionService {
-  private readonly logger = new Logger(InventoryTransactionService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
   async executeTransaction(
@@ -60,85 +35,24 @@ export class InventoryTransactionService {
       changeType,
       quantity,
       reason,
-      referenceId,
-      referenceType,
-      allowNegativeStock = false,
       minStock,
     } = input;
 
-    // Validate quantity based on changeType
-    // MANUAL_ADJUST allows negative quantities for stock deductions
-    if (changeType !== 'MANUAL_ADJUST' && quantity < 0) {
-      throw new BadRequestException('Quantity must be non-negative');
-    }
-
-    // For MANUAL_ADJUST, quantity can be negative (deduction) or positive (addition)
-    if (changeType === 'MANUAL_ADJUST' && quantity === 0) {
-      throw new BadRequestException(
-        'Quantity cannot be zero for manual adjustments',
-      );
-    }
-
-    // Validate changeType is allowed
-    this.validateChangeType(changeType, referenceType);
-
-    // Check for duplicate transaction (idempotency)
-    if (referenceId && referenceType) {
-      const existing = await this.prisma.inventoryHistory.findFirst({
-        where: {
-          tenantId,
-          branchId,
-          productId,
-          changeType,
-          reason: { contains: referenceId },
-        },
-      });
-
-      if (existing) {
-        this.logger.warn(
-          `Duplicate transaction prevented: ${referenceType} ${referenceId}`,
-        );
-        throw new BadRequestException(
-          `Inventory already adjusted for ${referenceType} ${referenceId}`,
-        );
-      }
-    }
-
     return await this.prisma.$transaction(
       async (tx) => {
-        // Verify product and branch exist in a single parallel query batch
-        const [product, branch] = await Promise.all([
-          tx.product.findFirst({
-            where: { id: productId, tenantId, isDeleted: false },
-            select: { id: true }, // Only select what we need
-          }),
-          tx.branch.findFirst({
-            where: { id: branchId, tenantId, isDeleted: false },
-            select: { id: true },
-          }),
-        ]);
-
-        if (!product) {
-          throw new NotFoundException(
-            `Product ${productId} not found or deleted`,
-          );
-        }
-
-        if (!branch) {
-          throw new NotFoundException(
-            `Branch ${branchId} not found or deleted`,
-          );
-        }
-
-        // Get or create inventory record
-        // Note: Prisma doesn't support FOR UPDATE directly, but READ_COMMITTED + immediate update provides good concurrency
-        let inventoryRecord = await tx.inventory.findUnique({
+        // 1️⃣ Upsert inventory (schema-safe)
+        const inventory = await tx.inventory.upsert({
           where: {
-            branchId_productId: {
-              branchId,
-              productId,
-            },
+            branchId_productId: { branchId, productId },
           },
+          create: {
+            tenantId,
+            branchId,
+            productId,
+            stock: 0,
+            minStock: 0,
+          },
+          update: {},
           select: {
             id: true,
             stock: true,
@@ -146,28 +60,9 @@ export class InventoryTransactionService {
           },
         });
 
-        if (!inventoryRecord) {
-          // Create if doesn't exist
-          inventoryRecord = await tx.inventory.create({
-            data: {
-              tenantId,
-              branchId,
-              productId,
-              stock: 0,
-              minStock: 0,
-            },
-            select: {
-              id: true,
-              stock: true,
-              minStock: true,
-            },
-          });
-        }
+        const beforeStock = Number(inventory.stock);
+        const beforeMinStock = Number(inventory.minStock);
 
-        const beforeStock = Number(inventoryRecord.stock);
-        const beforeMinStock = Number(inventoryRecord.minStock);
-
-        // Calculate new stock based on changeType
         const { afterStock, adjustment, afterMinStock } =
           this.calculateStockChange(
             beforeStock,
@@ -177,16 +72,15 @@ export class InventoryTransactionService {
             minStock,
           );
 
-        // Prevent negative stock (unless explicitly allowed)
-        if (!allowNegativeStock && afterStock < 0) {
+        if (afterStock < 0) {
           throw new BadRequestException(
-            `Insufficient stock: ${beforeStock} available, ${quantity} requested`,
+            `Insufficient stock (${beforeStock} available)`,
           );
         }
 
-        // Update inventory
-        const updatedInventory = await tx.inventory.update({
-          where: { id: inventoryRecord.id },
+        // 2️⃣ Update inventory
+        await tx.inventory.update({
+          where: { id: inventory.id },
           data: {
             stock: new Prisma.Decimal(afterStock),
             ...(afterMinStock !== undefined && {
@@ -195,7 +89,7 @@ export class InventoryTransactionService {
           },
         });
 
-        // Create authoritative history record
+        // 3️⃣ InventoryHistory (authoritative)
         const historyRecord = await tx.inventoryHistory.create({
           data: {
             tenantId,
@@ -206,30 +100,27 @@ export class InventoryTransactionService {
             beforeStock: new Prisma.Decimal(beforeStock),
             afterStock: new Prisma.Decimal(afterStock),
             adjustment: new Prisma.Decimal(adjustment),
-            ...(beforeMinStock !== undefined &&
-              afterMinStock !== undefined && {
-                beforeMinStock: new Prisma.Decimal(beforeMinStock),
-                afterMinStock: new Prisma.Decimal(afterMinStock),
-              }),
-            reason: this.buildReason(reason, referenceType, referenceId),
+            ...(afterMinStock !== undefined && {
+              beforeMinStock: new Prisma.Decimal(beforeMinStock),
+              afterMinStock: new Prisma.Decimal(afterMinStock),
+            }),
+            reason,
           },
         });
 
-        this.logger.log(
-          `Inventory transaction: ${productId} @ ${branchId} | ${beforeStock} → ${afterStock} (${adjustment}) | ${changeType}`,
-        );
-
         return {
-          inventoryId: updatedInventory.id,
+          inventoryId: inventory.id,
           beforeStock,
           afterStock,
+          afterMinStock:
+            afterMinStock !== undefined ? afterMinStock : beforeMinStock,
           adjustment,
           historyId: historyRecord.id,
         };
       },
       {
-        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
-        timeout: 10000, // Reduced timeout since we use row-level locking
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        timeout: 8000,
       },
     );
   }
@@ -434,30 +325,6 @@ export class InventoryTransactionService {
 
     return { afterStock, adjustment, afterMinStock };
   }
-
-  /**
-   * Validate changeType is allowed for the given reference type
-   */
-  private validateChangeType(
-    changeType: InventoryChangeType,
-    referenceType?: string,
-  ): void {
-    const rules: Record<InventoryChangeType, string[]> = {
-      SET_STOCK: ['ADJUSTMENT'], // Initial setup only
-      ADJUST_STOCK: ['ADJUSTMENT'], // Manual adjustments
-      MANUAL_ADJUST: ['ADJUSTMENT'], // Explicit overrides
-      ORDER_DEDUCT: ['ORDER'], // Order completion
-      ORDER_RETURN: ['REFUND', 'TRANSFER'], // Refunds and transfer receipts
-      SET_MIN_STOCK: ['ADJUSTMENT'], // Threshold management
-    };
-
-    if (referenceType && !rules[changeType]?.includes(referenceType)) {
-      throw new BadRequestException(
-        `Change type ${changeType} not allowed for ${referenceType}`,
-      );
-    }
-  }
-
   /**
    * Build reason string with reference information
    */

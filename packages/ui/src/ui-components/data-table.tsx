@@ -114,9 +114,11 @@ export function DataTable<TData, TValue>({
                 onClick={onRefetch}
                 disabled={isLoading}
               >
-                <Icon name="RefreshCw" size={16} className={cn("mr-2",
-                  isLoading ? "animate-spin" : ""
-                )} />
+                <Icon
+                  name="RefreshCw"
+                  size={16}
+                  className={cn("mr-2", isLoading ? "animate-spin" : "")}
+                />
                 Refresh
               </Button>
             )}
@@ -134,7 +136,10 @@ export function DataTable<TData, TValue>({
           <Shad.Table>
             <Shad.TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <Shad.TableRow key={headerGroup.id}>
+                <Shad.TableRow
+                  key={headerGroup.id}
+                  className="bg-primary/55 hover:bg-primary/65"
+                >
                   {headerGroup.headers.map((header) => (
                     <Shad.TableHead key={header.id}>
                       {header.isPlaceholder
@@ -155,6 +160,7 @@ export function DataTable<TData, TValue>({
                   <Shad.TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    className="bg-background hover:bg-accent-foreground/65"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <Shad.TableCell key={cell.id}>

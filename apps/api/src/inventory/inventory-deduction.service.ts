@@ -237,7 +237,9 @@ export class InventoryDeductionService {
     userId?: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('userId is required for inventory transactions');
+      throw new BadRequestException(
+        'userId is required for inventory transactions',
+      );
     }
 
     // Execute all deductions through centralized transaction service

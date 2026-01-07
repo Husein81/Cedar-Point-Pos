@@ -115,7 +115,7 @@ export const inventoryHistoryColumns: ColumnDef<
       const date = new Date(row.original.createdAt);
       return (
         <div className="text-sm">
-          <div>{format(date, "MMM dd, yyyy")}</div>
+          <div>{format(date, "dd, MMM, yyyy")}</div>
           <div className="text-xs text-gray-500">{format(date, "hh:mm a")}</div>
         </div>
       );

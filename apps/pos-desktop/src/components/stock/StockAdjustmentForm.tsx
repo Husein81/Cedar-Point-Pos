@@ -347,13 +347,10 @@ export const StockAdjustmentForm = ({
           {([canSubmit, isSubmitting]) => (
             <Button
               type="submit"
+              isSubmitting={isSubmitting || isValidating}
               disabled={!canSubmit || isSubmitting || isValidating}
             >
-              {isValidating
-                ? "Validating…"
-                : isSubmitting
-                  ? "Processing…"
-                  : "Apply Adjustment"}
+              {"Apply Adjustment"}
             </Button>
           )}
         </form.Subscribe>

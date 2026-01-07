@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox, Badge } from "@repo/ui";
 import { StockActions } from "@/components/stock/StockActions";
 import type { InventoryWithProduct } from "@/dto/inventory.dto";
+import { format } from "date-fns";
 
 export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
   {
@@ -75,12 +76,17 @@ export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
   {
     accessorKey: "lastAdjusted",
     header: "Last Adjusted",
-    cell: ({ row }) =>
-      new Date(row.original.lastAdjusted).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
+    cell: ({ row }) => {
+      const date = new Date(row.original.lastAdjusted).toLocaleDateString(
+        "en-UK",
+        {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }
+      );
+      return <span>{format(date, "dd, MMM, yyyy")}</span>;
+    },
   },
 
   {

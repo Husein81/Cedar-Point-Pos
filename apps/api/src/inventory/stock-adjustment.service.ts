@@ -37,30 +37,10 @@ export class StockAdjustmentService {
     }
 
     // Map adjustment type to change type
-    let changeType: InventoryChangeType;
-    let transactionQuantity: number;
-
-    switch (adjustmentType) {
-      case 'STOCK_IN':
-        changeType = 'ADJUST_STOCK';
-        transactionQuantity = quantity; // Positive: add to stock
-        break;
-
-      case 'STOCK_OUT':
-        changeType = 'MANUAL_ADJUST';
-        transactionQuantity = -Math.abs(quantity); // Negative: subtract from stock
-        break;
-
-      case 'SET_STOCK':
-        changeType = 'SET_STOCK';
-        transactionQuantity = quantity; // Set absolute value
-        break;
-
-      default:
-        throw new BadRequestException(
-          `Invalid adjustment type. Use STOCK_IN, STOCK_OUT, or SET_STOCK`,
-        );
-    }
+    const { changeType, transactionQuantity } = this.mapAdjustmentType(
+      adjustmentType,
+      quantity,
+    );
 
     // Execute transaction through centralized service
     const result = await this.inventoryTransactionService.executeTransaction({
@@ -70,60 +50,17 @@ export class StockAdjustmentService {
       userId,
       changeType,
       quantity: transactionQuantity,
-      reason: reason || `${adjustmentType} adjustment`,
-      referenceType: 'ADJUSTMENT',
-      allowNegativeStock: false, // Strict: never allow negative stock
-    });
-
-    // Handle minStock update separately if provided
-    if (minStock !== undefined) {
-      await this.inventoryTransactionService.executeTransaction({
-        tenantId,
-        branchId,
-        productId,
-        userId,
-        changeType: 'SET_MIN_STOCK',
-        quantity: minStock,
-        reason: 'Minimum stock threshold updated',
-        referenceType: 'ADJUSTMENT',
-        minStock,
-      });
-    }
-
-    // Fetch updated inventory with relations
-    const updatedInventory = await this.prisma.inventory.findUnique({
-      where: {
-        branchId_productId: {
-          branchId,
-          productId,
-        },
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            sku: true,
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      minStock,
+      reason: reason ?? `${adjustmentType} adjustment`,
     });
 
     return {
       message: 'Stock adjusted successfully',
       inventory: {
-        id: updatedInventory!.id,
-        stock: Number(updatedInventory!.stock),
-        minStock: Number(updatedInventory!.minStock),
-        lastAdjusted: updatedInventory!.lastAdjusted,
-        product: updatedInventory!.product,
-        branch: updatedInventory!.branch,
+        id: result.inventoryId,
+        stock: result.afterStock,
+        minStock: result?.afterMinStock,
+        lastAdjusted: new Date(),
       },
       adjustment: {
         adjustmentType,
@@ -394,5 +331,40 @@ export class StockAdjustmentService {
     };
 
     return summary;
+  }
+
+  private mapAdjustmentType(
+    adjustmentType: 'STOCK_IN' | 'STOCK_OUT' | 'SET_STOCK',
+    quantity: number,
+  ) {
+    let changeType: InventoryChangeType;
+    let transactionQuantity: number;
+
+    switch (adjustmentType) {
+      case 'STOCK_IN':
+        changeType = 'ADJUST_STOCK';
+        transactionQuantity = quantity; // Positive: add to stock
+        break;
+
+      case 'STOCK_OUT':
+        changeType = 'MANUAL_ADJUST';
+        transactionQuantity = -Math.abs(quantity); // Negative: subtract from stock
+        break;
+
+      case 'SET_STOCK':
+        changeType = 'SET_STOCK';
+        transactionQuantity = quantity; // Set absolute value
+        break;
+
+      default:
+        throw new BadRequestException(
+          `Invalid adjustment type. Use STOCK_IN, STOCK_OUT, or SET_STOCK`,
+        );
+    }
+
+    return {
+      changeType,
+      transactionQuantity,
+    };
   }
 }

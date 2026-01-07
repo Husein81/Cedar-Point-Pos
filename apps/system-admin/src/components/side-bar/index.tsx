@@ -28,7 +28,7 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
               className="hover:bg-primary"
             >
               <Link href="/">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary rounded-lg p-2 flex items-center justify-center">
                   <Icon
                     name="Shield"
                     size={18}

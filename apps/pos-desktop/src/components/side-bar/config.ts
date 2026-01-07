@@ -51,17 +51,17 @@ export const sidebarSections: SidebarSection[] = [
     label: "Inventory",
     items: [
       {
+        label: "Categories",
+        icon: "Tags",
+        href: "/categories",
+        tooltip: "Categories",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
         label: "Products",
         icon: "Package",
         href: "/products",
         tooltip: "Products",
-        showFor: ["RETAIL", "RESTAURANT"],
-      },
-      {
-        label: "Categories",
-        icon: "FolderTree",
-        href: "/categories",
-        tooltip: "Categories",
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {

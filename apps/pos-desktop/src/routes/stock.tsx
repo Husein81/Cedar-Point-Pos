@@ -58,9 +58,13 @@ function RouteComponent() {
 
   // Calculate stats
   const totalProducts = inventory.length;
-  const outOfStock = inventory.filter((item) => item.stock === 0).length;
+  const outOfStock = inventory.filter(
+    (item) => Number(item.stock) === 0
+  ).length;
   const lowStock = lowStockItems.length;
-  const inStock = inventory.filter((item) => item.stock > item.minStock).length;
+  const inStock = inventory.filter(
+    (item) => Number(item.stock) > Number(item.minStock)
+  ).length;
 
   // Calculate pagination
   const startIndex = (page - 1) * pageSize;

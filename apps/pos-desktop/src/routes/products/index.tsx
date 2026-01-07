@@ -23,7 +23,8 @@ function RouteComponent() {
     search: searchQuery,
   });
   const products = data?.data ?? [];
-  const openModal = useModalStore((state) => state.openModal);
+
+  const { openModal } = useModalStore();
 
   const handleCreateProduct = () => {
     openModal("Create Product", <ProductForm />);

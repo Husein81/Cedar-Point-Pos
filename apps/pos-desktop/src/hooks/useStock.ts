@@ -38,6 +38,7 @@ export const useAdjustStock = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: STOCK_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ADJUSTMENT_HISTORY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 };

@@ -86,6 +86,11 @@ export class ProductsService {
           orderBy,
           skip,
           take: limit,
+          include: {
+            category: true,
+            subcategory: true,
+            inventory: true,
+          },
         }),
       ]);
 
@@ -110,6 +115,7 @@ export class ProductsService {
       include: {
         category: true,
         subcategory: true,
+        inventory: true,
       },
     });
   }

@@ -123,6 +123,17 @@ export const ProductSchema = z.object({
   isModifiable: z.boolean().default(false),
   createdAt: isoDate,
   taxId: cuid.nullable().optional(),
+
+  inventory: z
+    .array(
+      z.object({
+        branchId: cuid,
+        tenantId: cuid,
+        stock: decimal.default("0"),
+        minStock: decimal.default("0"),
+      })
+    )
+    .optional(),
   recipesUsedIn: z.array(RecipeSchema).optional(), // For ingredients
 });
 export type Product = z.infer<typeof ProductSchema>;

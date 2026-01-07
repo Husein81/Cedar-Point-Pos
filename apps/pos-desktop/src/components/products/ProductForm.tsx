@@ -12,20 +12,32 @@ import { useForm } from "@tanstack/react-form";
 import { generateEan13, generateSku } from "./config";
 import { ProductWithRelations } from "@/dto/products.dto";
 import { useAuthStore } from "@/store/authStore";
+import { useBranchStore } from "@/store/branchStore";
+import { useAdjustStock } from "@/hooks/useStock";
+import { useState } from "react";
 
-interface ProductFormProps {
+interface Props {
   product?: ProductWithRelations;
 }
 
-export const ProductForm = ({ product }: ProductFormProps) => {
+export const ProductForm = ({ product }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
+  const { branchId } = useBranchStore();
   const { user } = useAuthStore();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
+  const adjustStock = useAdjustStock();
 
   const isEdit = Boolean(product);
+  const [isAdjustingStock, setIsAdjustingStock] = useState(false);
 
   const { data: categories = [] } = useCategories();
+
+  const inventory = product?.inventory?.filter(
+    (inv) => inv?.branchId === branchId
+  )[0];
+
+  const initialStock = inventory?.stock ? Number(inventory.stock) : 0;
 
   const form = useForm({
     defaultValues: {
@@ -33,6 +45,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
       description: product?.description || "",
       sku: product?.sku || "",
       barcode: product?.barcode || "",
+      stock: inventory?.stock || "",
       price: product?.price?.toString() || "",
       cost: product?.cost?.toString() || "",
       categoryId: product?.categoryId || "",
@@ -42,6 +55,8 @@ export const ProductForm = ({ product }: ProductFormProps) => {
     },
     onSubmit: async ({ value }) => {
       try {
+        const stockValue = value.stock ? Number(value.stock) : 0;
+
         const data = {
           name: value.name,
           description: value.description || undefined,
@@ -56,14 +71,53 @@ export const ProductForm = ({ product }: ProductFormProps) => {
           tenantId: user?.tenantId ?? "",
         };
 
+        let productId: string;
+
         if (product) {
+          // Update existing product
           await updateMutation.mutateAsync({ id: product.id, data });
+          productId = product.id;
         } else {
-          await createMutation.mutateAsync(data);
+          // Create new product
+          const newProduct = await createMutation.mutateAsync(data);
+          productId = newProduct.id;
         }
+
+        // Handle stock adjustment separately using inventory transaction service
+        if (stockValue !== initialStock || isEdit) {
+          setIsAdjustingStock(true);
+
+          try {
+            if (isEdit) {
+              // For existing products, use SET_STOCK to override
+              await adjustStock.mutateAsync({
+                branchId: branchId!,
+                productId,
+                adjustmentType: "SET_STOCK",
+                quantity: stockValue,
+                reason: `Stock adjusted during product update to ${stockValue} units`,
+              });
+            } else {
+              // For new products, use STOCK_IN to set initial stock
+              if (stockValue > 0) {
+                await adjustStock.mutateAsync({
+                  branchId: branchId!,
+                  productId,
+                  adjustmentType: "STOCK_IN",
+                  quantity: stockValue,
+                  reason: `Initial stock set during product creation`,
+                });
+              }
+            }
+          } finally {
+            setIsAdjustingStock(false);
+          }
+        }
+
         closeModal();
       } catch (error) {
         console.error("Failed to save product:", error);
+        setIsAdjustingStock(false);
       }
     },
   });
@@ -127,12 +181,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         {(field) => (
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <InputField
-                label="SKU"
-                disabled={isEdit}
-                placeholder="SKU"
-                field={field}
-              />
+              <InputField label="SKU" placeholder="SKU" field={field} />
             </div>
             {!isEdit && (
               <Button
@@ -157,12 +206,7 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         {(field) => (
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <InputField
-                label="Barcode"
-                disabled={isEdit}
-                placeholder="Barcode"
-                field={field}
-              />
+              <InputField label="Barcode" placeholder="Barcode" field={field} />
             </div>
             {!isEdit && (
               <Button
@@ -175,6 +219,17 @@ export const ProductForm = ({ product }: ProductFormProps) => {
               </Button>
             )}
           </div>
+        )}
+      </form.Field>
+
+      <form.Field name="stock">
+        {(field) => (
+          <InputField
+            label="Stock"
+            placeholder="0.00"
+            field={field}
+            step={"0.01"}
+          />
         )}
       </form.Field>
 
@@ -236,10 +291,24 @@ export const ProductForm = ({ product }: ProductFormProps) => {
         </Button>
         <Button
           type="submit"
-          isSubmitting={createMutation.isPending || updateMutation.isPending}
-          disabled={createMutation.isPending || updateMutation.isPending}
+          isSubmitting={
+            createMutation.isPending ||
+            updateMutation.isPending ||
+            isAdjustingStock
+          }
+          disabled={
+            createMutation.isPending ||
+            updateMutation.isPending ||
+            isAdjustingStock
+          }
         >
-          {product ? "Update" : "Create"}
+          {isAdjustingStock
+            ? "Adjusting Stock..."
+            : createMutation.isPending || updateMutation.isPending
+              ? "Saving..."
+              : product
+                ? "Update"
+                : "Create"}
         </Button>
       </div>
     </form>

@@ -6,22 +6,30 @@ import {
   ProductWithRelations,
   UpdateProductDto,
 } from "@/dto/products.dto";
+import { useBranchStore } from "@/store/branchStore";
 
 const PRODUCT_QUERY_KEY = ["products"];
 
 export const useProducts = () => {
+  const { branchId } = useBranchStore();
+
   return useQuery({
-    queryKey: PRODUCT_QUERY_KEY,
-    queryFn: () => productsApi.getProducts(),
+    queryKey: [...PRODUCT_QUERY_KEY, branchId],
+    queryFn: () => productsApi.getProducts(branchId || undefined),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!branchId,
   });
 };
 
 export const useProductsPaginated = (params?: QueryParams) => {
+  const { branchId } = useBranchStore();
+
   return useQuery({
-    queryKey: [...PRODUCT_QUERY_KEY, params],
-    queryFn: () => productsApi.getProductsPaginated(params),
+    queryKey: [...PRODUCT_QUERY_KEY, "paginated", params, branchId],
+    queryFn: () =>
+      productsApi.getProductsPaginated(params, branchId || undefined),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!branchId,
   });
 };
 

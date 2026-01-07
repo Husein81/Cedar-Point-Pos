@@ -15,10 +15,11 @@ import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useAdjustStock } from "@/hooks/useStock";
 import { useState } from "react";
+import { useBranchesByTenant } from "@/hooks/useBranch";
 
-interface Props {
+type Props = {
   product?: ProductWithRelations;
-}
+};
 
 export const ProductForm = ({ product }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
@@ -32,6 +33,7 @@ export const ProductForm = ({ product }: Props) => {
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
 
   const { data: categories = [] } = useCategories();
+  const { data: branches = [] } = useBranchesByTenant(user?.tenantId);
 
   const inventory = product?.inventory?.filter(
     (inv) => inv?.branchId === branchId
@@ -49,6 +51,7 @@ export const ProductForm = ({ product }: Props) => {
       price: product?.price?.toString() || "",
       cost: product?.cost?.toString() || "",
       categoryId: product?.categoryId || "",
+      branchId: product?.branchId || "",
       isActive: product?.isActive ?? true,
       isIngredient: product?.isIngredient ?? false,
       isModifiable: product?.isModifiable ?? false,
@@ -58,6 +61,7 @@ export const ProductForm = ({ product }: Props) => {
         const stockValue = value.stock ? Number(value.stock) : 0;
 
         const data = {
+          tenantId: user?.tenantId!,
           name: value.name,
           description: value.description || undefined,
           sku: value.sku || undefined,
@@ -65,10 +69,10 @@ export const ProductForm = ({ product }: Props) => {
           price: value.price ? value.price : undefined,
           cost: value.cost ? value.cost : undefined,
           categoryId: value.categoryId || undefined,
+          branchId: value.branchId || undefined,
           isActive: value.isActive,
           isIngredient: value.isIngredient,
           isModifiable: value.isModifiable,
-          tenantId: user?.tenantId ?? "",
         };
 
         let productId: string;
@@ -266,6 +270,21 @@ export const ProductForm = ({ product }: Props) => {
             options={categories.map((category) => ({
               label: category.name,
               value: category.id,
+            }))}
+          />
+        )}
+      </form.Field>
+
+      <form.Field name="branchId">
+        {(field) => (
+          <SelectField
+            label="Available at Branch"
+            subLabel="If no branch is selected, the product will be available at all branches."
+            placeholder="Select branch (leave empty for all branches)"
+            field={field}
+            options={branches.map((branch) => ({
+              label: branch.name,
+              value: branch.id,
             }))}
           />
         )}

@@ -11,15 +11,37 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProductsByTenant(tenantId: string) {
+  async getProductsByTenant(tenantId: string, branchId?: string) {
+    const where: Prisma.ProductWhereInput = {
+      tenantId,
+      ...(branchId && {
+        OR: [{ branchId }, { branchId: null }],
+      }),
+    };
+
     return await this.prisma.product.findMany({
-      where: { tenantId },
+      where,
+      include: {
+        inventory: true,
+        category: true,
+        subcategory: true,
+      },
     });
   }
 
-  async getProductsPaginated(tenantId: string, params: QueryParams) {
+  async getProductsPaginated(
+    tenantId: string,
+    params: QueryParams & { branchId?: string },
+  ) {
     try {
-      const { search, sort, order, page: rawPage, limit: rawLimit } = params;
+      const {
+        branchId,
+        search,
+        sort,
+        order,
+        page: rawPage,
+        limit: rawLimit,
+      } = params;
 
       const page = Math.max(Number(rawPage) || 1, 1);
       const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
@@ -30,6 +52,9 @@ export class ProductsService {
        */
       const where: Prisma.ProductWhereInput = {
         tenantId,
+        ...(branchId && {
+          OR: [{ branchId }, { branchId: null }],
+        }),
       };
 
       const searchTerm = search?.trim();

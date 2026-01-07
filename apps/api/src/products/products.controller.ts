@@ -16,18 +16,20 @@ export class ProductsController {
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    const query = req.query as QueryParams;
+    const query = req.query as QueryParams & { branchId?: string };
 
     return await this.productsService.getProductsPaginated(tenantId, query);
   }
 
   @Get()
-  getProductsByTenant(@Req() req: Request) {
+  async getProducts(@Req() req: Request) {
     const { tenantId } = req.user as { tenantId: string };
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.productsService.getProductsByTenant(tenantId);
+    const { branchId } = req.query as { branchId?: string };
+
+    return await this.productsService.getProductsByTenant(tenantId, branchId);
   }
 
   @Get(':id')
@@ -41,7 +43,7 @@ export class ProductsController {
 
   @Post()
   createProduct(@Req() req: Request) {
-    const body = req.body as Prisma.ProductCreateInput;
+    const body = req.body as Prisma.ProductCreateInput & { branchId?: string };
     return this.productsService.createProduct(body);
   }
 

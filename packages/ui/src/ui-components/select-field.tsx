@@ -12,6 +12,7 @@ type Option = {
 
 type Props = {
   label: string;
+  subLabel?: string;
   field: AnyFieldApi;
   placeholder?: string;
   className?: string;
@@ -21,6 +22,7 @@ type Props = {
 
 const SelectField = ({
   label,
+  subLabel,
   field,
   options,
   placeholder,
@@ -42,6 +44,7 @@ const SelectField = ({
           }}
         />
       </div>
+      {subLabel && <p className="text-sm text-muted-foreground">{subLabel}</p>}
       <FieldInfo field={field} className={cn("text-destructive")} />
     </div>
   );

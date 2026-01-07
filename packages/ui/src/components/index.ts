@@ -1,6 +1,17 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Alert, AlertTitle, AlertDescription } from "./alert";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./alert-dialog";
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
@@ -9,6 +20,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
 } from "./breadcrumb";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { Calendar, CalendarDayButton } from "./calendar";
 import {
   Card,
@@ -185,6 +197,15 @@ export const Shad = {
   Alert,
   AlertDescription,
   AlertTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
@@ -319,6 +340,10 @@ export const Shad = {
   TableRow,
   TableCell,
   TableCaption,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
   Tooltip,
   TooltipTrigger,
   TooltipContent,

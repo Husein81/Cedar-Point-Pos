@@ -125,7 +125,11 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
   const handleSearchKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       // On Enter, if exactly one product matches, add it
-      if (e.key === "Enter" && filteredProducts.length === 1 && filteredProducts[0]) {
+      if (
+        e.key === "Enter" &&
+        filteredProducts.length === 1 &&
+        filteredProducts[0]
+      ) {
         handleProductClick(filteredProducts[0]);
         setSearchQuery("");
       }
@@ -165,27 +169,25 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
           All Products
         </button>
 
-        {isLoading ? (
-          // Loading skeleton for categories
-          Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-11 w-24 rounded-lg" />
-          ))
-        ) : (
-          activeCategories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => handleCategoryClick(category.id)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
-                selectedCategoryId === category.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80 text-muted-foreground"
-              )}
-            >
-              {category.name}
-            </button>
-          ))
-        )}
+        {isLoading
+          ? // Loading skeleton for categories
+            Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-11 w-24 rounded-lg" />
+            ))
+          : activeCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleCategoryClick(category.id)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
+                  selectedCategoryId === category.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                )}
+              >
+                {category.name}
+              </button>
+            ))}
       </div>
 
       {/* Product Grid */}

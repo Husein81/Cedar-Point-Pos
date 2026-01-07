@@ -179,7 +179,7 @@ export const useOrderStore = create<OrderStoreState>()(
         if (state.activeTabId === tabId) {
           const newIndex = Math.min(tabIndex, newTabs.length - 1);
           const newTab = newTabs[newIndex];
-          newActiveTabId = newTab ? newTab.id : newTabs[0]?.id ?? null;
+          newActiveTabId = newTab ? newTab.id : (newTabs[0]?.id ?? null);
         }
 
         set({
@@ -265,7 +265,9 @@ export const useOrderStore = create<OrderStoreState>()(
               order: {
                 ...tab.order,
                 items: tab.order.items.map((item) =>
-                  item.id === itemId ? { ...item, quantity: validQuantity } : item
+                  item.id === itemId
+                    ? { ...item, quantity: validQuantity }
+                    : item
                 ),
                 modifiedAt: new Date(),
               },

@@ -42,7 +42,10 @@ export const OrderCart = ({ className }: OrderCartProps) => {
 
   // Subtotal, discount, total
   const subtotal = useMemo(() => getOrderSubtotal(), [getOrderSubtotal, order]);
-  const discount = useMemo(() => getDiscountAmount(), [getDiscountAmount, order]);
+  const discount = useMemo(
+    () => getDiscountAmount(),
+    [getDiscountAmount, order]
+  );
   const total = useMemo(() => getOrderTotal(), [getOrderTotal, order]);
 
   return (
@@ -77,7 +80,9 @@ export const OrderCart = ({ className }: OrderCartProps) => {
                 className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 shadow-sm"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{item.name}</div>
+                  <div className="font-medium text-sm truncate">
+                    {item.name}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {formatPrice(item.price)} LBP
                   </div>
@@ -87,7 +92,9 @@ export const OrderCart = ({ className }: OrderCartProps) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                    onClick={() =>
+                      updateItemQuantity(item.id, item.quantity - 1)
+                    }
                     disabled={item.quantity <= 1}
                   >
                     <Minus className="w-4 h-4" />
@@ -99,7 +106,9 @@ export const OrderCart = ({ className }: OrderCartProps) => {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                    onClick={() =>
+                      updateItemQuantity(item.id, item.quantity + 1)
+                    }
                   >
                     <Plus className="w-4 h-4" />
                   </Button>

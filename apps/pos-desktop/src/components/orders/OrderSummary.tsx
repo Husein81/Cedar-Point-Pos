@@ -8,13 +8,13 @@ interface OrderSummaryProps {
   onHoldOrder?: () => void;
 }
 
-export const OrderSummary = ({ className, onCompleteOrder, onHoldOrder }: OrderSummaryProps) => {
-  const {
-    getActiveOrder,
-    getOrderTotal,
-    setOrderStatus,
-    clearOrder,
-  } = useOrderStore();
+export const OrderSummary = ({
+  className,
+  onCompleteOrder,
+  onHoldOrder,
+}: OrderSummaryProps) => {
+  const { getActiveOrder, getOrderTotal, setOrderStatus, clearOrder } =
+    useOrderStore();
 
   const order = getActiveOrder();
   const total = getOrderTotal();

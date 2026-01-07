@@ -1,14 +1,14 @@
-import { Button, Input } from "@repo/ui";
+import { Button, Empty, Input, Select } from "@repo/ui";
 import { Plus, Minus, Trash2 } from "lucide-react";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
 import { useMemo } from "react";
 
-interface OrderCartProps {
+type Props = {
   className?: string;
-}
+};
 
-export const OrderCart = ({ className }: OrderCartProps) => {
+export const OrderCart = ({ className }: Props) => {
   const {
     getActiveOrder,
     updateItemQuantity,
@@ -68,10 +68,7 @@ export const OrderCart = ({ className }: OrderCartProps) => {
       {/* Cart Items List */}
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-            <ShoppingCartIcon className="w-10 h-10 mb-2 opacity-40" />
-            <p className="text-base">No items in order</p>
-          </div>
+          <Empty title="No items in order" icon={"ShoppingCart"} />
         ) : (
           <ul className="flex flex-col gap-2">
             {items.map((item) => (
@@ -84,7 +81,7 @@ export const OrderCart = ({ className }: OrderCartProps) => {
                     {item.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {formatPrice(item.price)} LBP
+                    {formatPrice(item.price)} $
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -133,69 +130,50 @@ export const OrderCart = ({ className }: OrderCartProps) => {
 
       {/* Discount Input */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Discount:</span>
+        <span className="text-xs font-medium">Discount:</span>
         <Input
           type="number"
           min={0}
           max={discountType === "PERCENTAGE" ? 100 : subtotal}
           value={discountValue}
+          className="flex-1 h-9 text-base"
           onChange={(e) =>
             setDiscount({
               type: discountType,
               value: Math.max(0, Number(e.target.value)),
             })
           }
-          className="w-20 h-9 text-base"
         />
-        <select
+        <Select
           value={discountType}
-          onChange={(e) =>
+          onChange={(opt) =>
             setDiscount({
-              type: e.target.value as "PERCENTAGE" | "FIXED",
+              type: opt.value as "PERCENTAGE" | "FIXED",
               value: discountValue,
             })
           }
-          className="border rounded-md px-2 py-1 text-sm bg-background"
-        >
-          <option value="PERCENTAGE">%</option>
-          <option value="FIXED">LBP</option>
-        </select>
+          options={[
+            { label: "%", value: "PERCENTAGE" },
+            { label: "$", value: "FIXED" },
+          ]}
+        />
       </div>
 
       {/* Subtotal, Discount, Total */}
       <div className="flex flex-col gap-1 mt-2">
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs">
           <span>Subtotal</span>
-          <span>{formatPrice(subtotal)} LBP</span>
+          <span>{formatPrice(subtotal)} $P</span>
         </div>
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between text-xs">
           <span>Discount</span>
-          <span>-{formatPrice(discount)} LBP</span>
+          <span>-{formatPrice(discount)} $</span>
         </div>
-        <div className="flex justify-between text-lg font-bold mt-2">
+        <div className="flex justify-between text-sm font-bold mt-2">
           <span>Total</span>
-          <span>{formatPrice(total)} LBP</span>
+          <span>{formatPrice(total)} $</span>
         </div>
       </div>
     </div>
   );
 };
-
-// ShoppingCartIcon fallback
-function ShoppingCartIcon(props: any) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx={9} cy={21} r={1} />
-      <circle cx={20} cy={21} r={1} />
-      <path d="M1 1h2l.34 2.36a2 2 0 0 0 2 1.64h13.72a2 2 0 0 0 2-1.64l1.34-7.36H6.34" />
-    </svg>
-  );
-}

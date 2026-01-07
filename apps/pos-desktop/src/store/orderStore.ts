@@ -71,6 +71,13 @@ const createNewTab = (tabNumber: number): OrderTab => ({
   order: createEmptyOrder(),
 });
 
+const renumberTabs = (tabs: OrderTab[]): OrderTab[] => {
+  return tabs.map((tab, index) => ({
+    ...tab,
+    label: `Order ${index + 1}`,
+  }));
+};
+
 // =====================
 // Store State & Actions
 // =====================
@@ -139,12 +146,12 @@ export const useOrderStore = create<OrderStoreState>()(
         if (state.tabs.length >= state.maxTabs) {
           return null;
         }
-
         const newTabNumber = state.tabs.length + 1;
         const newTab = createNewTab(newTabNumber);
+        const updatedTabs = renumberTabs([...state.tabs, newTab]);
 
         set({
-          tabs: [...state.tabs, newTab],
+          tabs: updatedTabs,
           activeTabId: newTab.id,
         });
 
@@ -173,17 +180,18 @@ export const useOrderStore = create<OrderStoreState>()(
         }
 
         const newTabs = state.tabs.filter((t) => t.id !== tabId);
+        const renumberedTabs = renumberTabs(newTabs);
 
         // If closing active tab, switch to adjacent tab
         let newActiveTabId = state.activeTabId;
         if (state.activeTabId === tabId) {
-          const newIndex = Math.min(tabIndex, newTabs.length - 1);
-          const newTab = newTabs[newIndex];
-          newActiveTabId = newTab ? newTab.id : (newTabs[0]?.id ?? null);
+          const newIndex = Math.min(tabIndex, renumberedTabs.length - 1);
+          const newTab = renumberedTabs[newIndex];
+          newActiveTabId = newTab ? newTab.id : (renumberedTabs[0]?.id ?? null);
         }
 
         set({
-          tabs: newTabs,
+          tabs: renumberedTabs,
           activeTabId: newActiveTabId,
         });
       },

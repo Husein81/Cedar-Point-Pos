@@ -1,7 +1,7 @@
 import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 interface OrderTabsProps {
   className?: string;
@@ -20,41 +20,35 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
 
   const [tabToClose, setTabToClose] = useState<string | null>(null);
 
-  const handleTabClick = useCallback(
-    (tabId: string) => {
-      setActiveTab(tabId);
-    },
-    [setActiveTab]
-  );
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId);
+  };
 
-  const handleNewTab = useCallback(() => {
+  const handleNewTab = () => {
     createTab();
-  }, [createTab]);
+  };
 
-  const handleCloseTabRequest = useCallback(
-    (e: React.MouseEvent, tabId: string) => {
-      e.stopPropagation();
+  const handleCloseTabRequest = (e: React.MouseEvent, tabId: string) => {
+    e.stopPropagation();
 
-      // If tab has items, show confirmation
-      if (hasUnsavedChanges(tabId)) {
-        setTabToClose(tabId);
-      } else {
-        closeTab(tabId);
-      }
-    },
-    [closeTab, hasUnsavedChanges]
-  );
+    // If tab has items, show confirmation
+    if (hasUnsavedChanges(tabId)) {
+      setTabToClose(tabId);
+    } else {
+      closeTab(tabId);
+    }
+  };
 
-  const confirmCloseTab = useCallback(() => {
+  const confirmCloseTab = () => {
     if (tabToClose) {
       closeTab(tabToClose);
       setTabToClose(null);
     }
-  }, [closeTab, tabToClose]);
+  };
 
-  const cancelCloseTab = useCallback(() => {
+  const cancelCloseTab = () => {
     setTabToClose(null);
-  }, []);
+  };
 
   return (
     <>
@@ -71,15 +65,14 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
           const isOnHold = tab.order.status === "ON_HOLD";
 
           return (
-            <button
+            <Button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
+              size="sm"
+              variant={isActive ? "default" : "ghost"}
               className={cn(
-                "group relative flex items-center gap-2 min-w-35 max-w-50 h-12 px-4 rounded-md transition-all",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isActive
-                  ? "bg-background shadow-sm text-foreground"
-                  : "bg-transparent text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                "group flex items-center gap-2 min-w-0",
+                isActive ? "font-semibold" : "font-medium"
               )}
             >
               {/* Tab Content */}
@@ -138,7 +131,7 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
                   <Icon name="X" className="w-4 h-4" />
                 </button>
               )}
-            </button>
+            </Button>
           );
         })}
 
@@ -148,7 +141,7 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
             onClick={handleNewTab}
             variant="ghost"
             size="icon"
-            className="h-12 w-12 shrink-0 hover:bg-background/50"
+            className="h-8 w-8 shrink-0 hover:bg-background/50"
             aria-label="New order tab"
           >
             <Icon name="Plus" className="w-5 h-5" />

@@ -270,7 +270,7 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
         <span className="text-lg font-semibold text-primary">
           {formatPrice(Number(product.price))}
         </span>
-        <span className="text-xs text-muted-foreground">LBP</span>
+        <span className="text-sm text-muted-foreground">$</span>
       </div>
 
       {/* SKU/Barcode indicator (optional, for quick reference) */}

@@ -51,13 +51,12 @@ export const OrderSummary = ({
     <div className={cn("flex flex-col gap-4", className)}>
       <div className="flex flex-col gap-1">
         <span className="text-sm text-muted-foreground">Total</span>
-        <span className="text-3xl font-bold text-primary">
-          {formatPrice(total)} LBP
+        <span className="text-xl font-bold text-primary">
+          {formatPrice(total)} $
         </span>
       </div>
       <div className="flex gap-2 mt-2">
         <Button
-          size="lg"
           className="flex-1 h-14 text-lg"
           onClick={handleComplete}
           disabled={!canComplete}
@@ -65,7 +64,6 @@ export const OrderSummary = ({
           Complete Order
         </Button>
         <Button
-          size="lg"
           variant="secondary"
           className="flex-1 h-14 text-lg"
           onClick={handleHold}

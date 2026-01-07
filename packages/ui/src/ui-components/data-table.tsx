@@ -84,49 +84,53 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-2">
-      {/* 🔍 Search + Actions bar */}
-      {(search || actions || onRefetch) && (
-        <div className="flex items-center justify-between gap-2">
-          {/* Left: Search */}
-          {search && (
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") applySearch();
-                }}
-                className="max-w-sm"
-              />
-
-              <Button iconName="Search" onClick={applySearch}>
-                Search
-              </Button>
-            </div>
-          )}
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            {onRefetch && (
-              <Button
-                variant="outline"
-                onClick={onRefetch}
-                disabled={isLoading}
-              >
-                <Icon
-                  name="RefreshCw"
-                  size={16}
-                  className={cn("mr-2", isLoading ? "animate-spin" : "")}
+      <div className="relative h-8">
+        {/* 🔍 Search + Actions bar */}
+        {(search || actions || onRefetch) && (
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Search */}
+            {search && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <Input
+                  placeholder="Search..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") applySearch();
+                  }}
+                  className="max-w-sm"
                 />
-                Refresh
-              </Button>
+
+                <Button iconName="Search" onClick={applySearch}>
+                  Search
+                </Button>
+              </div>
             )}
 
-            {actions}
+            {/* Right: Actions */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              <div className="flex items-center gap-2">
+                {onRefetch && (
+                  <Button
+                    variant="outline"
+                    onClick={onRefetch}
+                    disabled={isLoading}
+                  >
+                    <Icon
+                      name="RefreshCw"
+                      size={16}
+                      className={cn("mr-2", isLoading ? "animate-spin" : "")}
+                    />
+                    Refresh
+                  </Button>
+                )}
+
+                {actions}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Table */}
       {isLoading ? (

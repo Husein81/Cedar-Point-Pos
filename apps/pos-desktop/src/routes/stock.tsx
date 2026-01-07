@@ -95,6 +95,16 @@ function RouteComponent() {
     },
   ];
 
+  const handleStockPageSizeChange = (pageSize: number) => {
+    setPageSize(pageSize);
+    setPage(1);
+  };
+
+  const handleHistoryPageSizeChange = (pageSize: number) => {
+    setHistoryPageSize(pageSize);
+    setHistoryPage(1);
+  };
+
   return (
     <div className="space-y-4">
       <Heading
@@ -149,7 +159,7 @@ function RouteComponent() {
           pageSize,
           totalPages,
           onPageChange: setPage,
-          onPageSizeChange: setPageSize,
+          onPageSizeChange: handleStockPageSizeChange,
         }}
       />
 
@@ -175,7 +185,7 @@ function RouteComponent() {
             pageSize: historyPageSize,
             totalPages: historyPagination?.totalPages || 1,
             onPageChange: setHistoryPage,
-            onPageSizeChange: setHistoryPageSize,
+            onPageSizeChange: handleHistoryPageSizeChange,
           }}
         />
       </div>

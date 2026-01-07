@@ -106,7 +106,11 @@ function RouteComponent() {
             <p className="text-sm text-muted-foreground">
               Start a new order immediately
             </p>
-            <Button size="lg" className="w-full">
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => navigate({ to: "/orders" })}
+            >
               <Plus className="mr-2 h-5 w-5" />
               New Sale
             </Button>
@@ -119,7 +123,12 @@ function RouteComponent() {
             <p className="text-sm text-muted-foreground">
               Continue an open order
             </p>
-            <Button size="lg" variant="secondary" className="w-full">
+            <Button
+              size="lg"
+              variant="secondary"
+              className="w-full"
+              onClick={() => navigate({ to: "/orders" })}
+            >
               <ShoppingCart className="mr-2 h-5 w-5" />
               Open Orders
             </Button>

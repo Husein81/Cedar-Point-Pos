@@ -32,6 +32,13 @@ import {
   CardTitle,
 } from "./card";
 import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "./carousel";
+import {
   Command,
   CommandDialog,
   CommandInput,
@@ -222,6 +229,11 @@ export const Shad = {
   CardAction,
   CardDescription,
   CardContent,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
   Command,
   CommandDialog,
   CommandInput,

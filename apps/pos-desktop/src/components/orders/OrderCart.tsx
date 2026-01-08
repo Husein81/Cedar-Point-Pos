@@ -1,179 +1,149 @@
-import { Button, Empty, Input, Select } from "@repo/ui";
-import { Plus, Minus, Trash2 } from "lucide-react";
+import { Button, Empty, Icon, Shad } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
-import { useMemo } from "react";
 
 type Props = {
   className?: string;
 };
 
-export const OrderCart = ({ className }: Props) => {
-  const {
-    getActiveOrder,
-    updateItemQuantity,
-    removeItem,
-    clearOrder,
-    setDiscount,
-    getOrderSubtotal,
-    getDiscountAmount,
-    getOrderTotal,
-  } = useOrderStore();
+const formatPrice = (price: number | null | undefined): string => {
+  if (price === null || price === undefined) return "0";
+  return new Intl.NumberFormat("en-LB", {
+    style: "decimal",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+};
 
-  const order = getActiveOrder();
-
-  // Format currency for Lebanese retail (LBP)
-  const formatPrice = (price: number | null | undefined): string => {
-    if (price === null || price === undefined) return "N/A";
-    return new Intl.NumberFormat("en-LB", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+interface CartItemRowProps {
+  item: {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
   };
+  onQuantityChange: (id: string, quantity: number) => void;
+  onRemove: (id: string) => void;
+}
 
-  // Discount input state (could be improved with local state)
-  // For now, just show discount if present
-  const discountValue = order?.discount?.value || 0;
-  const discountType = order?.discount?.type || "PERCENTAGE";
-
-  // Cart items
-  const items = order?.items || [];
-
-  // Subtotal, discount, total
-  const subtotal = useMemo(() => getOrderSubtotal(), [getOrderSubtotal, order]);
-  const discount = useMemo(
-    () => getDiscountAmount(),
-    [getDiscountAmount, order]
-  );
-  const total = useMemo(() => getOrderTotal(), [getOrderTotal, order]);
-
+const CartItemRow = ({
+  item,
+  onQuantityChange,
+  onRemove,
+}: CartItemRowProps) => {
   return (
-    <div className={cn("flex flex-col h-full gap-4", className)}>
-      {/* Cart Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Order Cart</h2>
+    // Card-style item with clear 2-row structure for easy scanning
+    <div className="flex flex-col gap-2 py-3 px-3.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+      {/* Row 1: Product Name + Delete */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-medium text-sm leading-snug line-clamp-2 flex-1 cursor-default">
+          {item.name}
+        </p>
+        {/* Delete - visually separated in top-right */}
         <Button
           variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onRemove(item.id)}
+        >
+          <Icon name="Trash2" className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+
+      {/* Row 2: Unit Info | Quantity Controls | Subtotal */}
+      <div className="flex items-center justify-between gap-3">
+        {/* Unit price info - muted, secondary */}
+        <p className="text-xs text-muted-foreground whitespace-nowrap">
+          {item.quantity} × ${formatPrice(item.price)}
+        </p>
+
+        {/* Quantity Controls - compact, grouped */}
+        <div className="flex items-center gap-0.5 bg-background rounded-lg border shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-l-lg rounded-r-none"
+            onClick={() => onQuantityChange(item.id, item.quantity - 1)}
+            disabled={item.quantity <= 1}
+          >
+            <Icon name="Minus" className="w-3 h-3" />
+          </Button>
+          <span className="w-8 text-center text-sm font-semibold tabular-nums bg-muted/30">
+            {item.quantity}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-r-lg rounded-l-none"
+            onClick={() => onQuantityChange(item.id, item.quantity + 1)}
+          >
+            <Icon name="Plus" className="w-3 h-3" />
+          </Button>
+        </div>
+
+        {/* Subtotal - prominent, right-aligned */}
+        <span className="font-bold text-sm text-primary tabular-nums min-w-16 text-right">
+          ${formatPrice(item.price * item.quantity)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export const OrderCart = ({ className }: Props) => {
+  const { getActiveOrder, updateItemQuantity, removeItem, clearOrder } =
+    useOrderStore();
+
+  const order = getActiveOrder();
+  const items = order?.items || [];
+
+  return (
+    <div className={cn("flex flex-col h-full", className)}>
+      {/* Cart Header */}
+      <div className="flex items-center justify-between pb-3">
+        <div className="flex items-center gap-2">
+          <Icon name="ShoppingCart" className="w-4 h-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Order Items</h2>
+          {items.length > 0 && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {items.length}
+            </span>
+          )}
+        </div>
+        <Button
+          variant="destructive"
           size="sm"
           onClick={clearOrder}
           disabled={items.length === 0}
-          className="text-destructive"
+          className="text-white h-7 text-xs"
         >
-          <Trash2 className="w-4 h-4 mr-1" />
+          <Icon name="Trash2" className="w-3.5 h-3.5" />
           Clear
         </Button>
       </div>
 
-      {/* Cart Items List */}
-      <div className="flex-1 overflow-y-auto">
-        {items.length === 0 ? (
-          <Empty title="No items in order" icon={"ShoppingCart"} />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 shadow-sm"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatPrice(item.price)} $
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      updateItemQuantity(item.id, item.quantity - 1)
-                    }
-                    disabled={item.quantity <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <span className="w-8 text-center font-semibold text-base">
-                    {item.quantity}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      updateItemQuantity(item.id, item.quantity + 1)
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="w-20 text-right font-semibold text-base">
-                  {formatPrice(item.price * item.quantity)}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  onClick={() => removeItem(item.id)}
-                  aria-label="Remove item"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Discount Input */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium">Discount:</span>
-        <Input
-          type="number"
-          min={0}
-          max={discountType === "PERCENTAGE" ? 100 : subtotal}
-          value={discountValue}
-          className="flex-1 h-9 text-base"
-          onChange={(e) =>
-            setDiscount({
-              type: discountType,
-              value: Math.max(0, Number(e.target.value)),
-            })
-          }
-        />
-        <Select
-          value={discountType}
-          onChange={(opt) =>
-            setDiscount({
-              type: opt.value as "PERCENTAGE" | "FIXED",
-              value: discountValue,
-            })
-          }
-          options={[
-            { label: "%", value: "PERCENTAGE" },
-            { label: "$", value: "FIXED" },
-          ]}
-        />
-      </div>
-
-      {/* Subtotal, Discount, Total */}
-      <div className="flex flex-col gap-1 mt-2">
-        <div className="flex justify-between text-xs">
-          <span>Subtotal</span>
-          <span>{formatPrice(subtotal)} $P</span>
+      {/* Items List */}
+      <Shad.ScrollArea className="flex-1 min-h-0 -mx-1">
+        <div className="px-1">
+          {items.length === 0 ? (
+            <div className="flex items-center justify-center h-full min-h-50">
+              <Empty title="No items in order" icon="ShoppingCart" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {items.map((item) => (
+                <CartItemRow
+                  key={item.id}
+                  item={item}
+                  onQuantityChange={updateItemQuantity}
+                  onRemove={removeItem}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        <div className="flex justify-between text-xs">
-          <span>Discount</span>
-          <span>-{formatPrice(discount)} $</span>
-        </div>
-        <div className="flex justify-between text-sm font-bold mt-2">
-          <span>Total</span>
-          <span>{formatPrice(total)} $</span>
-        </div>
-      </div>
+        <Shad.ScrollBar />
+      </Shad.ScrollArea>
     </div>
   );
 };

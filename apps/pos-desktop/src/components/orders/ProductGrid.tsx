@@ -1,25 +1,15 @@
-import { Input, Shad, Skeleton } from "@repo/ui";
-import { Search } from "lucide-react";
+import { Button, Icon, Input, Shad, Skeleton, Empty } from "@repo/ui";
 import { useProducts } from "@/hooks/useProduct";
 import { useCategories } from "@/hooks/useCategory";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
+import ProductCard from "./ProductCard";
 
 interface ProductGridProps {
   className?: string;
 }
-
-// Format currency for Lebanese retail (LBP)
-const formatPrice = (price: number | null | undefined): string => {
-  if (price === null || price === undefined) return "N/A";
-  return new Intl.NumberFormat("en-LB", {
-    style: "decimal",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};
 
 export const ProductGrid = ({ className }: ProductGridProps) => {
   const { data: products, isLoading: productsLoading } = useProducts();
@@ -99,43 +89,34 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
     );
   }, [categories, products]);
 
-  const handleProductClick = useCallback(
-    (product: Product) => {
-      addItem({
-        productId: product.id,
-        name: product.name,
-        price: Number(product.price) || 0,
-        quantity: 1,
-      });
-    },
-    [addItem]
-  );
+  const handleProductClick = (product: Product) => {
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+      quantity: 1,
+    });
+  };
 
-  const handleCategoryClick = useCallback((categoryId: string | null) => {
+  const handleCategoryClick = (categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
-  }, []);
+  };
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(e.target.value);
-    },
-    []
-  );
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
-  const handleSearchKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // On Enter, if exactly one product matches, add it
-      if (
-        e.key === "Enter" &&
-        filteredProducts.length === 1 &&
-        filteredProducts[0]
-      ) {
-        handleProductClick(filteredProducts[0]);
-        setSearchQuery("");
-      }
-    },
-    [filteredProducts, handleProductClick]
-  );
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // On Enter, if exactly one product matches, add it
+    if (
+      e.key === "Enter" &&
+      filteredProducts.length === 1 &&
+      filteredProducts[0]
+    ) {
+      handleProductClick(filteredProducts[0]);
+      setSearchQuery("");
+    }
+  };
 
   const isLoading = productsLoading || categoriesLoading;
 
@@ -143,7 +124,10 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
     <div className={cn("flex flex-col h-full gap-4", className)}>
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Icon
+          name="Search"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+        />
         <Input
           ref={searchInputRef}
           type="text"
@@ -151,67 +135,82 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          className="pl-10 h-12 text-base"
+          className="pl-10 h-11"
         />
       </div>
 
-      {/* Category Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <button
-          onClick={() => handleCategoryClick(null)}
-          className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
-            selectedCategoryId === null
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted hover:bg-muted/80 text-muted-foreground"
-          )}
-        >
-          All Products
-        </button>
+      <div className="relative">
+        <div className="pointer-events-none absolute -left-1 top-0 h-full w-6 bg-linear-to-r from-background to-transparent z-10" />
+        <div className="pointer-events-none absolute -right-1 top-0 h-full w-6 bg-linear-to-l from-background to-transparent z-10" />
 
-        {isLoading
-          ? // Loading skeleton for categories
-            Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-11 w-24 rounded-lg" />
-            ))
-          : activeCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
-                  selectedCategoryId === category.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                )}
+        {/* Category Quick Filters */}
+        <Shad.Carousel
+          opts={{
+            align: "start",
+            dragFree: true,
+          }}
+          className="w-full"
+        >
+          <Shad.CarouselContent className="-ml-2">
+            {/* All Products */}
+            <Shad.CarouselItem className="pl-2 basis-auto">
+              <Button
+                onClick={() => handleCategoryClick(null)}
+                variant={selectedCategoryId === null ? "default" : "outline"}
+                size="lg"
+                className="whitespace-nowrap"
+                iconName="Grid2x2"
               >
-                {category.name}
-              </button>
-            ))}
+                All Products
+              </Button>
+            </Shad.CarouselItem>
+
+            {isLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <Shad.CarouselItem key={i} className="pl-2 basis-auto">
+                    <Skeleton className="h-9 w-24 rounded-md" />
+                  </Shad.CarouselItem>
+                ))
+              : activeCategories.map((category) => (
+                  <Shad.CarouselItem
+                    key={category.id}
+                    className="pl-2 basis-auto"
+                  >
+                    <Button
+                      onClick={() => handleCategoryClick(category.id)}
+                      variant={
+                        selectedCategoryId === category.id
+                          ? "default"
+                          : "outline"
+                      }
+                      size="lg"
+                      className="whitespace-nowrap"
+                    >
+                      {category.name}
+                    </Button>
+                  </Shad.CarouselItem>
+                ))}
+          </Shad.CarouselContent>
+
+          {/* Navigation Arrows */}
+          <Shad.CarouselPrevious className="-left-1" />
+          <Shad.CarouselNext className="-right-1" />
+        </Shad.Carousel>
       </div>
 
       {/* Product Grid */}
-      <Shad.ScrollArea className="flex-1">
+      <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
         {isLoading ? (
-          // Loading skeleton for products
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
+              <Skeleton key={i} className="h-28 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          // Empty state
-          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-            <Search className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-lg font-medium">No products found</p>
-            <p className="text-sm">
-              {searchQuery
-                ? "Try a different search term"
-                : "No products in this category"}
-            </p>
+          <div className="flex items-center justify-center h-48">
+            <Empty title="No products found" icon="Search" />
           </div>
         ) : (
-          // Product cards grid
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
             {filteredProducts.map((product) => (
               <ProductCard
@@ -225,60 +224,5 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
         <Shad.ScrollBar />
       </Shad.ScrollArea>
     </div>
-  );
-};
-
-// =====================
-// Product Card Component
-// =====================
-
-interface ProductCardProps {
-  product: Product;
-  onClick: () => void;
-}
-
-const ProductCard = ({ product, onClick }: ProductCardProps) => {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-col p-4 rounded-xl border bg-card text-left transition-all",
-        "hover:shadow-md hover:border-primary/50 hover:scale-[1.02]",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "active:scale-[0.98]",
-        "min-h-30"
-      )}
-    >
-      {/* Product Image (if available) */}
-      {product.imageUrl && (
-        <div className="w-full h-16 mb-2 rounded-lg overflow-hidden bg-muted">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-
-      {/* Product Name */}
-      <h3 className="font-medium text-sm line-clamp-2 flex-1">
-        {product.name}
-      </h3>
-
-      {/* Price */}
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-lg font-semibold text-primary">
-          {formatPrice(Number(product.price))}
-        </span>
-        <span className="text-sm text-muted-foreground">$</span>
-      </div>
-
-      {/* SKU/Barcode indicator (optional, for quick reference) */}
-      {product.barcode && (
-        <p className="text-[10px] text-muted-foreground mt-1 truncate">
-          {product.barcode}
-        </p>
-      )}
-    </button>
   );
 };

@@ -31,7 +31,7 @@ function RouteComponent() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-4">
       <Heading
         title="Categories"
         subtitle="Browse and manage all product categories"

@@ -30,9 +30,9 @@ function RootLayout() {
         <MainLayout>
           <Outlet />
         </MainLayout>
-        <Footer />
         <Shad.ScrollBar />
       </Shad.ScrollArea>
+      <Footer />
       <Modal />
     </Providers>
   );

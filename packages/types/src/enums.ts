@@ -33,6 +33,7 @@ export type OrderType = (typeof OrderType)[keyof typeof OrderType];
 
 export const OrderStatus = {
   DRAFT: "DRAFT", // New: For orders being built on the POS
+  ON_HOLD: "ON_HOLD", // Held by cashier
   PENDING: "PENDING", // Order created but not processed
   SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
   READY: "READY", // Ready for pickup/serve

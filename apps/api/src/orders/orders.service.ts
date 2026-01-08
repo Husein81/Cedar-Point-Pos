@@ -701,7 +701,8 @@ export class OrdersService {
     nextStatus: OrderStatus,
   ) {
     const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
-      [OrderStatus.DRAFT]: [OrderStatus.PENDING],
+      [OrderStatus.DRAFT]: [OrderStatus.ON_HOLD],
+      [OrderStatus.ON_HOLD]: [OrderStatus.PENDING],
       [OrderStatus.PENDING]: [OrderStatus.SENT_TO_KITCHEN],
       [OrderStatus.SENT_TO_KITCHEN]: [OrderStatus.READY],
       [OrderStatus.READY]: [OrderStatus.COMPLETED],

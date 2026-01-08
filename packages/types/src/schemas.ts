@@ -108,6 +108,7 @@ export type Recipe = z.infer<typeof RecipeSchema>;
 export const ProductSchema = z.object({
   id: cuid,
   tenantId: cuid,
+  branchId: cuid.nullable().optional(),
   name: z.string(),
   description: z.string().nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),

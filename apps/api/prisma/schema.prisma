@@ -157,6 +157,7 @@ model Branch {
     inventoryHistory InventoryHistory[]
     transfersFrom    Transfer[]         @relation("TransfersFrom")
     transfersTo      Transfer[]         @relation("TransfersTo")
+    products         Product[]
 }
 
 //
@@ -205,6 +206,7 @@ model Subcategory {
 model Product {
     id               String             @id @default(cuid())
     tenantId         String
+    branchId         String?
     name             String
     description      String?
     imageUrl         String?
@@ -222,6 +224,7 @@ model Product {
     taxId            String?
     tax              Tax?               @relation(fields: [taxId], references: [id])
     tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch           Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
     inventory        Inventory[]
     inventoryHistory InventoryHistory[]
     modifiers        Modifier[]

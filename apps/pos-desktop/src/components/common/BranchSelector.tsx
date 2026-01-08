@@ -48,6 +48,17 @@ export const BranchSelector = () => {
     );
   }
 
+  if (user?.role === "CASHIER") {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <Icon name="Building2" className="h-4 w-4" />
+        <span className="font-medium">
+          {selectedBranch?.name || "Select Branch"}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger asChild>

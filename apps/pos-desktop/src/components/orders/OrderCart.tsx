@@ -111,11 +111,11 @@ export const OrderCart = ({ className }: Props) => {
           )}
         </div>
         <Button
-          variant="ghost"
+          variant="destructive"
           size="sm"
           onClick={clearOrder}
           disabled={items.length === 0}
-          className="text-destructive hover:text-destructive h-7 text-xs"
+          className="text-white h-7 text-xs"
         >
           <Icon name="Trash2" className="w-3.5 h-3.5" />
           Clear

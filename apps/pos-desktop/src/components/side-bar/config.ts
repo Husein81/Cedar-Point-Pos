@@ -33,7 +33,7 @@ export const sidebarSections: SidebarSection[] = [
       },
       {
         label: "Orders",
-        icon: "ShoppingCart",
+        icon: "Receipt",
         href: "/orders",
         tooltip: "Orders",
         showFor: ["RETAIL", "RESTAURANT"],

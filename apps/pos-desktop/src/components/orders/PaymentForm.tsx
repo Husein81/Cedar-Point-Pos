@@ -3,12 +3,12 @@ import { cn } from "@repo/ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PaymentMethod } from "@repo/types";
 
-interface PaymentDialogProps {
+type Props = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   total: number;
+  onOpenChange: (open: boolean) => void;
   onConfirm: (method: PaymentMethod, amountTendered: number) => void;
-}
+};
 
 const formatPrice = (price: number): string => {
   return new Intl.NumberFormat("en-LB", {
@@ -42,12 +42,12 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] =
     { value: "MOBILE_PAYMENT", label: "Mobile", icon: "Smartphone" },
   ];
 
-export const PaymentDialog = ({
+export const PaymentForm = ({
   open,
   onOpenChange,
   total,
   onConfirm,
-}: PaymentDialogProps) => {
+}: Props) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [amountTendered, setAmountTendered] = useState<string>("");
 

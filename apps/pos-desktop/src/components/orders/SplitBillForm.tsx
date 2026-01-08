@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 
 type SplitMode = "EQUAL" | "CUSTOM";
 
-interface SplitBillDialogProps {
+interface SplitBillFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
@@ -19,12 +19,12 @@ const formatPrice = (price: number): string => {
   }).format(price);
 };
 
-export const SplitBillDialog = ({
+export const SplitBillForm = ({
   open,
   onOpenChange,
   total,
   onConfirm,
-}: SplitBillDialogProps) => {
+}: SplitBillFormProps) => {
   const [mode, setMode] = useState<SplitMode>("EQUAL");
   const [splitCount, setSplitCount] = useState(2);
   const [customSplits, setCustomSplits] = useState<number[]>([]);

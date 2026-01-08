@@ -3,6 +3,7 @@ import { Input, Select, Separator } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
 import { useMemo } from "react";
+import { formatPrice } from "./config";
 
 interface OrderSummaryProps {
   className?: string;
@@ -29,15 +30,6 @@ export const OrderSummary = ({
 
   const order = getActiveOrder();
 
-  const formatPrice = (price: number | null | undefined): string => {
-    if (price === null || price === undefined) return "0";
-    return new Intl.NumberFormat("en-LB", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
   const discountValue = order?.discount?.value || 0;
   const discountType = order?.discount?.type || "PERCENTAGE";
 
@@ -59,7 +51,7 @@ export const OrderSummary = ({
           min={0}
           max={discountType === "PERCENTAGE" ? 100 : subtotal}
           value={discountValue}
-          className="flex-1 h-8 text-center"
+          className="flex-1 h-8"
           onChange={(e) =>
             setDiscount({
               type: discountType,

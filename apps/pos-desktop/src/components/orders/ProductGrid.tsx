@@ -1,5 +1,4 @@
-import { Input, Shad, Skeleton } from "@repo/ui";
-import { Search } from "lucide-react";
+import { Button, Icon, Input, Shad, Skeleton, Empty } from "@repo/ui";
 import { useProducts } from "@/hooks/useProduct";
 import { useCategories } from "@/hooks/useCategory";
 import { useOrderStore } from "@/store/orderStore";
@@ -143,7 +142,10 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
     <div className={cn("flex flex-col h-full gap-4", className)}>
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Icon
+          name="Search"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+        />
         <Input
           ref={searchInputRef}
           type="text"
@@ -151,67 +153,56 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          className="pl-10 h-12 text-base"
+          className="pl-10 h-11"
         />
       </div>
 
       {/* Category Quick Filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <button
-          onClick={() => handleCategoryClick(null)}
-          className={cn(
-            "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
-            selectedCategoryId === null
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted hover:bg-muted/80 text-muted-foreground"
-          )}
-        >
-          All Products
-        </button>
+      <Shad.ScrollArea className="shrink-0 pb-2">
+        <div className="flex gap-2 pb-1">
+          <Button
+            onClick={() => handleCategoryClick(null)}
+            variant={selectedCategoryId === null ? "default" : "outline"}
+            size="lg"
+            className="whitespace-nowrap"
+          >
+            All Products
+          </Button>
 
-        {isLoading
-          ? // Loading skeleton for categories
-            Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-11 w-24 rounded-lg" />
-            ))
-          : activeCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors min-h-11",
-                  selectedCategoryId === category.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                )}
-              >
-                {category.name}
-              </button>
-            ))}
-      </div>
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-20 rounded-md" />
+              ))
+            : activeCategories.map((category) => (
+                <Button
+                  key={category.id}
+                  onClick={() => handleCategoryClick(category.id)}
+                  variant={
+                    selectedCategoryId === category.id ? "default" : "outline"
+                  }
+                  size="lg"
+                  className="whitespace-nowrap"
+                >
+                  {category.name}
+                </Button>
+              ))}
+        </div>
+        <Shad.ScrollBar orientation="horizontal" />
+      </Shad.ScrollArea>
 
       {/* Product Grid */}
-      <Shad.ScrollArea className="flex-1">
+      <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
         {isLoading ? (
-          // Loading skeleton for products
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
+              <Skeleton key={i} className="h-28 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
-          // Empty state
-          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-            <Search className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-lg font-medium">No products found</p>
-            <p className="text-sm">
-              {searchQuery
-                ? "Try a different search term"
-                : "No products in this category"}
-            </p>
+          <div className="flex items-center justify-center h-48">
+            <Empty title="No products found" icon="Search" />
           </div>
         ) : (
-          // Product cards grid
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
             {filteredProducts.map((product) => (
               <ProductCard
@@ -238,47 +229,54 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onClick }: ProductCardProps) => {
+  const hasImage = !!product.imageUrl;
+
   return (
-    <button
+    <Shad.Card
       onClick={onClick}
       className={cn(
-        "flex flex-col p-4 rounded-xl border bg-card text-left transition-all",
-        "hover:shadow-md hover:border-primary/50 hover:scale-[1.02]",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "active:scale-[0.98]",
-        "min-h-30"
+        "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card cursor-pointer",
+        "border-border/50",
+        "hover:border-primary/30 hover:shadow-md",
+        "transition-all duration-200 active:scale-[0.98]"
       )}
     >
-      {/* Product Image (if available) */}
-      {product.imageUrl && (
-        <div className="w-full h-16 mb-2 rounded-lg overflow-hidden bg-muted">
+      {/* Image Container - edge-to-edge, premium look */}
+      <div className="relative w-full h-40 overflow-hidden bg-muted/20 shrink-0 border-b border-border/50">
+        {hasImage ? (
           <img
-            src={product.imageUrl}
+            src={product.imageUrl!}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center transition-transform duration-300 group-hover/card:scale-105"
+            draggable={false}
+            loading="lazy"
           />
-        </div>
-      )}
-
-      {/* Product Name */}
-      <h3 className="font-medium text-sm line-clamp-2 flex-1">
-        {product.name}
-      </h3>
-
-      {/* Price */}
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-lg font-semibold text-primary">
-          {formatPrice(Number(product.price))}
-        </span>
-        <span className="text-sm text-muted-foreground">$</span>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-muted/30 to-muted/60">
+            <Icon
+              name="Package"
+              className="w-10 h-10 text-muted-foreground/50"
+            />
+          </div>
+        )}
       </div>
 
-      {/* SKU/Barcode indicator (optional, for quick reference) */}
-      {product.barcode && (
-        <p className="text-[10px] text-muted-foreground mt-1 truncate">
-          {product.barcode}
+      {/* Content - clean hierarchy */}
+      <div className="flex flex-col p-3 gap-1.5 flex-1">
+        <p className="text-sm font-medium leading-tight line-clamp-2 h-10 cursor-default text-left">
+          {product.name}
         </p>
-      )}
-    </button>
+
+        <div className="flex items-baseline gap-1">
+          <span className="text-lg font-bold text-primary">
+            ${formatPrice(Number(product.price))}
+          </span>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground/70 truncate font-mono h-4 text-left">
+          {product.barcode ?? ""}
+        </p>
+      </div>
+    </Shad.Card>
   );
 };

@@ -28,17 +28,6 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
     createTab();
   };
 
-  const handleCloseTabRequest = (e: React.MouseEvent, tabId: string) => {
-    e.stopPropagation();
-
-    // If tab has items, show confirmation
-    if (hasUnsavedChanges(tabId)) {
-      setTabToClose(tabId);
-    } else {
-      closeTab(tabId);
-    }
-  };
-
   const confirmCloseTab = () => {
     if (tabToClose) {
       closeTab(tabToClose);
@@ -52,12 +41,8 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
 
   return (
     <>
-      <div
-        className={cn(
-          "flex items-center gap-1 bg-muted/50 rounded-lg p-1 overflow-x-auto",
-          className
-        )}
-      >
+      {/* Browser-style tab bar */}
+      <div className={cn("flex items-end gap-0.5", className)}>
         {/* Order Tabs */}
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
@@ -68,20 +53,29 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
             <Button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              size="sm"
-              variant={isActive ? "default" : "ghost"}
+              variant="ghost"
               className={cn(
-                "group flex items-center gap-2 min-w-0",
-                isActive ? "font-semibold" : "font-medium"
+                "group relative flex items-center gap-2 px-4 py-2 h-auto",
+                "min-w-35 max-w-50",
+                "rounded-t-lg rounded-b-none transition-all duration-150",
+                "border border-b-0",
+                isActive
+                  ? "bg-background border-border text-foreground z-10"
+                  : "bg-muted/20 border-transparent text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                !isActive && "translate-y-px"
               )}
             >
               {/* Tab Content */}
               <div className="flex-1 flex items-center gap-2 min-w-0">
-                <span className="truncate text-sm font-medium">
+                <span
+                  className={cn(
+                    "truncate text-sm",
+                    isActive ? "font-medium text-primary" : "font-normal"
+                  )}
+                >
                   {tab.label}
                 </span>
 
-                {/* Status indicators */}
                 {isOnHold && (
                   <Badge
                     variant="secondary"
@@ -91,45 +85,45 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
                   </Badge>
                 )}
 
-                {/* Item count indicator */}
                 {hasItems && !isOnHold && (
                   <span
                     className={cn(
-                      "flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-medium rounded-full",
+                      "flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-medium rounded-full",
                       isActive
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary/10 text-primary"
                         : "bg-muted-foreground/20 text-muted-foreground"
                     )}
                   >
                     {tab.order.items.length}
                   </span>
                 )}
-
-                {/* Modified indicator (unsaved changes) */}
-                {hasItems && (
-                  <span
-                    className={cn(
-                      "w-2 h-2 rounded-full",
-                      isActive ? "bg-primary" : "bg-muted-foreground/50"
-                    )}
-                  />
-                )}
               </div>
 
-              {/* Close button - only show if more than 1 tab or has items */}
+              {/* Close button */}
               {(tabs.length > 1 || hasItems) && (
-                <button
-                  onClick={(e) => handleCloseTabRequest(e, tab.id)}
+                <Button
+                  onClick={(e?: unknown) => {
+                    if (e && typeof e === 'object' && 'stopPropagation' in e) {
+                      (e as React.MouseEvent).stopPropagation();
+                    }
+                    if (hasUnsavedChanges(tab.id)) {
+                      setTabToClose(tab.id);
+                    } else {
+                      closeTab(tab.id);
+                    }
+                  }}
                   className={cn(
-                    "flex items-center justify-center w-6 h-6 rounded-sm transition-colors",
+                    "flex items-center justify-center w-5 h-5 rounded-sm transition-opacity",
                     "hover:bg-muted-foreground/20",
-                    "opacity-0 group-hover:opacity-100 focus:opacity-100",
-                    isActive && "opacity-60 group-hover:opacity-100"
+                    isActive
+                      ? "opacity-60 hover:opacity-100"
+                      : "opacity-40 group-hover:opacity-60 group-hover:hover:opacity-100"
                   )}
+                  variant="ghost"
                   aria-label={`Close ${tab.label}`}
                 >
-                  <Icon name="X" className="w-4 h-4" />
-                </button>
+                  <Icon name="X" className="w-3.5 h-3.5" />
+                </Button>
               )}
             </Button>
           );
@@ -141,13 +135,16 @@ export const OrderTabs = ({ className }: OrderTabsProps) => {
             onClick={handleNewTab}
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 hover:bg-background/50"
+            className="h-8 w-8 ml-1 text-muted-foreground hover:text-foreground"
             aria-label="New order tab"
           >
-            <Icon name="Plus" className="w-5 h-5" />
+            <Icon name="Plus" className="w-4 h-4" />
           </Button>
         )}
       </div>
+
+      {/* Tab content connection line */}
+      <div className="h-px bg-border -mt-px" />
 
       {/* Close Confirmation Dialog */}
       <Shad.AlertDialog

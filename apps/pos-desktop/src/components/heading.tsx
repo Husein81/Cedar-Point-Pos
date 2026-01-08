@@ -1,4 +1,4 @@
-import { AppBreadcrumbs, Button } from "@repo/ui";
+import { Button } from "@repo/ui";
 import { Link } from "@tanstack/react-router";
 
 type Props = {

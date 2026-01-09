@@ -1,19 +1,28 @@
 import { Product } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
+import { useOrderStore } from "@/store/orderStore";
 
 type Props = {
   product: Product;
-  onClick: () => void;
 };
 
 // Format currency for Lebanese retail (LBP)
-const ProductCard = ({ product, onClick }: Props) => {
+const ProductCard = ({ product }: Props) => {
+  const { addItem } = useOrderStore();
   const hasImage = !!product.imageUrl;
+
+  const handleProductClick = () =>
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+      quantity: 1,
+    });
 
   return (
     <Shad.Card
-      onClick={onClick}
+      onClick={handleProductClick}
       className={cn(
         "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card cursor-pointer",
         "border-border/50",

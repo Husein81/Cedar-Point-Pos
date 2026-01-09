@@ -27,7 +27,7 @@ function OrderPage() {
         <Separator orientation="vertical" className="hidden md:block" />
 
         {/* Right: Cart & Summary - fixed width panel */}
-        <div className="w-full md:w-90 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
+        <div className="w-full md:w-112.5 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
           {/* Cart items - scrollable */}
           <div className="flex-1 min-h-0 p-4 overflow-hidden">
             <OrderCart className="h-full" />

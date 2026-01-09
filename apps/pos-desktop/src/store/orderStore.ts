@@ -318,6 +318,8 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 items: [],
                 discount: null,
+                customerId: null,
+                customerName: null,
                 notes: "",
                 modifiedAt: new Date(),
               },

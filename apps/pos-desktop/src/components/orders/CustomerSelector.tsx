@@ -5,22 +5,17 @@ import { useSearchCustomers } from "@/hooks/useCustomer";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOrderStore } from "@/store/orderStore";
 import { CustomerCard } from "./CustomerCard";
-import { CreateCustomerForm } from "./CreateCustomerForm";
 import type { CustomerSummary } from "@/dto/customer.dto";
+import { useModalStore } from "@/store/modalStore";
+import { CustomerForm } from "./CustomerForm";
 
 type Props = {
   className?: string;
 };
 
-/**
- * Customer selector component for POS cart
- * - Shows search popover when no customer selected
- * - Shows CustomerCard when customer is selected
- * - Supports creating new customers via dialog
- */
 export const CustomerSelector = ({ className }: Props) => {
+  const { openModal } = useModalStore();
   const [open, setOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -75,9 +70,11 @@ export const CustomerSelector = ({ className }: Props) => {
     [setCustomer]
   );
 
-  const handleOpenNewCustomerDialog = () => {
-    setOpen(false);
-    setDialogOpen(true);
+  const handleOpenNewCustomer = () => {
+    openModal(
+      "Customer Form",
+      <CustomerForm onCustomerCreated={handleCustomerCreated} />
+    );
   };
 
   // If customer is selected, show the card
@@ -118,23 +115,16 @@ export const CustomerSelector = ({ className }: Props) => {
         footer={
           <Shad.CommandGroup>
             <Shad.CommandItem
-              onSelect={handleOpenNewCustomerDialog}
-              className="cursor-pointer"
+              onSelect={handleOpenNewCustomer}
+              className="cursor-pointer text-primary hover:text-white"
             >
-              <div className="flex items-center gap-2 text-primary">
+              <div className="flex items-center gap-2">
                 <Icon name="Plus" className="w-4 h-4" />
                 <span className="font-medium">Add new customer</span>
               </div>
             </Shad.CommandItem>
           </Shad.CommandGroup>
         }
-      />
-
-      {/* Create Customer Dialog */}
-      <CreateCustomerForm
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCustomerCreated={handleCustomerCreated}
       />
     </div>
   );

@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { cn } from "../libs/utils";
-import { SButton, Skeleton } from "../components";
+import { Icon, SButton, Skeleton } from "../components";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/popover";
 import {
   Command,
@@ -129,7 +128,10 @@ export function Combobox({
               {selectedOption ? selectedOption.label : placeholder}
             </span>
           </div>
-          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <Icon
+            name="ChevronsUpDown"
+            className="ml-2 h-4 w-4 shrink-0 opacity-50"
+          />
         </SButton>
       </PopoverTrigger>
       <PopoverContent className={cn("p-0", popoverWidth)} align="start">
@@ -180,7 +182,8 @@ export function Combobox({
                               )}
                             </div>
                           </div>
-                          <CheckIcon
+                          <Icon
+                            name="Check"
                             className={cn(
                               "ml-auto h-4 w-4 shrink-0",
                               isSelected ? "opacity-100" : "opacity-0"

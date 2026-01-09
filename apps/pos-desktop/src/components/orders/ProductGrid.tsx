@@ -1,15 +1,14 @@
-import { Button, Icon, Input, Shad, Skeleton, Empty } from "@repo/ui";
+import { Button, Icon, Input, Shad, Skeleton, Empty, cn } from "@repo/ui";
 import { useProducts } from "@/hooks/useProduct";
 import { useCategories } from "@/hooks/useCategory";
 import { useOrderStore } from "@/store/orderStore";
-import { cn } from "@repo/ui";
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
 import ProductCard from "./ProductCard";
 
 type Props = {
   className?: string;
-}
+};
 
 export const ProductGrid = ({ className }: Props) => {
   const { data: products, isLoading: productsLoading } = useProducts();
@@ -213,11 +212,7 @@ export const ProductGrid = ({ className }: Props) => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
             {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onClick={() => handleProductClick(product)}
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}

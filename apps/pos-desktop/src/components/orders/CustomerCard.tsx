@@ -11,15 +11,11 @@ type Props = {
   className?: string;
 };
 
-/**
- * Compact card showing selected customer info
- * Designed for quick scanning in < 1 second
- */
 export const CustomerCard = ({ customer, onRemove, className }: Props) => {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors",
+        "flex items-center justify-between gap-3 px-3 py-1 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors",
         className
       )}
     >

@@ -2,37 +2,13 @@ import { Button, Icon, Input, Separator, Shad } from "@repo/ui";
 import { cn } from "@repo/ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PaymentMethod } from "@repo/types";
+import { formatPrice, generateQuickCashAmounts } from "./config";
 
 type Props = {
   open: boolean;
   total: number;
   onOpenChange: (open: boolean) => void;
   onConfirm: (method: PaymentMethod, amountTendered: number) => void;
-};
-
-const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat("en-LB", {
-    style: "decimal",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};
-
-const generateQuickCashAmounts = (total: number) => {
-  const results = new Set<number>();
-
-  const roundedTo1 = Math.ceil(total);
-  results.add(roundedTo1);
-  results.add(Math.ceil(total / 5) * 5);
-  results.add(Math.ceil(total / 10) * 10);
-  results.add(Math.ceil(total / 20) * 20);
-  results.add(Math.ceil(total / 50) * 50);
-  results.add(Math.ceil(total / 100) * 100);
-
-  return Array.from(results)
-    .filter((v) => v > total)
-    .sort((a, b) => a - b)
-    .slice(0, 6);
 };
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] =

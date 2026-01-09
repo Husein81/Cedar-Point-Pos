@@ -1,30 +1,23 @@
 import { Button, Icon, Input, Separator, Shad } from "@repo/ui";
 import { cn } from "@repo/ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { formatPrice } from "./config";
 
 type SplitMode = "EQUAL" | "CUSTOM";
 
-interface SplitBillFormProps {
+type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
   onConfirm: (mode: SplitMode, splits: number[]) => void;
 }
 
-const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat("en-LB", {
-    style: "decimal",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};
-
 export const SplitBillForm = ({
   open,
   onOpenChange,
   total,
   onConfirm,
-}: SplitBillFormProps) => {
+}: Props) => {
   const [mode, setMode] = useState<SplitMode>("EQUAL");
   const [splitCount, setSplitCount] = useState(2);
   const [customSplits, setCustomSplits] = useState<number[]>([]);

@@ -1,21 +1,14 @@
-import { Button, Empty, Icon, Shad } from "@repo/ui";
+import { Button, Empty, Icon, Separator, Shad } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
+import { formatPrice } from "./config";
+import { CustomerSelector } from "./CustomerSelector";
 
 type Props = {
   className?: string;
 };
 
-const formatPrice = (price: number | null | undefined): string => {
-  if (price === null || price === undefined) return "0";
-  return new Intl.NumberFormat("en-LB", {
-    style: "decimal",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-};
-
-interface CartItemRowProps {
+type CartItemRowProps = {
   item: {
     id: string;
     name: string;
@@ -24,7 +17,7 @@ interface CartItemRowProps {
   };
   onQuantityChange: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
-}
+};
 
 const CartItemRow = ({
   item,
@@ -121,6 +114,10 @@ export const OrderCart = ({ className }: Props) => {
           Clear
         </Button>
       </div>
+
+      {/* Customer Selector - Optional */}
+      <CustomerSelector className="pb-3" />
+      <Separator className="mb-3" />
 
       {/* Items List */}
       <Shad.ScrollArea className="flex-1 min-h-0 -mx-1">

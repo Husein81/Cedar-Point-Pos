@@ -5,7 +5,7 @@ import { cn } from "@repo/ui";
 import { useMemo } from "react";
 import { formatPrice } from "./config";
 
-interface OrderSummaryProps {
+type OrderSummaryProps = {
   className?: string;
   onCompleteOrder?: () => void;
   onHoldOrder?: () => void;

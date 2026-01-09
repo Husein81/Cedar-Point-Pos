@@ -1,6 +1,8 @@
 export { AppBreadcrumbs } from "./app-breadcrumbs";
 export { Avatar } from "./avatar";
 export { Button } from "./button";
+export { Combobox } from "./combobox";
+export type { ComboboxOption, ComboboxProps } from "./combobox";
 export { DataTable } from "./data-table";
 export { Empty } from "./empty";
 export { default as InputField } from "./input-field";

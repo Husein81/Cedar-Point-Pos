@@ -6,7 +6,7 @@ import AlertDialog from "../common/AlertDialog";
 import { PaymentForm } from "./PaymentForm";
 import { SplitBillForm } from "./SplitBillForm";
 
-interface OrderActionsProps {
+type Props = {
   className?: string;
   onCompleteOrder?: () => void;
   onHoldOrder?: () => void;
@@ -20,7 +20,7 @@ export const OrderActions = ({
   onHoldOrder,
   onSplitBill,
   onConfirmWithoutPayment,
-}: OrderActionsProps) => {
+}: Props) => {
   const { getActiveOrder, getOrderTotal, setOrderStatus, clearOrder } =
     useOrderStore();
 

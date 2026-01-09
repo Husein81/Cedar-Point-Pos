@@ -7,11 +7,11 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
 import ProductCard from "./ProductCard";
 
-interface ProductGridProps {
+type Props = {
   className?: string;
 }
 
-export const ProductGrid = ({ className }: ProductGridProps) => {
+export const ProductGrid = ({ className }: Props) => {
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { addItem } = useOrderStore();

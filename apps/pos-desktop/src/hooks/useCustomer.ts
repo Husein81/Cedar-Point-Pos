@@ -3,6 +3,8 @@ import { customerApi } from "@/apis/customerApi";
 import type {
   CreateCustomerDto,
   CustomerDetails,
+  CustomerFullDetails,
+  CustomerOrder,
   CustomerSummary,
 } from "@/dto/customer.dto";
 import type { PaginationResponse, QueryParams } from "@repo/types";
@@ -12,10 +14,7 @@ const CUSTOMER_QUERY_KEY = ["customers"];
 /**
  * Hook for searching customers with debounced query (Legacy/Autocomplete)
  */
-export const useSearchCustomers = (
-  query: string,
-  enabled: boolean = true
-) => {
+export const useSearchCustomers = (query: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: [...CUSTOMER_QUERY_KEY, "search", query],
     queryFn: () => customerApi.searchCustomers(query, 10),
@@ -37,12 +36,24 @@ export const useCustomersPaginated = (params?: QueryParams) => {
 };
 
 /**
- * Hook for fetching a single customer's details
+ * Hook for fetching a single customer's full details with stats
  */
 export const useCustomer = (id: string | null) => {
-  return useQuery<CustomerDetails>({
+  return useQuery<CustomerFullDetails>({
     queryKey: [...CUSTOMER_QUERY_KEY, id],
     queryFn: () => customerApi.getCustomer(id!),
+    enabled: !!id,
+    staleTime: 60 * 1000, // 1 minute
+  });
+};
+
+/**
+ * Hook for fetching a customer's orders with pagination
+ */
+export const useCustomerOrders = (id: string | null, params?: QueryParams) => {
+  return useQuery<PaginationResponse<CustomerOrder>>({
+    queryKey: [...CUSTOMER_QUERY_KEY, id, "orders", params],
+    queryFn: () => customerApi.getCustomerOrders(id!, params),
     enabled: !!id,
     staleTime: 60 * 1000, // 1 minute
   });

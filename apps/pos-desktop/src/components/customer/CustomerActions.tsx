@@ -1,6 +1,7 @@
 import { useDeleteCustomer } from "@/hooks/useCustomer";
 import { useModalStore } from "@/store/modalStore";
 import { Icon, Shad } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
 import { CustomerForm } from "./CustomerForm";
 import type { CustomerDetails } from "@/dto/customer.dto";
 
@@ -11,6 +12,7 @@ export const CustomerActions = ({
 }) => {
   const openModal = useModalStore((state) => state.openModal);
   const deleteMutation = useDeleteCustomer();
+  const navigate = useNavigate();
 
   const handleEdit = () => {
     openModal("Edit Customer", <CustomerForm customer={customer} />);
@@ -32,6 +34,13 @@ export const CustomerActions = ({
         <Icon name="Ellipsis" className="size-4" />
       </Shad.DropdownMenuTrigger>
       <Shad.DropdownMenuContent align="end">
+        <Shad.DropdownMenuItem
+          className="hover:text-accent"
+          onClick={() => navigate({ to: `/customers/${customer.id}` })}
+        >
+          <Icon name="Eye" className="h-4 w-4 hover:text-accent" />
+          View Details
+        </Shad.DropdownMenuItem>
         <Shad.DropdownMenuItem onClick={handleEdit}>
           <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
           Edit

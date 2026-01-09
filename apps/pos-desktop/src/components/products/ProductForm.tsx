@@ -3,6 +3,8 @@ import { useCreateProduct, useUpdateProduct } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
 import {
   Button,
+  Icon,
+  Input,
   InputField,
   SelectField,
   SwitchField,
@@ -14,8 +16,9 @@ import { ProductWithRelations } from "@/dto/products.dto";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useAdjustStock } from "@/hooks/useStock";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useBranchesByTenant } from "@/hooks/useBranch";
+import { uploadProductImage } from "@/lib/uploadImage";
 
 type Props = {
   product?: ProductWithRelations;
@@ -31,6 +34,12 @@ export const ProductForm = ({ product }: Props) => {
 
   const isEdit = Boolean(product);
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    product?.imageUrl || null
+  );
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: categories = [] } = useCategories();
   const { data: branches = [] } = useBranchesByTenant(user?.tenantId);
@@ -52,6 +61,7 @@ export const ProductForm = ({ product }: Props) => {
       cost: product?.cost?.toString() || "",
       categoryId: product?.categoryId || "",
       branchId: product?.branchId || "",
+      imageUrl: product?.imageUrl || "",
       isActive: product?.isActive ?? true,
       isIngredient: product?.isIngredient ?? false,
       isModifiable: product?.isModifiable ?? false,
@@ -59,6 +69,26 @@ export const ProductForm = ({ product }: Props) => {
     onSubmit: async ({ value }) => {
       try {
         const stockValue = value.stock ? Number(value.stock) : 0;
+
+        // Upload image if a new file is selected
+        let imageUrl = value.imageUrl;
+        if (imageFile) {
+          setIsUploadingImage(true);
+          try {
+            const uploadResult = await uploadProductImage(
+              imageFile,
+              product?.id
+            );
+            imageUrl = uploadResult.url;
+          } catch (error) {
+            console.error("Failed to upload image:", error);
+            alert("Failed to upload image. Please try again.");
+            setIsUploadingImage(false);
+            return;
+          } finally {
+            setIsUploadingImage(false);
+          }
+        }
 
         const data = {
           tenantId: user?.tenantId!,
@@ -70,6 +100,7 @@ export const ProductForm = ({ product }: Props) => {
           cost: value.cost ? value.cost : undefined,
           categoryId: value.categoryId || undefined,
           branchId: value.branchId || undefined,
+          imageUrl: imageUrl || undefined,
           isActive: value.isActive,
           isIngredient: value.isIngredient,
           isModifiable: value.isModifiable,
@@ -180,6 +211,70 @@ export const ProductForm = ({ product }: Props) => {
           />
         )}
       </form.Field>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Product Image</label>
+        <div className="flex items-center gap-4">
+          {imagePreview ? (
+            <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+              <img
+                src={imagePreview}
+                alt="Product preview"
+                className="w-full h-full object-cover"
+              />
+              <Button
+                type="button"
+                size="icon"
+                onClick={() => {
+                  setImagePreview(null);
+                  setImageFile(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
+                }}
+                className="absolute top-1 right-1 size-4 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+              >
+                <Icon name="X" className="size-3" />
+              </Button>
+            </div>
+          ) : (
+            <div className="w-32 h-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted">
+              <Icon name="Image" className="w-8 h-8 text-muted-foreground" />
+            </div>
+          )}
+          <div className="flex-1">
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setImageFile(file);
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setImagePreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="hidden"
+              id="product-image-upload"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              iconName="Upload"
+            >
+              {imagePreview ? "Change Image" : "Upload Image"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Recommended: Square image, max 5MB
+            </p>
+          </div>
+        </div>
+      </div>
 
       <form.Field name="sku">
         {(field) => (
@@ -313,21 +408,17 @@ export const ProductForm = ({ product }: Props) => {
           isSubmitting={
             createMutation.isPending ||
             updateMutation.isPending ||
-            isAdjustingStock
+            isAdjustingStock ||
+            isUploadingImage
           }
           disabled={
             createMutation.isPending ||
             updateMutation.isPending ||
-            isAdjustingStock
+            isAdjustingStock ||
+            isUploadingImage
           }
         >
-          {isAdjustingStock
-            ? "Adjusting Stock..."
-            : createMutation.isPending || updateMutation.isPending
-              ? "Saving..."
-              : product
-                ? "Update"
-                : "Create"}
+          {product ? "Update" : "Create"}
         </Button>
       </div>
     </form>

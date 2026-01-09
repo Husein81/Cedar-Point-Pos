@@ -22,11 +22,30 @@ export const productColumns: ColumnDef<Product>[] = [
     enableSorting: false,
     enableHiding: false,
   },
-
+  {
+    accessorKey: "imageUrl",
+    header: "Image",
+    cell: ({ row }) =>
+      row.original.imageUrl ? (
+        <img
+          src={row.original.imageUrl}
+          alt={row.original.name}
+          className="object-cover size-10 rounded"
+        />
+      ) : (
+        <span className="p-2 bg-muted rounded text-xs text-muted-foreground">
+          No Image
+        </span>
+      ),
+  },
   {
     accessorKey: "name",
     header: "Product",
-    cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+    cell: ({ row }) => (
+      <div className="font-medium flex items-center gap-2">
+        {row.original.name}
+      </div>
+    ),
   },
 
   {

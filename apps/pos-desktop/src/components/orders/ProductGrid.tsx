@@ -135,7 +135,7 @@ export const ProductGrid = ({ className }: ProductGridProps) => {
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          className="pl-10 h-11"
+          className="pl-10 h-10"
         />
       </div>
 

@@ -48,6 +48,25 @@ export const sidebarSections: SidebarSection[] = [
     ],
   },
   {
+    label: "Business Partners",
+    items: [
+      {
+        label: "Suppliers",
+        icon: "Truck",
+        href: "/suppliers",
+        tooltip: "Suppliers",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
+        label: "Customers",
+        icon: "User",
+        href: "/customers",
+        tooltip: "Customers",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+    ],
+  },
+  {
     label: "Inventory",
     items: [
       {

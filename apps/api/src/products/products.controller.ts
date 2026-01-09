@@ -43,8 +43,22 @@ export class ProductsController {
 
   @Post()
   createProduct(@Req() req: Request) {
-    const body = req.body as Prisma.ProductCreateInput & { branchId?: string };
-    return this.productsService.createProduct(body);
+    const body = req.body as Prisma.ProductCreateInput & {
+      tenantId?: string;
+      branchId?: string;
+      imageUrl?: string;
+    };
+    const { tenantId } = req.user as { tenantId: string };
+
+    // Extract fields from body
+    const {  imageUrl, ...productData } = body;
+
+    const createData: Prisma.ProductCreateInput = {
+      ...productData,
+      tenant: { connect: { id: tenantId } },
+      ...(imageUrl && { imageUrl }),
+    };
+    return this.productsService.createProduct(createData);
   }
 
   @Put(':id')
@@ -53,8 +67,21 @@ export class ProductsController {
     if (!id) {
       throw new Error('Product ID is required');
     }
-    const body = req.body as Prisma.ProductUpdateInput;
-    return this.productsService.updateProduct(id, body);
+    const body = req.body as Prisma.ProductUpdateInput & {
+      branchId?: string;
+      imageUrl?: string;
+    };
+
+    // Handle branchId and imageUrl update
+    const { imageUrl, ...productData } = body;
+
+    const updateData: Prisma.ProductUpdateInput = {
+      ...productData,
+      ...(imageUrl !== undefined && { imageUrl }),
+    };
+
+
+    return this.productsService.updateProduct(id, updateData);
   }
 
   @Delete(':id')

@@ -12,22 +12,31 @@ const ProductCard = ({ product }: Props) => {
   const { addItem } = useOrderStore();
   const hasImage = !!product.imageUrl;
 
-  const handleProductClick = () =>
+  // Check if product has any stock
+  const totalStock =
+    product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
+  const isOutOfStock = totalStock === 0;
+
+  const handleProductClick = () => {
+    if (isOutOfStock) return;
     addItem({
       productId: product.id,
       name: product.name,
       price: Number(product.price) || 0,
       quantity: 1,
     });
+  };
 
   return (
     <Shad.Card
       onClick={handleProductClick}
       className={cn(
-        "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card cursor-pointer",
+        "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card",
+        isOutOfStock ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         "border-border/50",
-        "hover:border-primary/30 hover:shadow-md",
-        "transition-all duration-200 active:scale-[0.98]"
+        !isOutOfStock && "hover:border-primary/30 hover:shadow-md",
+        "transition-all duration-200",
+        !isOutOfStock && "active:scale-[0.98]"
       )}
     >
       {/* Image Container - edge-to-edge, premium look */}
@@ -36,7 +45,10 @@ const ProductCard = ({ product }: Props) => {
           <img
             src={product.imageUrl!}
             alt={product.name}
-            className="w-full h-full object-cover object-center transition-transform duration-300 group-hover/card:scale-105"
+            className={cn(
+              "w-full h-full object-cover object-center transition-transform duration-300",
+              !isOutOfStock && "group-hover/card:scale-105"
+            )}
             draggable={false}
             loading="lazy"
           />
@@ -46,6 +58,15 @@ const ProductCard = ({ product }: Props) => {
               name="Package"
               className="w-10 h-10 text-muted-foreground/50"
             />
+          </div>
+        )}
+
+        {/* Out of Stock Badge */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <span className="text-white font-semibold text-sm px-3 py-1 bg-destructive rounded">
+              Out of Stock
+            </span>
           </div>
         )}
       </div>

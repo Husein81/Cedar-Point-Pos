@@ -2,17 +2,8 @@
 
 import * as React from "react";
 import { cn } from "../libs/utils";
-import { Icon, SButton, Skeleton } from "../components";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "../components/command";
+import { Icon, SButton, Shad, Skeleton } from "../components";
+import { Empty } from "./empty";
 
 export interface ComboboxOption {
   value: string;
@@ -40,7 +31,7 @@ export interface ComboboxProps {
   isLoading?: boolean;
   /** Class name for the trigger button */
   className?: string;
-  /** Width of the popover content */
+  /** Width of the Shad.popover content */
   popoverWidth?: string;
   /** Controlled open state */
   open?: boolean;
@@ -113,8 +104,8 @@ export function Combobox({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Shad.Popover open={open} onOpenChange={setOpen}>
+      <Shad.PopoverTrigger asChild>
         <SButton
           variant="outline"
           role="combobox"
@@ -133,80 +124,82 @@ export function Combobox({
             className="ml-2 h-4 w-4 shrink-0 opacity-50"
           />
         </SButton>
-      </PopoverTrigger>
-      <PopoverContent className={cn("p-0", popoverWidth)} align="start">
-        <Command shouldFilter={shouldFilter}>
-          <CommandInput
+      </Shad.PopoverTrigger>
+      <Shad.PopoverContent className={cn("p-0", popoverWidth)} align="start">
+        <Shad.Command shouldFilter={shouldFilter}>
+          <Shad.CommandInput
             placeholder={searchPlaceholder}
             value={searchQuery}
             onValueChange={handleSearchChange}
             className="h-9"
           />
-          <CommandList>
-            {/* Loading state */}
-            {isLoading && (
-              <div className="p-2 space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            )}
-
-            {/* Empty state */}
-            {!isLoading && <CommandEmpty>{emptyText}</CommandEmpty>}
-
-            {/* Options list */}
-            {!isLoading && options.length > 0 && (
-              <CommandGroup>
-                {options.map((option) => {
-                  const isSelected = value === option.value;
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      value={option.value}
-                      onSelect={handleSelect}
-                      className="cursor-pointer"
-                    >
-                      {renderOption ? (
-                        renderOption(option, isSelected)
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {option.icon}
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate">{option.label}</p>
-                              {option.description && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {option.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <Icon
-                            name="Check"
-                            className={cn(
-                              "ml-auto h-4 w-4 shrink-0",
-                              isSelected ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </>
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            )}
-
-            {/* Footer content */}
-            {footer && (
-              <>
-                <CommandSeparator />
-                {footer}
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          {/* Loading state */}
+          {isLoading ? (
+            <div className="p-2 space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : (
+            <Shad.ScrollArea className="h-60">
+              <Shad.CommandList className="overflow-hidden">
+                {/* Empty state */}
+                <Shad.CommandEmpty>
+                  <Empty title={emptyText} />
+                </Shad.CommandEmpty>
+                {/* Options list */}
+                {options.length > 0 && (
+                  <Shad.CommandGroup>
+                    {options.map((option) => {
+                      const isSelected = value === option.value;
+                      return (
+                        <Shad.CommandItem
+                          key={option.value}
+                          value={option.value}
+                          onSelect={handleSelect}
+                          className="cursor-pointer"
+                        >
+                          {renderOption ? (
+                            renderOption(option, isSelected)
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {option.icon}
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate">{option.label}</p>
+                                  {option.description && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {option.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <Icon
+                                name="Check"
+                                className={cn(
+                                  "ml-auto h-4 w-4 shrink-0",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                            </>
+                          )}
+                        </Shad.CommandItem>
+                      );
+                    })}
+                  </Shad.CommandGroup>
+                )}
+              </Shad.CommandList>
+            </Shad.ScrollArea>
+          )}
+          {/* Footer content */}
+          {footer && (
+            <>
+              <Shad.CommandSeparator />
+              {footer}
+            </>
+          )}
+        </Shad.Command>
+      </Shad.PopoverContent>
+    </Shad.Popover>
   );
 }

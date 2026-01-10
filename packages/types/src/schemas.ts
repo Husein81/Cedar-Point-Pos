@@ -100,6 +100,14 @@ export const RecipeSchema = z.object({
   tenantId: cuid,
   productId: cuid,
   ingredientId: cuid,
+  ingredient: z
+    .object({
+      id: cuid,
+      name: z.string(),
+      sku: z.string().nullable().optional(),
+      unit: z.string().nullable().optional(),
+    })
+    .optional(), // For ingredient details
   quantity: decimal,
 });
 export type Recipe = z.infer<typeof RecipeSchema>;
@@ -297,6 +305,15 @@ export const OrderSchema = z.object({
   deviceId: cuid.nullable().optional(),
 
   customerId: cuid.nullable().optional(),
+  customer: z
+    .object({
+      id: cuid,
+      name: z.string(),
+      phone: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   shiftId: cuid.nullable().optional(),
 
   orderNumber: z.string().nullable().optional(),

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InventoryChangeType } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -22,6 +22,8 @@ import {
 
 @Injectable()
 export class InventoryTransactionService {
+  private readonly logger = new Logger(InventoryTransactionService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async executeTransaction(
@@ -78,7 +80,7 @@ export class InventoryTransactionService {
           );
         }
 
-        // 2️⃣ Update inventory
+        // 2️⃣ Update inventory table
         await tx.inventory.update({
           where: { id: inventory.id },
           data: {
@@ -88,6 +90,10 @@ export class InventoryTransactionService {
             }),
           },
         });
+
+        this.logger.debug(
+          `Inventory updated: ${productId} | ${changeType} | ${beforeStock} → ${afterStock}`,
+        );
 
         // 3️⃣ InventoryHistory (authoritative)
         const historyRecord = await tx.inventoryHistory.create({
@@ -137,11 +143,12 @@ export class InventoryTransactionService {
   }> {
     // Validate both transactions are for transfers
     if (
-      fromInput.changeType !== 'ORDER_DEDUCT' ||
-      toInput.changeType !== 'ORDER_RETURN'
+      fromInput.changeType !== 'TRANSFER_OUT' ||
+      toInput.changeType !== 'TRANSFER_IN'
     ) {
-      // For now we'll use ORDER_DEDUCT/ORDER_RETURN as proxies
-      // In production, you'd add TRANSFER_OUT/TRANSFER_IN to the enum
+      throw new BadRequestException(
+        'Transfer requires TRANSFER_OUT for source and TRANSFER_IN for destination',
+      );
     }
 
     return await this.prisma.$transaction(
@@ -298,13 +305,16 @@ export class InventoryTransactionService {
         adjustment = quantity;
         break;
 
-      case 'ORDER_DEDUCT':
+      case 'ORDER_DEDUCTION':
+      case 'SALE':
+      case 'TRANSFER_OUT':
         // Subtract from stock (quantity is positive, we subtract it)
         afterStock = beforeStock - quantity;
         adjustment = -quantity;
         break;
 
-      case 'ORDER_RETURN':
+      case 'REFUND':
+      case 'TRANSFER_IN':
         // Add back to stock
         afterStock = beforeStock + quantity;
         adjustment = quantity;

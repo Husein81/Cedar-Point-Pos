@@ -1,11 +1,10 @@
+import { OrderStatus } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // =====================
 // Types
 // =====================
-
-export type OrderStatus = "DRAFT" | "ON_HOLD" | "COMPLETED";
 
 export type DiscountType = "PERCENTAGE" | "FIXED";
 

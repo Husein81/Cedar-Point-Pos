@@ -110,6 +110,13 @@ export const sidebarSections: SidebarSection[] = [
     label: "Finance",
     items: [
       {
+        label: "Invoices",
+        icon: "FileText",
+        href: "/invoices",
+        tooltip: "Invoices",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
         label: "Payments",
         icon: "CreditCard",
         href: "/payments",

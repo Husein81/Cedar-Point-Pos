@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { QueryParams } from '@repo/types';
+import { OrderStatus, QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -128,7 +128,7 @@ export class CustomersService {
   }
 
   /**
-   * Get a single customer by ID
+   * Get a single customer by ID with operational stats
    */
   async getCustomer(tenantId: string, customerId: string) {
     const customer = await this.prisma.customer.findFirst({
@@ -137,6 +137,17 @@ export class CustomersService {
         tenantId,
       },
       include: {
+        orders: {
+          where: {
+            status: { not: OrderStatus.CANCELLED },
+          },
+          select: {
+            id: true,
+            total: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
         _count: {
           select: { orders: true },
         },
@@ -147,10 +158,84 @@ export class CustomersService {
       throw new NotFoundException('Customer not found');
     }
 
+    // Calculate operational stats
+    const completedOrders = customer.orders;
+    const totalRevenue = completedOrders.reduce(
+      (sum, order) => sum + Number(order.total || 0),
+      0,
+    );
+    const lastOrderAt =
+      completedOrders.length > 0 ? completedOrders[0].createdAt : null;
+    const averageOrderValue =
+      completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+
     return {
-      ...customer,
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      createdAt: customer.createdAt,
+      updatedAt: customer.updatedAt,
       orderCount: customer._count.orders,
-      _count: undefined,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      lastOrderAt,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+    };
+  }
+
+  /**
+   * Get paginated orders for a specific customer
+   */
+  async getCustomerOrders(
+    tenantId: string,
+    customerId: string,
+    params: QueryParams,
+  ) {
+    const { page: rawPage, limit: rawLimit } = params;
+
+    const page = Math.max(Number(rawPage) || 1, 1);
+    const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const where = {
+      tenantId,
+      customerId,
+    };
+
+    const [totalCount, orders] = await this.prisma.$transaction([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          payments: {
+            select: {
+              id: true,
+              method: true,
+              amount: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data: orders,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     };
   }
 

@@ -49,6 +49,17 @@ export class CustomersController {
     return this.customersService.getCustomer(tenantId, id);
   }
 
+  @Get(':id/orders')
+  getCustomerOrders(@Req() req: Request) {
+    const { id } = req.params;
+    if (!id) {
+      throw new Error('Customer ID is required');
+    }
+    const { tenantId } = req.user as { tenantId: string };
+    const query = req.query as QueryParams;
+    return this.customersService.getCustomerOrders(tenantId, id, query);
+  }
+
   @Post()
   createCustomer(@Req() req: Request) {
     const body = req.body as Prisma.CustomerCreateInput;

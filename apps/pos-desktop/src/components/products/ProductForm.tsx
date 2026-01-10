@@ -16,7 +16,7 @@ import { ProductWithRelations } from "@/dto/products.dto";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useAdjustStock } from "@/hooks/useStock";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useBranchesByTenant } from "@/hooks/useBranch";
 import { uploadProductImage } from "@/lib/uploadImage";
 
@@ -39,6 +39,9 @@ export const ProductForm = ({ product }: Props) => {
     product?.imageUrl || null
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+    product?.categoryId || ""
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: categories = [] } = useCategories();
@@ -50,6 +53,18 @@ export const ProductForm = ({ product }: Props) => {
 
   const initialStock = inventory?.stock ? Number(inventory.stock) : 0;
 
+  // Get subcategories for the selected category
+  const availableSubcategories = useMemo(() => {
+    if (!selectedCategoryId) return [];
+
+    const selectedCategory = categories.find(
+      (cat) => cat.id === selectedCategoryId
+    );
+    return (
+      selectedCategory?.subcategories?.filter((sub) => !sub.isDeleted) || []
+    );
+  }, [categories, selectedCategoryId]);
+
   const form = useForm({
     defaultValues: {
       name: product?.name || "",
@@ -60,6 +75,7 @@ export const ProductForm = ({ product }: Props) => {
       price: product?.price?.toString() || "",
       cost: product?.cost?.toString() || "",
       categoryId: product?.categoryId || "",
+      subcategoryId: product?.subcategoryId || "",
       branchId: product?.branchId || "",
       imageUrl: product?.imageUrl || "",
       isActive: product?.isActive ?? true,
@@ -99,6 +115,7 @@ export const ProductForm = ({ product }: Props) => {
           price: value.price ? value.price : undefined,
           cost: value.cost ? value.cost : undefined,
           categoryId: value.categoryId || undefined,
+          subcategoryId: value.subcategoryId || undefined,
           branchId: value.branchId || undefined,
           imageUrl: imageUrl || undefined,
           isActive: value.isActive,
@@ -356,7 +373,16 @@ export const ProductForm = ({ product }: Props) => {
         </form.Field>
       </div>
 
-      <form.Field name="categoryId">
+      <form.Field
+        name="categoryId"
+        listeners={{
+          onChange: ({ value }) => {
+            // Update selected category state and clear subcategory
+            setSelectedCategoryId(value);
+            form.setFieldValue("subcategoryId", "");
+          },
+        }}
+      >
         {(field) => (
           <SelectField
             label="Category"
@@ -369,6 +395,22 @@ export const ProductForm = ({ product }: Props) => {
           />
         )}
       </form.Field>
+
+      {availableSubcategories.length > 0 && (
+        <form.Field name="subcategoryId">
+          {(field) => (
+            <SelectField
+              label="Subcategory"
+              placeholder="Select subcategory (optional)"
+              field={field}
+              options={availableSubcategories.map((subcategory) => ({
+                label: subcategory.name,
+                value: subcategory.id,
+              }))}
+            />
+          )}
+        </form.Field>
+      )}
 
       <form.Field name="branchId">
         {(field) => (

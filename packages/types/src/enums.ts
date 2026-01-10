@@ -11,9 +11,12 @@ export const InventoryChangeType = {
   SET_STOCK: "SET_STOCK", // Direct stock set
   ADJUST_STOCK: "ADJUST_STOCK", // Stock adjustment (increment/decrement)
   SET_MIN_STOCK: "SET_MIN_STOCK", // Minimum stock threshold change
-  ORDER_DEDUCT: "ORDER_DEDUCT", // Stock deducted from order
-  ORDER_RETURN: "ORDER_RETURN", // Stock returned from refund
+  ORDER_DEDUCTION: "ORDER_DEDUCTION", // Stock deducted when order is placed (legacy)
+  SALE: "SALE", // Stock sold through completed order
+  REFUND: "REFUND", // Stock returned from refund
   MANUAL_ADJUST: "MANUAL_ADJUST", // Manual adjustment
+  TRANSFER_OUT: "TRANSFER_OUT", // Stock transferred to another branch
+  TRANSFER_IN: "TRANSFER_IN", // Stock received from another branch
 } as const;
 export type InventoryChangeType =
   (typeof InventoryChangeType)[keyof typeof InventoryChangeType];
@@ -28,16 +31,20 @@ export const OrderType = {
   DINE_IN: "DINE_IN",
   TAKEAWAY: "TAKEAWAY",
   DELIVERY: "DELIVERY",
+  RETAIL: "RETAIL",
 } as const;
 export type OrderType = (typeof OrderType)[keyof typeof OrderType];
 
 export const OrderStatus = {
   DRAFT: "DRAFT", // New: For orders being built on the POS
   ON_HOLD: "ON_HOLD", // Held by cashier
+  CONFIRMED: "CONFIRMED", // Restaurant: Order confirmed by staff
+  IN_PROGRESS: "IN_PROGRESS", // Restaurant: Order being prepared
   PENDING: "PENDING", // Order created but not processed
   SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
   READY: "READY", // Ready for pickup/serve
-  COMPLETED: "COMPLETED",
+  PAID: "PAID", // Payment received, inventory deducted
+  COMPLETED: "COMPLETED", // Order fully completed
   CANCELLED: "CANCELLED",
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
@@ -67,11 +74,10 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const PaymentMethod = {
   CASH: "CASH",
-  CREDIT_CARD: "CREDIT_CARD",
-  DEBIT_CARD: "DEBIT_CARD",
-  MOBILE_PAYMENT: "MOBILE_PAYMENT",
-  GIFT_CARD: "GIFT_CARD",
-  OTHER: "OTHER",
+  CARD: "CARD",
+  CREDIT: "CREDIT",
+  VOUCHER: "VOUCHER",
+  ONLINE: "ONLINE",
 } as const;
 export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 

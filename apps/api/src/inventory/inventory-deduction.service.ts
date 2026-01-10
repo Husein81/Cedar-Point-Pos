@@ -5,6 +5,7 @@ import { InventoryTransactionService } from './inventory-transaction.service.js'
 
 interface StockDeductionItem {
   productId: string;
+  productName: string;
   quantity: number;
   orderItemId?: string;
 }
@@ -30,16 +31,17 @@ export class InventoryDeductionService {
     private readonly inventoryTransactionService: InventoryTransactionService,
   ) {}
   /**
-   * Validate and deduct stock when order is completed
+   * Validate and deduct stock when order is PAID or COMPLETED
    * Handles both direct products and recipe-based ingredient deduction
+   * Implements idempotency to prevent double-deduction
    */
   async deductStockForOrder(
     tenantId: string,
     orderId: string,
     branchId: string,
-    userId?: string,
+    userId: string,
   ) {
-    // Get order with items
+    // Get order with items and product details (including recipes for ingredient deduction)
     const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
@@ -47,7 +49,16 @@ export class InventoryDeductionService {
         branchId,
       },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                recipesUsedIn: true,
+                inventory: true, // Include inventory to calculate ingredient deductions
+              },
+            },
+          },
+        },
       },
     });
 
@@ -55,28 +66,18 @@ export class InventoryDeductionService {
       throw new BadRequestException('Order not found');
     }
 
+    this.logger.log(
+      `📦 Starting inventory deduction for order ${orderId} (${order.items.length} items)`,
+    );
+
     if (order.status === OrderStatus.COMPLETED) {
       throw new BadRequestException(
         'Order already completed - stock already deducted',
       );
     }
 
-    // Calculate all stock deductions needed
-    const items = order.items.map((item) => {
-      return {
-        total: Number(item.total),
-        unitPrice: Number(item.unitPrice),
-        taxRate: Number(item.taxRate),
-        taxAmount: Number(item.taxAmount),
-        productId: String(item.productId),
-        quantity: Number(item.quantity),
-        id: String(item.id),
-        orderId: String(item.orderId),
-        notes: String(item.notes),
-      };
-    }) as unknown as OrderItem[];
-
-    const deductions = this.calculateStockDeductions(items);
+    // Calculate all stock deductions needed (pass full items with product data)
+    const deductions = this.calculateStockDeductions(order.items);
 
     // Validate stock availability
     const validation = await this.validateStockAvailability(
@@ -115,19 +116,26 @@ export class InventoryDeductionService {
    * Calculate stock deductions from order items
    * For products with recipes, calculate ingredient requirements
    */
-  private calculateStockDeductions(
-    orderItems: OrderItem[],
-  ): StockDeductionItem[] {
+  private calculateStockDeductions(orderItems: any[]): StockDeductionItem[] {
     const deductions = new Map<string, StockDeductionItem>();
 
     for (const item of orderItems) {
       const orderQty = Number(item.quantity);
       const product = item.product;
 
+      // Skip items with missing products (deleted or orphaned)
+      if (!product) {
+        this.logger.warn(
+          `Skipping order item ${item.id}: product not found (may be deleted)`,
+        );
+        continue;
+      }
+
       // Check if product has recipes (is a finished product made from ingredients)
       if (product?.recipesUsedIn && product?.recipesUsedIn.length > 0) {
         // Recipe-based product: deduct ingredients
         for (const recipe of product.recipesUsedIn) {
+          const ingredient = recipe.ingredient;
           const ingredientId = String(recipe.ingredientId);
           const requiredQty = Number(recipe.quantity) * orderQty;
 
@@ -137,6 +145,7 @@ export class InventoryDeductionService {
           } else {
             deductions.set(ingredientId, {
               productId: ingredientId,
+              productName: ingredient?.name ?? '',
               quantity: requiredQty,
               orderItemId: item.id,
             });
@@ -144,12 +153,13 @@ export class InventoryDeductionService {
         }
       } else {
         // Simple product: deduct directly
-        const existing = deductions.get(String(product?.id));
+        const existing = deductions.get(String(product.id));
         if (existing) {
           existing.quantity += orderQty;
         } else {
-          deductions.set(String(product?.id), {
-            productId: String(product?.id),
+          deductions.set(String(product.id), {
+            productId: String(product.id),
+            productName: String(product.name),
             quantity: orderQty,
             orderItemId: item.id,
           });
@@ -242,24 +252,42 @@ export class InventoryDeductionService {
       );
     }
 
+    // Get order number for better history tracking
+    let orderNumber: string | undefined;
+    if (orderId) {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: { orderNumber: true },
+      });
+      orderNumber = order?.orderNumber ?? undefined;
+    }
+
     // Execute all deductions through centralized transaction service
     for (const deduction of deductions) {
+      const reason = orderNumber
+        ? `${deduction.productName} removed for Order ${orderNumber}`
+        : `${deduction.productName} removed for Order #${orderId}`;
+
       await this.inventoryTransactionService.executeTransaction({
         tenantId,
         branchId,
         productId: deduction.productId,
         userId,
-        changeType: 'ORDER_DEDUCT',
+        changeType: 'SALE',
         quantity: deduction.quantity,
-        reason: orderId ? `Order ${orderId}` : 'Order completion',
+        reason,
         referenceId: orderId,
         referenceType: 'ORDER',
         allowNegativeStock: false,
       });
+
+      this.logger.log(
+        `📉 Stock removed: ${deduction.productName} (-${deduction.quantity}) | Order ${orderNumber || orderId}`,
+      );
     }
 
     this.logger.log(
-      `Executed ${deductions.length} inventory deductions for order ${orderId}`,
+      `✅ Completed inventory deduction: ${deductions.length} items removed for order ${orderNumber || orderId}`,
     );
   }
 

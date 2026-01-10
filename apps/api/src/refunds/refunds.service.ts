@@ -86,7 +86,7 @@ export class RefundsService {
           branchId: order.branchId,
           productId: orderItem.productId,
           userId,
-          changeType: 'ORDER_RETURN',
+          changeType: 'REFUND',
           quantity: Number(requestedQty),
           reason: `Refund for order ${order.orderNumber ?? order.id}`,
           referenceId: orderId,

@@ -3,35 +3,56 @@ import { cn } from "@repo/ui";
 import { useState, useEffect, useMemo } from "react";
 import { formatPrice } from "./config";
 import { useModalStore } from "@/store/modalStore";
+import type { PaymentMethod } from "@repo/types";
 
 type SplitMode = "EQUAL" | "CUSTOM";
 
+type Split = {
+  amount: number;
+  method: PaymentMethod;
+};
+
 type Props = {
   total: number;
-  onConfirm: (mode: SplitMode, splits: number[]) => void;
+  onConfirm: (splits: Split[]) => void;
 };
+
+const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] =
+  [
+    { value: "CASH", label: "Cash", icon: "Banknote" },
+    { value: "CARD", label: "Card", icon: "CreditCard" },
+    { value: "CREDIT", label: "Credit", icon: "Wallet" },
+    { value: "ONLINE", label: "Online", icon: "Smartphone" },
+  ];
 
 export const SplitBillForm = ({ total, onConfirm }: Props) => {
   const { closeModal } = useModalStore();
   const [mode, setMode] = useState<SplitMode>("EQUAL");
   const [splitCount, setSplitCount] = useState(2);
-  const [customSplits, setCustomSplits] = useState<number[]>([]);
+  const [customSplits, setCustomSplits] = useState<Split[]>([]);
 
   // Reset state when dialog opens
   useEffect(() => {
     setMode("EQUAL");
     setSplitCount(2);
-    setCustomSplits([Math.floor(total / 2), Math.ceil(total / 2)]);
+    const halfAmount = Math.floor(total / 2);
+    setCustomSplits([
+      { amount: halfAmount + (total % 2), method: "CASH" },
+      { amount: halfAmount, method: "CASH" },
+    ]);
   }, [total]);
 
-  // Update custom splits when split count changes
+  // Update custom splits when split count changes in EQUAL mode
   useEffect(() => {
     if (mode === "EQUAL") {
       const perPerson = Math.floor(total / splitCount);
       const remainder = total - perPerson * splitCount;
-      const splits = Array(splitCount)
+      const splits: Split[] = Array(splitCount)
         .fill(perPerson)
-        .map((val, idx) => (idx === 0 ? val + remainder : val));
+        .map((val, idx) => ({
+          amount: idx === 0 ? val + remainder : val,
+          method: customSplits[idx]?.method || "CASH",
+        }));
       setCustomSplits(splits);
     }
   }, [mode, splitCount, total]);
@@ -42,20 +63,32 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   );
 
   const customTotal = useMemo(
-    () => customSplits.reduce((sum, val) => sum + val, 0),
+    () => customSplits.reduce((sum, split) => sum + split.amount, 0),
     [customSplits]
   );
 
   const isValid = useMemo(() => {
     if (mode === "EQUAL") return true;
-    return customTotal === total;
+    return Math.abs(customTotal - total) < 0.01;
   }, [mode, customTotal, total]);
 
   const handleCustomSplitChange = (index: number, value: string) => {
     const numValue = parseFloat(value) || 0;
     setCustomSplits((prev) => {
       const updated = [...prev];
-      updated[index] = numValue;
+      if (updated[index]) {
+        updated[index] = { amount: numValue, method: updated[index].method };
+      }
+      return updated;
+    });
+  };
+
+  const handlePaymentMethodChange = (index: number, method: PaymentMethod) => {
+    setCustomSplits((prev) => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { amount: updated[index].amount, method };
+      }
       return updated;
     });
   };
@@ -64,7 +97,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
     if (mode === "EQUAL") {
       setSplitCount((prev) => Math.min(prev + 1, 10));
     } else {
-      setCustomSplits((prev) => [...prev, 0]);
+      setCustomSplits((prev) => [...prev, { amount: 0, method: "CASH" }]);
     }
   };
 
@@ -78,7 +111,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
 
   const handleConfirm = () => {
     if (!isValid) return;
-    onConfirm(mode, customSplits);
+    onConfirm(customSplits);
     closeModal();
   };
 
@@ -170,45 +203,114 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
                 </p>
               )}
             </div>
+
+            {/* Payment Methods for Each Guest */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Payment Methods
+              </label>
+              <Shad.ScrollArea className="max-h-75 pr-2">
+                <div className="space-y-3">
+                  {customSplits.map((split, index) => (
+                    <div
+                      key={index}
+                      className="p-3 bg-muted/20 rounded-lg border space-y-2"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                          {index + 1}
+                        </div>
+                        <span className="text-sm font-medium">
+                          ${formatPrice(split.amount)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {PAYMENT_METHODS.map((method) => (
+                          <Button
+                            key={method.value}
+                            variant={
+                              split.method === method.value
+                                ? "default"
+                                : "outline"
+                            }
+                            className="flex flex-col gap-1 h-auto py-2"
+                            onClick={() =>
+                              handlePaymentMethodChange(index, method.value)
+                            }
+                            size="sm"
+                          >
+                            <Icon name={method.icon} className="w-4 h-4" />
+                            <span className="text-xs">{method.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Shad.ScrollArea>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
             {/* Custom Splits List */}
-            <Shad.ScrollArea className="max-h-60 pr-2">
-              <div className="space-y-2">
-                {customSplits.map((amount, index) => (
+            <Shad.ScrollArea className="max-h-100 pr-2">
+              <div className="space-y-3">
+                {customSplits.map((split, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-2.5 bg-muted/20 rounded-lg"
+                    className="p-3 bg-muted/20 rounded-lg border space-y-3"
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
-                      {index + 1}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                          $
+                        </span>
+                        <Input
+                          type="number"
+                          value={split.amount}
+                          onChange={(e) =>
+                            handleCustomSplitChange(index, e.target.value)
+                          }
+                          className="pl-7 h-9 text-right font-semibold"
+                          min={0}
+                          step={0.01}
+                        />
+                      </div>
+                      {customSplits.length > 2 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={() => handleRemoveSplit(index)}
+                        >
+                          <Icon name="Trash2" className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                        $
-                      </span>
-                      <Input
-                        type="number"
-                        value={amount}
-                        onChange={(e) =>
-                          handleCustomSplitChange(index, e.target.value)
-                        }
-                        className="pl-7 h-9 text-right font-semibold"
-                        min={0}
-                        step={1}
-                      />
+                    {/* Payment Method Selection */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {PAYMENT_METHODS.map((method) => (
+                        <Button
+                          key={method.value}
+                          variant={
+                            split.method === method.value
+                              ? "default"
+                              : "outline"
+                          }
+                          className="flex flex-col gap-1 h-auto py-2"
+                          onClick={() =>
+                            handlePaymentMethodChange(index, method.value)
+                          }
+                          size="sm"
+                        >
+                          <Icon name={method.icon} className="w-4 h-4" />
+                          <span className="text-xs">{method.label}</span>
+                        </Button>
+                      ))}
                     </div>
-                    {customSplits.length > 2 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
-                        onClick={() => handleRemoveSplit(index)}
-                      >
-                        <Icon name="Trash2" className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>

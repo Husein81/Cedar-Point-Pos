@@ -254,7 +254,7 @@ export class TransfersService {
         branchId: transfer.fromBranchId,
         productId: item.productId,
         userId,
-        changeType: 'ORDER_DEDUCT', // Using ORDER_DEDUCT for outbound transfer
+        changeType: 'ORDER_DEDUCTION', // Using ORDER_DEDUCT for outbound transfer
         quantity,
         reason: `Transfer ${transferId} to ${transfer.toBranchId}`,
         referenceId: transferId,
@@ -268,7 +268,7 @@ export class TransfersService {
         branchId: transfer.toBranchId,
         productId: item.productId,
         userId,
-        changeType: 'ORDER_RETURN', // Using ORDER_RETURN for inbound transfer
+        changeType: 'REFUND', // Using ORDER_RETURN for inbound transfer
         quantity,
         reason: `Transfer ${transferId} from ${transfer.fromBranchId}`,
         referenceId: transferId,

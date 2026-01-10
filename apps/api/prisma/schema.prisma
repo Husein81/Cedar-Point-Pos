@@ -30,24 +30,31 @@ enum InventoryChangeType {
     SET_STOCK // Direct stock set
     ADJUST_STOCK // Stock adjustment (increment/decrement)
     SET_MIN_STOCK // Minimum stock threshold change
-    ORDER_DEDUCT // Stock deducted from order
-    ORDER_RETURN // Stock returned from refund
+    ORDER_DEDUCTION // Stock deducted when order placed (legacy)
+    SALE // Stock sold through completed order
+    REFUND // Stock returned from refund
     MANUAL_ADJUST // Manual adjustment
+    TRANSFER_OUT // Stock transferred out
+    TRANSFER_IN // Stock transferred in
 }
 
 enum OrderType {
     DINE_IN
     TAKEAWAY
     DELIVERY
+    RETAIL
 }
 
 enum OrderStatus {
     DRAFT // New: For orders being built on the POS
     ON_HOLD // Order put on hold
     PENDING // Order created but not processed
+    CONFIRMED // Restaurant: Order confirmed by staff
+    IN_PROGRESS // Restaurant: Order being prepared
     SENT_TO_KITCHEN // Order sent to kitchen/bar
     READY // Ready for pickup/serve
-    COMPLETED
+    PAID // Payment received, inventory deducted
+    COMPLETED // Order fully completed
     CANCELLED
 }
 
@@ -300,6 +307,8 @@ model InventoryHistory {
     beforeMinStock Decimal?            @db.Decimal(10, 4) // Min stock before change (if applicable)
     afterMinStock  Decimal?            @db.Decimal(10, 4) // Min stock after change (if applicable)
     reason         String? // Reason for the adjustment
+    referenceId    String? // Reference to order, refund, transfer, etc.
+    referenceType  String? // Type of reference: ORDER, REFUND, TRANSFER
     createdAt      DateTime            @default(now())
     tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     branch         Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
@@ -309,6 +318,7 @@ model InventoryHistory {
     @@index([tenantId, branchId, createdAt])
     @@index([productId, createdAt])
     @@index([userId, createdAt])
+    @@index([referenceId, referenceType])
 }
 
 //
@@ -531,13 +541,13 @@ model Payment {
     id            String        @id @default(cuid())
     orderId       String
     method        PaymentMethod
-    currencyCode  String        @default("USD")
+    currencyCode  String? // Optional - only needed for multi-currency support
     amount        Decimal
     exchangeRate  Decimal? // Rate if foreign currency used (CRUCIAL for Lebanon)
     transactionId String? // Reference ID from card processor (Stripe, etc.)
     paidAt        DateTime      @default(now())
     order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-    currency      Currency      @relation(fields: [currencyCode], references: [code])
+    currency      Currency?     @relation(fields: [currencyCode], references: [code])
 }
 
 //

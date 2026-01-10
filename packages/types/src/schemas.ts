@@ -100,6 +100,14 @@ export const RecipeSchema = z.object({
   tenantId: cuid,
   productId: cuid,
   ingredientId: cuid,
+  ingredient: z
+    .object({
+      id: cuid,
+      name: z.string(),
+      sku: z.string().nullable().optional(),
+      unit: z.string().nullable().optional(),
+    })
+    .optional(), // For ingredient details
   quantity: decimal,
 });
 export type Recipe = z.infer<typeof RecipeSchema>;

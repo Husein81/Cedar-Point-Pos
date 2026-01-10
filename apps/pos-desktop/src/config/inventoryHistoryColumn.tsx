@@ -35,11 +35,11 @@ export const inventoryHistoryColumns: ColumnDef<
         SET_STOCK: { label: "Set Stock", variant: "default" },
         ADJUST_STOCK: { label: "Stock In", variant: "default" },
         MANUAL_ADJUST: { label: "Stock Out", variant: "secondary" },
-        ORDER_DEDUCTION: { label: "Order", variant: "destructive" },
-        REFUND_RETURN: { label: "Refund", variant: "default" },
+        ORDER_DEDUCTION: { label: "Order (Legacy)", variant: "destructive" },
+        SALE: { label: "Sale", variant: "destructive" },
+        REFUND: { label: "Refund", variant: "default" },
         TRANSFER_OUT: { label: "Transfer Out", variant: "destructive" },
         TRANSFER_IN: { label: "Transfer In", variant: "default" },
-        RECONCILIATION: { label: "Reconciliation", variant: "outline" },
       };
 
       const config = variants[type] || {

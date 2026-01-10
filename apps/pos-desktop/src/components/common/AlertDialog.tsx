@@ -1,3 +1,4 @@
+import { useOrderStore } from "@/store/orderStore";
 import { Icon, SButton, Shad, cn } from "@repo/ui";
 
 type AlertVariant = "default" | "warning" | "delete";
@@ -65,6 +66,9 @@ const AlertDialog = ({
   onConfirm,
 }: Props) => {
   const config = variantConfig[variant];
+  const { getActiveOrder } = useOrderStore();
+  const order = getActiveOrder();
+  const hasItems = order?.items && order.items.length > 0;
 
   return (
     <Shad.AlertDialog>
@@ -73,6 +77,7 @@ const AlertDialog = ({
           {(iconButton || label) && (
             <SButton
               size={size}
+              disabled={!hasItems}
               variant={buttonVariant ?? config.buttonVariant}
               className="flex items-center gap-2"
             >

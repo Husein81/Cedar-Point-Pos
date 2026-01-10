@@ -3,6 +3,8 @@ import { api } from "./api";
 import type {
   CustomerSummary,
   CustomerDetails,
+  CustomerFullDetails,
+  CustomerOrder,
   CreateCustomerDto,
 } from "@/dto/customer.dto";
 
@@ -10,7 +12,10 @@ export const customerApi = {
   /**
    * Search customers by name or phone (Legacy / Simple list)
    */
-  searchCustomers: async (query: string, limit: number = 10): Promise<CustomerSummary[]> => {
+  searchCustomers: async (
+    query: string,
+    limit: number = 10
+  ): Promise<CustomerSummary[]> => {
     const response = await api.get("/customers/search", {
       params: { query, limit },
     });
@@ -30,10 +35,23 @@ export const customerApi = {
   },
 
   /**
-   * Get customer details by ID
+   * Get customer full details by ID (with stats)
    */
-  getCustomer: async (id: string): Promise<CustomerDetails> => {
+  getCustomer: async (id: string): Promise<CustomerFullDetails> => {
     const response = await api.get(`/customers/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Get customer orders with pagination
+   */
+  getCustomerOrders: async (
+    id: string,
+    params?: QueryParams
+  ): Promise<PaginationResponse<CustomerOrder>> => {
+    const response = await api.get(`/customers/${id}/orders`, {
+      params,
+    });
     return response.data;
   },
 

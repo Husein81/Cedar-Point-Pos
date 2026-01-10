@@ -210,7 +210,7 @@ export const ProductGrid = ({ className }: Props) => {
             {isLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Shad.CarouselItem key={i} className="pl-2 basis-auto">
-                    <Skeleton className="h-9 w-24 rounded-md" />
+                    <Skeleton className="h-10 w-27 rounded-md" />
                   </Shad.CarouselItem>
                 ))
               : activeCategories.map((category) => (
@@ -301,7 +301,7 @@ export const ProductGrid = ({ className }: Props) => {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-lg" />
+              <Skeleton key={i} className="h-40 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (

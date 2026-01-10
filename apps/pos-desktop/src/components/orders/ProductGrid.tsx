@@ -19,6 +19,9 @@ export const ProductGrid = ({ className }: Props) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
   );
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<
+    string | null
+  >(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Focus search on keyboard input (for barcode scanner support)
@@ -41,7 +44,7 @@ export const ProductGrid = ({ className }: Props) => {
     return () => window.removeEventListener("keypress", handleKeyPress);
   }, []);
 
-  // Filter products based on search and category
+  // Filter products based on search, category, and subcategory
   const filteredProducts = useMemo(() => {
     if (!products) return [];
 
@@ -51,26 +54,32 @@ export const ProductGrid = ({ className }: Props) => {
         return false;
       }
 
-      // Category filter
-      if (selectedCategoryId && product.categoryId !== selectedCategoryId) {
-        return false;
-      }
-
-      // Search filter (name, barcode, sku)
+      // Search overrides category/subcategory filters (global search)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesName = product.name.toLowerCase().includes(query);
         const matchesBarcode = product.barcode?.toLowerCase().includes(query);
         const matchesSku = product.sku?.toLowerCase().includes(query);
 
-        if (!matchesName && !matchesBarcode && !matchesSku) {
-          return false;
-        }
+        return matchesName || matchesBarcode || matchesSku;
+      }
+
+      // Category filter
+      if (selectedCategoryId && product.categoryId !== selectedCategoryId) {
+        return false;
+      }
+
+      // Subcategory filter (null means "All" - show all products in category)
+      if (
+        selectedSubcategoryId &&
+        product.subcategoryId !== selectedSubcategoryId
+      ) {
+        return false;
       }
 
       return true;
     });
-  }, [products, selectedCategoryId, searchQuery]);
+  }, [products, selectedCategoryId, selectedSubcategoryId, searchQuery]);
 
   // Filter categories to only show those with products
   const activeCategories = useMemo(() => {
@@ -88,6 +97,34 @@ export const ProductGrid = ({ className }: Props) => {
     );
   }, [categories, products]);
 
+  // Get subcategories for the selected category
+  const activeSubcategories = useMemo(() => {
+    if (!selectedCategoryId || !categories || !products) return [];
+
+    const selectedCategory = categories.find(
+      (cat) => cat.id === selectedCategoryId
+    );
+    if (!selectedCategory?.subcategories) return [];
+
+    // Only show subcategories that have active products
+    const subcategoryIdsWithProducts = new Set(
+      products
+        .filter(
+          (p) =>
+            p.isActive &&
+            !p.isDeleted &&
+            !p.isIngredient &&
+            p.categoryId === selectedCategoryId
+        )
+        .map((p) => p.subcategoryId)
+        .filter(Boolean)
+    );
+
+    return selectedCategory.subcategories.filter(
+      (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id)
+    );
+  }, [selectedCategoryId, categories, products]);
+
   const handleProductClick = (product: Product) => {
     addItem({
       productId: product.id,
@@ -99,6 +136,12 @@ export const ProductGrid = ({ className }: Props) => {
 
   const handleCategoryClick = (categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
+    // Reset subcategory when category changes
+    setSelectedSubcategoryId(null);
+  };
+
+  const handleSubcategoryClick = (subcategoryId: string | null) => {
+    setSelectedSubcategoryId(subcategoryId);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,6 +239,62 @@ export const ProductGrid = ({ className }: Props) => {
           <Shad.CarouselNext className="-right-1" />
         </Shad.Carousel>
       </div>
+
+      {/* Subcategory Quick Filters - Only show when category has subcategories and no search active */}
+      {!searchQuery && activeSubcategories.length > 0 && (
+        <div className="relative">
+          <div className="pointer-events-none absolute -left-1 top-0 h-full w-6 bg-linear-to-r from-background to-transparent z-10" />
+          <div className="pointer-events-none absolute -right-1 top-0 h-full w-6 bg-linear-to-l from-background to-transparent z-10" />
+
+          <Shad.Carousel
+            opts={{
+              align: "start",
+              dragFree: true,
+            }}
+            className="w-full"
+          >
+            <Shad.CarouselContent className="mx-6">
+              {/* All (in category) */}
+              <Shad.CarouselItem className="pl-2 basis-auto">
+                <Button
+                  onClick={() => handleSubcategoryClick(null)}
+                  variant={
+                    selectedSubcategoryId === null ? "secondary" : "ghost"
+                  }
+                  size="default"
+                  className="whitespace-nowrap text-sm"
+                >
+                  All
+                </Button>
+              </Shad.CarouselItem>
+
+              {activeSubcategories.map((subcategory) => (
+                <Shad.CarouselItem
+                  key={subcategory.id}
+                  className="pl-2 basis-auto"
+                >
+                  <Button
+                    onClick={() => handleSubcategoryClick(subcategory.id)}
+                    variant={
+                      selectedSubcategoryId === subcategory.id
+                        ? "secondary"
+                        : "ghost"
+                    }
+                    size="default"
+                    className="whitespace-nowrap text-sm"
+                  >
+                    {subcategory.name}
+                  </Button>
+                </Shad.CarouselItem>
+              ))}
+            </Shad.CarouselContent>
+
+            {/* Navigation Arrows */}
+            <Shad.CarouselPrevious className="-left-1" />
+            <Shad.CarouselNext className="-right-1" />
+          </Shad.Carousel>
+        </div>
+      )}
 
       {/* Product Grid */}
       <Shad.ScrollArea className="flex-1 min-h-0 pr-3">

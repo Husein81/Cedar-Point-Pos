@@ -5,12 +5,12 @@ import {
   UpdateCategoryDto,
   CategoryWithSubcategories,
 } from "../apis/categoryApi";
-import type { Category, QueryParams } from "@repo/types";
+import type { QueryParams } from "@repo/types";
 
 const CATEGORY_QUERY_KEY = ["categories"];
 
 export const useCategories = (params?: QueryParams) => {
-  return useQuery<Category[]>({
+  return useQuery<CategoryWithSubcategories[]>({
     queryKey: [...CATEGORY_QUERY_KEY, params],
     queryFn: () => categoryApi.getCategories(params),
     staleTime: 5 * 60 * 1000, // 5 minutes

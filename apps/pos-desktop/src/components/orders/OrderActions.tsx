@@ -119,7 +119,6 @@ export const OrderActions = ({
     // if (existingId) return { id: existingId };
 
     const dto = buildOrderDto();
-    console.log("Creating order with DTO:", dto.type);
     const created = await createOrderMutation.mutateAsync(dto);
 
     // ✅ Save for later so Pay doesn’t create a second order

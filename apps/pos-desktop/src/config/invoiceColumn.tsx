@@ -47,6 +47,15 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     },
   },
   {
+    accessorKey: "customer.name",
+    header: "Customer",
+    cell: ({ row }) => (
+      <div className="text-sm text-muted-foreground">
+        {row.original.customer?.name || "Walk-in Customer"}
+      </div>
+    ),
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {

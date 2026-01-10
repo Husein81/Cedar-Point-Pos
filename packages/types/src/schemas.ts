@@ -305,6 +305,15 @@ export const OrderSchema = z.object({
   deviceId: cuid.nullable().optional(),
 
   customerId: cuid.nullable().optional(),
+  customer: z
+    .object({
+      id: cuid,
+      name: z.string(),
+      phone: z.string().nullable().optional(),
+      address: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   shiftId: cuid.nullable().optional(),
 
   orderNumber: z.string().nullable().optional(),

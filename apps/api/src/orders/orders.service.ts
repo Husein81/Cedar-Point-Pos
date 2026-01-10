@@ -225,7 +225,7 @@ export class OrdersService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { items: true, payments: true },
+        include: { items: true, payments: true, customer: true },
       }),
     ]);
 

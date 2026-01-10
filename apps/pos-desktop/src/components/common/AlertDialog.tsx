@@ -79,7 +79,7 @@ const AlertDialog = ({
               size={size}
               disabled={!hasItems}
               variant={buttonVariant ?? config.buttonVariant}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full"
             >
               <Icon name={iconButton ?? config.icon} className="h-4 w-4" />
               {label}

@@ -89,21 +89,6 @@ export class ReportsController {
   }
 
   /**
-   * Taxes Report - Tax collected grouped by tax type
-   * GET /reports/taxes?from=2024-01-01&to=2024-12-31&branchId=optional
-   */
-  @Get('taxes')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getTaxesReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
-    const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getTaxesReport(user.tenantId, parsedQuery);
-  }
-
-  /**
    * Dashboard Summary - Key metrics for today
    * GET /reports/dashboard/summary?branchId=optional
    */

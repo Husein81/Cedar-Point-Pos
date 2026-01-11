@@ -10,7 +10,6 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 import { OrdersService } from './orders.service.js';
-import { TaxService } from './tax.service.js';
 
 @Injectable()
 export class OrderItemService {
@@ -18,7 +17,6 @@ export class OrderItemService {
     @Inject(forwardRef(() => OrdersService))
     private readonly ordersService: OrdersService,
     private readonly prisma: PrismaService,
-    private readonly taxService: TaxService,
   ) {}
 
   async addModifier(orderItemId: string, addModifierDto: AddModifierDto) {
@@ -68,13 +66,11 @@ export class OrderItemService {
     quantity: number,
     unitPrice: number,
     modifiersUnitPrice: number,
-    taxRate: number,
-  ): { subtotal: number; taxAmount: number; total: number } {
+  ): { subtotal: number; total: number } {
     const subtotal = this.round(quantity * (unitPrice + modifiersUnitPrice));
-    const taxAmount = this.taxService.calculateItemTax(subtotal, taxRate);
-    const total = this.round(subtotal + taxAmount);
+    const total = this.round(subtotal);
 
-    return { subtotal, taxAmount, total };
+    return { subtotal, total };
   }
 
   private round(value: number): number {
@@ -86,11 +82,6 @@ export class OrderItemService {
       where: { id: orderItemId },
       include: {
         modifiers: true,
-        product: {
-          include: {
-            tax: true,
-          },
-        },
         order: true,
       },
     });
@@ -106,25 +97,14 @@ export class OrderItemService {
       (sum, mod) => sum + Number(mod.price),
       0,
     );
-    const taxRate = Number(orderItem.product.tax?.rate || 0);
 
-    const {
-      subtotal: itemSubtotal,
-      taxAmount: itemTaxAmount,
-      total: itemTotal,
-    } = this.calculateItemPricing(
-      quantity,
-      unitPrice,
-      modifiersUnitPrice,
-      taxRate,
-    );
+    const { subtotal: itemSubtotal, total: itemTotal } =
+      this.calculateItemPricing(quantity, unitPrice, modifiersUnitPrice);
 
     const updatedItem = await this.prisma.orderItem.update({
       where: { id: orderItemId },
       data: {
         subtotal: itemSubtotal,
-        taxRate,
-        taxAmount: itemTaxAmount,
         total: itemTotal,
       },
       include: { modifiers: true },

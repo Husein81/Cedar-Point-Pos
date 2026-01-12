@@ -11,7 +11,6 @@ type OrderSummaryProps = {
   onHoldOrder?: () => void;
   onSplitBill?: () => void;
   onConfirmWithoutPayment?: () => void;
-  taxRate?: number; // Tax rate as percentage (e.g., 10 for 10%)
 };
 
 export const OrderSummary = ({
@@ -20,7 +19,6 @@ export const OrderSummary = ({
   onHoldOrder,
   onSplitBill,
   onConfirmWithoutPayment,
-  taxRate = 0, // Default 0% tax
 }: OrderSummaryProps) => {
   const { getActiveOrder, setDiscount, getOrderSubtotal, getDiscountAmount } =
     useOrderStore();
@@ -30,23 +28,13 @@ export const OrderSummary = ({
   const discountValue = order?.discount?.value || 0;
   const discountType = order?.discount?.type || "PERCENTAGE";
 
-  const subtotal = useMemo(() => getOrderSubtotal(), [getOrderSubtotal, order]);
   const discount = useMemo(
     () => getDiscountAmount(),
     [getDiscountAmount, order]
   );
+  const subtotal = getOrderSubtotal() - discount;
 
-  // Calculate tax based on subtotal after discount
-  const taxableAmount = subtotal - discount;
-  const taxAmount = useMemo(
-    () => (taxableAmount * taxRate) / 100,
-    [taxableAmount, taxRate]
-  );
-
-  const total = useMemo(
-    () => taxableAmount + taxAmount,
-    [taxableAmount, taxAmount]
-  );
+  const total = subtotal;
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -98,12 +86,6 @@ export const OrderSummary = ({
             <span className="font-medium text-destructive">
               -${formatPrice(discount)}
             </span>
-          </div>
-        )}
-        {taxRate > 0 && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tax ({taxRate}%)</span>
-            <span className="font-medium">${formatPrice(taxAmount)}</span>
           </div>
         )}
       </div>

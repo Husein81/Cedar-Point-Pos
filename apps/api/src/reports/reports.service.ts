@@ -27,7 +27,6 @@ export class ReportsService {
       where,
       _sum: {
         total: true,
-        taxAmount: true,
         subtotal: true,
         discount: true,
       },
@@ -40,7 +39,6 @@ export class ReportsService {
 
     return {
       totalRevenue: Number(totalRevenue.toFixed(2)),
-      totalTax: Number(aggregation._sum.taxAmount) || 0,
       totalSubtotal: Number(aggregation._sum.subtotal) || 0,
       totalDiscount: Number(aggregation._sum.discount) || 0,
       orderCount,
@@ -161,64 +159,6 @@ export class ReportsService {
     return {
       movementsByType,
       totalMovements,
-      dateRange: { from, to },
-      branchId: branchId || null,
-    };
-  }
-
-  /**
-   * Taxes Report - Tax collected grouped by tax rate
-   */
-  async getTaxesReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
-
-    // Get tax amounts from completed order items grouped by tax rate
-    const taxesByRate = await this.prisma.orderItem.groupBy({
-      by: ['taxRate'],
-      where: {
-        order: {
-          tenantId,
-          status: 'COMPLETED',
-          createdAt: {
-            gte: from,
-            lte: to,
-          },
-          ...(branchId && { branchId }),
-        },
-      },
-      _sum: {
-        taxAmount: true,
-        total: true,
-      },
-      _count: true,
-    });
-
-    const taxBreakdown = taxesByRate.map((t) => ({
-      taxRate: Number(t.taxRate),
-      taxCollected: Number(t._sum.taxAmount) || 0,
-      taxableAmount: Number(t._sum.total) || 0,
-      itemCount: t._count,
-    }));
-
-    const totalTaxCollected = taxBreakdown.reduce(
-      (sum, t) => sum + t.taxCollected,
-      0,
-    );
-
-    // Also get tax names from the Tax model for reference
-    const taxes = await this.prisma.tax.findMany({
-      where: { tenantId },
-      select: { id: true, name: true, rate: true },
-    });
-
-    return {
-      taxBreakdown,
-      totalTaxCollected: Number(totalTaxCollected.toFixed(2)),
-      taxTypes: taxes.map((t) => ({
-        id: t.id,
-        name: t.name,
-        rate: Number(t.rate),
-      })),
       dateRange: { from, to },
       branchId: branchId || null,
     };

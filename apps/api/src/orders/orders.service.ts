@@ -1,16 +1,14 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { BusinessType, OrderStatus, OrderType, QueryParams } from '@repo/types';
-import { Prisma, PaymentMethod } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
-import { TaxService } from './tax.service.js';
-import type { CreateOrderDto } from './dto/create-order.dto.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
+import type { CreateOrderDto } from './dto/create-order.dto.js';
 
 // Extended QueryParams for order-specific filtering
 interface OrderQueryParams extends QueryParams {
@@ -25,25 +23,13 @@ interface OrderQueryParams extends QueryParams {
 
 @Injectable()
 export class OrdersService {
-  private readonly logger = new Logger(OrdersService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryDeductionService: InventoryDeductionService,
-    private readonly taxService: TaxService,
   ) {}
-
-  /* ----------------------------------------------------
-     Utilities
-  ---------------------------------------------------- */
-
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
-
-  /* ----------------------------------------------------
-     STATE MACHINE
-  ---------------------------------------------------- */
 
   private validateTransition(
     businessType: BusinessType,
@@ -120,7 +106,6 @@ export class OrdersService {
     const orderNumber = `${branchId.slice(-4)}-${String(orderCount + 1).padStart(5, '0')}`;
 
     let subtotal = 0;
-    let taxAmount = 0;
     const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];
 
     // Fetch products only if items exist, and do it in parallel with validation
@@ -134,7 +119,6 @@ export class OrdersService {
         select: {
           id: true,
           price: true,
-          tax: { select: { rate: true } },
         },
       });
 
@@ -145,30 +129,22 @@ export class OrdersService {
         if (!product) throw new BadRequestException('Product not found');
 
         const lineSubtotal = Number(product.price) * item.quantity;
-        const lineTax = this.taxService.calculateItemTax(
-          lineSubtotal,
-          Number(product.tax?.rate || 0),
-        );
 
         subtotal += lineSubtotal;
-        taxAmount += lineTax;
 
         orderItems.push({
           product: { connect: { id: product.id } },
           quantity: new Prisma.Decimal(item.quantity),
           unitPrice: new Prisma.Decimal(product.price || 0),
           subtotal: new Prisma.Decimal(lineSubtotal),
-          taxRate: new Prisma.Decimal(product.tax?.rate || 0),
-          taxAmount: new Prisma.Decimal(lineTax),
-          total: new Prisma.Decimal(lineSubtotal + lineTax),
+          total: new Prisma.Decimal(lineSubtotal),
           notes: item.notes,
         });
       }
     }
 
     subtotal = this.round(subtotal);
-    taxAmount = this.round(taxAmount);
-    const total = this.round(subtotal + taxAmount - (discount || 0));
+    const total = this.round(subtotal - (discount || 0));
 
     return this.prisma.order.create({
       data: {
@@ -179,7 +155,6 @@ export class OrdersService {
         status: OrderStatus.DRAFT,
         orderNumber,
         subtotal,
-        taxAmount,
         total,
         discount: discount ?? 0,
         ...(tableId && { tableId }),
@@ -478,15 +453,10 @@ export class OrdersService {
 
     const product = await this.prisma.product.findFirst({
       where: { id: dto.productId, tenantId, isDeleted: false },
-      include: { tax: true },
     });
     if (!product) throw new NotFoundException('Product not found');
 
     const subtotal = dto.quantity * Number(product.price);
-    const tax = this.taxService.calculateItemTax(
-      subtotal,
-      Number(product.tax?.rate || 0),
-    );
 
     await this.prisma.orderItem.create({
       data: {
@@ -495,9 +465,7 @@ export class OrdersService {
         quantity: dto.quantity,
         unitPrice: new Prisma.Decimal(product.price || 0),
         subtotal: new Prisma.Decimal(subtotal),
-        taxRate: new Prisma.Decimal(product.tax?.rate || 0),
-        taxAmount: new Prisma.Decimal(tax),
-        total: new Prisma.Decimal(subtotal + tax),
+        total: new Prisma.Decimal(subtotal),
         notes: dto.notes,
       },
     });
@@ -598,14 +566,11 @@ export class OrdersService {
   async recalculateOrderTotals(tenantId: string, orderId: string) {
     const items = await this.prisma.orderItem.findMany({
       where: { orderId },
-      select: { subtotal: true, taxAmount: true },
+      select: { subtotal: true },
     });
 
     const subtotal = this.round(
       items.reduce((s, i) => s + Number(i.subtotal), 0),
-    );
-    const taxAmount = this.round(
-      items.reduce((s, i) => s + Number(i.taxAmount), 0),
     );
 
     const order = await this.prisma.order.findUnique({
@@ -613,13 +578,11 @@ export class OrdersService {
       select: { discount: true },
     });
 
-    const total = this.round(
-      subtotal + taxAmount - Number(order?.discount || 0),
-    );
+    const total = this.round(subtotal - Number(order?.discount || 0));
 
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { subtotal, taxAmount, total },
+      data: { subtotal, total },
     });
   }
 }

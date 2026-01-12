@@ -106,7 +106,6 @@ model Tenant {
     devices          POSDevice[]
     customers        Customer[]
     shifts           Shift[]
-    taxes            Tax[]
     transfers        Transfer[]
     settings         Json? // feature flags, tax rates, etc.
     modifiers        Modifier[]
@@ -229,8 +228,6 @@ model Product {
     isIngredient     Boolean            @default(false) // New: Differentiates raw ingredients from sellable items
     isModifiable     Boolean            @default(false) // restaurant
     createdAt        DateTime           @default(now())
-    taxId            String?
-    tax              Tax?               @relation(fields: [taxId], references: [id])
     tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
     branch           Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
     inventory        Inventory[]
@@ -469,7 +466,6 @@ model Order {
 
     // Financial fields
     subtotal    Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
-    taxAmount   Decimal     @default(0) @db.Decimal(10, 2) // New: Total tax collected
     total       Decimal     @default(0) @db.Decimal(10, 2) // Final amount due/paid
     discount    Decimal?    @default(0) @db.Decimal(10, 2)
     createdAt   DateTime    @default(now())
@@ -496,8 +492,6 @@ model OrderItem {
     quantity    Decimal             @default(1) @db.Decimal(10, 4)
     unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
     subtotal    Decimal             @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
-    taxRate     Decimal             @default(0) @db.Decimal(10, 2) // New: Tax rate at time of sale
-    taxAmount   Decimal             @default(0) @db.Decimal(10, 2) // New: Calculated tax for this item
     total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
     // KDS tracking
     notes       String? // e.g., "Extra crispy"
@@ -592,17 +586,4 @@ model Shift {
     orders     Order[]
 
     @@index([tenantId, branchId, status])
-}
-
-//
-// ---------- TAXES ----------
-//
-model Tax {
-    id        String    @id @default(cuid())
-    tenantId  String
-    name      String // e.g. "VAT", "Sales Tax"
-    rate      Decimal   @db.Decimal(5, 2) // e.g. 10.00
-    isDefault Boolean   @default(false)
-    tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    products  Product[]
 }

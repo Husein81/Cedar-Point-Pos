@@ -158,15 +158,6 @@ function RouteComponent() {
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-500">Tax</p>
-              <p className="text-base">
-                {product.tax
-                  ? `${product.tax.name} (${product.tax.rate}%)`
-                  : "—"}
-              </p>
-            </div>
-
-            <div>
               <p className="text-sm font-medium text-gray-500">Image URL</p>
               <p className="text-base break-all">{product.imageUrl || "—"}</p>
             </div>

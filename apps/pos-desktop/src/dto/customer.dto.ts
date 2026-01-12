@@ -24,7 +24,6 @@ export type CustomerOrder = {
   type: string;
   status: string;
   subtotal: string;
-  taxAmount: string;
   total: string;
   discount: string | null;
   createdAt: string;

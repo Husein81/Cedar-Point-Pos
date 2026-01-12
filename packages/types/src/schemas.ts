@@ -131,8 +131,6 @@ export const ProductSchema = z.object({
   isIngredient: z.boolean().default(false),
   isModifiable: z.boolean().default(false),
   createdAt: isoDate,
-  taxId: cuid.nullable().optional(),
-
   inventory: z
     .array(
       z.object({
@@ -287,8 +285,6 @@ export const OrderItemSchema = z.object({
   productId: cuid,
   quantity: decimal.default("1"),
   unitPrice: decimal,
-  taxRate: decimal.default("0"),
-  taxAmount: decimal.default("0"),
   total: decimal,
   notes: z.string().nullable().optional(),
   product: ProductSchema.optional(), // For combo products
@@ -322,7 +318,6 @@ export const OrderSchema = z.object({
   status: z.enum(OrderStatus).default("DRAFT"),
 
   subtotal: decimal.default("0"),
-  taxAmount: decimal.default("0"),
   total: decimal.default("0"),
   discount: decimal.nullable().optional(),
 
@@ -395,16 +390,6 @@ export const ShiftSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
-
-// Tax
-export const TaxSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  name: z.string(),
-  rate: decimal, // Decimal(5,2)
-  isDefault: z.boolean().default(false),
-});
-export type Tax = z.infer<typeof TaxSchema>;
 
 // ===========================================
 //         Query Params Schema

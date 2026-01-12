@@ -38,14 +38,5 @@ export const ProductWithRelationsSchema = ProductSchema.extend({
     })
     .nullable()
     .optional(),
-
-  tax: z
-    .object({
-      id: z.string().uuid(),
-      name: z.string(),
-      rate: z.string(),
-    })
-    .nullable()
-    .optional(),
 });
 export type ProductWithRelations = z.infer<typeof ProductWithRelationsSchema>;

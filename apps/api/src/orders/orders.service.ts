@@ -78,7 +78,15 @@ export class OrdersService {
   ---------------------------------------------------- */
 
   async create(tenantId: string, userId: string, dto: CreateOrderDto) {
-    const { branchId, type, tableId, customerId, items, discount } = dto;
+    const {
+      branchId,
+      type,
+      tableId,
+      customerId,
+      items,
+      discount,
+      shippingFee,
+    } = dto;
 
     // Fetch tenant info and branch order count in parallel
     const [tenant, orderCount] = await Promise.all([
@@ -144,7 +152,9 @@ export class OrdersService {
     }
 
     subtotal = this.round(subtotal);
-    const total = this.round(subtotal - (discount || 0));
+    const total = this.round(
+      Number(subtotal) - (discount || 0) + (shippingFee || 0),
+    );
 
     return this.prisma.order.create({
       data: {
@@ -157,6 +167,7 @@ export class OrdersService {
         subtotal,
         total,
         discount: discount ?? 0,
+        shippingFee: shippingFee ?? 0,
         ...(tableId && { tableId }),
         ...(customerId && { customerId }),
         items: { create: orderItems },
@@ -264,80 +275,7 @@ export class OrdersService {
     return updated;
   }
 
-  /* ----------------------------------------------------
-     PAYMENTS
-  ---------------------------------------------------- */
-
-  async completeSplitPayment(
-    tenantId: string,
-    orderId: string,
-    payments: {
-      amount: number;
-      method: PaymentMethod;
-      currencyCode?: string;
-      exchangeRate?: number;
-    }[],
-    userId: string,
-  ) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, tenantId },
-      select: { total: true, branchId: true, status: true },
-    });
-    if (!order) throw new NotFoundException('Order not found');
-
-    // Validate order can be paid
-    if (order.status === OrderStatus.PAID) {
-      throw new BadRequestException('Order already paid');
-    }
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException('Cannot pay cancelled order');
-    }
-
-    const sum = this.round(payments.reduce((s, p) => s + p.amount, 0));
-    const expectedTotal = Number(order.total);
-    if (Math.abs(sum - expectedTotal) > 0.01) {
-      throw new BadRequestException(
-        `Payment total mismatch: expected ${expectedTotal}, got ${sum}`,
-      );
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      // 1️⃣ Create payments
-      await tx.payment.createMany({
-        data: payments.map((p) => ({
-          orderId,
-          method: p.method,
-          amount: p.amount,
-          ...(p.currencyCode && { currencyCode: p.currencyCode }),
-          ...(p.exchangeRate && { exchangeRate: p.exchangeRate }),
-        })),
-      });
-
-      // 2️⃣ Update order status to PAID
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: 'PAID' },
-      });
-
-      // 3️⃣ Deduct inventory (idempotent - service checks for duplicates)
-      await this.inventoryDeductionService.deductStockForOrder(
-        tenantId,
-        orderId,
-        order.branchId,
-        userId,
-      );
-
-      return tx.order.findUnique({
-        where: { id: orderId },
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          total: true,
-        },
-      });
-    });
-  }
+  /* ----
 
   /**
    * Process a single payment for an order

@@ -131,6 +131,7 @@ export const ProductGrid = ({ className }: Props) => {
       name: product.name,
       price: Number(product.price) || 0,
       quantity: 1,
+      imageUrl: product.imageUrl,
     });
   };
 
@@ -193,7 +194,7 @@ export const ProductGrid = ({ className }: Props) => {
           }}
           className="w-full"
         >
-          <Shad.CarouselContent className="-ml-2">
+          <Shad.CarouselContent className="mx-6">
             {/* All Products */}
             <Shad.CarouselItem className="pl-2 basis-auto">
               <Button

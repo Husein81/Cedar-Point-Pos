@@ -4,13 +4,11 @@ import { Button, cn, Icon } from "@repo/ui";
 import { useCallback, useMemo, useState } from "react";
 import AlertDialog from "../common/AlertDialog";
 import { PaymentForm } from "./PaymentForm";
-import { SplitBillForm } from "./SplitBillForm";
 import { useModalStore } from "@/store/modalStore";
 import {
   useCreateOrder,
   useUpdateOrderStatus,
   useProcessPayment,
-  useCompleteSplitPayment,
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
@@ -21,7 +19,6 @@ type Props = {
   className?: string;
   onCompleteOrder?: () => void;
   onHoldOrder?: () => void;
-  onSplitBill?: () => void;
   onConfirmWithoutPayment?: () => void;
 };
 
@@ -29,7 +26,6 @@ export const OrderActions = ({
   className,
   onCompleteOrder,
   onHoldOrder,
-  onSplitBill,
   onConfirmWithoutPayment,
 }: Props) => {
   const { openModal, closeModal } = useModalStore();
@@ -53,7 +49,6 @@ export const OrderActions = ({
   const createOrderMutation = useCreateOrder();
   const updateOrderStatusMutation = useUpdateOrderStatus();
   const processPaymentMutation = useProcessPayment();
-  const completeSplitPaymentMutation = useCompleteSplitPayment();
 
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -65,7 +60,6 @@ export const OrderActions = ({
 
   const canComplete = hasItems && total > 0;
   const canHold = hasItems && order?.status !== "ON_HOLD";
-  const canSplitBill = hasItems && total > 0;
   const isOnHold = order?.status === "ON_HOLD";
 
   // Centralized success cleanup (less re-render churn + less duplication)
@@ -84,8 +78,13 @@ export const OrderActions = ({
     if (!order || !branchId) throw new Error("Missing required order data");
 
     if (!user || !user.tenant) throw new Error("User not authenticated");
+
+    // Use stored order type or default based on business type
     const type =
-      user.tenant.businessType === BusinessType.RETAIL ? "RETAIL" : "DINE_IN";
+      order.type ||
+      (user.tenant.businessType === BusinessType.RETAIL
+        ? OrderType.RETAIL
+        : OrderType.DINE_IN);
 
     return {
       branchId,
@@ -219,36 +218,6 @@ export const OrderActions = ({
     setOrderStatus("DRAFT");
   };
 
-  const handleSplitBillConfirm = async (
-    splits: Array<{ amount: number; method: PaymentMethod }>
-  ) => {
-    if (!canComplete || isProcessing) return;
-
-    setIsProcessing(true);
-    try {
-      const createdOrder = await getOrCreateBackendOrder();
-
-      // Split payment handles DRAFT → PAID and inventory deduction
-      await completeSplitPaymentMutation.mutateAsync({
-        id: createdOrder.id,
-        payments: splits,
-      });
-
-      // Move to COMPLETED
-      await updateOrderStatusMutation.mutateAsync({
-        id: createdOrder.id,
-        status: "COMPLETED",
-      });
-
-      finalizeSuccess("PAID");
-      onSplitBill?.();
-    } catch (error: any) {
-      handleApiError(error, "Split Payment Failed");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleConfirmWithoutPaymentConfirm = async () => {
     if (!canComplete || isProcessing) return;
 
@@ -278,12 +247,7 @@ export const OrderActions = ({
       <PaymentForm total={total} onConfirm={handlePayConfirm} />
     );
   };
-  const handleSplitBill = () => {
-    openModal(
-      "Split Bill",
-      <SplitBillForm total={total} onConfirm={handleSplitBillConfirm} />
-    );
-  };
+
   // Memoize heavy JSX section so it doesn't re-create each render
   const holdInfoSection = useMemo(
     () => (
@@ -321,10 +285,10 @@ export const OrderActions = ({
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {/* Primary Actions */}
-      <div className="flex gap-2">
+      <div className="flex">
         <Button
           size="lg"
-          className="flex-3 relative"
+          className="flex-1 relative"
           onClick={handlePay}
           disabled={!canComplete || isProcessing}
           isSubmitting={isProcessing}
@@ -332,7 +296,10 @@ export const OrderActions = ({
           <Icon name="CreditCard" className="w-4 h-4" />
           Pay
         </Button>
+      </div>
 
+      {/* Secondary Actions */}
+      <div className="flex gap-2 items-center">
         {isOnHold ? (
           <Button
             variant="default"
@@ -341,12 +308,14 @@ export const OrderActions = ({
             onClick={handleResumeOrder}
           >
             <Icon name="Play" className="w-4 h-4" />
+            Resume Order
           </Button>
         ) : (
           <AlertDialog
             iconButton="CirclePause"
             size="lg"
             variant="warning"
+            label="Hold Order"
             title="Hold Order"
             description="Are you sure you want to put this order on hold? You can resume it later."
             section={holdInfoSection}
@@ -354,29 +323,15 @@ export const OrderActions = ({
             onConfirm={handleHoldConfirm}
           />
         )}
-      </div>
-
-      {/* Secondary Actions */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="default"
-          className="flex-1"
-          onClick={handleSplitBill}
-          disabled={!canSplitBill || isProcessing}
-        >
-          <Icon name="Split" className="w-4 h-4" />
-          Split Bill
-        </Button>
-
         <AlertDialog
           title="Confirm Without Payment"
           description="This will confirm the order without recording payment. Use for comps, staff meals, or manual payment."
           label="Confirm Only"
+          size="lg"
           iconButton="Check"
           onConfirm={handleConfirmWithoutPaymentConfirm}
           variant="warning"
-          buttonVariant="ghost"
+          buttonVariant="outline"
         />
       </div>
     </div>

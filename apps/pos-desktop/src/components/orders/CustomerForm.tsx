@@ -101,6 +101,7 @@ export const CustomerForm = ({ onCustomerCreated }: Props) => {
         </Button>
         <Button
           type="submit"
+          className="w-38"
           isSubmitting={createCustomer.isPending || form.state.isSubmitting}
           disabled={createCustomer.isPending || form.state.isSubmitting}
         >

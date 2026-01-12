@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { OrderStatus, OrderType } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -8,37 +8,40 @@ import { persist } from "zustand/middleware";
 
 export type DiscountType = "PERCENTAGE" | "FIXED";
 
-export interface OrderItem {
+export type OrderItem = {
   id: string;
   productId: string;
   name: string;
   price: number;
   quantity: number;
   notes?: string;
-}
+  imageUrl?: string | null;
+};
 
-export interface OrderDiscount {
+export type OrderDiscount = {
   type: DiscountType;
   value: number;
-}
+};
 
-export interface Order {
+export type Order = {
   id: string;
   status: OrderStatus;
+  type?: OrderType;
   items: OrderItem[];
   discount: OrderDiscount | null;
+  shippingFee: number;
   customerId: string | null;
   customerName: string | null;
   notes: string;
   createdAt: Date;
   modifiedAt: Date;
-}
+};
 
-export interface OrderTab {
+export type OrderTab = {
   id: string;
   label: string;
   order: Order;
-}
+};
 
 // =====================
 // Helpers
@@ -56,7 +59,9 @@ const createEmptyOrder = (): Order => ({
   id: generateOrderId(),
   status: "DRAFT",
   items: [],
+  type: undefined,
   discount: null,
+  shippingFee: 0,
   customerId: null,
   customerName: null,
   notes: "",
@@ -102,6 +107,9 @@ interface OrderStoreState {
   // Discount actions
   setDiscount: (discount: OrderDiscount | null) => void;
 
+  // Shipping fee actions
+  setShippingFee: (fee: number) => void;
+
   // Customer actions
   setCustomer: (customerId: string | null, customerName: string | null) => void;
 
@@ -110,6 +118,7 @@ interface OrderStoreState {
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
+  setOrderType: (type: string) => void;
   holdOrder: () => void;
   resumeOrder: () => void;
 
@@ -351,6 +360,26 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
+      setShippingFee: (fee: number) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                shippingFee: Math.max(0, fee),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
       // =====================
       // Customer Actions
       // =====================
@@ -401,7 +430,7 @@ export const useOrderStore = create<OrderStoreState>()(
       },
 
       // =====================
-      // Order Status
+      // Order Status & Type
       // =====================
 
       setOrderStatus: (status: OrderStatus) => {
@@ -417,6 +446,26 @@ export const useOrderStore = create<OrderStoreState>()(
               order: {
                 ...tab.order,
                 status,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      setOrderType: (type: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                type: type as OrderType,
                 modifiedAt: new Date(),
               },
             };
@@ -482,7 +531,10 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         const subtotal = state.getOrderSubtotal(tabId);
         const discount = state.getDiscountAmount(tabId);
-        return Math.max(0, subtotal - discount);
+        const targetTabId = tabId ?? state.activeTabId;
+        const tab = state.tabs.find((t) => t.id === targetTabId);
+        const shippingFee = tab?.order.shippingFee ?? 0;
+        return Math.max(0, subtotal - discount + shippingFee);
       },
 
       hasUnsavedChanges: (tabId: string) => {

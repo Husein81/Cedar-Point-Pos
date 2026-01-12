@@ -24,6 +24,7 @@ export interface CreateOrderDto {
   customerId?: string;
   items?: CreateOrderItemDto[];
   discount?: number; // Discount amount (must be >= 0)
+  shippingFee?: number; // Shipping fee (must be >= 0)
 }
 
 export interface UpdateOrderStatusDto {
@@ -54,17 +55,6 @@ export interface PaymentDto {
   method: PaymentMethod;
   currencyCode?: string;
   exchangeRate?: number;
-}
-
-export interface SplitPaymentItemDto {
-  amount: number;
-  method: PaymentMethod;
-  currencyCode?: string;
-  exchangeRate?: number;
-}
-
-export interface SplitPaymentDto {
-  payments: SplitPaymentItemDto[];
 }
 
 export interface OrderFilters extends QueryParams {
@@ -101,15 +91,6 @@ export const ordersApi = {
   // Process single payment for an order
   processPayment: async (id: string, data: PaymentDto): Promise<Order> => {
     const response = await api.post(`/orders/${id}/payment`, data);
-    return response.data;
-  },
-
-  // Complete order with split payments
-  completeSplitPayment: async (
-    id: string,
-    data: SplitPaymentDto
-  ): Promise<Order> => {
-    const response = await api.post(`/orders/${id}/split-payment`, data);
     return response.data;
   },
 

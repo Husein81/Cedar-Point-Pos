@@ -85,15 +85,6 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     ),
   },
   {
-    accessorKey: "taxAmount",
-    header: "Tax",
-    cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground">
-        ${formatPrice(Number(row.original.taxAmount))}
-      </div>
-    ),
-  },
-  {
     accessorKey: "discount",
     header: "Discount",
     cell: ({ row }) => {

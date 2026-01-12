@@ -17,19 +17,20 @@ const ProductCard = ({ product }: Props) => {
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
   const isOutOfStock = totalStock === 0;
 
-  const handleProductClick = () => {
+  const handleAddItem = () => {
     if (isOutOfStock) return;
     addItem({
       productId: product.id,
       name: product.name,
       price: Number(product.price) || 0,
       quantity: 1,
+      imageUrl: product.imageUrl,
     });
   };
 
   return (
     <Shad.Card
-      onClick={handleProductClick}
+      onClick={handleAddItem}
       className={cn(
         "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card",
         isOutOfStock ? "cursor-not-allowed opacity-50" : "cursor-pointer",
@@ -90,4 +91,5 @@ const ProductCard = ({ product }: Props) => {
     </Shad.Card>
   );
 };
+
 export default ProductCard;

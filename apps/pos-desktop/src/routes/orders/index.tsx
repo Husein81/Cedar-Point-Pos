@@ -13,7 +13,7 @@ function OrderPage() {
   return (
     // Fixed position to break out of scrollable parent - orders page never scrolls
     // bottom-8 leaves room for Footer (h-8)
-    <div className="fixed top-10 left-12 right-0 bottom-8 flex flex-col bg-background z-10">
+    <div className="fixed top-10 left-12 right-0 bottom-8 flex flex-col bg-background z">
       {/* Tabs - fixed at top */}
       <OrderTabs className="shrink-0 px-4 pt-2" />
 

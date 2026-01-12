@@ -149,39 +149,6 @@ export class OrdersController {
     return this.ordersService.processPayment(user.tenantId, id, body, user.id);
   }
 
-  /**
-   * Complete order with split payments
-   *
-   * - Validates total
-   * - Creates payment records
-   * - Deducts inventory ONCE
-   * - Marks order as PAID
-   */
-  @Post(':id/split-payment')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  completeSplitPayment(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Body()
-    body: {
-      payments: Array<{
-        amount: number;
-        method: PaymentMethod;
-        currencyCode?: string;
-        exchangeRate?: number;
-      }>;
-    },
-  ) {
-    const user = req.user as { tenantId: string; id: string };
-
-    return this.ordersService.completeSplitPayment(
-      user.tenantId,
-      id,
-      body.payments,
-      user.id,
-    );
-  }
-
   /* ----------------------------------------------------
      ORDER MODIFICATIONS (DRAFT ONLY)
   ---------------------------------------------------- */

@@ -18,5 +18,6 @@ export const createOrderDto = z.object({
   customerId: z.string().optional(),
   items: z.array(createOrderItemDto).optional(),
   discount: z.number().min(0).optional(), // Discount amount (must be >= 0)
+  shippingFee: z.number().min(0).optional(), // Shipping fee (must be >= 0)
 });
 export type CreateOrderDto = z.infer<typeof createOrderDto>;

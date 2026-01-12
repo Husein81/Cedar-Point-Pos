@@ -40,7 +40,7 @@ function Select({
       }}
       disabled={disabled}
     >
-      <Shad.SelectTrigger className={cn("w-[250px]", className)}>
+      <Shad.SelectTrigger className={cn("w-62.5", className)}>
         <Shad.SelectValue
           className={cn("text-text text-sm native:text-lg")}
           placeholder={placeholder}
@@ -48,7 +48,7 @@ function Select({
       </Shad.SelectTrigger>
       <Shad.SelectContent
         side={side}
-        className="w-[var(--radix-select-trigger-width)]"
+        className="w-(--radix-select-trigger-width)"
       >
         <Shad.ScrollArea>
           <Shad.SelectGroup>

@@ -109,6 +109,7 @@ export const SubcategoryForm = ({
         </Button>
         <Button
           type="submit"
+          className="w-24"
           isSubmitting={createMutation.isPending || updateMutation.isPending}
           disabled={createMutation.isPending || updateMutation.isPending}
         >

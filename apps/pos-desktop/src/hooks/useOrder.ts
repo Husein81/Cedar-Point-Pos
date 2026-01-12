@@ -5,7 +5,6 @@ import {
   type CreateOrderDto,
   type OrderFilters,
   type AddItemDto,
-  type SplitPaymentDto,
 } from "@/apis/ordersApi";
 
 const ORDER_QUERY_KEY = ["orders"];
@@ -61,22 +60,6 @@ export const useProcessPayment = () => {
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
       });
-    },
-  });
-};
-
-export const useCompleteSplitPayment = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<
-    Order,
-    Error,
-    { id: string; payments: SplitPaymentDto["payments"] }
-  >({
-    mutationFn: ({ id, payments }) =>
-      ordersApi.completeSplitPayment(id, { payments }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
     },
   });
 };

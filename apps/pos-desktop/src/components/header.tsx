@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
-import { Button, cn, Icon } from "@repo/ui";
+import { Button, cn, Icon, Shad } from "@repo/ui";
 import { Activity, useId } from "react";
 import logo from "/assets/logo.png";
 import { BranchSelector } from "./common/BranchSelector";

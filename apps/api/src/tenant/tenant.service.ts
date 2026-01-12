@@ -7,6 +7,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
+/**
+ * Default currency codes to initialize for new tenants
+ * USD is the base currency by default
+ */
+const DEFAULT_TENANT_CURRENCIES = [
+  { code: 'USD', exchangeRate: 1, isDefault: true },
+  { code: 'LBP', exchangeRate: 89500, isDefault: false }, // Example rate, tenant will update
+];
+
 @Injectable()
 export class TenantService {
   constructor(private readonly prisma: PrismaService) {}
@@ -69,9 +78,12 @@ export class TenantService {
   async createTenant(data: Prisma.TenantCreateInput) {
     try {
       const tenant = await this.prisma.$transaction(async (tx) => {
-        // Create tenant
+        // Create tenant with default base currency
         const newTenant = await tx.tenant.create({
-          data,
+          data: {
+            ...data,
+            baseCurrencyCode: data.baseCurrencyCode || 'USD',
+          },
           include: {
             _count: {
               select: { users: true, branches: true },
@@ -86,6 +98,26 @@ export class TenantService {
             name: 'Main',
           },
         });
+
+        // Initialize default currencies for the tenant
+        // Only create if the currency exists in the reference table
+        for (const curr of DEFAULT_TENANT_CURRENCIES) {
+          const currencyExists = await tx.currency.findUnique({
+            where: { code: curr.code },
+          });
+
+          if (currencyExists) {
+            await tx.tenantCurrency.create({
+              data: {
+                tenantId: newTenant.id,
+                currencyCode: curr.code,
+                exchangeRate: curr.exchangeRate,
+                isDefault: curr.isDefault,
+                isActive: true,
+              },
+            });
+          }
+        }
 
         return newTenant;
       });

@@ -87,12 +87,13 @@ enum TransferStatus {
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-    id           String       @id @default(cuid())
-    name         String
-    businessType BusinessType
-    isActive     Boolean      @default(true)
-    createdAt    DateTime     @default(now())
-    updatedAt    DateTime     @updatedAt
+    id               String       @id @default(cuid())
+    name             String
+    businessType     BusinessType
+    baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
+    isActive         Boolean      @default(true)
+    createdAt        DateTime     @default(now())
+    updatedAt        DateTime     @updatedAt
 
     users            User[]
     branches         Branch[]
@@ -110,17 +111,45 @@ model Tenant {
     settings         Json? // feature flags, tax rates, etc.
     modifiers        Modifier[]
     categories       Category[]
-    currencies       Currency[]
+    tenantCurrencies TenantCurrency[] // Tenant-specific currency configurations
 }
 
+//
+// ---------- CURRENCY (Reference Table) ----------
+//
+// Global currency definitions - serves as a reference/lookup table
+// Actual tenant usage is tracked via TenantCurrency
 model Currency {
-    code         String    @id // e.g., USD, EUR, LBP
-    name         String // "United States Dollar"
-    symbol       String? // "$"
-    exchangeRate Decimal?  @db.Decimal(10, 2) // Optional: relative to base currency (usually USD)
-    isActive     Boolean   @default(true)
-    tenants      Tenant[]
-    payments     Payment[]
+    code             String           @id // ISO 4217 code: USD, EUR, LBP
+    name             String // Full name: "United States Dollar"
+    symbol           String? // Display symbol: "$", "€", "ل.ل"
+    decimalPlaces    Int              @default(2) // Number of decimal places (0 for LBP)
+    tenantCurrencies TenantCurrency[]
+    payments         Payment[]
+}
+
+//
+// ---------- TENANT CURRENCY (Tenant-Scoped Currency Config) ----------
+//
+// Each tenant has their own currency configuration with exchange rates
+// Exchange rates are relative to the tenant's base currency
+model TenantCurrency {
+    id           String   @id @default(cuid())
+    tenantId     String
+    currencyCode String
+    exchangeRate Decimal  @db.Decimal(18, 6) // Rate relative to base currency (e.g., 89500 for LBP/USD)
+    isActive     Boolean  @default(true)
+    isDefault    Boolean  @default(false) // Quick access flag - only one should be true (the base currency)
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt // Tracks when exchange rate was last changed
+
+    tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    currency Currency @relation(fields: [currencyCode], references: [code])
+
+    // Each tenant can only have one configuration per currency
+    @@unique([tenantId, isDefault], map: "one_base_currency_per_tenant")
+    @@unique([tenantId, currencyCode])
+    @@index([tenantId, isActive])
 }
 
 //
@@ -465,20 +494,23 @@ model Order {
     status      OrderStatus @default(DRAFT) // Changed default to DRAFT
 
     // Financial fields
-    subtotal    Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
-    total       Decimal     @default(0) @db.Decimal(10, 2) // Final amount due/paid
-    discount    Decimal?    @default(0) @db.Decimal(10, 2)
-    shippingFee Decimal?    @default(0) @db.Decimal(10, 2) // Shipping fee for delivery orders
-    createdAt   DateTime    @default(now())
-    completedAt DateTime? // New: Timestamp for final closure/payment
-    user        User?       @relation(fields: [userId], references: [id])
-    tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch      Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    table       Table?      @relation(fields: [tableId], references: [id])
-    device      POSDevice?  @relation(fields: [deviceId], references: [id])
-    items       OrderItem[]
-    payments    Payment[] // FIXED: Relation to new Payment model
-    refunds     Refund[]
+    subtotal     Decimal     @default(0) @db.Decimal(10, 2) // New: Total before tax/discount
+    total        Decimal     @default(0) @db.Decimal(10, 2) // Final amount due/paid
+    discount     Decimal?    @default(0) @db.Decimal(10, 2)
+    shippingFee  Decimal?    @default(0) @db.Decimal(10, 2)
+    // Currency snapshot (for reporting optimization)
+    currencyCode String?     @default("USD") // Tenant's base currency at time of order
+    exchangeRate Decimal?    @db.Decimal(18, 6) // Exchange rate snapshot (1.0 for base currency)
+    createdAt    DateTime    @default(now())
+    completedAt  DateTime? // New: Timestamp for final closure/payment
+    user         User?       @relation(fields: [userId], references: [id])
+    tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+    table        Table?      @relation(fields: [tableId], references: [id])
+    device       POSDevice?  @relation(fields: [deviceId], references: [id])
+    items        OrderItem[]
+    payments     Payment[] // FIXED: Relation to new Payment model
+    refunds      Refund[]
 
     @@index([tenantId, branchId, createdAt])
 }

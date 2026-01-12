@@ -85,6 +85,8 @@ const OrdersIndexRoute = OrdersIndexRouteImport.update({
 const InvoicesIndexRoute = InvoicesIndexRouteImport.update({
   id: '/invoices/',
   path: '/invoices/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomersIndexRoute = CustomersIndexRouteImport.update({
   id: '/customers/',
   path: '/customers/',
@@ -124,8 +126,8 @@ export interface FileRoutesByFullPath {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
-  '/invoices': typeof InvoicesIndexRoute
   '/customers': typeof CustomersIndexRoute
+  '/invoices': typeof InvoicesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
@@ -143,8 +145,8 @@ export interface FileRoutesByTo {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
-  '/invoices': typeof InvoicesIndexRoute
   '/customers': typeof CustomersIndexRoute
+  '/invoices': typeof InvoicesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
@@ -163,8 +165,8 @@ export interface FileRoutesById {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories/': typeof CategoriesIndexRoute
-  '/invoices/': typeof InvoicesIndexRoute
   '/customers/': typeof CustomersIndexRoute
+  '/invoices/': typeof InvoicesIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
@@ -184,8 +186,8 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/products/$productId'
     | '/categories'
-    | '/invoices'
     | '/customers'
+    | '/invoices'
     | '/orders'
     | '/products'
     | '/suppliers'
@@ -203,8 +205,8 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/products/$productId'
     | '/categories'
-    | '/invoices'
     | '/customers'
+    | '/invoices'
     | '/orders'
     | '/products'
     | '/suppliers'
@@ -222,8 +224,8 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/products/$productId'
     | '/categories/'
-    | '/invoices/'
     | '/customers/'
+    | '/invoices/'
     | '/orders/'
     | '/products/'
     | '/suppliers/'
@@ -242,8 +244,8 @@ export interface RootRouteChildren {
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
-  InvoicesIndexRoute: typeof InvoicesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
+  InvoicesIndexRoute: typeof InvoicesIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
@@ -333,6 +335,8 @@ declare module '@tanstack/react-router' {
       path: '/invoices'
       fullPath: '/invoices'
       preLoaderRoute: typeof InvoicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/customers/': {
       id: '/customers/'
       path: '/customers'
@@ -384,8 +388,8 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
-  InvoicesIndexRoute: InvoicesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
+  InvoicesIndexRoute: InvoicesIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,

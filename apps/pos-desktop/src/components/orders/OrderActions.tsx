@@ -159,7 +159,9 @@ export const OrderActions = ({
 
   const handlePayConfirm = async (
     method: PaymentMethod,
-    amountTendered: number
+    amountTendered: number,
+    currencyCode?: string,
+    exchangeRate?: number
   ) => {
     if (!canComplete || isProcessing) return;
 
@@ -172,6 +174,8 @@ export const OrderActions = ({
         id: createdOrder.id,
         amount: amountTendered,
         method,
+        currencyCode,
+        exchangeRate,
       });
 
       // Move to COMPLETED

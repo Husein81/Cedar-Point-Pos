@@ -106,6 +106,18 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     ),
   },
   {
+    accessorKey: "currencyCode",
+    header: "Currency",
+    cell: ({ row }) => {
+      const currencyCode = row.original.currencyCode || "USD";
+      return (
+        <div className="text-sm font-mono text-muted-foreground">
+          {currencyCode}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "createdAt",
     header: "Date",
     cell: ({ row }) => (

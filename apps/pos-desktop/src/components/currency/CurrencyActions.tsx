@@ -15,7 +15,10 @@ type Props = {
   baseCurrencyCode: string;
 };
 
-export const CurrencyActions = ({ tenantCurrency, baseCurrencyCode }: Props) => {
+export const CurrencyActions = ({
+  tenantCurrency,
+  baseCurrencyCode,
+}: Props) => {
   const openModal = useModalStore((state) => state.openModal);
   const deleteMutation = useDeleteTenantCurrency();
   const updateMutation = useUpdateTenantCurrency();
@@ -34,7 +37,9 @@ export const CurrencyActions = ({ tenantCurrency, baseCurrencyCode }: Props) => 
   const handleToggleActive = async () => {
     if (isBaseCurrency && tenantCurrency.isActive) {
       // Cannot deactivate base currency
-      alert("Cannot deactivate the base currency. Change the base currency first.");
+      alert(
+        "Cannot deactivate the base currency. Change the base currency first."
+      );
       return;
     }
 
@@ -114,7 +119,10 @@ export const CurrencyActions = ({ tenantCurrency, baseCurrencyCode }: Props) => 
           {!isBaseCurrency && (
             <>
               <Shad.DropdownMenuSeparator />
-              <Shad.DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <Shad.DropdownMenuItem
+                onClick={handleDelete}
+                variant="destructive"
+              >
                 <Icon name="Trash2" className="h-4 w-4" />
                 Delete
               </Shad.DropdownMenuItem>
@@ -128,7 +136,9 @@ export const CurrencyActions = ({ tenantCurrency, baseCurrencyCode }: Props) => 
         open={showBaseDialog}
         onOpenChange={setShowBaseDialog}
         currencyCode={tenantCurrency.currencyCode}
-        currencyName={tenantCurrency.currency?.name || tenantCurrency.currencyCode}
+        currencyName={
+          tenantCurrency.currency?.name || tenantCurrency.currencyCode
+        }
         onConfirm={handleConfirmSetBase}
         isLoading={setBaseMutation.isPending}
       />

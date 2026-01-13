@@ -1,9 +1,9 @@
 import { useOrderStore } from "@/store/orderStore";
-import type { OrderStatus, PaymentMethod } from "@repo/types";
+import type { OrderStatus } from "@repo/types";
 import { Button, cn, Icon } from "@repo/ui";
 import { useCallback, useMemo, useState } from "react";
 import AlertDialog from "../common/AlertDialog";
-import { PaymentForm } from "./PaymentForm";
+import { PaymentForm, type PaymentEntry } from "./PaymentForm";
 import { useModalStore } from "@/store/modalStore";
 import {
   useCreateOrder,
@@ -157,26 +157,24 @@ export const OrderActions = ({
     alert(`❌ ${defaultTitle}\n\n${errorMessage}`);
   }, []);
 
-  const handlePayConfirm = async (
-    method: PaymentMethod,
-    amountTendered: number,
-    currencyCode?: string,
-    exchangeRate?: number
-  ) => {
-    if (!canComplete || isProcessing) return;
+  // Handle multiple payments (split payment support)
+  const handlePayConfirm = async (payments: PaymentEntry[]) => {
+    if (!canComplete || isProcessing || payments.length === 0) return;
 
     setIsProcessing(true);
     try {
       const createdOrder = await getOrCreateBackendOrder();
 
-      // Process payment - this handles DRAFT → PAID transition and inventory deduction
-      await processPaymentMutation.mutateAsync({
-        id: createdOrder.id,
-        amount: amountTendered,
-        method,
-        currencyCode,
-        exchangeRate,
-      });
+      // Process each payment sequentially
+      for (const payment of payments) {
+        await processPaymentMutation.mutateAsync({
+          id: createdOrder.id,
+          amount: payment.amount,
+          method: payment.method,
+          currencyCode: payment.currencyCode,
+          exchangeRate: payment.exchangeRate,
+        });
+      }
 
       // Move to COMPLETED
       await updateOrderStatusMutation.mutateAsync({

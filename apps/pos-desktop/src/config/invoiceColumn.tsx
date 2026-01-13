@@ -106,13 +106,35 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     ),
   },
   {
-    accessorKey: "currencyCode",
-    header: "Currency",
+    accessorKey: "payments",
+    header: "Payment",
     cell: ({ row }) => {
-      const currencyCode = row.original.currencyCode || "USD";
+      const payments = row.original.payments || [];
+      if (payments.length === 0) {
+        return <span className="text-muted-foreground">—</span>;
+      }
       return (
-        <div className="text-sm font-mono text-muted-foreground">
-          {currencyCode}
+        <div className="space-y-1">
+          {payments.map((p, idx) => {
+            const amount = Number(p.amount);
+            const currency = p.currencyCode || "USD";
+            const rate = p.exchangeRate ? Number(p.exchangeRate) : null;
+            return (
+              <div key={idx} className="flex items-center gap-1.5 text-sm">
+                <Badge variant="outline" className="text-xs px-1.5 py-0">
+                  {p.method}
+                </Badge>
+                <span className="font-mono">
+                  {formatPrice(amount)} {currency}
+                </span>
+                {rate && rate !== 1 && (
+                  <span className="text-xs text-muted-foreground">
+                    @{formatPrice(rate)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     },

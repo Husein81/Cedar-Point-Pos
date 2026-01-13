@@ -14,13 +14,17 @@ type Props = {
   existingCurrencyCodes?: string[];
 };
 
-export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Props) => {
+export const CurrencyForm = ({
+  tenantCurrency,
+  existingCurrencyCodes = [],
+}: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const createMutation = useCreateTenantCurrency();
   const updateMutation = useUpdateTenantCurrency();
-  
+
   // Fetch all available currencies from reference table
-  const { data: allCurrencies = [], isLoading: isLoadingCurrencies } = useAllCurrencies();
+  const { data: allCurrencies = [], isLoading: isLoadingCurrencies } =
+    useAllCurrencies();
 
   // Filter out currencies that are already configured for this tenant
   const availableCurrencies = useMemo(() => {
@@ -52,7 +56,7 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
     onSubmit: async ({ value }) => {
       try {
         const exchangeRate = parseFloat(value.exchangeRate);
-        
+
         if (isEditing && tenantCurrency) {
           await updateMutation.mutateAsync({
             id: tenantCurrency.id,
@@ -100,7 +104,11 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
               label="Currency"
               field={field}
               options={currencyOptions}
-              placeholder={isLoadingCurrencies ? "Loading currencies..." : "Select a currency"}
+              placeholder={
+                isLoadingCurrencies
+                  ? "Loading currencies..."
+                  : "Select a currency"
+              }
             />
           )}
         </form.Field>
@@ -112,7 +120,8 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
           <p className="text-sm text-muted-foreground">Currency</p>
           <p className="font-medium">
             {tenantCurrency.currencyCode} - {tenantCurrency.currency.name}
-            {tenantCurrency.currency.symbol && ` (${tenantCurrency.currency.symbol})`}
+            {tenantCurrency.currency.symbol &&
+              ` (${tenantCurrency.currency.symbol})`}
           </p>
         </div>
       )}
@@ -141,8 +150,8 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
       </form.Field>
 
       <p className="text-xs text-muted-foreground">
-        Exchange rate relative to your base currency. For example, if base is USD
-        and this is LBP, enter the rate like 89500.
+        Exchange rate relative to your base currency. For example, if base is
+        USD and this is LBP, enter the rate like 89500.
       </p>
 
       {/* Active Toggle */}

@@ -116,8 +116,28 @@ const getCustomerOrderColumns = (): ColumnDef<CustomerOrder>[] => [
         return <span className="text-gray-400">—</span>;
       }
       return (
-        <div className="text-gray-600 dark:text-gray-400">
-          {payments.map((p) => p.method).join(", ")}
+        <div className="space-y-0.5">
+          {payments.map((p, idx) => {
+            const amount = Number(p.amount);
+            const currency = p.currencyCode || "USD";
+            const rate = p.exchangeRate ? Number(p.exchangeRate) : null;
+            return (
+              <div
+                key={idx}
+                className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400"
+              >
+                <span className="font-medium">{p.method}</span>
+                <span className="font-mono text-xs">
+                  {amount.toLocaleString()} {currency}
+                </span>
+                {rate && rate !== 1 && (
+                  <span className="text-xs text-muted-foreground">
+                    (@{rate.toLocaleString()})
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     },

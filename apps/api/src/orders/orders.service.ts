@@ -282,6 +282,11 @@ export class OrdersService {
    * - Creates Payment record
    * - Marks order as PAID if fully paid
    * - Deducts inventory ONCE when fully paid
+   * 
+   * MULTI-CURRENCY LOGIC:
+   * - Payments are stored in their original currency (amount + currencyCode + exchangeRate)
+   * - Validation uses base currency conversion for comparison against order.total
+   * - order.total is always in tenant's base currency (e.g., USD)
    */
   async processPayment(
     tenantId: string,
@@ -301,7 +306,13 @@ export class OrdersService {
         total: true,
         status: true,
         branchId: true,
-        payments: { select: { amount: true } },
+        payments: {
+          select: {
+            amount: true,
+            currencyCode: true,
+            exchangeRate: true,
+          },
+        },
       },
     });
     if (!order) throw new NotFoundException('Order not found');
@@ -314,23 +325,37 @@ export class OrdersService {
       throw new BadRequestException('Cannot pay cancelled order');
     }
 
-    const existingPaid = order.payments.reduce(
-      (s, p) => s + Number(p.amount),
-      0,
-    );
     const totalDue = Number(order.total);
-    const newTotal = this.round(existingPaid + payment.amount);
 
-    if (newTotal > totalDue + 0.01) {
+    // Convert existing payments to base currency for validation
+    const existingPaidInBase = order.payments.reduce((sum, p) => {
+      const amount = Number(p.amount);
+      const rate = p.exchangeRate ? Number(p.exchangeRate) : null;
+      // If payment has exchange rate, convert to base currency
+      // exchangeRate represents: 1 BASE = X FOREIGN (e.g., 1 USD = 89000 LBP)
+      const baseAmount = rate && rate > 0 ? amount / rate : amount;
+      return sum + baseAmount;
+    }, 0);
+
+    // Convert new payment to base currency for validation
+    const paymentBaseAmount =
+      payment.exchangeRate && payment.exchangeRate > 0
+        ? payment.amount / payment.exchangeRate
+        : payment.amount;
+
+    const totalPaidInBase = this.round(existingPaidInBase + paymentBaseAmount);
+
+    // Validate against order total (base currency comparison only)
+    if (totalPaidInBase > totalDue + 0.01) {
       throw new BadRequestException(
-        `Payment exceeds total: paid ${newTotal}, total ${totalDue}`,
+        `Payment exceeds total: paid ${totalPaidInBase.toFixed(2)} (base), total ${totalDue.toFixed(2)}`,
       );
     }
 
-    const isFullyPaid = Math.abs(newTotal - totalDue) < 0.01;
+    const isFullyPaid = Math.abs(totalPaidInBase - totalDue) < 0.01;
 
     return this.prisma.$transaction(async (tx) => {
-      // 1️⃣ Create payment record
+      // 1️⃣ Create payment record (store original currency, never convert)
       await tx.payment.create({
         data: {
           orderId,

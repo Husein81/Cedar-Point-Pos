@@ -52,7 +52,9 @@ export const TenantCurrenciesResponseSchema = z.object({
   baseCurrencyCode: z.string(),
   currencies: z.array(TenantCurrencySchema),
 });
-export type TenantCurrenciesResponse = z.infer<typeof TenantCurrenciesResponseSchema>;
+export type TenantCurrenciesResponse = z.infer<
+  typeof TenantCurrenciesResponseSchema
+>;
 
 // User
 export const UserSchema = z.object({
@@ -347,7 +349,8 @@ export const OrderSchema = z.object({
 
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
-  items: z.array(OrderItemSchema).optional(), // OrderItem[]
+  items: z.array(OrderItemSchema).optional(),
+  payments: z.array(z.lazy(() => PaymentSchema)).optional(),
 });
 export type Order = z.infer<typeof OrderSchema>;
 

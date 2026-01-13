@@ -36,6 +36,8 @@ export type CustomerOrder = {
     id: string;
     method: string;
     amount: string;
+    currencyCode?: string;
+    exchangeRate?: string | null;
   }>;
 };
 

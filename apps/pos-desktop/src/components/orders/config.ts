@@ -5,6 +5,29 @@ export const formatPrice = (price: number | null | undefined): string => {
   }).format(price);
 };
 
+/**
+ * Format a payment amount with currency code
+ * e.g., "5,874,000 LBP" or "66.00 USD"
+ */
+export const formatPaymentAmount = (
+  amount: number,
+  currencyCode: string = "USD"
+): string => {
+  return `${formatPrice(amount)} ${currencyCode}`;
+};
+
+/**
+ * Convert foreign currency amount to base currency
+ * Used for display purposes only (validation happens on backend)
+ */
+export const toBaseCurrency = (
+  amount: number,
+  exchangeRate: number | null | undefined
+): number => {
+  if (!exchangeRate || exchangeRate <= 0) return amount;
+  return amount / exchangeRate;
+};
+
 export const generateQuickCashAmounts = (total: number) => {
   const results = new Set<number>();
 

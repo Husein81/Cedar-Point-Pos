@@ -128,6 +128,7 @@ export const sidebarSections: SidebarSection[] = [
         icon: "RotateCcw",
         href: "/refunds",
         tooltip: "Refund Station",
+
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {

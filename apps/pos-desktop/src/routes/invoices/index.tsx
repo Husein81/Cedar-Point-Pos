@@ -1,7 +1,6 @@
 import Heading from "@/components/heading";
 import { invoiceColumns } from "@/config/invoiceColumn";
 import { useOrders } from "@/hooks/useOrder";
-import type { Order } from "@repo/types";
 import { Button, DataTable, Icon, Select } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";

@@ -98,7 +98,34 @@ export const OrderSummary = ({
       </div>
 
       <Separator />
+      {/* Shipping Fee Section - Only for Delivery orders */}
+      {isDelivery && (
+        <>
+          <div className="flex items-center gap-2 py-2">
+            {/* Shipping Fee Button - Opens Keypad on Click */}
+            <Button
+              onClick={() => {
+                setKeypadType("SHIPPING");
+                setKeypadOpen(true);
+              }}
+              variant="outline"
+              className={cn(
+                "flex-1 h-10 justify-start",
+                shippingFee > 0 && "bg-blue-50"
+              )}
+            >
+              <span className="text-xs text-muted-foreground mr-2">
+                Shipping
+              </span>
+              <span className="font-mono font-semibold">
+                ${formatPrice(shippingFee)}
+              </span>
+            </Button>
+          </div>
 
+          <Separator />
+        </>
+      )}
       {/* Discount Section */}
       <div className="flex items-center gap-2 py-2">
         {/* Discount Button - Opens Keypad on Click */}
@@ -142,48 +169,20 @@ export const OrderSummary = ({
 
       <Separator />
 
-      {/* Shipping Fee Section - Only for Delivery orders */}
-      {isDelivery && (
-        <>
-          <div className="flex items-center gap-2 py-2">
-            {/* Shipping Fee Button - Opens Keypad on Click */}
-            <Button
-              onClick={() => {
-                setKeypadType("SHIPPING");
-                setKeypadOpen(true);
-              }}
-              variant="outline"
-              className={cn(
-                "flex-1 h-10 justify-start",
-                shippingFee > 0 && "bg-blue-50"
-              )}
-            >
-              <span className="text-xs text-muted-foreground mr-2">
-                Shipping
-              </span>
-              <span className="font-mono font-semibold">
-                ${formatPrice(shippingFee)}
-              </span>
-            </Button>
-          </div>
-
-          <Separator />
-        </>
-      )}
       <div className="py-3 space-y-2">
-        {discount > 0 && (
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Discount</span>
-            <span className="font-medium text-destructive">
-              -${formatPrice(discount)}
-            </span>
-          </div>
-        )}
         {shippingFee > 0 && isDelivery && (
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Shipping</span>
             <span className="font-medium text-primary">
               +${formatPrice(shippingFee)}
+            </span>
+          </div>
+        )}
+        {discount > 0 && (
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Discount</span>
+            <span className="font-medium text-destructive">
+              -${formatPrice(discount)}
             </span>
           </div>
         )}

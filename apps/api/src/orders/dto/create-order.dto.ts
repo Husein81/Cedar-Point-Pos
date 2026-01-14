@@ -4,6 +4,11 @@ import { z } from 'zod';
 export const createOrderItemDto = z.object({
   productId: z.string(),
   quantity: z.number(),
+  unitPrice: z.number().optional(), // Override product price
+  discount: z.object({
+    value: z.number().min(0),
+    type: z.enum(['PERCENTAGE', 'FIXED']),
+  }).optional(), // Item-level discount
   notes: z.string().optional(),
   modifiers: z.array(z.string()).optional(), // Array of modifier IDs
 });

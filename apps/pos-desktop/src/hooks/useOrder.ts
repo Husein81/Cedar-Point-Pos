@@ -137,6 +137,22 @@ export const useRemoveItemFromOrder = () => {
   });
 };
 
+export const useUpdateItemDiscount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Order,
+    Error,
+    { id: string; itemId: string; value: number; type: "PERCENTAGE" | "FIXED" }
+  >({
+    mutationFn: ({ id, itemId, value, type }) =>
+      ordersApi.updateItemDiscount(id, itemId, { value, type }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+    },
+  });
+};
+
 export const useSendToKitchen = () => {
   const queryClient = useQueryClient();
 

@@ -2,6 +2,8 @@ export type KeypadContext =
   | "QUANTITY"
   | "PRICE_OVERRIDE"
   | "DISCOUNT"
+  | "DISCOUNT_PERCENT"
+  | "DISCOUNT_FIXED"
   | "PAYMENT"
   | "SHIPPING"
   | "GUEST_COUNT";
@@ -16,6 +18,7 @@ export const KEYPAD_CONFIG: Record<
     allowZero: boolean;
     step: number;
     confirmLabel: string;
+    requiresPermission?: boolean;
   }
 > = {
   QUANTITY: {
@@ -26,6 +29,7 @@ export const KEYPAD_CONFIG: Record<
     allowZero: false,
     step: 1,
     confirmLabel: "Set",
+    requiresPermission: false,
   },
   PRICE_OVERRIDE: {
     label: "Custom Price",
@@ -35,15 +39,37 @@ export const KEYPAD_CONFIG: Record<
     allowZero: false,
     step: 0.01,
     confirmLabel: "Apply",
+    requiresPermission: true, // Requires manager permission
   },
   DISCOUNT: {
     label: "Discount",
     minValue: 0,
-    maxValue: 100, // Assuming percentage-based
+    maxValue: 100, // Percentage by default
     decimals: 2,
     allowZero: true,
     step: 0.01,
     confirmLabel: "Apply",
+    requiresPermission: false,
+  },
+  DISCOUNT_PERCENT: {
+    label: "Discount (%)",
+    minValue: 0,
+    maxValue: 100,
+    decimals: 2,
+    allowZero: true,
+    step: 0.01,
+    confirmLabel: "Apply",
+    requiresPermission: false,
+  },
+  DISCOUNT_FIXED: {
+    label: "Discount (Fixed)",
+    minValue: 0,
+    maxValue: 99999.99, // Should be capped at order subtotal
+    decimals: 2,
+    allowZero: true,
+    step: 0.01,
+    confirmLabel: "Apply",
+    requiresPermission: false,
   },
   PAYMENT: {
     label: "Payment Amount",
@@ -53,6 +79,7 @@ export const KEYPAD_CONFIG: Record<
     allowZero: true,
     step: 0.01,
     confirmLabel: "Confirm",
+    requiresPermission: false,
   },
   SHIPPING: {
     label: "Shipping Fee",
@@ -62,6 +89,7 @@ export const KEYPAD_CONFIG: Record<
     allowZero: true,
     step: 0.01,
     confirmLabel: "Set",
+    requiresPermission: false,
   },
   GUEST_COUNT: {
     label: "Guest Count",
@@ -71,5 +99,6 @@ export const KEYPAD_CONFIG: Record<
     allowZero: false,
     step: 1,
     confirmLabel: "Set",
+    requiresPermission: false,
   },
 };

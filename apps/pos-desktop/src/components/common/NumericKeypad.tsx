@@ -1,428 +1,181 @@
-import { Button, cn, Icon, Input, Shad } from "@repo/ui";
-import { useEffect, useRef, useState } from "react";
+import { Button, cn, Icon } from "@repo/ui";
+import { useRef, useState } from "react";
 import { KEYPAD_CONFIG, KeypadContext } from "./config";
 
-/**
- * Keypad context - determines behavior, validation, and labeling
- * Used for: Quantity, Price Override, Discount, Payment, Guest Count
- */
-
-/**
- * Per-context configuration
- * Defines validation rules, decimal handling, and UI labels
- */
-
 type NumericKeypadProps = {
-  isOpen: boolean;
-  onClose: () => void;
   currentValue: number;
-  onConfirm: (value: number) => void;
+  discountType?: "PERCENTAGE" | "FIXED";
   context: KeypadContext;
-  /** Optional callback for permission checks (e.g., price override) */
+  onConfirm: (value: number) => void;
+  onClose: () => void; // Replaces modal close with generic close handler
   onPermissionRequired?: (context: KeypadContext) => Promise<boolean>;
+  onDiscountTypeChange?: (type: "PERCENTAGE" | "FIXED") => void;
 };
 
-/**
- * Production-grade numeric keypad for POS systems
- *
- * Supports multiple contexts with proper validation per use case.
- * Designed for high-volume environments: fast, intentional, impossible to misuse.
- *
- * Features:
- * - Context-aware configuration (quantity, price, discount, payment, guest count)
- * - Touch-first, keyboard-safe interaction
- * - Decimal support per context
- * - Min/max validation with smart rounding
- * - CE (Clear Entry) - reset to original value
- * - Clear - reset to 0 (if allowed)
- * - +/- quick adjustments
- * - Explicit Confirm / Cancel (no auto-save)
- * - Keyboard input support (0-9, Backspace, Enter, Escape)
- */
 export const NumericKeypad = ({
-  isOpen,
-  onClose,
   currentValue,
-  onConfirm,
   context,
+  discountType,
+  onConfirm,
+  onClose,
   onPermissionRequired,
+  onDiscountTypeChange,
 }: NumericKeypadProps) => {
   const config = KEYPAD_CONFIG[context];
 
-  const baseValueRef = useRef(currentValue);
-  const [stringValue, setStringValue] = useState<string>(String(currentValue));
+  const [stringValue, setStringValue] = useState(String(currentValue));
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   const [hasError, setHasError] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      baseValueRef.current = currentValue;
-      setStringValue(formatDisplayValue(currentValue, config.decimals));
-      setIsTyping(false);
-      setHasError(false);
-      // Focus input for keyboard support
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isOpen, currentValue, config.decimals]);
+  const parse = (v: string) =>
+    config.decimals === 0 ? parseInt(v, 10) || 0 : parseFloat(v) || 0;
 
-  const parseValue = (str: string): number => {
-    if (config.decimals === 0) {
-      return parseInt(str, 10) || 0;
-    }
-    return parseFloat(str) || 0;
-  };
-
-  const formatDisplayValue = (num: number, decimals: number): string => {
-    if (decimals === 0) {
-      return String(Math.floor(num));
-    }
-    return num.toFixed(decimals);
-  };
-
-  const validateValue = (num: number): number => {
-    let clamped = Math.max(config.minValue, Math.min(config.maxValue, num));
-
-    // Round to decimal places
+  const clamp = (n: number) => {
+    let v = Math.max(config.minValue, Math.min(config.maxValue, n));
     if (config.decimals > 0) {
-      clamped =
-        Math.round(clamped * Math.pow(10, config.decimals)) /
-        Math.pow(10, config.decimals);
+      const p = Math.pow(10, config.decimals);
+      v = Math.round(v * p) / p;
     }
-
-    return clamped;
+    return v;
   };
 
-  const handleDigit = (digit: number) => {
+  const handleDigit = (d: number) => {
     setHasError(false);
-
-    setStringValue((prev) => {
+    setStringValue((p) => {
       if (!isTyping) {
         setIsTyping(true);
-        // First digit: replace 0 or start fresh
-        return String(digit);
+        return String(d);
       }
-
-      // Subsequent digits: append
-      let newStr = prev + String(digit);
-
-      // Prevent leading zeros (except decimals)
-      if (config.decimals === 0 && newStr.length > 1 && newStr[0] === "0") {
-        newStr = newStr.slice(1);
-      }
-
-      // Max length check (prevent extreme inputs)
-      const maxLength = 10 + config.decimals;
-      if (newStr.length > maxLength) {
-        return prev;
-      }
-
-      return newStr;
+      const next = p + d;
+      return next.length > 12 ? p : next;
     });
   };
 
-  const handleBackspace = () => {
-    setHasError(false);
-
-    setStringValue((prev) => {
-      if (prev.length <= 1) {
-        setIsTyping(false);
-        return "0";
-      }
-      return prev.slice(0, -1);
-    });
-  };
-
-  /**
-   * Decimal point - only for applicable contexts
-   */
-  const handleDecimal = () => {
-    if (config.decimals === 0) return; // Not applicable
-
-    setHasError(false);
-
-    setStringValue((prev) => {
-      if (prev.includes(".")) return prev; // Already has decimal
-      setIsTyping(true);
-      return prev + ".";
-    });
-  };
-
-  /* ============ QUICK ADJUSTMENTS ============ */
-
-  /**
-   * Increment by step
-   */
-  const handleIncrement = () => {
-    setHasError(false);
-    setIsTyping(false);
-
-    setStringValue((prev) => {
-      const num = parseValue(prev) + config.step;
-      const validated = validateValue(num);
-      return formatDisplayValue(validated, config.decimals);
-    });
-  };
-
-  /**
-   * Decrement by step
-   */
-  const handleDecrement = () => {
-    setHasError(false);
-    setIsTyping(false);
-
-    setStringValue((prev) => {
-      const num = parseValue(prev) - config.step;
-      const validated = validateValue(num);
-      return formatDisplayValue(validated, config.decimals);
-    });
-  };
-
-  /**
-   * CE (Clear Entry) - reset to base value
-   * Common POS pattern: revert current edit without losing original
-   */
-  const handleCE = () => {
-    setIsTyping(false);
-    setHasError(false);
-    setStringValue("0");
-  };
-
-  const handleClose = () => {
-    onClose();
-  };
+  const handleBackspace = () =>
+    setStringValue((p) => (p.length <= 1 ? "0" : p.slice(0, -1)));
 
   const handleConfirm = async () => {
-    setHasError(false);
+    const value = clamp(parse(stringValue));
 
-    const rawValue = parseValue(stringValue);
-    const finalValue = validateValue(rawValue);
-
-    // Permission check for price override
     if (context === "PRICE_OVERRIDE" && onPermissionRequired) {
       setIsLoading(true);
-      try {
-        const approved = await onPermissionRequired(context);
-        if (!approved) {
-          setHasError(true);
-          setIsLoading(false);
-          return;
-        }
-      } catch {
-        setHasError(true);
-        setIsLoading(false);
-        return;
-      }
+      const ok = await onPermissionRequired(context).catch(() => false);
       setIsLoading(false);
+      if (!ok) return setHasError(true);
     }
 
-    onConfirm(finalValue);
-    onClose();
+    onConfirm(value);
+    onClose(); // Use generic close handler instead of closeModal
   };
 
-  /**
-   * Cancel without saving
-   */
-  const handleCancel = () => {
-    setStringValue(formatDisplayValue(baseValueRef.current, config.decimals));
-    onClose();
-  };
-
-  /* ============ KEYBOARD SUPPORT ============ */
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key >= "0" && e.key <= "9") {
-      e.preventDefault();
-      handleDigit(parseInt(e.key, 10));
-    } else if (e.key === "Backspace") {
-      e.preventDefault();
-      handleBackspace();
-    } else if (e.key === ".") {
-      e.preventDefault();
-      handleDecimal();
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      handleConfirm();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      handleCancel();
-    } else if (e.key === "+") {
-      e.preventDefault();
-      handleIncrement();
-    } else if (e.key === "-") {
-      e.preventDefault();
-      handleDecrement();
-    }
-  };
-
-  /* ============ RENDER ============ */
-
-  const numValue = parseValue(stringValue);
-  const isValid = numValue >= config.minValue && numValue <= config.maxValue;
+  const isValid =
+    parse(stringValue) >= config.minValue &&
+    parse(stringValue) <= config.maxValue;
 
   return (
-    <Shad.Dialog open={isOpen} onOpenChange={handleCancel}>
-      <Shad.DialogContent
-        showCloseButton={false}
+    <div className="w-full">
+      {/* Display */}
+      <input
+        placeholder="0"
+        ref={inputRef}
+        value={stringValue}
+        onKeyDown={(e) => {
+          if (e.key >= "0" && e.key <= "9") handleDigit(+e.key);
+          if (e.key === "Backspace") handleBackspace();
+          if (e.key === "Enter") handleConfirm();
+        }}
         className={cn(
-          "w-full max-w-xs p-4",
-          "bg-background border border-border rounded-xl shadow-xl"
+          "w-full h-14 text-3xl font-bold text-center rounded-md border",
+          "bg-muted/50",
+          isValid ? "border-border" : "border-destructive"
         )}
-      >
-        {/* Header - Context Label */}
-        <Shad.DialogHeader>
-          <Shad.DialogTitle className="text-center text-sm font-medium">
-            {config.label}
-          </Shad.DialogTitle>
-        </Shad.DialogHeader>
+      />
 
-        {/* Display Value */}
-        <div className="py-4">
-          <input
-            placeholder="0"
-            ref={inputRef}
-            value={stringValue}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              "w-full h-24 text-center font-bold text-5xl",
-              "bg-muted/50 rounded-lg px-3",
-              "border-2 selection:bg-transparent",
-              isValid
-                ? "border-muted focus:border-primary"
-                : "border-destructive focus:border-destructive"
-            )}
+      {/* Discount Type */}
+      {context === "DISCOUNT" && onDiscountTypeChange && (
+        <div className="flex gap-1 mt-2">
+          <Button
+            size="sm"
+            className="flex-1 h-7"
+            variant={discountType === "PERCENTAGE" ? "default" : "outline"}
+            onClick={() => onDiscountTypeChange("PERCENTAGE")}
+            iconName="Percent"
+          />
+          <Button
+            size="sm"
+            className="flex-1 h-7"
+            variant={discountType === "FIXED" ? "default" : "outline"}
+            onClick={() => onDiscountTypeChange("FIXED")}
+            iconName="DollarSign"
           />
         </div>
+      )}
 
-        {/* Status Message */}
-        {hasError && (
-          <div className="px-3 py-2 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive text-center">
-            Permission denied or invalid value
-          </div>
+      {hasError && (
+        <div className="mt-2 text-xs text-center text-destructive">
+          Permission denied
+        </div>
+      )}
+
+      {/* Keypad */}
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+          <Button
+            key={n}
+            variant="outline"
+            className="h-9 text-lg rounded-sm"
+            onClick={() => handleDigit(n)}
+          >
+            {n}
+          </Button>
+        ))}
+
+        <Button
+          variant="outline"
+          className="h-9 col-span-2 text-lg"
+          onClick={() => handleDigit(0)}
+        >
+          0
+        </Button>
+
+        {config.decimals > 0 ? (
+          <Button
+            variant="outline"
+            className="h-9 text-lg"
+            onClick={() =>
+              !stringValue.includes(".") && setStringValue((v) => v + ".")
+            }
+          >
+            .
+          </Button>
+        ) : (
+          <Button variant="outline" className="h-9" onClick={handleBackspace}>
+            <Icon name="Delete" className="w-4 h-4" />
+          </Button>
         )}
+      </div>
 
-        {/* Quick Controls: Decrement / CE / Increment */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Button
-            variant="outline"
-            className="h-12 text-xl font-bold"
-            onClick={handleDecrement}
-            disabled={isLoading || !isValid}
-          >
-            <Icon name="Minus" className="w-5 h-5" />
-          </Button>
-
-          <Button
-            variant="outline"
-            className="h-12 text-sm font-semibold"
-            onClick={handleCE}
-            disabled={isLoading}
-          >
-            CE
-          </Button>
-
-          <Button
-            variant="outline"
-            className="h-12 text-xl font-bold"
-            onClick={handleIncrement}
-            disabled={isLoading || !isValid}
-          >
-            <Icon name="Plus" className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Numeric Keypad: 1-9 */}
-        <div className="grid grid-cols-3 gap-2 mb-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-            <Button
-              key={n}
-              variant="outline"
-              className="h-14 text-2xl font-semibold"
-              onClick={() => handleDigit(n)}
-              disabled={isLoading}
-            >
-              {n}
-            </Button>
-          ))}
-        </div>
-
-        {/* Bottom Row: 0 / Decimal / Backspace */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Button
-            variant="outline"
-            className="col-span-2 h-14 text-2xl font-semibold"
-            onClick={() => handleDigit(0)}
-            disabled={isLoading}
-          >
-            0
-          </Button>
-
-          {config.decimals > 0 && (
-            <Button
-              variant="outline"
-              className="h-14 text-2xl font-semibold"
-              onClick={handleDecimal}
-              disabled={isLoading || stringValue.includes(".")}
-            >
-              .
-            </Button>
-          )}
-
-          {config.decimals === 0 && (
-            <Button
-              variant="outline"
-              className="h-14"
-              onClick={handleBackspace}
-              disabled={isLoading}
-            >
-              <Icon name="Delete" className="w-5 h-5" />
-            </Button>
-          )}
-        </div>
-
-        {/* Backspace on separate row if decimals enabled */}
-        {config.decimals > 0 && (
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="col-span-2"></div>
-            <Button
-              variant="outline"
-              className="h-12"
-              onClick={handleBackspace}
-              disabled={isLoading}
-            >
-              <Icon name="Delete" className="w-5 h-5" />
-            </Button>
-          </div>
-        )}
-
-        {/* Clear & Confirm Buttons */}
-        <Shad.DialogFooter className="gap-2 pt-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={handleClose}
-            disabled={isLoading}
-          >
-            Close
-          </Button>
-
-          <Button
-            className={cn(
-              "flex-1",
-              !isValid && "opacity-50 cursor-not-allowed"
-            )}
-            onClick={handleConfirm}
-            disabled={isLoading || !isValid}
-            isSubmitting={isLoading}
-          >
-            <Icon name="Check" className="w-4 h-4 mr-1" />
-            {config.confirmLabel}
-          </Button>
-        </Shad.DialogFooter>
-      </Shad.DialogContent>
-    </Shad.Dialog>
+      {/* Actions */}
+      <div className="flex gap-1.5 mt-3">
+        <Button
+          variant="outline"
+          className="flex-1 h-8 text-xs"
+          onClick={onClose}
+        >
+          Close
+        </Button>
+        <Button
+          className="flex-1 h-8 text-xs"
+          disabled={!isValid || isLoading}
+          onClick={handleConfirm}
+        >
+          <Icon name="Check" className="w-3 h-3 mr-1" />
+          OK
+        </Button>
+      </div>
+    </div>
   );
 };

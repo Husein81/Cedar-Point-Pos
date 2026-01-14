@@ -300,7 +300,7 @@ export const ProductGrid = ({ className }: Props) => {
       {/* Product Grid */}
       <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 2xl:grid-cols-8 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-40 rounded-lg" />
             ))}
@@ -310,7 +310,7 @@ export const ProductGrid = ({ className }: Props) => {
             <Empty title="No products found" icon="Search" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+          <div className="grid grid-cols-4 md:grid-cols-6 2xl:grid-cols-8 gap-2">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

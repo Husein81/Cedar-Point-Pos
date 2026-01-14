@@ -36,7 +36,7 @@ export function DeleteTenantDialog({ open, onOpenChange, tenant }: Props) {
       <Shad.DialogContent>
         <Shad.DialogHeader>
           <Shad.DialogTitle className="flex items-center gap-2">
-            <Icon name="AlertTriangle" className="text-destructive" size={20} />
+            <Icon name="TriangleAlert" className="text-destructive" size={20} />
             Delete Tenant
           </Shad.DialogTitle>
           <Shad.DialogDescription asChild>
@@ -47,7 +47,7 @@ export function DeleteTenantDialog({ open, onOpenChange, tenant }: Props) {
 
               <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                 <Icon
-                  name="AlertTriangle"
+                  name="TriangleAlert"
                   size={16}
                   className="text-destructive mt-0.5 shrink-0"
                 />

@@ -124,10 +124,10 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
-        label: "Currencies",
-        icon: "Coins",
-        href: "/currencies",
-        tooltip: "Currency Settings",
+        label: "Refunds",
+        icon: "RotateCcw",
+        href: "/refunds",
+        tooltip: "Refund Station",
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {

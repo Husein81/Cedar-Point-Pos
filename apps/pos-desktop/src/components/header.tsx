@@ -3,6 +3,7 @@ import { Button, cn, Icon, Shad } from "@repo/ui";
 import { Activity, useId } from "react";
 import logo from "/assets/logo.png";
 import { BranchSelector } from "./common/BranchSelector";
+import { format } from "date-fns";
 
 export function Header() {
   const { user } = useAuthStore();
@@ -31,14 +32,21 @@ export function Header() {
     },
   ];
 
+  const currentTime = format(new Date(), "p dd MMM yyyy");
+
   return (
     <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
+        <Shad.SidebarTrigger className="no-drag" />
+        <div className="h-10 border" />
         <div className="flex items-center">
           <img src={logo} alt="point verse" width={24} height={24} />
           <h2 className="text-sm font-semibold text-text">
             Point <span className="text-primary">Verse</span>
           </h2>
+        </div>
+        <div className="text-xs text-muted-foreground font-mono">
+          {currentTime}
         </div>
       </div>
 

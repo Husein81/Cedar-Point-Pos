@@ -39,6 +39,11 @@ import {
   CarouselNext,
 } from "./carousel";
 import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./collapsible";
+import {
   Command,
   CommandDialog,
   CommandInput,
@@ -234,6 +239,9 @@ export const Shad = {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
   Command,
   CommandDialog,
   CommandInput,

@@ -13,6 +13,7 @@ import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -25,6 +26,7 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
+import { Route as InvoicesOrderIdRouteImport } from './routes/invoices/$orderId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers/$customerId'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
 
@@ -46,6 +48,11 @@ const StockRoute = StockRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipesRoute = RecipesRouteImport.update({
@@ -108,6 +115,11 @@ const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   path: '/products/$productId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvoicesOrderIdRoute = InvoicesOrderIdRouteImport.update({
+  id: '/invoices/$orderId',
+  path: '/invoices/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
   id: '/customers/$customerId',
   path: '/customers/$customerId',
@@ -125,12 +137,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -145,12 +159,14 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -166,12 +182,14 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -188,12 +206,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
     | '/reports'
     | '/stock'
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
     | '/categories'
     | '/customers'
@@ -208,12 +228,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
     | '/reports'
     | '/stock'
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
     | '/categories'
     | '/customers'
@@ -228,12 +250,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
     | '/reports'
     | '/stock'
     | '/tables'
     | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
     | '/categories/'
     | '/customers/'
@@ -249,12 +273,14 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   PaymentsRoute: typeof PaymentsRoute
   RecipesRoute: typeof RecipesRoute
+  RefundsRoute: typeof RefundsRoute
   ReportsRoute: typeof ReportsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
   TransfersRoute: typeof TransfersRoute
   CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
+  InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -292,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipes': {
@@ -378,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invoices/$orderId': {
+      id: '/invoices/$orderId'
+      path: '/invoices/$orderId'
+      fullPath: '/invoices/$orderId'
+      preLoaderRoute: typeof InvoicesOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/customers/$customerId': {
       id: '/customers/$customerId'
       path: '/customers/$customerId'
@@ -401,12 +441,14 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   PaymentsRoute: PaymentsRoute,
   RecipesRoute: RecipesRoute,
+  RefundsRoute: RefundsRoute,
   ReportsRoute: ReportsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
   TransfersRoute: TransfersRoute,
   CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
+  InvoicesOrderIdRoute: InvoicesOrderIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,

@@ -38,9 +38,6 @@ export const OrderActions = ({
     getDiscountAmount,
     closeTab,
     activeTabId,
-    // ✅ RECOMMENDED TO ADD IN STORE:
-    // getBackendOrderIdForTab,
-    // setBackendOrderIdForTab,
   } = useOrderStore();
 
   const { user } = useAuthStore();
@@ -57,18 +54,15 @@ export const OrderActions = ({
   const discount = getDiscountAmount();
 
   const hasItems = !!order?.items?.length;
-
   const canComplete = hasItems && total > 0;
   const canHold = hasItems && order?.status !== "ON_HOLD";
   const isOnHold = order?.status === "ON_HOLD";
 
-  // Centralized success cleanup (less re-render churn + less duplication)
   const finalizeSuccess = useCallback(
     (nextLocalStatus: "PAID" | "COMPLETED" | "ON_HOLD" | "PENDING") => {
       setOrderStatus(nextLocalStatus as OrderStatus);
       clearOrder();
       closeModal();
-
       if (activeTabId) closeTab(activeTabId);
     },
     [activeTabId, clearOrder, closeModal, closeTab, setOrderStatus]
@@ -76,10 +70,8 @@ export const OrderActions = ({
 
   const buildOrderDto = useCallback((): CreateOrderDto => {
     if (!order || !branchId) throw new Error("Missing required order data");
-
     if (!user || !user.tenant) throw new Error("User not authenticated");
 
-    // Use stored order type or default based on business type
     const type =
       order.type ||
       (user.tenant.businessType === BusinessType.RETAIL
@@ -97,63 +89,20 @@ export const OrderActions = ({
       })),
       discount: discount > 0 ? discount : undefined,
     };
-  }, [branchId, discount, order]);
+  }, [branchId, discount, order, user]);
 
-  /**
-   * ✅ IMPORTANT: Prevent duplicate orders.
-   * You should store backendOrderId per tab once created (especially on HOLD).
-   *
-   * PSEUDO:
-   * const existingId = getBackendOrderIdForTab(activeTabId)
-   * if (existingId) return { id: existingId }
-   * else create + setBackendOrderIdForTab(activeTabId, created.id)
-   */
   const getOrCreateBackendOrder = useCallback(async () => {
     if (!order || !branchId || !user?.tenantId) {
       throw new Error("Missing required order data");
     }
-
-    // ✅ If you already created an order for this tab (e.g. ON_HOLD), reuse it.
-    // const existingId = activeTabId ? getBackendOrderIdForTab(activeTabId) : null;
-    // if (existingId) return { id: existingId };
-
     const dto = buildOrderDto();
-    const created = await createOrderMutation.mutateAsync(dto);
-
-    // ✅ Save for later so Pay doesn’t create a second order
-    // if (activeTabId) setBackendOrderIdForTab(activeTabId, created.id);
-
-    return created;
-  }, [
-    activeTabId,
-    branchId,
-    buildOrderDto,
-    createOrderMutation,
-    order,
-    user?.tenantId,
-  ]);
+    return createOrderMutation.mutateAsync(dto);
+  }, [branchId, buildOrderDto, createOrderMutation, order, user?.tenantId]);
 
   const handleApiError = useCallback((error: any, defaultTitle: string) => {
     console.error(defaultTitle, error);
-
     const errorData = error?.response?.data;
     const errorMessage = errorData?.message || error?.message || defaultTitle;
-
-    const insufficientStock = errorData?.insufficientStock;
-    if (insufficientStock?.length) {
-      const stockDetails = insufficientStock
-        .map(
-          (item: any) =>
-            `• ${item.productName || item.ingredientName}: Need ${item.required}, Available ${item.available}`
-        )
-        .join("\n");
-
-      alert(
-        `⚠️ Insufficient Stock\n\n${stockDetails}\n\nPlease adjust quantities or remove items.`
-      );
-      return;
-    }
-
     alert(`❌ ${defaultTitle}\n\n${errorMessage}`);
   }, []);
 
@@ -164,12 +113,9 @@ export const OrderActions = ({
     exchangeRate?: number
   ) => {
     if (!canComplete || isProcessing) return;
-
     setIsProcessing(true);
     try {
       const createdOrder = await getOrCreateBackendOrder();
-
-      // Process payment - this handles DRAFT → PAID transition and inventory deduction
       await processPaymentMutation.mutateAsync({
         id: createdOrder.id,
         amount: amountTendered,
@@ -177,14 +123,10 @@ export const OrderActions = ({
         currencyCode,
         exchangeRate,
       });
-
-      // Move to COMPLETED
       await updateOrderStatusMutation.mutateAsync({
         id: createdOrder.id,
         status: "COMPLETED",
       });
-
-      // Clear the cart
       clearOrder();
       onCompleteOrder?.();
     } catch (error: any) {
@@ -196,17 +138,13 @@ export const OrderActions = ({
 
   const handleHoldConfirm = async () => {
     if (!canHold || isProcessing) return;
-
     setIsProcessing(true);
     try {
       const createdOrder = await getOrCreateBackendOrder();
-
       await updateOrderStatusMutation.mutateAsync({
         id: createdOrder.id,
         status: "ON_HOLD",
       });
-
-      // ✅ local hold
       setOrderStatus("ON_HOLD");
       onHoldOrder?.();
     } catch (error: any) {
@@ -217,25 +155,18 @@ export const OrderActions = ({
   };
 
   const handleResumeOrder = () => {
-    // ⚠️ If ON_HOLD was persisted to backend, you should also update backend status here
-    // if (backendOrderId) update status back to DRAFT/CONFIRMED depending on flow
     setOrderStatus("DRAFT");
   };
 
   const handleConfirmWithoutPaymentConfirm = async () => {
     if (!canComplete || isProcessing) return;
-
     setIsProcessing(true);
     try {
       const createdOrder = await getOrCreateBackendOrder();
-
-      // For retail: order without payment stays in PENDING
-      // User can pay later
       await updateOrderStatusMutation.mutateAsync({
         id: createdOrder.id,
         status: "PENDING",
       });
-
       finalizeSuccess("PENDING" as any);
       onConfirmWithoutPayment?.();
     } catch (error: any) {
@@ -252,92 +183,62 @@ export const OrderActions = ({
     );
   };
 
-  // Memoize heavy JSX section so it doesn't re-create each render
   const holdInfoSection = useMemo(
     () => (
-      <div className="space-y-4 pt-2">
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-          <div className="flex gap-3">
-            <Icon
-              name="Info"
-              className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
-            />
-            <div className="space-y-2 text-sm">
-              <p className="font-medium">
-                What happens when you hold an order:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>The order will be saved and moved to a held state</li>
-                <li>You can resume it anytime from the order tabs</li>
-                <li>All items and discounts will be preserved</li>
-                <li>
-                  The held order tab will show a{" "}
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground">
-                    Hold
-                  </span>{" "}
-                  badge
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+      <div className="space-y-3 pt-1">
+        <p className="text-sm text-muted-foreground">
+          The order will be saved and can be resumed later.
+        </p>
       </div>
     ),
     []
   );
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      {/* Primary Actions */}
-      <div className="flex">
-        <Button
-          size="lg"
-          className="flex-1 relative"
-          onClick={handlePay}
-          disabled={!canComplete || isProcessing}
-          isSubmitting={isProcessing}
-        >
-          <Icon name="CreditCard" className="w-4 h-4" />
-          Pay
-        </Button>
-      </div>
+    <div className={cn("flex items-center gap-2", className)}>
+      {/* PAY */}
+      <Button
+        onClick={handlePay}
+        disabled={!canComplete || isProcessing}
+        isSubmitting={isProcessing}
+        className="flex-1"
+      >
+        <Icon name="CreditCard" className="w-4 h-4 mr-2" />
+        Pay
+      </Button>
 
-      {/* Secondary Actions */}
-      <div className="flex gap-2 items-center">
-        {isOnHold ? (
-          <Button
-            variant="default"
-            size="lg"
-            className="bg-amber-500 hover:bg-amber-600"
-            onClick={handleResumeOrder}
-          >
-            <Icon name="Play" className="w-4 h-4" />
-            Resume Order
-          </Button>
-        ) : (
-          <AlertDialog
-            iconButton="CirclePause"
-            size="lg"
-            variant="warning"
-            label="Hold Order"
-            title="Hold Order"
-            description="Are you sure you want to put this order on hold? You can resume it later."
-            section={holdInfoSection}
-            confirmText="Hold Order"
-            onConfirm={handleHoldConfirm}
-          />
-        )}
+      {/* HOLD / RESUME */}
+      {isOnHold ? (
+        <Button
+          variant="default"
+          className="bg-amber-500 hover:bg-amber-600"
+          onClick={handleResumeOrder}
+        >
+          <Icon name="Play" className="w-4 h-4 mr-1" />
+          Resume
+        </Button>
+      ) : (
         <AlertDialog
-          title="Confirm Without Payment"
-          description="This will confirm the order without recording payment. Use for comps, staff meals, or manual payment."
-          label="Confirm Only"
-          size="lg"
-          iconButton="Check"
-          onConfirm={handleConfirmWithoutPaymentConfirm}
+          iconButton="CirclePause"
           variant="warning"
-          buttonVariant="outline"
+          title="Hold Order"
+          description="Put this order on hold?"
+          section={holdInfoSection}
+          confirmText="Hold"
+          onConfirm={handleHoldConfirm}
         />
-      </div>
+      )}
+
+      {/* CONFIRM ONLY */}
+      <AlertDialog
+        title="Confirm Without Payment"
+        description="Confirm order without payment."
+        label="Confirm"
+        iconButton="Check"
+        onConfirm={handleConfirmWithoutPaymentConfirm}
+        variant="warning"
+        buttonVariant="outline"
+      />
     </div>
   );
 };

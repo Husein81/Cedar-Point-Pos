@@ -240,35 +240,36 @@ model Subcategory {
 }
 
 model Product {
-    id               String             @id @default(cuid())
-    tenantId         String
-    branchId         String?
-    name             String
-    description      String?
-    imageUrl         String?
-    sku              String?            @unique
-    barcode          String?            @unique // retail
-    price            Decimal?           @default(0) @db.Decimal(10, 2)
-    cost             Decimal?           @default(0) @db.Decimal(10, 2)
-    categoryId       String?
-    subcategoryId    String?
-    isActive         Boolean            @default(true)
-    isDeleted        Boolean            @default(false) // Soft delete
-    isIngredient     Boolean            @default(false) // New: Differentiates raw ingredients from sellable items
-    isModifiable     Boolean            @default(false) // restaurant
-    createdAt        DateTime           @default(now())
-    tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch           Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    inventory        Inventory[]
-    inventoryHistory InventoryHistory[]
-    modifiers        Modifier[]
-    recipesUsedIn    Recipe[]           @relation("SellableRecipe") // Recipe output product
-    ingredientIn     Recipe[]           @relation("IngredientRecipe") // Product used as ingredient
-    orderItems       OrderItem[]
-    category         Category?          @relation(fields: [categoryId], references: [id])
-    subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
-    offerGroupItems  OfferGroupItem[]
-    transferItems    TransferItem[]
+    id                String             @id @default(cuid())
+    tenantId          String
+    branchId          String?
+    name              String
+    description       String?
+    imageUrl          String?
+    sku               String?            @unique
+    barcode           String?            @unique // retail
+    price             Decimal?           @default(0) @db.Decimal(10, 2)
+    cost              Decimal?           @default(0) @db.Decimal(10, 2)
+    categoryId        String?
+    subcategoryId     String?
+    isActive          Boolean            @default(true)
+    isDeleted         Boolean            @default(false) // Soft delete
+    isIngredient      Boolean            @default(false) // New: Differentiates raw ingredients from sellable items
+    isModifiable      Boolean            @default(false) // restaurant
+    createdAt         DateTime           @default(now())
+    tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    branch            Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+    inventory         Inventory[]
+    inventoryHistory  InventoryHistory[]
+    modifiers         Modifier[]
+    recipesUsedIn     Recipe[]           @relation("SellableRecipe") // Recipe output product
+    ingredientIn      Recipe[]           @relation("IngredientRecipe") // Product used as ingredient
+    orderItems        OrderItem[]
+    category          Category?          @relation(fields: [categoryId], references: [id])
+    subcategory       Subcategory?       @relation(fields: [subcategoryId], references: [id])
+    offerGroupItems   OfferGroupItem[]
+    transferItems     TransferItem[]
+    manualRefundItems RefundItem[] // Manual refunds reference products directly
 }
 
 // 
@@ -389,29 +390,35 @@ model TransferItem {
 // ---------- REFUNDS (Audit Trail) ----------
 // 
 model Refund {
-    id          String       @id @default(cuid())
-    orderId     String
-    totalAmount Decimal      @default(0) @db.Decimal(10, 2)
-    reason      String?
-    refundedAt  DateTime     @default(now())
-    order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-    refundItems RefundItem[]
+    id            String       @id @default(cuid())
+    orderId       String? // null for manual refunds (no order)
+    totalAmount   Decimal      @default(0) @db.Decimal(10, 2)
+    reason        String?
+    paymentMethod String? // Cash, Card, Credit (for manual refunds)
+    manualRefund  Boolean      @default(false) // true for manual/no-order refunds
+    refundedAt    DateTime     @default(now())
+    order         Order?       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    refundItems   RefundItem[]
 }
 
 model RefundItem {
-    id          String @id @default(cuid())
+    id          String  @id @default(cuid())
     refundId    String
-    orderItemId String
+    orderItemId String? // null for manual refunds
+    productId   String? // populated for manual refunds
+    productName String? // snapshot of product name for manual refunds
 
     quantity  Decimal @db.Decimal(10, 4)
     unitPrice Decimal @db.Decimal(10, 2)
     subtotal  Decimal @db.Decimal(10, 2)
 
-    refund    Refund    @relation(fields: [refundId], references: [id], onDelete: Cascade)
-    orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+    refund    Refund     @relation(fields: [refundId], references: [id], onDelete: Cascade)
+    orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+    product   Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
 
-    @@unique([refundId, orderItemId])
+    @@index([refundId])
     @@index([orderItemId])
+    @@index([productId])
 }
 
 //

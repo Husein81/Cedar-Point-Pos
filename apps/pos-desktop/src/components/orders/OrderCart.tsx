@@ -49,7 +49,7 @@ export const OrderCart = ({ className }: Props) => {
         <Empty title="No items in order" icon="ShoppingCart" />
       ) : (
         <Shad.ScrollArea className="flex-1 min-h-0 ">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 p-2">
             {items.map((item) => (
               <CartItem
                 key={item.id}

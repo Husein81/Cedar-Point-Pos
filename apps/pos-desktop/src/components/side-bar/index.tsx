@@ -14,7 +14,7 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
   };
 
   return (
-    <Shad.Sidebar className="top-10" collapsible="icon" {...props}>
+    <Shad.Sidebar className="top-10" {...props}>
       {/* Content */}
       <Shad.SidebarContent>
         {/* POS */}

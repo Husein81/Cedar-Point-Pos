@@ -1,12 +1,14 @@
 import { useAuthStore } from "@/store/authStore";
 import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderType } from "@repo/types";
-import { Button, cn, Select, Separator } from "@repo/ui";
-import { useState } from "react";
+import { Button, cn, Label, Select, Separator } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useEffectEvent, useState } from "react";
+import { KeypadContext } from "../common/config";
 import { NumericKeypad } from "../common/NumericKeypad";
 import { formatPrice } from "./config";
 import { OrderActions } from "./OrderActions";
-import { KeypadContext } from "../common/config";
+import { useModalStore } from "@/store/modalStore";
 
 type OrderSummaryProps = {
   className?: string;
@@ -15,13 +17,15 @@ type OrderSummaryProps = {
   onConfirmWithoutPayment?: () => void;
 };
 
+type Option = { label: string; value: string };
+
 export const OrderSummary = ({
   className,
   onCompleteOrder,
   onHoldOrder,
   onConfirmWithoutPayment,
 }: OrderSummaryProps) => {
-  const [keypadOpen, setKeypadOpen] = useState(false);
+  const navigate = useNavigate();
   const [keypadType, setKeypadType] = useState<"DISCOUNT" | "SHIPPING">(
     "DISCOUNT"
   );
@@ -35,16 +39,15 @@ export const OrderSummary = ({
     getDiscountAmount,
     setOrderType,
   } = useOrderStore();
-  const { user } = useAuthStore();
+  const { openModal, closeModal } = useModalStore();
 
+  const { user } = useAuthStore();
   const order = getActiveOrder();
 
   const discountValue = order?.discount?.value || 0;
   const discountType = order?.discount?.type || "PERCENTAGE";
-  const shippingFee = order?.shippingFee || 0;
+  const shippingFee = order?.shippingFee ?? 0;
 
-  // Get available order types based on business type
-  type Option = { label: string; value: string };
   const getOrderTypeOptions = (): Option[] => {
     if (user?.tenant?.businessType === BusinessType.RETAIL) {
       return [
@@ -52,7 +55,6 @@ export const OrderSummary = ({
         { label: "Delivery", value: OrderType.DELIVERY.toString() },
       ];
     }
-    // Restaurant
     return [
       { label: "Dine In", value: OrderType.DINE_IN.toString() },
       { label: "Takeaway", value: OrderType.TAKEAWAY.toString() },
@@ -61,165 +63,133 @@ export const OrderSummary = ({
   };
 
   const orderTypeOptions = getOrderTypeOptions();
-
   const discount = getDiscountAmount();
-
-  const subtotal = getOrderSubtotal() - discount;
-
   const isDelivery = order?.type === OrderType.DELIVERY.toString();
 
-  const total = subtotal + (isDelivery ? shippingFee : 0);
+  const subtotal = getOrderSubtotal() - discount;
+  const total = subtotal + shippingFee;
 
   const handleKeypadConfirm = (value: number) => {
     if (keypadType === "DISCOUNT") {
-      setDiscount({
-        type: discountType,
-        value: value,
-      });
-    } else if (keypadType === "SHIPPING") {
+      setDiscount({ type: discountType, value });
+    } else {
       setShippingFee(value);
     }
-    setKeypadOpen(false);
+    closeModal();
   };
 
+  const handleDiscountTypeChange = (type: "PERCENTAGE" | "FIXED") => {
+    setDiscount({ type, value: discountValue });
+  };
+
+  const handelShippingFeeEvent = useEffectEvent(() => {
+    setShippingFee(0);
+  });
+
+  const handleOpenKeypad = () => {
+    openModal(
+      "",
+      <NumericKeypad
+        currentValue={keypadType === "DISCOUNT" ? discountValue : shippingFee}
+        onConfirm={handleKeypadConfirm}
+        context={keypadContext}
+        discountType={discountType as "PERCENTAGE" | "FIXED"}
+        onDiscountTypeChange={handleDiscountTypeChange}
+      />
+    );
+  };
+  useEffect(() => {
+    if (!isDelivery) {
+      handelShippingFeeEvent();
+    }
+  }, [isDelivery]);
+
   return (
-    <div className={cn("flex flex-col", className)}>
-      {/* Order Type Selection */}
-      <div className="flex items-center gap-2 py-2">
-        <span className="text-xs text-muted-foreground shrink-0">
-          Order Type
-        </span>
-        <Select
-          value={order?.type || ""}
-          onChange={(opt) => setOrderType(opt.value)}
-          className="flex-1"
-          options={orderTypeOptions}
+    <div className={cn("flex flex-col gap-3", className)}>
+      {/* ONE ROW CONTROLS */}
+      <div className="flex gap-2 items-end">
+        {/* Order Type */}
+        <div className="">
+          <Label className="text-xs font-medium text-muted-foreground">
+            Order Type
+          </Label>
+          <Select
+            value={order?.type || ""}
+            onChange={(opt) => setOrderType(opt.value)}
+            options={orderTypeOptions}
+          />
+        </div>
+
+        {/* Shipping */}
+        {isDelivery && (
+          <Button
+            variant={"outline"}
+            className={cn("justify-between")}
+            iconName="Van"
+            onClick={() => {
+              setKeypadType("SHIPPING");
+              handleOpenKeypad();
+            }}
+          />
+        )}
+
+        {/* Discount */}
+        <Button
+          variant="outline"
+          className="justify-between"
+          onClick={() => {
+            setKeypadType("DISCOUNT");
+            handleOpenKeypad();
+          }}
+          iconName="Percent"
+        />
+
+        {/* Refund */}
+        <Button
+          variant="destructive"
+          onClick={() => navigate({ to: "/refunds" })}
+          iconName="RotateCcw"
         />
       </div>
 
       <Separator />
-      {/* Shipping Fee Section - Only for Delivery orders */}
-      {isDelivery && (
-        <>
-          <div className="flex items-center gap-2 py-2">
-            {/* Shipping Fee Button - Opens Keypad on Click */}
-            <Button
-              onClick={() => {
-                setKeypadType("SHIPPING");
-                setKeypadOpen(true);
-              }}
-              variant="outline"
-              className={cn(
-                "flex-1 h-10 justify-start",
-                shippingFee > 0 && "bg-blue-50"
-              )}
-            >
-              <span className="text-xs text-muted-foreground mr-2">
-                Shipping
-              </span>
-              <span className="font-mono font-semibold">
-                ${formatPrice(shippingFee)}
-              </span>
-            </Button>
-          </div>
 
-          <Separator />
-        </>
-      )}
-      {/* Discount Section */}
-      <div className="flex items-center gap-2 py-2">
-        {/* Discount Button - Opens Keypad on Click */}
-        <Button
-          onClick={() => setKeypadOpen(true)}
-          variant="outline"
-          className={cn("flex-1 h-10 justify-start")}
-        >
-          <span className="text-xs text-muted-foreground mr-2">Discount</span>
-          <span className="font-mono font-semibold">{discountValue}</span>
-        </Button>
-
-        {/* Discount Type Toggle Buttons */}
-        <div className="flex gap-1 p-0.5 bg-muted rounded-md border border-border">
-          <Button
-            onClick={() =>
-              setDiscount({
-                type: "PERCENTAGE",
-                value: discountValue,
-              })
-            }
-            variant={discountType === "PERCENTAGE" ? "default" : "ghost"}
-            size="sm"
-            className="h-8 px-3 text-xs font-semibold"
-            iconName="Percent"
-          />
-          <Button
-            onClick={() =>
-              setDiscount({
-                type: "FIXED",
-                value: discountValue,
-              })
-            }
-            variant={discountType === "FIXED" ? "default" : "ghost"}
-            size="sm"
-            iconName="DollarSign"
-            className="h-8 px-3 text-xs font-semibold"
-          />
-        </div>
-      </div>
-
-      <Separator />
-
-      <div className="py-3 space-y-2">
-        {shippingFee > 0 && isDelivery && (
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Shipping</span>
-            <span className="font-medium text-primary">
-              +${formatPrice(shippingFee)}
-            </span>
-          </div>
-        )}
-        {discount > 0 && (
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Discount</span>
-            <span className="font-medium text-destructive">
-              -${formatPrice(discount)}
-            </span>
-          </div>
-        )}
-        <div className="flex justify-between text-xs">
+      {/* BREAKDOWN */}
+      <div className="space-y-1 text-xs">
+        <div className="flex justify-between">
           <span className="text-muted-foreground">Subtotal</span>
           <span className="font-medium">
             ${formatPrice(getOrderSubtotal())}
           </span>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-destructive">
+            <span>Discount</span>
+            <span>- ${formatPrice(discount)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Shipping</span>
+          <span>+ ${formatPrice(shippingFee)}</span>
+        </div>
       </div>
 
       <Separator />
 
-      {/* Total Due */}
-      <div className="py-2">
-        <div className="flex justify-between items-center">
-          <span className="text-lg font-semibold">Total Due</span>
-          <span className="text-2xl font-bold text-primary">
-            ${formatPrice(total)}
-          </span>
-        </div>
+      {/* TOTAL */}
+      <div className="flex justify-between items-center py-2">
+        <span className="text-base font-semibold">Total Due</span>
+        <span className="text-2xl font-bold text-primary">
+          ${formatPrice(total)}
+        </span>
       </div>
 
-      {/* Actions */}
+      {/* ACTIONS */}
       <OrderActions
         onCompleteOrder={onCompleteOrder}
         onHoldOrder={onHoldOrder}
         onConfirmWithoutPayment={onConfirmWithoutPayment}
-      />
-
-      {/* Numeric Keypad - Works for both Discount and Shipping */}
-      <NumericKeypad
-        isOpen={keypadOpen}
-        onClose={() => setKeypadOpen(false)}
-        currentValue={keypadType === "DISCOUNT" ? discountValue : shippingFee}
-        onConfirm={handleKeypadConfirm}
-        context={keypadContext}
       />
     </div>
   );

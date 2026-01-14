@@ -21,7 +21,15 @@ type Props = {
     | "ghost"
     | null
     | undefined;
-  size?: "default" | "sm" | "lg" | "icon" | null | undefined;
+  size?:
+    | "default"
+    | "sm"
+    | "lg"
+    | "icon"
+    | "icon-sm"
+    | "icon-lg"
+    | null
+    | undefined;
   formId?: string;
   type?: "button" | "submit" | "reset";
   props?: React.ComponentProps<typeof SButton | "button">;

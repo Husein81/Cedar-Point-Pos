@@ -4,6 +4,7 @@ export { Button } from "./button";
 export { Combobox } from "./combobox";
 export type { ComboboxOption, ComboboxProps } from "./combobox";
 export { DataTable } from "./data-table";
+export { DatePicker } from "./date-picker";
 export { Empty } from "./empty";
 export { default as InputField } from "./input-field";
 export { default as Select } from "./select";

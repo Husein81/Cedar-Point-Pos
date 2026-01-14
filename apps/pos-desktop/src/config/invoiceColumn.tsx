@@ -1,8 +1,11 @@
 import Actions from "@/components/common/Actions";
 import { formatPrice } from "@/components/orders/config";
-import { Order } from "@repo/types";
+import { RefundForm } from "@/components/refunds";
+import { useModalStore } from "@/store/modalStore";
+import { Order, OrderStatus } from "@repo/types";
 import { Badge, Icon } from "@repo/ui";
 import { ColumnDef } from "@tanstack/react-table";
+import { useNavigate } from "@tanstack/react-router";
 
 const statusConfig = {
   DRAFT: { label: "Draft", color: "bg-gray-500" },
@@ -13,6 +16,7 @@ const statusConfig = {
   SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
   READY: { label: "Ready", color: "bg-green-500" },
   PAID: { label: "Paid", color: "bg-teal-600" },
+  FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
   COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   CANCELLED: { label: "Cancelled", color: "bg-red-500" },
 };
@@ -123,21 +127,43 @@ export const invoiceColumns: ColumnDef<Order>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <Actions
-        actions={[
-          {
-            title: "View Order",
-            icon: "Eye",
-            onClick: () => {},
-          },
-          {
-            title: "Print Invoice",
-            icon: "Printer",
-            onClick: () => {},
-          },
-        ]}
-      />
-    ),
+    cell: ({ row }) => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const navigate = useNavigate();
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { openModal } = useModalStore();
+
+      const order = row.original;
+      const canRefund =
+        order.status === OrderStatus.COMPLETED ||
+        order.status === OrderStatus.PAID;
+
+      const handleRefund = () => {
+        openModal("Create Refund", <RefundForm orderId={order.id} />);
+      };
+
+      const actions = [
+        {
+          title: "View Order",
+          icon: "Eye",
+          onClick: () => navigate({ to: `/invoices/${order.id}` }),
+        },
+        {
+          title: "Print Invoice",
+          icon: "Printer",
+          onClick: () => {},
+        },
+      ];
+
+      if (canRefund) {
+        actions.push({
+          title: "Refund",
+          icon: "RotateCcw",
+          onClick: handleRefund,
+        });
+      }
+
+      return <Actions actions={actions} />;
+    },
   },
 ];

@@ -1,7 +1,5 @@
+import { useKeypadStore } from "@/store/keypadStore";
 import { Button, cn, Icon } from "@repo/ui";
-import { useState } from "react";
-import { NumericKeypad } from "../common/NumericKeypad";
-import type { KeypadContext } from "../common/config";
 import { formatPrice } from "./config";
 
 type CartItemProps = {
@@ -10,126 +8,145 @@ type CartItemProps = {
     name: string;
     price: number;
     quantity: number;
+    discount?: {
+      value: number;
+      type: "PERCENTAGE" | "FIXED";
+    };
     imageUrl?: string | null;
   };
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
   onQuantityChange: (id: string, quantity: number) => void;
+  onPriceChange?: (id: string, price: number) => void;
+  onDiscountChange?: (
+    id: string,
+    value: number,
+    type: "PERCENTAGE" | "FIXED"
+  ) => void;
   onRemove: (id: string) => void;
 };
 
+/**
+ * CartItem Component - POS Style
+ *
+ * Compact row layout matching professional POS systems:
+ * | Qty | Item Name                    | Line Total |
+ * |     | Unit price / discount info   |            |
+ *
+ * Clicking selects the item and opens the inline keypad.
+ * User can switch contexts in keypad to edit Qty/Price/Discount.
+ */
 export const CartItem = ({
   item,
+  isSelected = false,
+  onSelect,
   onQuantityChange,
+  onPriceChange,
+  onDiscountChange,
   onRemove,
 }: CartItemProps) => {
-  const [keypadOpen, setKeypadOpen] = useState(false);
-  const keypadContext: KeypadContext = "QUANTITY";
+  const { openKeypad, isOpen, itemId } = useKeypadStore();
 
-  const increaseQty = () => {
-    onQuantityChange(item.id, item.quantity + 1);
+  const lineTotal = item.price * item.quantity;
+  const discountAmount = item.discount
+    ? item.discount.type === "PERCENTAGE"
+      ? lineTotal * (item.discount.value / 100)
+      : item.discount.value
+    : 0;
+  const finalTotal = lineTotal - discountAmount;
+
+  const handleSelect = () => {
+    onSelect?.(item.id);
+
+    // Open keypad with item context - can switch between Qty/Price/Discount
+    openKeypad({
+      context: "QUANTITY",
+      currentValue: item.quantity,
+      itemId: item.id,
+      itemQuantity: item.quantity,
+      itemPrice: item.price,
+      itemDiscountValue: item.discount?.value ?? 0,
+      discountType: item.discount?.type || "PERCENTAGE",
+
+      // Quantity confirm
+      onConfirm: (value) => {
+        if (value > 0) {
+          onQuantityChange(item.id, value);
+        } else {
+          onRemove(item.id);
+        }
+      },
+
+      // Price override
+      onPriceChange: onPriceChange
+        ? (value) => onPriceChange(item.id, value)
+        : undefined,
+
+      // Item-level discount
+      onDiscountChange: onDiscountChange
+        ? (value, type) => onDiscountChange(item.id, value, type)
+        : undefined,
+    });
   };
 
-  const decreaseQty = () => {
-    if (item.quantity > 1) {
-      onQuantityChange(item.id, item.quantity - 1);
-    }
-  };
-
-  const handleKeypadConfirm = (value: number) => {
-    if (value > 0) {
-      onQuantityChange(item.id, value);
-    }
-    setKeypadOpen(false);
-  };
+  const isActive = isSelected || (isOpen && itemId === item.id);
 
   return (
     <div
       className={cn(
-        "flex gap-2 px-4 py-2 rounded-lg",
-        "bg-background  border border-border/60",
-        "hover:bg-muted/40 transition-colors"
+        "flex items-start gap-3 px-3 py-2 cursor-pointer transition-colors",
+        "border-b border-border/40",
+        isActive
+          ? "bg-primary/5 border-l-2 border-l-primary"
+          : "hover:bg-muted/30"
       )}
+      onClick={handleSelect}
     >
-      {/* Product Image */}
-      {item.imageUrl && (
-        <div className="">
-          <img
-            src={item.imageUrl}
-            alt={item.name}
-            className="size-14 rounded-md object-cover bg-muted"
-          />
-        </div>
-      )}
+      {/* Quantity */}
+      <span className="w-6 text-sm font-semibold text-foreground tabular-nums">
+        {item.quantity}
+      </span>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col gap-2 min-w-0">
-        {/* Row 1 — Name + Remove */}
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium leading-snug line-clamp-2 flex-1">
-            {item.name}
+      {/* Item Details */}
+      <div className="flex-1 min-w-0">
+        {/* Item Name */}
+        <p className="text-sm font-medium text-foreground line-clamp-1">
+          {item.name}
+        </p>
+
+        {/* Unit Price */}
+        <p className="text-xs text-muted-foreground">
+          {formatPrice(item.price)} $/Units
+        </p>
+
+        {/* Discount Info (if any) */}
+        {item.discount && item.discount.value > 0 && (
+          <p className="text-xs text-primary">
+            {item.discount.value}
+            {item.discount.type === "PERCENTAGE" ? "%" : " $"} discount -
+            {formatPrice(discountAmount)} $ off
           </p>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            onClick={() => onRemove(item.id)}
-          >
-            <Icon name="X" className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Row 2 — Unit Price + Quantity Controls */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            ${formatPrice(item.price)} per item
-          </div>
-        </div>
-
-        {/* Row 3 — Line Total */}
-        <div className="flex justify-between text-right">
-          {/* Quantity Controls */}
-          <div className="flex items-center gap-0.5 bg-background rounded-lg border shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-l-lg rounded-r-none"
-              onClick={decreaseQty}
-              disabled={item.quantity <= 1}
-            >
-              <Icon name="Minus" className="w-3 h-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setKeypadOpen(true)}
-              className="w-7 h-7 text-center text-sm font-semibold tabular-nums bg-muted/30 rounded-none"
-            >
-              {item.quantity}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-r-lg rounded-l-none"
-              onClick={increaseQty}
-            >
-              <Icon name="Plus" className="w-3 h-3" />
-            </Button>
-          </div>
-
-          <span className="text-base font-bold text-primary tabular-nums">
-            ${formatPrice(item.price * item.quantity)}
-          </span>
-        </div>
-
-        {/* Numeric Keypad (Optional / Contextual) */}
-        <NumericKeypad
-          isOpen={keypadOpen}
-          onClose={() => setKeypadOpen(false)}
-          currentValue={item.quantity}
-          onConfirm={handleKeypadConfirm}
-          context={keypadContext}
-        />
+        )}
       </div>
+
+      {/* Line Total */}
+      <div className="text-right shrink-0">
+        <span className={cn("text-sm font-semibold tabular-nums")}>
+          {finalTotal} ${" "}
+        </span>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        onClick={(e) => {
+          (e as React.MouseEvent<HTMLButtonElement>).stopPropagation();
+          onRemove(item.id);
+        }}
+      >
+        <Icon name="X" className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 };

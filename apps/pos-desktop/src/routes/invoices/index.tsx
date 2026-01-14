@@ -82,7 +82,7 @@ function InvoicesPage() {
           page,
           totalPages,
           pageSize,
-          rows: orders.length,
+          rows: data?.pagination?.totalCount || 0,
           onPageChange: setPage,
           onPageSizeChange: setPageSize,
         }}

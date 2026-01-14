@@ -136,17 +136,47 @@ export class OrdersService {
         const product = map.get(item.productId);
         if (!product) throw new BadRequestException('Product not found');
 
-        const lineSubtotal = Number(product.price) * item.quantity;
+        // Use override price or product price
+        const unitPrice =
+          'unitPrice' in item && typeof item.unitPrice === 'number'
+            ? item.unitPrice
+            : Number(product.price);
+        let lineSubtotal = unitPrice * item.quantity;
+
+        // Apply item-level discount if present
+        const discount =
+          'discount' in item && item.discount !== null ? item.discount : null;
+        if (
+          discount &&
+          typeof discount === 'object' &&
+          'type' in discount &&
+          'value' in discount
+        ) {
+          const discountAmount =
+            discount.type === 'PERCENTAGE'
+              ? (lineSubtotal * Number(discount.value)) / 100
+              : Number(discount.value);
+          lineSubtotal -= discountAmount;
+        }
 
         subtotal += lineSubtotal;
+
+        const discountValue =
+          discount && typeof discount === 'object'
+            ? {
+                type: (discount as Record<string, unknown>).type as string,
+                value: (discount as Record<string, unknown>).value as number,
+              }
+            : undefined;
 
         orderItems.push({
           product: { connect: { id: product.id } },
           quantity: new Prisma.Decimal(item.quantity),
-          unitPrice: new Prisma.Decimal(product.price || 0),
+          unitPrice: new Prisma.Decimal(unitPrice),
           subtotal: new Prisma.Decimal(lineSubtotal),
           total: new Prisma.Decimal(lineSubtotal),
           notes: item.notes,
+          discount: discountValue,
         });
       }
     }
@@ -182,7 +212,12 @@ export class OrdersService {
   async findOne(tenantId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
-      include: { items: true, payments: true },
+      include: {
+        items: {
+          include: { product: true },
+        },
+        payments: true,
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -211,7 +246,13 @@ export class OrdersService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { items: true, payments: true, customer: true },
+        include: {
+          items: {
+            include: { product: true },
+          },
+          payments: true,
+          customer: true,
+        },
       }),
     ]);
 
@@ -294,86 +335,97 @@ export class OrdersService {
     },
     userId: string,
   ) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, tenantId },
-      select: {
-        id: true,
-        total: true,
-        status: true,
-        branchId: true,
-        payments: { select: { amount: true } },
-      },
-    });
-    if (!order) throw new NotFoundException('Order not found');
-
-    // Validate order can be paid
-    if (order.status === OrderStatus.PAID) {
-      throw new BadRequestException('Order already paid');
-    }
-    if (order.status === OrderStatus.CANCELLED) {
-      throw new BadRequestException('Cannot pay cancelled order');
+    if (payment.amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
     }
 
-    const existingPaid = order.payments.reduce(
-      (s, p) => s + Number(p.amount),
-      0,
-    );
-    const totalDue = Number(order.total);
-    const newTotal = this.round(existingPaid + payment.amount);
-
-    if (newTotal > totalDue + 0.01) {
-      throw new BadRequestException(
-        `Payment exceeds total: paid ${newTotal}, total ${totalDue}`,
-      );
-    }
-
-    const isFullyPaid = Math.abs(newTotal - totalDue) < 0.01;
-
-    return this.prisma.$transaction(async (tx) => {
-      // 1️⃣ Create payment record
-      await tx.payment.create({
-        data: {
-          orderId,
-          method: payment.method,
-          amount: payment.amount,
-          ...(payment.currencyCode && { currencyCode: payment.currencyCode }),
-          ...(payment.exchangeRate && { exchangeRate: payment.exchangeRate }),
-        },
-      });
-
-      // 2️⃣ If fully paid, mark order as PAID and deduct inventory
-      if (isFullyPaid) {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: 'PAID' },
+    return this.prisma.$transaction(
+      async (tx) => {
+        // 🔒 Lock order row to avoid race conditions
+        const order = await tx.order.findFirst({
+          where: { id: orderId, tenantId },
+          select: {
+            id: true,
+            status: true,
+            total: true,
+            shippingFee: true,
+            branchId: true,
+            payments: { select: { amount: true } },
+          },
         });
 
-        await this.inventoryDeductionService.deductStockForOrder(
-          tenantId,
-          orderId,
-          order.branchId,
-          userId,
+        if (!order) throw new NotFoundException('Order not found');
+
+        if (order.status === OrderStatus.PAID) {
+          throw new BadRequestException('Order already paid');
+        }
+
+        if (order.status === OrderStatus.CANCELLED) {
+          throw new BadRequestException('Cannot pay a cancelled order');
+        }
+
+        const totalDue = this.money(
+          Number(order.total) + Number(order.shippingFee),
         );
-      } else {
-        // Partial payment - keep order in PENDING
-        if (order.status === OrderStatus.DRAFT) {
+
+        const alreadyPaid = this.money(
+          order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+        );
+
+        const newPaidTotal = this.money(alreadyPaid + Number(payment.amount));
+
+        if (newPaidTotal > totalDue) {
+          throw new BadRequestException(
+            `Payment exceeds total. Paid: ${newPaidTotal}, Due: ${totalDue}`,
+          );
+        }
+
+        const isFullyPaid = newPaidTotal === totalDue;
+
+        // 1️⃣ Create payment record
+        await tx.payment.create({
+          data: {
+            orderId,
+            amount: payment.amount,
+            method: payment.method,
+            currencyCode: payment.currencyCode,
+            exchangeRate: payment.exchangeRate,
+          },
+        });
+
+        // 2️⃣ Update order status if needed
+        if (isFullyPaid) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.PAID },
+          });
+
+          // 3️⃣ Deduct inventory ONCE
+          await this.inventoryDeductionService.deductStockForOrder(
+            tenantId,
+            orderId,
+            order.branchId,
+            userId,
+          );
+        } else if (order.status === OrderStatus.DRAFT) {
           await tx.order.update({
             where: { id: orderId },
             data: { status: OrderStatus.PENDING },
           });
         }
-      }
 
-      return tx.order.findUnique({
-        where: { id: orderId },
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          total: true,
-        },
-      });
-    });
+        return {
+          orderId,
+          status: isFullyPaid ? OrderStatus.PAID : OrderStatus.PENDING,
+          totalDue,
+          paid: newPaidTotal,
+          remaining: this.money(totalDue - newPaidTotal),
+        };
+      },
+      {
+        isolationLevel: 'Serializable', // 🔐 critical for POS
+      },
+    );
   }
 
   /* ----------------------------------------------------
@@ -426,6 +478,34 @@ export class OrdersService {
 
   async removeItemFromOrder(tenantId: string, orderId: string, itemId: string) {
     await this.prisma.orderItem.delete({ where: { id: itemId } });
+    return this.recalculateOrderTotals(tenantId, orderId);
+  }
+
+  async updateItemDiscount(
+    tenantId: string,
+    orderId: string,
+    itemId: string,
+    value: number,
+    type: 'PERCENTAGE' | 'FIXED',
+  ) {
+    // Validate order exists and belongs to tenant
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: { id: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Update item discount
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: {
+        discount: {
+          value,
+          type,
+        },
+      },
+    });
+
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
@@ -522,5 +602,9 @@ export class OrdersService {
       where: { id: orderId },
       data: { subtotal, total },
     });
+  }
+
+  private money(value: number): number {
+    return Math.round(value * 100) / 100;
   }
 }

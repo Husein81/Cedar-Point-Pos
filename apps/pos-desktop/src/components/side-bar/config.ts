@@ -124,6 +124,13 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL", "RESTAURANT"],
       },
       {
+        label: "Refunds",
+        icon: "RotateCcw",
+        href: "/refunds",
+        tooltip: "Refund Station",
+        showFor: ["RETAIL", "RESTAURANT"],
+      },
+      {
         label: "Reports",
         icon: "ChartBar",
         href: "/reports",

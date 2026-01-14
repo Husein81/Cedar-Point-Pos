@@ -25,9 +25,9 @@ function NotFound() {
 function RootLayout() {
   return (
     <Providers>
-      <Header />
       <Shad.ScrollArea className="h-screen flex flex-col overflow-hidden">
         <MainLayout>
+          <Header />
           <Outlet />
         </MainLayout>
         <Shad.ScrollBar />

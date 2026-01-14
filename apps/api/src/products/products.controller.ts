@@ -6,7 +6,7 @@ import { ProductsService } from './products.service.js';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Get('paginated')
   async getProductsPaginated(
@@ -47,15 +47,26 @@ export class ProductsController {
       tenantId?: string;
       branchId?: string;
       imageUrl?: string;
+      categoryId?: string;
+      subcategoryId?: string;
     };
     const { tenantId } = req.user as { tenantId: string };
 
-    // Extract fields from body
-    const {  imageUrl, ...productData } = body;
+    // Extract fields from body - exclude tenantId, branchId, categoryId, subcategoryId as they're handled via relations
+    const {
+      tenantId: _tenantId,
+      branchId: _branchId,
+      categoryId,
+      subcategoryId,
+      imageUrl,
+      ...productData
+    } = body;
 
     const createData: Prisma.ProductCreateInput = {
       ...productData,
       tenant: { connect: { id: tenantId } },
+      ...(categoryId && { category: { connect: { id: categoryId } } }),
+      ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
       ...(imageUrl && { imageUrl }),
     };
     return this.productsService.createProduct(createData);
@@ -70,14 +81,24 @@ export class ProductsController {
     const body = req.body as Prisma.ProductUpdateInput & {
       branchId?: string;
       imageUrl?: string;
+      categoryId?: string;
+      subcategoryId?: string;
     };
 
-    // Handle branchId and imageUrl update
-    const { imageUrl, ...productData } = body;
+    // Handle relations and imageUrl update explicitly
+    const {
+      imageUrl,
+      categoryId,
+      subcategoryId,
+      branchId: _branchId, // Exclude branchId if it's there
+      ...productData
+    } = body;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...productData,
       ...(imageUrl !== undefined && { imageUrl }),
+      ...(categoryId && { category: { connect: { id: categoryId } } }),
+      ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
     };
 
 

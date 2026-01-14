@@ -16,7 +16,7 @@ import {
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) { }
 
   private parseQuery(query: Record<string, unknown>): ReportQueryDto {
     const result = reportQuerySchema.safeParse(query);
@@ -27,6 +27,103 @@ export class ReportsController {
     }
     return result.data;
   }
+
+  // ============================================================
+  // NEW LIST ENDPOINTS (TABLE DATA)
+  // ============================================================
+
+  /**
+   * Sales Orders List - Paginated order rows for tables
+   * GET /reports/sales/orders?from=2024-01-01&to=2024-12-31&branchId=optional&page=1&pageSize=25
+   *
+   * Supports:
+   * - Filters: branchId, orderType, paymentMethod, status, userId, search
+   * - Sorting: sortBy (createdAt, completedAt, total, subtotal, discount, orderNumber), sortDir (asc/desc)
+   * - Pagination: page, pageSize
+   */
+  @Get('sales/orders')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getSalesOrdersList(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getSalesOrdersList(user.tenantId, parsedQuery);
+  }
+
+  /**
+   * Payment Transactions List - Paginated payment rows for tables
+   * GET /reports/payments/transactions?from=2024-01-01&to=2024-12-31&branchId=optional&page=1&pageSize=25
+   *
+   * Supports:
+   * - Filters: branchId, paymentMethod, userId, search
+   * - Sorting: sortBy (paidAt, amount, method), sortDir (asc/desc)
+   * - Pagination: page, pageSize
+   */
+  @Get('payments/transactions')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getPaymentTransactionsList(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getPaymentTransactionsList(
+      user.tenantId,
+      parsedQuery,
+    );
+  }
+
+  /**
+   * Inventory Movements List - Paginated inventory history rows for tables
+   * GET /reports/inventory/movements?from=2024-01-01&to=2024-12-31&branchId=optional&page=1&pageSize=25
+   *
+   * Supports:
+   * - Filters: branchId, changeType, userId, search
+   * - Sorting: sortBy (createdAt, changeType, adjustment), sortDir (asc/desc)
+   * - Pagination: page, pageSize
+   */
+  @Get('inventory/movements')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getInventoryMovementsList(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getInventoryMovementsList(
+      user.tenantId,
+      parsedQuery,
+    );
+  }
+
+  /**
+   * Top Products Report List - Paginated product performance rows for tables
+   * GET /reports/products/top?from=2024-01-01&to=2024-12-31&branchId=optional&limit=10
+   *
+   * Supports:
+   * - Filters: branchId, limit
+   * - Sorting: sortBy (revenue, qtySold, productName), sortDir (asc/desc)
+   * - Pagination: page, pageSize (or limit for traditional top-N queries)
+   */
+  @Get('products/top')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getTopProductsReportList(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getTopProductsReportList(
+      user.tenantId,
+      parsedQuery,
+    );
+  }
+
+  // ============================================================
+  // EXISTING SUMMARY ENDPOINTS (UNCHANGED)
+  // ============================================================
 
   /**
    * Sales Report - Total revenue, order count, average order value
@@ -88,6 +185,10 @@ export class ReportsController {
     return this.reportsService.getInventoryReport(user.tenantId, parsedQuery);
   }
 
+  // ============================================================
+  // DASHBOARD ENDPOINTS (UNCHANGED)
+  // ============================================================
+
   /**
    * Dashboard Summary - Key metrics for today
    * GET /reports/dashboard/summary?branchId=optional
@@ -146,7 +247,7 @@ export class ReportsController {
   }
 
   /**
-   * Top Products - Best selling products
+   * Top Products - Best selling products (dashboard version)
    * GET /reports/dashboard/top-products?from=2024-01-01&to=2024-12-31&branchId=optional&limit=5
    */
   @Get('dashboard/top-products')

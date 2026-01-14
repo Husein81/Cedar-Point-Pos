@@ -1,11 +1,599 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { ReportQueryDto } from './dto/report-query.dto.js';
+import {
+  type ReportQueryDto,
+  ALLOWED_SORT_FIELDS,
+  type PaginatedResponse,
+  type PaginationMeta,
+} from './dto/report-query.dto.js';
 import { Prisma } from '../../generated/prisma/client.js';
+
+// ============================================================
+// Response Row Types (exported for controller return type inference)
+// ============================================================
+
+export interface SalesOrderRow {
+  id: string;
+  orderNumber: string | null;
+  type: string;
+  status: string;
+  createdAt: Date;
+  completedAt: Date | null;
+  branch: { id: string; name: string };
+  cashier: { id: string; name: string; username: string } | null;
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentsSummary: {
+    methods: Array<{ method: string; amount: number; currencyCode: string | null }>;
+    totalPaid: number;
+  };
+}
+
+export interface PaymentTransactionRow {
+  id: string;
+  paidAt: Date;
+  method: string;
+  currencyCode: string | null;
+  amount: number;
+  exchangeRate: number | null;
+  order: {
+    id: string;
+    orderNumber: string | null;
+    branch: { id: string; name: string };
+    cashier: { id: string; name: string; username: string } | null;
+    type: string;
+    status: string;
+  };
+}
+
+export interface InventoryMovementRow {
+  id: string;
+  createdAt: Date;
+  changeType: string;
+  beforeStock: number;
+  afterStock: number;
+  adjustment: number;
+  reason: string | null;
+  referenceId: string | null;
+  referenceType: string | null;
+  branch: { id: string; name: string };
+  user: { id: string; name: string; username: string };
+  product: { id: string; name: string };
+}
+
+export interface TopProductRow {
+  productId: string;
+  productName: string;
+  categoryName: string | null;
+  qtySold: number;
+  revenue: number;
+  avgUnitPrice: number;
+}
+
+// ============================================================
+// Helper Functions
+// ============================================================
+
+/**
+ * Builds pagination meta from count and query params
+ */
+function buildPaginationMeta(
+  totalItems: number,
+  page: number,
+  pageSize: number,
+): PaginationMeta {
+  return {
+    page,
+    pageSize,
+    totalItems,
+    totalPages: Math.ceil(totalItems / pageSize) || 1,
+  };
+}
+
+/**
+ * Validates sortBy field against allowed fields
+ */
+function validateSortBy(
+  sortBy: string | undefined,
+  allowedFields: readonly string[],
+  endpointName: string,
+): void {
+  if (sortBy && !allowedFields.includes(sortBy)) {
+    throw new BadRequestException(
+      `Invalid sortBy field '${sortBy}' for ${endpointName}. Allowed: ${allowedFields.join(', ')}`,
+    );
+  }
+}
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
+
+  // ============================================================
+  // NEW LIST ENDPOINTS
+  // ============================================================
+
+  /**
+   * Sales Orders List - Paginated order rows with payments summary
+   * GET /reports/sales/orders
+   *
+   * For date filtering:
+   * - Uses createdAt as the primary filter for consistency with existing summary endpoints
+   * - completedAt is included in response for display purposes
+   */
+  async getSalesOrdersList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<SalesOrderRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      orderType,
+      paymentMethod,
+      status,
+      userId,
+      search,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+    } = query;
+
+    // Validate sortBy
+    validateSortBy(sortBy, ALLOWED_SORT_FIELDS.salesOrders, 'sales orders');
+
+    // Build where clause
+    const where: Prisma.OrderWhereInput = {
+      tenantId,
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+      ...(orderType && { type: orderType }),
+      ...(status && { status }),
+      ...(userId && { userId }),
+      // Filter by payment method via payments relation
+      ...(paymentMethod && {
+        payments: {
+          some: { method: paymentMethod },
+        },
+      }),
+      // Search by orderNumber
+      ...(search && {
+        orderNumber: { contains: search, mode: 'insensitive' as const },
+      }),
+    };
+
+    // Build orderBy
+    const orderBy: Prisma.OrderOrderByWithRelationInput = sortBy
+      ? { [sortBy]: sortDir }
+      : { createdAt: sortDir };
+
+    // Execute count and list queries in parallel
+    const [totalItems, orders] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          orderNumber: true,
+          type: true,
+          status: true,
+          createdAt: true,
+          completedAt: true,
+          subtotal: true,
+          discount: true,
+          total: true,
+          branch: {
+            select: { id: true, name: true },
+          },
+          user: {
+            select: { id: true, name: true, username: true },
+          },
+          payments: {
+            select: {
+              method: true,
+              amount: true,
+              currencyCode: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Transform orders to response shape
+    const data: SalesOrderRow[] = orders.map((order) => {
+      // Aggregate payments by method
+      const paymentsByMethod = new Map<
+        string,
+        { method: string; amount: number; currencyCode: string | null }
+      >();
+      let totalPaid = 0;
+
+      order.payments.forEach((p) => {
+        const amount = Number(p.amount);
+        totalPaid += amount;
+        const existing = paymentsByMethod.get(p.method);
+        if (existing) {
+          existing.amount += amount;
+        } else {
+          paymentsByMethod.set(p.method, {
+            method: p.method,
+            amount,
+            currencyCode: p.currencyCode,
+          });
+        }
+      });
+
+      return {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        type: order.type,
+        status: order.status,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt,
+        branch: order.branch,
+        cashier: order.user,
+        subtotal: Number(order.subtotal),
+        discount: Number(order.discount) || 0,
+        total: Number(order.total),
+        paymentsSummary: {
+          methods: Array.from(paymentsByMethod.values()),
+          totalPaid,
+        },
+      };
+    });
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
+  }
+
+  /**
+   * Payment Transactions List - Paginated payment rows
+   * GET /reports/payments/transactions
+   *
+   * Filters by paidAt date range for payment-specific filtering
+   */
+  async getPaymentTransactionsList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<PaymentTransactionRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      paymentMethod,
+      userId,
+      search,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+    } = query;
+
+    // Validate sortBy
+    validateSortBy(
+      sortBy,
+      ALLOWED_SORT_FIELDS.paymentTransactions,
+      'payment transactions',
+    );
+
+    // Build where clause
+    const where: Prisma.PaymentWhereInput = {
+      order: {
+        tenantId,
+        ...(branchId && { branchId }),
+        ...(userId && { userId }),
+        // Search by order number
+        ...(search && {
+          orderNumber: { contains: search, mode: 'insensitive' as const },
+        }),
+      },
+      paidAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(paymentMethod && { method: paymentMethod }),
+    };
+
+    // Build orderBy
+    const orderBy: Prisma.PaymentOrderByWithRelationInput = sortBy
+      ? { [sortBy]: sortDir }
+      : { paidAt: sortDir };
+
+    // Execute count and list queries in parallel
+    const [totalItems, payments] = await Promise.all([
+      this.prisma.payment.count({ where }),
+      this.prisma.payment.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          paidAt: true,
+          method: true,
+          currencyCode: true,
+          amount: true,
+          exchangeRate: true,
+          order: {
+            select: {
+              id: true,
+              orderNumber: true,
+              type: true,
+              status: true,
+              branch: {
+                select: { id: true, name: true },
+              },
+              user: {
+                select: { id: true, name: true, username: true },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Transform to response shape
+    const data: PaymentTransactionRow[] = payments.map((p) => ({
+      id: p.id,
+      paidAt: p.paidAt,
+      method: p.method,
+      currencyCode: p.currencyCode,
+      amount: Number(p.amount),
+      exchangeRate: p.exchangeRate ? Number(p.exchangeRate) : null,
+      order: {
+        id: p.order.id,
+        orderNumber: p.order.orderNumber,
+        branch: p.order.branch,
+        cashier: p.order.user,
+        type: p.order.type,
+        status: p.order.status,
+      },
+    }));
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
+  }
+
+  /**
+   * Inventory Movements List - Paginated inventory history rows
+   * GET /reports/inventory/movements
+   */
+  async getInventoryMovementsList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<InventoryMovementRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      changeType,
+      userId,
+      search,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+    } = query;
+
+    // Validate sortBy
+    validateSortBy(
+      sortBy,
+      ALLOWED_SORT_FIELDS.inventoryMovements,
+      'inventory movements',
+    );
+
+    // Build where clause
+    const where: Prisma.InventoryHistoryWhereInput = {
+      tenantId,
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+      ...(changeType && { changeType }),
+      ...(userId && { userId }),
+      // Search by product name
+      ...(search && {
+        product: {
+          name: { contains: search, mode: 'insensitive' as const },
+        },
+      }),
+    };
+
+    // Build orderBy
+    const orderBy: Prisma.InventoryHistoryOrderByWithRelationInput = sortBy
+      ? { [sortBy]: sortDir }
+      : { createdAt: sortDir };
+
+    // Execute count and list queries in parallel
+    const [totalItems, movements] = await Promise.all([
+      this.prisma.inventoryHistory.count({ where }),
+      this.prisma.inventoryHistory.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          changeType: true,
+          beforeStock: true,
+          afterStock: true,
+          adjustment: true,
+          reason: true,
+          referenceId: true,
+          referenceType: true,
+          branch: {
+            select: { id: true, name: true },
+          },
+          user: {
+            select: { id: true, name: true, username: true },
+          },
+          product: {
+            select: { id: true, name: true },
+          },
+        },
+      }),
+    ]);
+
+    // Transform to response shape
+    const data: InventoryMovementRow[] = movements.map((m) => ({
+      id: m.id,
+      createdAt: m.createdAt,
+      changeType: m.changeType,
+      beforeStock: Number(m.beforeStock),
+      afterStock: Number(m.afterStock),
+      adjustment: Number(m.adjustment),
+      reason: m.reason,
+      referenceId: m.referenceId,
+      referenceType: m.referenceType,
+      branch: m.branch,
+      user: m.user,
+      product: m.product,
+    }));
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
+  }
+
+  /**
+   * Top Products Report List - Paginated product performance rows
+   * GET /reports/products/top
+   *
+   * Returns products ranked by revenue with pagination support
+   */
+  async getTopProductsReportList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<TopProductRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+      limit,
+    } = query;
+
+    // Validate sortBy (if provided as column names we use internally)
+    if (sortBy) {
+      validateSortBy(sortBy, ALLOWED_SORT_FIELDS.topProducts, 'top products');
+    }
+
+    // Use limit if provided, otherwise use pageSize
+    const effectiveLimit = limit ?? pageSize;
+
+    // Get aggregated order items grouped by productId
+    // Note: Prisma groupBy doesn't support pagination well, so we fetch all and paginate in memory
+    // For production with large datasets, consider raw SQL or a materialized view
+    const groupedProducts = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          tenantId,
+          status: 'COMPLETED',
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        },
+      },
+      _sum: {
+        total: true,
+        quantity: true,
+      },
+    });
+
+    // Fetch product details with categories
+    const productIds = groupedProducts.map((p) => p.productId);
+    const productDetails = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        category: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const productMap = new Map(
+      productDetails.map((p) => [
+        p.id,
+        { name: p.name, categoryName: p.category?.name ?? null },
+      ]),
+    );
+
+    // Build full result set
+    let results: TopProductRow[] = groupedProducts.map((p) => {
+      const details = productMap.get(p.productId);
+      const revenue = Number(p._sum.total) || 0;
+      const qtySold = Number(p._sum.quantity) || 0;
+      return {
+        productId: p.productId,
+        productName: details?.name || 'Unknown Product',
+        categoryName: details?.categoryName ?? null,
+        qtySold,
+        revenue,
+        avgUnitPrice: qtySold > 0 ? revenue / qtySold : 0,
+      };
+    });
+
+    // Sort results
+    const sortField = sortBy || 'revenue';
+    const sortMultiplier = sortDir === 'asc' ? 1 : -1;
+    results.sort((a, b) => {
+      const aVal = a[sortField as keyof TopProductRow];
+      const bVal = b[sortField as keyof TopProductRow];
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return (aVal - bVal) * sortMultiplier;
+      }
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return aVal.localeCompare(bVal) * sortMultiplier;
+      }
+      return 0;
+    });
+
+    const totalItems = results.length;
+
+    // Apply limit or pagination
+    if (limit) {
+      // When limit is specified, just take top N items
+      results = results.slice(0, effectiveLimit);
+    } else {
+      // Standard pagination
+      const startIndex = (page - 1) * pageSize;
+      results = results.slice(startIndex, startIndex + pageSize);
+    }
+
+    return {
+      data: results,
+      meta: buildPaginationMeta(totalItems, page, limit ?? pageSize),
+    };
+  }
+
+  // ============================================================
+  // EXISTING SUMMARY/DASHBOARD ENDPOINTS (UNCHANGED)
+  // ============================================================
 
   /**
    * Sales Report - Total revenue, order count, average order value

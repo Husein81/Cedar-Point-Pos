@@ -92,7 +92,7 @@ export const RefundConfirmModal = ({
 
         {/* Warning */}
         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
-          <Icon name="Info" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <Icon name="Info" className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <strong>Important:</strong> This will:
             <ul className="mt-1 ml-4 list-disc text-xs">
@@ -113,21 +113,10 @@ export const RefundConfirmModal = ({
             variant="destructive"
             onClick={onConfirm}
             disabled={isProcessing}
+            isSubmitting={isProcessing}
           >
-            {isProcessing ? (
-              <>
-                <Icon
-                  name="LoaderCircle"
-                  className="w-4 h-4 mr-2 animate-spin"
-                />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Icon name="RotateCcw" className="w-4 h-4 mr-2" />
-                Confirm Refund
-              </>
-            )}
+            <Icon name="RotateCcw" className="w-4 h-4 mr-2" />
+            Confirm Refund
           </Button>
         </Shad.AlertDialogFooter>
       </Shad.AlertDialogContent>

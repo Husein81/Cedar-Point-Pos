@@ -28,6 +28,16 @@ export const RefundOrdersList = ({
   const totalPages = Math.ceil(ordersTotalCount / ordersPageSize);
 
   const getStatusBadge = (status: OrderStatus, hasRefunds: boolean) => {
+    // ✅ First check if order is fully refunded (highest priority)
+    if (status === OrderStatus.FULLY_REFUNDED) {
+      return (
+        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+          Fully Refunded
+        </span>
+      );
+    }
+
+    // Then check if partially refunded
     if (hasRefunds) {
       return (
         <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">

@@ -451,6 +451,34 @@ export class OrdersService {
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
+  async updateItemDiscount(
+    tenantId: string,
+    orderId: string,
+    itemId: string,
+    value: number,
+    type: 'PERCENTAGE' | 'FIXED',
+  ) {
+    // Validate order exists and belongs to tenant
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: { id: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Update item discount
+    await this.prisma.orderItem.update({
+      where: { id: itemId },
+      data: {
+        discount: {
+          value,
+          type,
+        },
+      },
+    });
+
+    return this.recalculateOrderTotals(tenantId, orderId);
+  }
+
   async updateDiscount(tenantId: string, orderId: string, discount: number) {
     await this.prisma.order.update({
       where: { id: orderId },

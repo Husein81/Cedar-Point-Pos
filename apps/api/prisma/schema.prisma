@@ -55,6 +55,7 @@ enum OrderStatus {
     READY // Ready for pickup/serve
     PAID // Payment received, inventory deducted
     COMPLETED // Order fully completed
+    FULLY_REFUNDED // Order fully refunded
     CANCELLED
 }
 
@@ -531,6 +532,7 @@ model OrderItem {
     productId   String
     quantity    Decimal             @default(1) @db.Decimal(10, 4)
     unitPrice   Decimal             @db.Decimal(10, 2) // New: Price of one unit
+    discount    Json? // { value: number; type: 'PERCENTAGE' | 'FIXED' }
     subtotal    Decimal             @default(0) @db.Decimal(10, 2) // New: Item subtotal (qty * unitPrice + modifiers)
     total       Decimal             @db.Decimal(10, 2) // Item total (subtotal + taxAmount)
     // KDS tracking

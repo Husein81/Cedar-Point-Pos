@@ -16,6 +16,10 @@ export type OrderItem = {
   quantity: number;
   notes?: string;
   imageUrl?: string | null;
+  discount?: {
+    value: number;
+    type: "PERCENTAGE" | "FIXED";
+  };
 };
 
 export type OrderDiscount = {
@@ -101,6 +105,11 @@ interface OrderStoreState {
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
   updateItemQuantity: (itemId: string, quantity: number) => void;
+  updateItemPrice: (itemId: string, price: number) => void;
+  updateItemDiscount: (
+    itemId: string,
+    discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+  ) => void;
   removeItem: (itemId: string) => void;
   clearOrder: () => void;
 
@@ -126,6 +135,7 @@ interface OrderStoreState {
   getActiveOrder: () => Order | null;
   getActiveTab: () => OrderTab | null;
   getOrderSubtotal: (tabId?: string) => number;
+  getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
   getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
@@ -284,6 +294,56 @@ export const useOrderStore = create<OrderStoreState>()(
                   item.id === itemId
                     ? { ...item, quantity: validQuantity }
                     : item
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemPrice: (itemId: string, price: number) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        // Ensure price is at least 0
+        const validPrice = Math.max(0, price);
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId ? { ...item, price: validPrice } : item
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemDiscount: (
+        itemId: string,
+        discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+      ) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId ? { ...item, discount } : item
                 ),
                 modifiedAt: new Date(),
               },
@@ -503,10 +563,45 @@ export const useOrderStore = create<OrderStoreState>()(
 
         if (!tab) return 0;
 
-        return tab.order.items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
+        // Calculate subtotal with item-level discounts applied
+        return tab.order.items.reduce((sum, item) => {
+          const lineTotal = item.price * item.quantity;
+
+          // Apply item-level discount if present
+          let itemDiscount = 0;
+          if (item.discount) {
+            if (item.discount.type === "PERCENTAGE") {
+              itemDiscount = lineTotal * (item.discount.value / 100);
+            } else {
+              // FIXED discount
+              itemDiscount = item.discount.value;
+            }
+          }
+
+          return sum + (lineTotal - itemDiscount);
+        }, 0);
+      },
+
+      // Get total of all item-level discounts
+      getItemDiscountsTotal: (tabId?: string) => {
+        const state = get();
+        const targetTabId = tabId ?? state.activeTabId;
+        const tab = state.tabs.find((t) => t.id === targetTabId);
+
+        if (!tab) return 0;
+
+        return tab.order.items.reduce((sum, item) => {
+          if (!item.discount) return sum;
+
+          const lineTotal = item.price * item.quantity;
+
+          if (item.discount.type === "PERCENTAGE") {
+            return sum + lineTotal * (item.discount.value / 100);
+          } else {
+            // FIXED discount
+            return sum + item.discount.value;
+          }
+        }, 0);
       },
 
       getDiscountAmount: (tabId?: string) => {

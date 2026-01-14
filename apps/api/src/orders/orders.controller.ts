@@ -18,6 +18,7 @@ import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AssignTableDto } from './dto/assign-table.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
 import type { UpdateQuantityDto } from './dto/update-quantity.dto.js';
+import type { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
 
 import { OrdersService } from './orders.service.js';
 import { PaymentMethod } from '../../generated/prisma/enums.js';
@@ -235,6 +236,27 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.removeItemFromOrder(user.tenantId, id, itemId);
+  }
+
+  /**
+   * Update item discount
+   */
+  @Patch(':id/items/:itemId/discount')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  updateItemDiscount(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemDiscountDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.updateItemDiscount(
+      user.tenantId,
+      id,
+      itemId,
+      dto.value,
+      dto.type,
+    );
   }
 
   /* ----------------------------------------------------

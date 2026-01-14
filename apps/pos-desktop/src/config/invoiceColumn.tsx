@@ -16,6 +16,7 @@ const statusConfig = {
   SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
   READY: { label: "Ready", color: "bg-green-500" },
   PAID: { label: "Paid", color: "bg-teal-600" },
+  FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
   COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   CANCELLED: { label: "Cancelled", color: "bg-red-500" },
 };

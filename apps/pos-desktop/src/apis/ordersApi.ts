@@ -50,6 +50,11 @@ export interface UpdateQuantityDto {
   quantity: number;
 }
 
+export interface UpdateItemDiscountDto {
+  value: number;
+  type: "PERCENTAGE" | "FIXED";
+}
+
 export interface PaymentDto {
   amount: number;
   method: PaymentMethod;
@@ -140,6 +145,19 @@ export const ordersApi = {
   // Remove item from order
   removeItemFromOrder: async (id: string, itemId: string): Promise<Order> => {
     const response = await api.delete(`/orders/${id}/items/${itemId}`);
+    return response.data;
+  },
+
+  // Update item discount
+  updateItemDiscount: async (
+    id: string,
+    itemId: string,
+    data: UpdateItemDiscountDto
+  ): Promise<Order> => {
+    const response = await api.patch(
+      `/orders/${id}/items/${itemId}/discount`,
+      data
+    );
     return response.data;
   },
 

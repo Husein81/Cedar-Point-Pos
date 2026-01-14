@@ -1,4 +1,4 @@
-import { Button, Icon, Input, Select } from "@repo/ui";
+import { Button, DatePicker, Icon, Input, Select } from "@repo/ui";
 import { useRefundStore } from "@/store/refundStore";
 import { OrderStatus } from "@repo/types";
 import { useNavigate } from "@tanstack/react-router";
@@ -64,21 +64,26 @@ export const RefundHeader = ({ onRefresh }: RefundHeaderProps) => {
         </div>
 
         {/* Date From */}
-        <Input
+        {/* <Input
           type="date"
           value={filterDateFrom || ""}
           onChange={(e) => setFilterDateFrom(e.target.value || null)}
           className="w-36 h-9"
           placeholder="From"
+        /> */}
+        <DatePicker
+          date={filterDateFrom ? new Date(filterDateFrom) : undefined}
+          onDateChange={(date) =>
+            setFilterDateFrom(date ? date.toISOString() : null)
+          }
         />
 
         {/* Date To */}
-        <Input
-          type="date"
-          value={filterDateTo || ""}
-          onChange={(e) => setFilterDateTo(e.target.value || null)}
-          className="w-36 h-9"
-          placeholder="To"
+        <DatePicker
+          date={filterDateTo ? new Date(filterDateTo) : undefined}
+          onDateChange={(date) =>
+            setFilterDateTo(date ? date.toISOString() : null)
+          }
         />
 
         {/* Status Filter */}

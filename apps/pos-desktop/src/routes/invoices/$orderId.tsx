@@ -1,11 +1,11 @@
+import { formatPrice } from "@/components/orders/config";
+import { RefundForm, RefundHistory } from "@/components/refunds";
 import { useOrder } from "@/hooks/useOrder";
 import { useModalStore } from "@/store/modalStore";
-import { RefundForm, RefundHistory } from "@/components/refunds";
-import { formatPrice } from "@/components/orders/config";
-import { Badge, Button, Icon, Separator, Shad } from "@repo/ui";
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
 import { OrderStatus } from "@repo/types";
+import { Button, Icon, Badge, Shad } from "@repo/ui";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { ArrowLeft, Download, RotateCcw } from "lucide-react";
 
 export const Route = createFileRoute("/invoices/$orderId")({
   component: OrderDetailPage,
@@ -35,6 +35,11 @@ const statusConfig: Record<
     color: "bg-emerald-600",
     icon: "CheckCheck",
   },
+  FULLY_REFUNDED: {
+    label: "Fully Refunded",
+    color: "bg-purple-600",
+    icon: "RotateCcw",
+  },
   CANCELLED: { label: "Cancelled", color: "bg-red-500", icon: "XCircle" },
 };
 
@@ -50,7 +55,6 @@ function OrderDetailPage() {
   const { data: order, isLoading, refetch } = useOrder(orderId);
   const { openModal } = useModalStore();
 
-  // Check if order can be refunded
   const canRefund =
     order?.status === OrderStatus.COMPLETED ||
     order?.status === OrderStatus.PAID;
@@ -64,274 +68,176 @@ function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="py-20 text-center text-sm text-muted-foreground">
         <Icon
           name="LoaderCircle"
-          className="w-6 h-6 animate-spin text-primary"
+          className="w-4 h-4 animate-spin inline mr-2"
         />
-        <span className="ml-2 text-muted-foreground">Loading order...</span>
+        Loading invoice…
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Icon name="FileX" className="w-12 h-12 text-muted-foreground mb-4" />
-        <p className="text-lg text-muted-foreground mb-4">Order not found</p>
-        <Link to="/invoices">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Invoices
-          </Button>
-        </Link>
+      <div className="py-20 text-center text-sm text-muted-foreground">
+        Invoice not found
       </div>
     );
   }
 
-  console.log("Order Data:", order.items);
-  const statusCfg = statusConfig[order.status] || statusConfig.DRAFT;
-  const typeCfg = orderTypeConfig[order.type] || orderTypeConfig.RETAIL;
+  const statusCfg = statusConfig[order.status];
+  const typeCfg = orderTypeConfig[order.type];
 
   return (
-    <div className="space-y-6 py-4">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link to="/invoices">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">
-              Order #{order.orderNumber || orderId.slice(0, 8)}
+    <div className="mx-auto px-4 py-6 space-y-6">
+      {/* Navigation */}
+
+      <Link
+        to="/invoices"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Invoices</span>
+      </Link>
+
+      {/* Header Card */}
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold">
+              Order #{order.orderNumber ?? orderId.slice(0, 8)}
             </h1>
-            <Badge className={`${statusCfg?.color} text-white`}>
+            <p className="text-sm text-muted-foreground">
+              {new Date(order.createdAt).toLocaleString()}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`${statusCfg?.color} text-white`}
+            >
               {statusCfg?.label}
             </Badge>
           </div>
-          <p className="text-muted-foreground text-sm mt-1">
-            {new Date(order.createdAt).toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Icon name="Printer" className="w-4 h-4" />
-            Print
-          </Button>
-          {canRefund && (
-            <Button variant="destructive" size="sm" onClick={handleRefund}>
-              <Icon name="RotateCcw" className="w-4 h-4" />
-              Refund
-            </Button>
-          )}
+        {/* Quick Info */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-lg border bg-card p-3">
+            <p className="text-xs text-muted-foreground mb-1">Order Type</p>
+            <div className="flex items-center gap-2">
+              <Icon
+                name={typeCfg?.icon ?? "Info"}
+                className="w-4 h-4 text-primary"
+              />
+              <span className="font-medium">{typeCfg?.label}</span>
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card p-3">
+            <p className="text-xs text-muted-foreground mb-1">Items</p>
+            <span className="text-2xl font-bold">{order?.items?.length}</span>
+          </div>
+          <div className="rounded-lg border bg-card p-3">
+            <p className="text-xs text-muted-foreground mb-1">Total</p>
+            <span className="text-2xl font-bold text-primary">
+              ${formatPrice(Number(order.total))}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Order Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order Info Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Shad.Card>
-              <Shad.CardHeader className="pb-2">
-                <Shad.CardTitle className="text-sm font-medium text-muted-foreground">
-                  Order Type
-                </Shad.CardTitle>
-              </Shad.CardHeader>
-              <Shad.CardContent>
-                <div className="flex items-center gap-2">
-                  <Icon
-                    name={typeCfg?.icon ?? "Info"}
-                    className="w-4 h-4 text-muted-foreground"
-                  />
-                  <span className="font-semibold">{typeCfg?.label}</span>
-                </div>
-              </Shad.CardContent>
-            </Shad.Card>
-
-            <Shad.Card>
-              <Shad.CardHeader className="pb-2">
-                <Shad.CardTitle className="text-sm font-medium text-muted-foreground">
-                  Items
-                </Shad.CardTitle>
-              </Shad.CardHeader>
-              <Shad.CardContent>
-                <span className="text-2xl font-bold">
-                  {order.items?.length || 0}
-                </span>
-              </Shad.CardContent>
-            </Shad.Card>
-
-            <Shad.Card>
-              <Shad.CardHeader className="pb-2">
-                <Shad.CardTitle className="text-sm font-medium text-muted-foreground">
-                  Subtotal
-                </Shad.CardTitle>
-              </Shad.CardHeader>
-              <Shad.CardContent>
-                <span className="text-2xl font-bold">
-                  ${formatPrice(Number(order.subtotal))}
-                </span>
-              </Shad.CardContent>
-            </Shad.Card>
-
-            <Shad.Card>
-              <Shad.CardHeader className="pb-2">
-                <Shad.CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total
-                </Shad.CardTitle>
-              </Shad.CardHeader>
-              <Shad.CardContent>
-                <span className="text-2xl font-bold text-primary">
-                  ${formatPrice(Number(order.total))}
-                </span>
-              </Shad.CardContent>
-            </Shad.Card>
-          </div>
-
-          {/* Customer Info */}
-          {order.customer && (
-            <Shad.Card>
-              <Shad.CardHeader>
-                <Shad.CardTitle className="text-base flex items-center gap-2">
-                  <Icon name="User" className="w-4 h-4" />
-                  Customer
-                </Shad.CardTitle>
-              </Shad.CardHeader>
-              <Shad.CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                    <span className="text-sm font-semibold text-primary">
-                      {order.customer.name?.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium">{order.customer.name}</p>
-                    {order.customer.phone && (
-                      <p className="text-sm text-muted-foreground">
-                        {order.customer.phone}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4">
+          {/* Items Section */}
+          <div className="border rounded-md overflow-hidden">
+            <div className="border-b px-6 py-4 bg-muted/50">
+              <h2 className="font-semibold text-sm flex items-center gap-2">
+                <Icon name="ShoppingCart" className="w-4 h-4" />
+                Order Items
+              </h2>
+            </div>
+            <div className="divide-y">
+              {order?.items?.map((item) => (
+                <div
+                  key={item.id}
+                  className="px-6 py-3 flex items-start justify-between hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-semibold">
+                        {item.product?.name ?? "Unknown"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        SKU: {item.product?.sku || "N/A"}
+                      </span>
+                    </div>
+                    {item.product?.description && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.product.description}
                       </p>
                     )}
                   </div>
-                </div>
-              </Shad.CardContent>
-            </Shad.Card>
-          )}
-
-          {/* Order Items */}
-          <Shad.Card>
-            <Shad.CardHeader>
-              <Shad.CardTitle className="text-base flex items-center gap-2">
-                <Icon name="Package" className="w-4 h-4" />
-                Order Items
-              </Shad.CardTitle>
-            </Shad.CardHeader>
-            <Shad.CardContent>
-              <div className="space-y-3">
-                {order.items?.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between py-3 border-b last:border-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      {item.product?.imageUrl ? (
-                        <img
-                          src={item.product.imageUrl}
-                          alt={item.product.name}
-                          className="w-10 h-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-                          <Icon
-                            name="Package"
-                            className="w-5 h-5 text-muted-foreground"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">
-                          {item.product?.name || "Unknown Product"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          ${formatPrice(Number(item.unitPrice))} ×{" "}
-                          {item.quantity}
-                        </p>
-                        {item.notes && (
-                          <p className="text-xs text-muted-foreground italic">
-                            Note: {item.notes}
-                          </p>
-                        )}
-                      </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">
+                      {item.quantity} × $
+                      {formatPrice(Number(item.unitPrice || 0))}
                     </div>
-                    <span className="font-semibold">
+                    <div className="text-sm font-bold text-primary">
                       ${formatPrice(Number(item.total))}
-                    </span>
+                    </div>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Totals */}
+            <div className="border-t bg-muted/50 px-6 py-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>${formatPrice(Number(order.subtotal))}</span>
               </div>
 
-              <Separator className="my-4" />
-
-              {/* Order Summary */}
-              <div className="space-y-2">
+              {Number(order.discount) > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>${formatPrice(Number(order.subtotal))}</span>
-                </div>
-                {Number(order.discount) > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span className="text-destructive">
-                      -${formatPrice(Number(order.discount))}
-                    </span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="text-primary">
-                    ${formatPrice(Number(order.total))}
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="text-destructive">
+                    -${formatPrice(Number(order.discount))}
                   </span>
                 </div>
+              )}
+
+              <div className="border-t pt-2 flex justify-between font-bold text-base">
+                <span>Total Amount</span>
+                <span className="text-primary font-mono">
+                  ${formatPrice(Number(order.total))}
+                </span>
               </div>
-            </Shad.CardContent>
-          </Shad.Card>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <Button variant="outline" className="gap-2">
+              <Download className="w-4 h-4" />
+              Export PDF
+            </Button>
+            {canRefund && (
+              <Button onClick={handleRefund} className="gap-2">
+                <RotateCcw className="w-4 h-4" />
+                Create Refund
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Right Column - Refund History */}
-        <div className="space-y-6">
-          <Shad.Card>
-            <Shad.CardHeader>
-              <div className="flex items-center justify-between">
-                <Shad.CardTitle className="text-base flex items-center gap-2">
-                  <Icon name="RotateCcw" className="w-4 h-4" />
-                  Refunds
-                </Shad.CardTitle>
-                {canRefund && (
-                  <Button variant="outline" size="sm" onClick={handleRefund}>
-                    <Icon name="Plus" className="w-3 h-3" />
-                    New Refund
-                  </Button>
-                )}
-              </div>
-            </Shad.CardHeader>
-            <Shad.CardContent>
-              <RefundHistory orderId={orderId} />
-            </Shad.CardContent>
-          </Shad.Card>
+        {/* Refund History */}
+        <div className="">
+          <RefundHistory orderId={orderId} />
         </div>
       </div>
     </div>
   );
 }
+
+export default OrderDetailPage;

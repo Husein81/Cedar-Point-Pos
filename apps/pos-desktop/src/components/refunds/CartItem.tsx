@@ -11,11 +11,10 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
   const isDisabled = item.refundableQuantity <= 0;
 
   return (
-    <button
+    <div
       onClick={onToggle}
-      disabled={isDisabled}
       className={cn(
-        "w-full text-left rounded-lg border p-3 transition",
+        "w-full text-left rounded-lg border p-3 transition cursor-pointer",
         "hover:bg-muted/40",
         item.isSelected
           ? "border-destructive/40 bg-destructive/5"
@@ -132,6 +131,6 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 };

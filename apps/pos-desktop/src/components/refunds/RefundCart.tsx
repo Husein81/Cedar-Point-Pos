@@ -1,20 +1,20 @@
 import { useRefundStore } from "@/store/refundStore";
-import { Button, Icon, Separator, Shad, Textarea } from "@repo/ui";
-import { useState, useCallback, useMemo } from "react";
+import { Button, Empty, Icon, Separator, Shad, Textarea } from "@repo/ui";
+import { useState } from "react";
 import { CartItem } from "./CartItem";
 import { RefundConfirmModal } from "./RefundConfirmModal";
 import { RefundHistoryPanel } from "./RefundHistoryPanel";
 import { useCreateRefund } from "@/hooks/useRefund";
+import { OrderHeader } from "./RefundOrderHeader";
 
-interface RefundCartProps {
+type Props = {
   onRefundComplete: () => void;
-}
+};
 
-export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
+export const RefundCart = ({ onRefundComplete }: Props) => {
   const {
     selectedOrderId,
     selectedOrderDetails,
-    selectedOrderLoading,
     selectedOrderError,
     refundCartItems,
     refundReason,
@@ -39,8 +39,7 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
   const selectedItems = getSelectedItems();
   const refundTotal = getRefundTotal();
 
-  // ✅ OPTIMIZED: Memoize callback to prevent unnecessary re-renders
-  const handleProcessRefund = useCallback(async () => {
+  const handleProcessRefund = async () => {
     if (!selectedOrderId || !canProcessRefund()) return;
 
     try {
@@ -57,16 +56,8 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
       onRefundComplete();
     } catch (error: any) {
       console.error("Refund failed:", error);
-      // Error is handled by React Query mutation
     }
-  }, [
-    selectedOrderId,
-    refundReason,
-    selectedItems,
-    canProcessRefund,
-    createRefundMutation,
-    onRefundComplete,
-  ]);
+  };
 
   // ✅ OPTIMIZED: Derive processing state from mutation
   const processStatus = createRefundMutation.isPending
@@ -82,9 +73,6 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
       "Refund failed. Please try again."
     : null;
 
-  // ─────────────────────────────
-  // EMPTY / LOADING / ERROR STATES
-  // ─────────────────────────────
   if (!selectedOrderId) {
     return (
       <div className="flex-1 grid place-items-center bg-muted/10">
@@ -101,17 +89,6 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
               Choose an order on the left to view items and create a refund.
             </p>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (selectedOrderLoading) {
-    return (
-      <div className="flex-1 grid place-items-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Icon name="LoaderCircle" className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Loading order...</span>
         </div>
       </div>
     );
@@ -200,9 +177,10 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
         <Shad.ScrollArea className="h-full">
           <div className="p-4 space-y-2">
             {refundCartItems.length === 0 ? (
-              <div className="h-32 grid place-items-center text-muted-foreground">
-                <span className="text-sm">No items available for refund</span>
-              </div>
+              <Empty
+                title="No refundable items"
+                description="All items in this order have been refunded."
+              />
             ) : (
               refundCartItems.map((item) => (
                 <CartItem
@@ -293,43 +271,3 @@ export const RefundCart = ({ onRefundComplete }: RefundCartProps) => {
     </div>
   );
 };
-
-// ─────────────────────────────
-// Sub Components
-// ─────────────────────────────
-
-interface OrderHeaderProps {
-  orderDetails: {
-    orderNumber: string | null;
-    orderTotal: number;
-    totalRefundable: number;
-  };
-}
-
-const OrderHeader = ({ orderDetails }: OrderHeaderProps) => (
-  <div className="px-4 py-4 border-b bg-background">
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">Order</p>
-        <h2 className="text-lg font-bold">
-          #{orderDetails.orderNumber || "N/A"}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Original:{" "}
-          <span className="font-semibold text-foreground">
-            ${orderDetails.orderTotal.toFixed(2)}
-          </span>
-        </p>
-      </div>
-
-      <div className="rounded-lg border bg-primary/5 border-primary/20 px-3 py-2 text-right">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-          Refundable
-        </p>
-        <p className="text-2xl font-bold text-primary tabular-nums">
-          ${orderDetails.totalRefundable.toFixed(2)}
-        </p>
-      </div>
-    </div>
-  </div>
-);

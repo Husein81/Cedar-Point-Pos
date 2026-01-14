@@ -5,16 +5,26 @@ import { Calendar } from "../components/calendar";
 
 type Props = {
   open?: boolean;
-  onOpenChange?: (open: boolean) => void;
   date?: Date;
+  label?: string;
+  onOpenChange?: (open: boolean) => void;
   onDateChange?: (date?: Date) => void;
 };
-export function DatePicker({ open, onDateChange, onOpenChange, date }: Props) {
+
+export function DatePicker({
+  open,
+  label,
+  date,
+  onDateChange,
+  onOpenChange,
+}: Props) {
   return (
     <div className="flex flex-col gap-3">
-      <Label htmlFor="date" className="px-1">
-        Date of birth
-      </Label>
+      {label && (
+        <Label htmlFor="date" className="px-1">
+          {label}
+        </Label>
+      )}
       <Shad.Popover open={open} onOpenChange={onOpenChange}>
         <Shad.PopoverTrigger asChild>
           <SButton

@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { OrderTabs } from "@/components/orders/OrderTabs";
 import { ProductGrid } from "@/components/orders/ProductGrid";
 import { OrderCart } from "@/components/orders/OrderCart";
-import { OrderSummary } from "@/components/orders/OrderSummary";
 import { Separator } from "@repo/ui";
 
 export const Route = createFileRoute("/orders/")({
@@ -24,17 +23,9 @@ function OrderPage() {
 
         <Separator orientation="vertical" className="hidden md:block" />
 
-        {/* Right: Cart & Summary - fixed width panel */}
-        <div className="w-full md:w-112.5 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
-          {/* Cart items - scrollable */}
-          <div className="flex-1 min-h-0 p-4 overflow-hidden">
-            <OrderCart className="h-full" />
-          </div>
-          {/* Summary - always visible */}
-          <Separator />
-          <div className="shrink-0 p-4 bg-muted/20">
-            <OrderSummary />
-          </div>
+        {/* Right: Cart Panel - fixed width, contains inline keypad */}
+        <div className="w-full md:w-96 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
+          <OrderCart className="h-full" />
         </div>
       </div>
     </div>

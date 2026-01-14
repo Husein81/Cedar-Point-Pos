@@ -1,64 +1,82 @@
 import { Icon, Shad } from "@repo/ui";
 import { useRefundStore } from "@/store/refundStore";
 import { format } from "date-fns";
+import { useState } from "react";
 
-/**
- * Collapsible panel showing refund history for the selected order
- */
 export const RefundHistoryPanel = () => {
   const { refundHistory, refundHistoryLoading } = useRefundStore();
+  const [toggle, setToggle] = useState(false);
 
   if (refundHistoryLoading) {
     return (
-      <div className="px-4 py-2 border-t bg-muted/30">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="px-4 py-3 border-t bg-muted/40">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <Icon name="LoaderCircle" className="w-4 h-4 animate-spin" />
-          Loading refund history...
+          Fetching refund history…
         </div>
       </div>
     );
   }
 
-  if (refundHistory.length === 0) return null;
-
   return (
     <Shad.Collapsible className="border-t">
-      <Shad.CollapsibleTrigger className="w-full px-4 py-2 flex items-center justify-between bg-orange-50 hover:bg-orange-100 transition-colors">
-        <div className="flex items-center gap-2">
-          <Icon name="History" className="w-4 h-4 text-orange-600" />
-          <span className="text-sm font-medium text-orange-700">
-            Previous Refunds ({refundHistory.length})
+      {/* Header */}
+      <Shad.CollapsibleTrigger
+        onClick={() => setToggle(!toggle)}
+        className="w-full px-4 py-3 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Icon name="RotateCcw" className="w-4 h-4 text-slate-600" />
+          <span className="text-sm font-semibold text-slate-800">
+            Refund History
+          </span>
+
+          <span className="px-2 py-0.5 text-xs rounded-full bg-slate-200 text-slate-700 font-medium">
+            {refundHistory.length}
           </span>
         </div>
         <Icon
-          name="ChevronDown"
-          className="w-4 h-4 text-orange-600 transition-transform [[data-state=open]>&]:rotate-180"
+          name={toggle ? "ChevronUp" : "ChevronDown"}
+          className="w-4 h-4 text-slate-600 transition-transform "
         />
       </Shad.CollapsibleTrigger>
 
-      <Shad.CollapsibleContent className="px-4 py-2 bg-orange-50/50 space-y-2">
+      {/* Content */}
+      <Shad.CollapsibleContent className="bg-slate-50/50 px-4 py-3 space-y-3">
         {refundHistory.map((refund) => (
           <div
             key={refund.id}
-            className="p-2 bg-background rounded-md border border-orange-200 text-sm"
+            className="
+              rounded-lg border border-slate-200
+              bg-background p-3
+              shadow-sm
+            "
           >
+            {/* Top row */}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">
-                {format(new Date(refund.refundedAt), "MMM d, yyyy h:mm a")}
-              </span>
-              <span className="font-semibold text-orange-700">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Icon name="Clock" className="w-3.5 h-3.5" />
+                {format(new Date(refund.refundedAt), "MMM d, yyyy • h:mm a")}
+              </div>
+
+              <div className="text-sm font-bold text-indigo-600">
                 ${refund.totalAmount.toFixed(2)}
-              </span>
+              </div>
             </div>
+
+            {/* Reason */}
             {refund.reason && (
-              <p className="text-xs text-muted-foreground mt-1 italic">
-                "{refund.reason}"
-              </p>
+              <div className="mt-2 text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded-md px-2 py-1">
+                Reason: {refund.reason}
+              </div>
             )}
-            <span className="text-xs text-muted-foreground">
-              {refund.itemCount} item{refund.itemCount !== 1 ? "s" : ""}{" "}
-              refunded
-            </span>
+
+            {/* Footer */}
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Icon name="PackageMinus" className="w-3.5 h-3.5" />
+              {refund.itemCount} item
+              {refund.itemCount !== 1 ? "s" : ""} refunded
+            </div>
           </div>
         ))}
       </Shad.CollapsibleContent>

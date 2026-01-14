@@ -1,26 +1,26 @@
 import { Button, cn, Icon } from "@repo/ui";
 import { useRef, useState } from "react";
 import { KEYPAD_CONFIG, KeypadContext } from "./config";
-import { useModalStore } from "@/store/modalStore";
 
 type NumericKeypadProps = {
   currentValue: number;
-  onConfirm: (value: number) => void;
-  context: KeypadContext;
-  onPermissionRequired?: (context: KeypadContext) => Promise<boolean>;
   discountType?: "PERCENTAGE" | "FIXED";
+  context: KeypadContext;
+  onConfirm: (value: number) => void;
+  onClose: () => void; // Replaces modal close with generic close handler
+  onPermissionRequired?: (context: KeypadContext) => Promise<boolean>;
   onDiscountTypeChange?: (type: "PERCENTAGE" | "FIXED") => void;
 };
 
 export const NumericKeypad = ({
   currentValue,
-  onConfirm,
   context,
-  onPermissionRequired,
   discountType,
+  onConfirm,
+  onClose,
+  onPermissionRequired,
   onDiscountTypeChange,
 }: NumericKeypadProps) => {
-  const { closeModal } = useModalStore();
   const config = KEYPAD_CONFIG[context];
 
   const [stringValue, setStringValue] = useState(String(currentValue));
@@ -68,7 +68,7 @@ export const NumericKeypad = ({
     }
 
     onConfirm(value);
-    closeModal();
+    onClose(); // Use generic close handler instead of closeModal
   };
 
   const isValid =
@@ -121,12 +121,12 @@ export const NumericKeypad = ({
       )}
 
       {/* Keypad */}
-      <div className="grid grid-cols-3 gap-1.5 mt-3">
+      <div className="grid grid-cols-3 gap-2 mt-3">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <Button
             key={n}
             variant="outline"
-            className="h-9 text-lg"
+            className="h-9 text-lg rounded-sm"
             onClick={() => handleDigit(n)}
           >
             {n}
@@ -163,7 +163,7 @@ export const NumericKeypad = ({
         <Button
           variant="outline"
           className="flex-1 h-8 text-xs"
-          onClick={closeModal}
+          onClick={onClose}
         >
           Close
         </Button>

@@ -338,7 +338,7 @@ export class RefundsService {
             }
 
             // Create refund record
-            return await tx.refund.create({
+            const refund = await tx.refund.create({
               data: {
                 orderId,
                 reason: reason || null,
@@ -350,6 +350,24 @@ export class RefundsService {
               },
               include: { refundItems: true },
             });
+
+            // ✅ Performance: Check if order is now fully refunded
+            // Only runs if refund was created successfully
+            const isFullyRefunded = await this.isOrderFullyRefunded(
+              tx,
+              orderId,
+            );
+
+            // ✅ Clean Code: Update order status if fully refunded
+            // This happens within the same transaction for consistency
+            if (isFullyRefunded) {
+              await tx.order.update({
+                where: { id: orderId },
+                data: { status: OrderStatus.FULLY_REFUNDED },
+              });
+            }
+
+            return refund;
           },
           {
             maxWait: 5000,
@@ -505,5 +523,60 @@ export class RefundsService {
         new Prisma.Decimal(r._sum.quantity ?? 0),
       ]),
     );
+  }
+
+  /**
+   * ✅ PERFORMANCE: Check if order is fully refunded
+   * Uses aggregation query (single DB call) instead of fetching all items
+   * Returns true only if ALL items have been fully refunded
+   */
+  private async isOrderFullyRefunded(
+    tx: Prisma.TransactionClient | undefined,
+    orderId: string,
+  ): Promise<boolean> {
+    const client = tx ?? this.prisma;
+
+    // Get order with item quantities
+    const order = await client.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+
+    if (!order || order.items.length === 0) return false;
+
+    // Get total refunded quantity per item in single query
+    const refundedItems = await client.refundItem.groupBy({
+      by: ['orderItemId'],
+      where: {
+        orderItem: {
+          orderId,
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+    });
+
+    const refundedMap = new Map(
+      refundedItems.map((r) => [
+        r.orderItemId,
+        new Prisma.Decimal(r._sum.quantity ?? 0),
+      ]),
+    );
+
+    // Check if every item is fully refunded
+    return order.items.every((item) => {
+      const refundedQty = refundedMap.get(item.id) ?? new Prisma.Decimal(0);
+      const originalQty = new Prisma.Decimal(item.quantity);
+      return refundedQty.equals(originalQty);
+    });
   }
 }

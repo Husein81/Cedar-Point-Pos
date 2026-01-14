@@ -136,17 +136,47 @@ export class OrdersService {
         const product = map.get(item.productId);
         if (!product) throw new BadRequestException('Product not found');
 
-        const lineSubtotal = Number(product.price) * item.quantity;
+        // Use override price or product price
+        const unitPrice =
+          'unitPrice' in item && typeof item.unitPrice === 'number'
+            ? item.unitPrice
+            : Number(product.price);
+        let lineSubtotal = unitPrice * item.quantity;
+
+        // Apply item-level discount if present
+        const discount =
+          'discount' in item && item.discount !== null ? item.discount : null;
+        if (
+          discount &&
+          typeof discount === 'object' &&
+          'type' in discount &&
+          'value' in discount
+        ) {
+          const discountAmount =
+            discount.type === 'PERCENTAGE'
+              ? (lineSubtotal * Number(discount.value)) / 100
+              : Number(discount.value);
+          lineSubtotal -= discountAmount;
+        }
 
         subtotal += lineSubtotal;
+
+        const discountValue =
+          discount && typeof discount === 'object'
+            ? {
+                type: (discount as Record<string, unknown>).type as string,
+                value: (discount as Record<string, unknown>).value as number,
+              }
+            : undefined;
 
         orderItems.push({
           product: { connect: { id: product.id } },
           quantity: new Prisma.Decimal(item.quantity),
-          unitPrice: new Prisma.Decimal(product.price || 0),
+          unitPrice: new Prisma.Decimal(unitPrice),
           subtotal: new Prisma.Decimal(lineSubtotal),
           total: new Prisma.Decimal(lineSubtotal),
           notes: item.notes,
+          discount: discountValue,
         });
       }
     }

@@ -11,6 +11,11 @@ import { api } from "./api";
 export interface CreateOrderItemDto {
   productId: string;
   quantity: number;
+  unitPrice?: number; // Override product price
+  discount?: {
+    value: number;
+    type: "PERCENTAGE" | "FIXED";
+  }; // Item-level discount
   notes?: string;
   modifiers?: string[]; // Array of modifier IDs
 }

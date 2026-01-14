@@ -13,9 +13,10 @@ import {
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
-import { BusinessType, OrderType } from "@repo/types";
+import { BusinessType, OrderType, PaymentMethod } from "@repo/types";
 import type { CreateOrderDto } from "@/apis/ordersApi";
 import { PaymentForm } from "@/components/orders/PaymentForm";
+import { OrderStatus } from "@repo/types";
 
 export const InlineKeypad = () => {
   const navigate = useNavigate();
@@ -38,7 +39,6 @@ export const InlineKeypad = () => {
 
   const {
     getActiveOrder,
-    getOrderTotal,
     getDiscountAmount,
     setOrderStatus,
     clearOrder,
@@ -50,11 +50,8 @@ export const InlineKeypad = () => {
   const subtotalAfterItemDiscounts = getOrderSubtotal();
   const orderDiscount = getDiscountAmount();
 
-  const taxRate = 0.11; // 11% tax rate - should come from settings
-  const taxes = (subtotalAfterItemDiscounts - orderDiscount) * taxRate;
   const shippingFee = order?.shippingFee || 0;
-  const total =
-    subtotalAfterItemDiscounts - orderDiscount + taxes + shippingFee;
+  const total = subtotalAfterItemDiscounts - orderDiscount + shippingFee;
 
   const { clearCart } = useCartStore();
   const { user } = useAuthStore();
@@ -214,18 +211,8 @@ export const InlineKeypad = () => {
   const handleContextSwitch = (newContext: KeypadContext) => {
     if (newContext === context) return;
     setIsTyping(false);
-
-    // Switch context - the store will auto-load the correct value
     switchContext(newContext);
   };
-
-  //   const handleDiscountTypeToggle = (type: "PERCENTAGE" | "FIXED") => {
-  //     if (discountType === type) return;
-
-  //     updateDiscountType(type);
-  //     setStringValue("0");
-  //     setIsTyping(false);
-  //   };
 
   const handleOpenModal = () => {
     openModal(
@@ -244,80 +231,77 @@ export const InlineKeypad = () => {
   };
 
   const handlePaymentConfirm = async (
-    method: string,
+    method: PaymentMethod,
     _amountTendered: number
   ) => {
     if (isProcessing) return;
+
     setIsProcessing(true);
 
     try {
       const order = getActiveOrder();
-      if (!order || !order.items.length || !branchId || !user?.tenantId) {
+
+      clearOrder();
+      clearCart();
+
+      closeKeypad();
+      if (activeTabId) closeTab(activeTabId);
+      closeModal();
+
+      if (!order || order.items.length === 0 || !branchId || !user?.tenantId) {
         throw new Error("Missing order or required data");
       }
 
-      const total = getOrderTotal();
       if (total <= 0) {
         throw new Error("Order total must be greater than 0");
       }
 
-      // Build the order DTO
-      const discount = getDiscountAmount();
-      const type =
-        order.type ||
-        (user.tenant?.businessType === BusinessType.RETAIL
+      const businessType = user.tenant?.businessType;
+
+      const orderType =
+        order.type ??
+        (businessType === BusinessType.RETAIL
           ? OrderType.RETAIL
           : OrderType.DINE_IN);
 
+      const discountAmount = getDiscountAmount();
+
+      const items = order.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        discount: item.discount,
+        notes: item.notes,
+      }));
+
       const createOrderDto: CreateOrderDto = {
         branchId,
-        type,
+        type: orderType,
         customerId: order.customerId || undefined,
-        items: order.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          notes: item.notes,
-        })),
-        discount: discount > 0 ? discount : undefined,
+        items,
+        ...(discountAmount > 0 && { discount: discountAmount }),
       };
 
-      // Create the order
       const createdOrder =
         await createOrderMutation.mutateAsync(createOrderDto);
 
-      // For CASH payments, amountTendered is what customer pays, but we need to charge the total
-      // For other methods, amountTendered should equal total
-      const paymentAmount = total;
-
-      // Process payment with the total amount to charge
-      // For RETAIL: This automatically changes status to PAID
-      // For RESTAURANT: Additional transitions may be needed
       const paidOrder = await processPaymentMutation.mutateAsync({
         id: createdOrder.id,
-        amount: paymentAmount,
-        method: method as any,
+        amount: total,
+        method,
       });
 
-      // For RETAIL orders, after payment it goes to PAID, then we can complete it
-      if (type === OrderType.RETAIL && paidOrder.status === "PAID") {
+      if (
+        orderType === OrderType.RETAIL &&
+        paidOrder.status === OrderStatus.PAID
+      ) {
         await updateOrderStatusMutation.mutateAsync({
           id: createdOrder.id,
-          status: "COMPLETED",
+          status: OrderStatus.COMPLETED,
         });
       }
 
-      // Clear the order and cart
-      setOrderStatus("COMPLETED");
-      clearOrder();
-      clearCart();
-
-      // Close the keypad and tab
-      closeKeypad();
-      if (activeTabId) closeTab(activeTabId);
-
-      // Close modal
-      closeModal();
-
+      setOrderStatus(OrderStatus.COMPLETED);
     } catch (error) {
       console.error("Payment failed:", error);
     } finally {
@@ -461,6 +445,7 @@ export const InlineKeypad = () => {
         <Button
           className="w-full rounded-xs"
           disabled={!validate()}
+          isSubmitting={isProcessing}
           onClick={handlePay}
         >
           Pay

@@ -12,9 +12,12 @@ import {
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
-import { BusinessType, OrderType, PaymentMethod } from "@repo/types";
+import { BusinessType, OrderType } from "@repo/types";
 import type { CreateOrderDto } from "@/apis/ordersApi";
-import { PaymentForm } from "@/components/orders/PaymentForm";
+import {
+  PaymentForm,
+  type PaymentEntry,
+} from "@/components/orders/PaymentForm";
 import { OrderStatus } from "@repo/types";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
@@ -231,11 +234,8 @@ export const InlineKeypad = () => {
     );
   };
 
-  const handlePaymentConfirm = async (
-    method: PaymentMethod,
-    _amountTendered: number
-  ) => {
-    if (isProcessing) return;
+  const handlePaymentConfirm = async (payments: PaymentEntry[]) => {
+    if (isProcessing || payments.length === 0) return;
 
     setIsProcessing(true);
 
@@ -277,20 +277,36 @@ export const InlineKeypad = () => {
 
       const created = await createOrder.mutateAsync(dto);
 
-      const paid = await processPayment.mutateAsync({
+      // Process each payment sequentially
+      for (const payment of payments) {
+        await processPayment.mutateAsync({
+          id: created.id,
+          amount: payment.amount,
+          method: payment.method,
+          currencyCode: payment.currencyCode,
+          exchangeRate: payment.exchangeRate,
+        });
+      }
+
+      // Mark order as PAID
+      await updateOrderStatus.mutateAsync({
         id: created.id,
-        amount: total,
-        method,
+        status: OrderStatus.PAID,
       });
 
-      if (orderType === OrderType.RETAIL && paid.status === OrderStatus.PAID) {
+      // Only RETAIL orders are marked as COMPLETED immediately
+      if (orderType === OrderType.RETAIL) {
         await updateOrderStatus.mutateAsync({
           id: created.id,
           status: OrderStatus.COMPLETED,
         });
+        setOrderStatus(OrderStatus.COMPLETED);
+      } else {
+        setOrderStatus(OrderStatus.PAID);
       }
 
-      setOrderStatus(OrderStatus.COMPLETED);
+      clearOrder();
+      if (activeTabId) closeTab(activeTabId);
     } catch (error) {
       console.error("Payment failed:", error);
     } finally {

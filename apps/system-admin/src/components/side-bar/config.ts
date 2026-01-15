@@ -37,6 +37,12 @@ export const sidebarSections: SidebarSection[] = [
         href: "/users",
         tooltip: "Manage Users",
       },
+      {
+        label: "Currencies",
+        icon: "Coins",
+        href: "/currencies",
+        tooltip: "Manage Currencies",
+      },
     ],
   },
   {

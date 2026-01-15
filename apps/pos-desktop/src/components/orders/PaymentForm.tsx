@@ -1,19 +1,24 @@
 import { Button, Icon, Input, Separator, Shad, Badge } from "@repo/ui";
 import { cn } from "@repo/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PaymentMethod } from "@repo/types";
 import { formatPrice, generateQuickCashAmounts } from "./config";
 import { useModalStore } from "@/store/modalStore";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
 
+// Payment entry for split payments
+export type PaymentEntry = {
+  id: string;
+  method: PaymentMethod;
+  amount: number;
+  currencyCode: string;
+  exchangeRate: number;
+  amountInBase: number;
+};
+
 type Props = {
   total: number;
-  onConfirm: (
-    method: PaymentMethod,
-    amountTendered: number,
-    currencyCode?: string,
-    exchangeRate?: number
-  ) => void;
+  onConfirm: (payments: PaymentEntry[]) => void;
 };
 
 const PAYMENT_METHODS: {
@@ -31,19 +36,20 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   const { closeModal } = useModalStore();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
-  const [amountTendered, setAmountTendered] = useState<number>(total);
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
+  const [givenAmount, setGivenAmount] = useState<string>("");
+  const [payments, setPayments] = useState<PaymentEntry[]>([]);
 
   // Fetch active currencies for payment
   const { data: activeCurrencies = [], isLoading: isLoadingCurrencies } =
     useActiveTenantCurrencies();
 
-  // Find the base/default currency
+  // ===== CURRENCY HELPERS =====
+
   const baseCurrency = useMemo(() => {
     return activeCurrencies.find((c) => c.isDefault) || activeCurrencies[0];
   }, [activeCurrencies]);
 
-  // Selected currency details
   const selectedCurrency = useMemo(() => {
     if (!selectedCurrencyCode) return baseCurrency;
     return activeCurrencies.find(
@@ -51,7 +57,6 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
     );
   }, [activeCurrencies, selectedCurrencyCode, baseCurrency]);
 
-  // Calculate exchange rate safely
   const exchangeRate = useMemo(() => {
     if (
       !selectedCurrency ||
@@ -64,212 +69,346 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
     return isNaN(rate) ? 1 : rate;
   }, [selectedCurrency]);
 
-  const totalInCurrency = total * exchangeRate;
+  const currencySymbol = useMemo(() => {
+    return (
+      selectedCurrency?.currency?.symbol ||
+      selectedCurrency?.currencyCode ||
+      "$"
+    );
+  }, [selectedCurrency]);
 
-  // Reset when modal opens / total changes
-  useEffect(() => {
-    setSelectedMethod("CASH");
-    setAmountTendered(total);
-    if (baseCurrency) {
-      setSelectedCurrencyCode(baseCurrency.currencyCode);
-    }
-  }, [total, baseCurrency]);
-
-  const quickAmounts = useMemo(
-    () => generateQuickCashAmounts(totalInCurrency),
-    [totalInCurrency]
+  const getCurrencySymbol = useCallback(
+    (code: string) => {
+      const currency = activeCurrencies.find((c) => c.currencyCode === code);
+      return currency?.currency?.symbol || code;
+    },
+    [activeCurrencies]
   );
 
-  const changeDue =
-    selectedMethod === "CASH"
-      ? Math.max(0, amountTendered - totalInCurrency)
-      : 0;
+  // ===== PAYMENT CALCULATIONS =====
 
-  const isValid =
-    selectedMethod !== "CASH" || amountTendered >= totalInCurrency;
+  // Total paid so far (in base currency)
+  const totalPaidInBase = useMemo(() => {
+    return payments.reduce((sum, p) => sum + p.amountInBase, 0);
+  }, [payments]);
 
-  // The actual amount to be paid (accounting truth, always totalInCurrency regardless of UI convenience inputs)
-  const finalPaidAmount = totalInCurrency;
+  // Remaining to pay (in base currency)
+  const remainingInBase = Math.max(0, total - totalPaidInBase);
+
+  // Remaining displayed in current currency
+  const remainingInCurrency = remainingInBase * exchangeRate;
+
+  // Parse given amount
+  const givenValue = parseFloat(givenAmount) || 0;
+
+  // How much applies (capped at remaining)
+  const appliedInCurrency = Math.min(givenValue, remainingInCurrency);
+  const appliedInBase = appliedInCurrency / exchangeRate;
+
+  // Change in the currency entered
+  const changeInCurrency = Math.max(0, givenValue - remainingInCurrency);
+
+  // Is fully paid?
+  const isFullyPaid = Math.abs(remainingInBase) < 0.01;
+
+  // Quick amounts based on remaining
+  const quickAmounts = useMemo(
+    () => generateQuickCashAmounts(remainingInCurrency),
+    [remainingInCurrency]
+  );
+
+  // ===== EFFECTS =====
+
+  // Initialize currency when available
+  useEffect(() => {
+    if (baseCurrency && !selectedCurrencyCode) {
+      setSelectedCurrencyCode(baseCurrency.currencyCode);
+    }
+  }, [baseCurrency, selectedCurrencyCode]);
+
+  // Reset form when total changes
+  useEffect(() => {
+    setSelectedMethod("CASH");
+    setPayments([]);
+    setGivenAmount("");
+  }, [total]);
+
+  // Pre-fill when currency changes
+  useEffect(() => {
+    if (!isFullyPaid) {
+      setGivenAmount(remainingInCurrency.toFixed(2).replace(/\.00$/, ""));
+    }
+  }, [selectedCurrencyCode]);
+
+  // ===== HANDLERS =====
+
+  const handleAddPayment = () => {
+    if (givenValue <= 0 || isFullyPaid) return;
+
+    const newPayment: PaymentEntry = {
+      id: crypto.randomUUID(),
+      method: selectedMethod,
+      amount: appliedInCurrency,
+      currencyCode: selectedCurrency?.currencyCode || "USD",
+      exchangeRate: exchangeRate,
+      amountInBase: appliedInBase,
+    };
+
+    setPayments((prev) => [...prev, newPayment]);
+    setGivenAmount("");
+  };
+
+  const handleRemovePayment = (id: string) => {
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handlePayFull = () => {
+    if (remainingInBase <= 0) return;
+
+    const newPayment: PaymentEntry = {
+      id: crypto.randomUUID(),
+      method: selectedMethod,
+      amount: remainingInCurrency,
+      currencyCode: selectedCurrency?.currencyCode || "USD",
+      exchangeRate: exchangeRate,
+      amountInBase: remainingInBase,
+    };
+
+    setPayments((prev) => [...prev, newPayment]);
+    setGivenAmount("");
+  };
 
   const handleConfirm = () => {
-    if (!isValid) return;
-    onConfirm(
-      selectedMethod,
-      finalPaidAmount,
-      selectedCurrency?.currencyCode,
-      exchangeRate
-    );
+    if (!isFullyPaid || payments.length === 0) return;
+    onConfirm(payments);
     closeModal();
   };
 
-  // Get currency symbol for display
-  const currencySymbol = useMemo(() => {
-    return selectedCurrency?.currencyCode || "$";
-  }, [selectedCurrency]);
+  // ===== LOADING STATE =====
 
-  // Guard against empty or loading state - NOW AFTER ALL HOOKS
   if (isLoadingCurrencies && activeCurrencies.length === 0) {
     return (
-      <div className="sm:max-w-md p-4 text-center">
-        <p className="text-muted-foreground">Loading currency information...</p>
+      <div className="sm:max-w-lg p-4 text-center">
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="sm:max-w-md flex flex-col gap-5">
-      {/* TOTAL */}
-      <div className="space-y-5 pt-4">
-        {/* Total */}
-        <div className="text-center py-4 bg-muted/30 rounded-lg">
-          <p className="text-sm text-muted-foreground">Total Due (Base)</p>
-          <p className="text-4xl font-bold text-primary">
-            ${formatPrice(total)}
-          </p>
-          {selectedCurrency && !selectedCurrency.isDefault && (
-            <p className="text-lg text-muted-foreground mt-1">
-              ≈ {currencySymbol} {formatPrice(totalInCurrency)}
+    <div className="sm:max-w-lg">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+          <Icon name="CreditCard" className="w-5 h-5 text-primary" />
+        </div>
+        <Shad.DialogTitle>Payment</Shad.DialogTitle>
+      </div>
+
+      <div className="space-y-4 pt-4">
+        {/* ===== SUMMARY CARDS ===== */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Total */}
+          <div className="text-center py-3 bg-muted/30 rounded-lg">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              Total
             </p>
-          )}
+            <p className="text-2xl font-bold">${formatPrice(total)}</p>
+          </div>
+
+          {/* Remaining */}
+          <div
+            className={cn(
+              "text-center py-3 rounded-lg transition-colors",
+              isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10"
+            )}
+          >
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              Remaining
+            </p>
+            <p
+              className={cn(
+                "text-2xl font-bold",
+                isFullyPaid ? "text-green-600" : "text-orange-600"
+              )}
+            >
+              {isFullyPaid ? (
+                <span className="flex items-center justify-center gap-1">
+                  <Icon name="Check" className="w-5 h-5" />
+                  Paid
+                </span>
+              ) : (
+                <>
+                  {currencySymbol}
+                  {formatPrice(remainingInCurrency)}
+                </>
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Currency Selection */}
-        {activeCurrencies.length > 1 && (
+        {/* ===== PAYMENTS ADDED ===== */}
+        {payments.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Payment Currency
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {activeCurrencies.map((currency) => (
-                <Button
-                  key={currency.currencyCode}
-                  variant={
-                    selectedCurrencyCode === currency.currencyCode
-                      ? "default"
-                      : "outline"
-                  }
-                  className="flex flex-col gap-1 h-auto py-2"
-                  onClick={() => {
-                    setSelectedCurrencyCode(currency.currencyCode);
-                    // Reset amount tendered to new currency total
-                    const newRate = parseFloat(
-                      currency.exchangeRate?.toString() || "1"
-                    );
-                    setAmountTendered(total * newRate);
-                  }}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">
+                Payments
+              </span>
+              <Badge variant="secondary" className="text-xs">
+                {payments.length}
+              </Badge>
+            </div>
+            <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
+              {payments.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
                 >
-                  <span className="text-sm font-medium">
-                    {currency.currency?.symbol || currency.currencyCode}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {currency.currencyCode}
-                  </span>
-                  {currency.isDefault && (
-                    <Badge variant="secondary" className="text-xs mt-1">
-                      Base
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {p.method}
                     </Badge>
-                  )}
-                </Button>
+                    <span className="font-mono text-sm font-medium">
+                      {getCurrencySymbol(p.currencyCode)}{" "}
+                      {formatPrice(p.amount)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemovePayment(p.id)}
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Icon name="X" className="w-3 h-3" />
+                  </Button>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Payment Method */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">
-            Payment Method
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_METHODS.map((method) => (
-              <Button
-                key={method.value}
-                variant={
-                  selectedMethod === method.value ? "default" : "outline"
-                }
-                className="flex flex-col gap-1 h-auto py-3"
-                onClick={() => setSelectedMethod(method.value)}
-              >
-                <Icon name={method.icon} className="w-5 h-5" />
-                <span className="text-xs">{method.label}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Cash Flow */}
-        {selectedMethod === "CASH" && (
+        {/* ===== ADD PAYMENT SECTION ===== */}
+        {!isFullyPaid && (
           <>
             <Separator />
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-muted-foreground">
-                Amount Tendered ({selectedCurrency?.currencyCode || "USD"})
-              </label>
+            {/* Currency Toggle */}
+            {activeCurrencies.length > 1 && (
+              <div className="flex gap-2">
+                {activeCurrencies.map((currency) => (
+                  <Button
+                    key={currency.currencyCode}
+                    variant={
+                      selectedCurrencyCode === currency.currencyCode
+                        ? "default"
+                        : "outline"
+                    }
+                    size="lg"
+                    className="flex-1 text-lg font-bold"
+                    onClick={() =>
+                      setSelectedCurrencyCode(currency.currencyCode)
+                    }
+                  >
+                    {currency.currency?.symbol || currency.currencyCode}
+                  </Button>
+                ))}
+              </div>
+            )}
 
+            {/* Payment Method */}
+            <div className="grid grid-cols-4 gap-2">
+              {PAYMENT_METHODS.map((method) => (
+                <Button
+                  key={method.value}
+                  variant={
+                    selectedMethod === method.value ? "default" : "outline"
+                  }
+                  className="flex flex-col gap-0.5 h-auto py-2"
+                  size="sm"
+                  onClick={() => setSelectedMethod(method.value)}
+                >
+                  <Icon name={method.icon} className="w-4 h-4" />
+                  <span className="text-xs">{method.label}</span>
+                </Button>
+              ))}
+            </div>
+
+            {/* Given Amount Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Given
+              </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium text-muted-foreground">
                   {currencySymbol}
                 </span>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   min={0}
-                  value={amountTendered}
-                  onChange={(e) =>
-                    setAmountTendered(Math.max(0, Number(e.target.value) || 0))
-                  }
-                  className="pl-7 text-xl font-semibold h-12 text-center"
+                  value={givenAmount}
+                  onChange={(e) => setGivenAmount(e.target.value)}
+                  placeholder={formatPrice(remainingInCurrency)}
+                  className="pl-10 text-xl font-bold h-12"
                   autoFocus
                 />
               </div>
 
-              {/* Quick amounts */}
-              <div className="grid grid-cols-4 gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setAmountTendered(totalInCurrency)}
-                  className="text-xs"
-                >
-                  Exact
-                </Button>
-
-                {quickAmounts.map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAmountTendered(amount)}
-                    className="text-xs"
-                  >
-                    {currencySymbol}
-                    {formatPrice(amount)}
-                  </Button>
-                ))}
-              </div>
+              {/* Quick Amount Buttons */}
+              {selectedMethod === "CASH" && quickAmounts.length > 0 && (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {quickAmounts.slice(0, 4).map((amount) => (
+                    <Button
+                      key={amount}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGivenAmount(amount.toString())}
+                      className="text-xs font-mono"
+                    >
+                      {currencySymbol}
+                      {formatPrice(amount)}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Separator />
+            {/* Change Due */}
+            {selectedMethod === "CASH" && changeInCurrency > 0.01 && (
+              <div className="flex items-center justify-between py-3 px-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                <span className="text-sm font-medium">Change</span>
+                <span className="text-xl font-bold text-green-600">
+                  {currencySymbol}
+                  {formatPrice(changeInCurrency)}
+                </span>
+              </div>
+            )}
 
-            {/* Change */}
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm font-medium">
-                Change Due ({selectedCurrency?.currencyCode || "USD"})
-              </span>
-              <span
-                className={cn(
-                  "text-2xl font-bold",
-                  changeDue > 0 ? "text-green-600" : "text-muted-foreground"
-                )}
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleAddPayment}
+                disabled={givenValue <= 0}
+                className="flex-1"
               >
-                {currencySymbol} {formatPrice(changeDue)}
-              </span>
+                <Icon name="Plus" className="w-4 h-4" />
+                Add
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handlePayFull}
+                disabled={remainingInBase <= 0}
+                className="flex-1"
+              >
+                <Icon name="Zap" className="w-4 h-4" />
+                Full
+              </Button>
             </div>
           </>
         )}
       </div>
 
-      {/* Actions */}
+      {/* ===== FOOTER ACTIONS ===== */}
       <div className="flex pt-4 gap-2">
         <Button variant="outline" type="button" onClick={closeModal}>
           Cancel
@@ -277,13 +416,11 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
 
         <Button
           onClick={handleConfirm}
-          disabled={!isValid || isLoadingCurrencies}
-          className="min-w-32"
+          disabled={!isFullyPaid || payments.length === 0}
+          className="flex-1 h-11 text-base"
         >
-          <Icon name="Check" className="w-4 h-4" />
-          {selectedMethod === "CASH"
-            ? `Pay ${currencySymbol}${formatPrice(totalInCurrency)}`
-            : "Process Payment"}
+          <Icon name="Check" className="w-5 h-5" />
+          {isFullyPaid ? "Complete" : "Add Payment"}
         </Button>
       </div>
     </div>

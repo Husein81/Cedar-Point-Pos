@@ -28,7 +28,20 @@ const orderTypeConfig = {
   RETAIL: { label: "Retail", icon: "Store" },
 };
 
-export const invoiceColumns: ColumnDef<Order>[] = [
+export type InvoiceColumnCallbacks = {
+  onViewOrder: (order: Order) => void;
+  onPrintInvoice: (order: Order) => void;
+};
+
+type Action = {
+  title: string;
+  icon: string;
+  onClick: () => void;
+  className?: string;
+};
+export const createInvoiceColumns = (
+  callbacks: InvoiceColumnCallbacks
+): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
@@ -140,9 +153,7 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
       const navigate = useNavigate();
-      // eslint-disable-next-line react-hooks/rules-of-hooks
       const { openModal } = useModalStore();
 
       const order = row.original;
@@ -154,19 +165,25 @@ export const invoiceColumns: ColumnDef<Order>[] = [
         openModal("Create Refund", <RefundForm orderId={order.id} />);
       };
 
-      const actions = [
+      const isCancelled = order.status === "CANCELLED";
+
+      const actions: Action[] = [
         {
           title: "View Order",
           icon: "Eye",
           onClick: () => navigate({ to: `/invoices/${order.id}` }),
         },
         {
-          title: "Print Invoice",
+          title: isCancelled ? "Cannot Print (Cancelled)" : "Print Invoice",
           icon: "Printer",
-          onClick: () => {},
+          onClick: () => {
+            if (!isCancelled) {
+              callbacks.onPrintInvoice(order);
+            }
+          },
+          className: isCancelled ? "opacity-50 cursor-not-allowed" : "",
         },
       ];
-
       if (canRefund) {
         actions.push({
           title: "Refund",

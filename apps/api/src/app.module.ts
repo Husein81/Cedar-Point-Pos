@@ -15,6 +15,7 @@ import { ModifierGroupsModule } from './modifier-groups/modifier-groups.module.j
 import { OrdersModule } from './orders/orders.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { RecipesModule } from './recipes/recipes.module.js';
+import { ReceiptsModule } from './receipts/receipts.module.js';
 import { RefundsModule } from './refunds/refunds.module.js';
 import { TablesModule } from './tables/tables.module.js';
 import { TenantModule } from './tenant/tenant.module.js';
@@ -46,6 +47,7 @@ import { ReportsModule } from './reports/reports.module.js';
     OrdersModule,
     ModifierGroupsModule,
     RefundsModule,
+    ReceiptsModule,
     ReportsModule,
     SystemAdminModule,
   ],

@@ -350,6 +350,61 @@ export const InlineKeypad = () => {
     );
   };
 
+  const handleConfirmWithoutPayment = async () => {
+    if (isProcessing || !order?.items?.length || total <= 0) return;
+
+    setIsProcessing(true);
+
+    try {
+      const orderToSave = getActiveOrder();
+      if (!orderToSave || !branchId || !user?.tenantId) return;
+      clearOrder();
+      closeKeypad();
+
+      if (activeTabId) {
+        closeTab(activeTabId);
+      }
+
+      closeModal();
+      // Create order without payment
+      const orderType =
+        orderToSave.shippingFee && orderToSave.shippingFee > 0
+          ? OrderType.DELIVERY
+          : (orderToSave.type ??
+            (user.tenant?.businessType === BusinessType.RETAIL
+              ? OrderType.RETAIL
+              : OrderType.DINE_IN));
+
+      const dto: CreateOrderDto = {
+        branchId,
+        type: orderType,
+        customerId: orderToSave.customerId || undefined,
+        shippingFee: orderToSave.shippingFee,
+        items: orderToSave.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          discount: i.discount,
+          notes: i.notes,
+        })),
+        ...(discount > 0 && { discount }),
+      };
+
+      const created = await createOrder.mutateAsync(dto);
+
+      // For restaurant orders, transition to PENDING
+      await updateOrderStatus.mutateAsync({
+        id: created.id,
+        status: OrderStatus.PENDING,
+      });
+      setOrderStatus(OrderStatus.PENDING);
+    } catch (error) {
+      console.error("Order confirmation failed:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -400,7 +455,7 @@ export const InlineKeypad = () => {
             )}
             onClick={() => handleContextSwitch("QUANTITY")}
           >
-            Qty
+            QTY
           </Button>
 
           {[4, 5, 6].map((n) => (
@@ -442,7 +497,7 @@ export const InlineKeypad = () => {
             )}
             onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
           >
-            Price
+            PRICE
           </Button>
           <Button
             variant="ghost"
@@ -478,14 +533,32 @@ export const InlineKeypad = () => {
             <Icon name="Delete" className="w-5 h-5 text-white" />
           </Button>
         </div>
-        <Button
-          className="w-full rounded-xs"
-          disabled={!validate()}
-          isSubmitting={isProcessing}
-          onClick={handlePay}
-        >
-          Payment
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 rounded-xs"
+            disabled={
+              !order?.customerId ||
+              !order?.items?.length ||
+              total <= 0 ||
+              isProcessing
+            }
+            isSubmitting={isProcessing}
+            onClick={handleConfirmWithoutPayment}
+          >
+            <Icon name="Check" className="w-4 h-4 mr-2" />
+            Confirm
+          </Button>
+          <Button
+            className="flex-1 rounded-xs"
+            disabled={!order?.items?.length || total <= 0 || isProcessing}
+            isSubmitting={isProcessing}
+            onClick={handlePay}
+          >
+            <Icon name="CreditCard" className="w-4 h-4 mr-2" />
+            Payment
+          </Button>
+        </div>
       </Shad.CollapsibleContent>
     </Shad.Collapsible>
   );

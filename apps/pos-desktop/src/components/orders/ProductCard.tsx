@@ -8,8 +8,10 @@ type Props = {
 };
 
 const ProductCard = ({ product }: Props) => {
-  const { addItem } = useOrderStore();
+  const { addItem, getActiveOrder } = useOrderStore();
 
+  const { items } = getActiveOrder() || { items: [] };
+  const item = items.find((i) => i.productId === product.id);
   const totalStock =
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
 
@@ -39,6 +41,11 @@ const ProductCard = ({ product }: Props) => {
           : "cursor-pointer hover:ring-1 hover:ring-primary/40 active:scale-[0.98]"
       )}
     >
+      {item && (
+        <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded-md bg-accent/40 backdrop-blur text-xs font-bold text-primary shadow">
+          {`${item.quantity}`}
+        </div>
+      )}
       {/* IMAGE (≈ 85–90%) */}
       <div className="relative h-2/3 w-full bg-muted">
         {product.imageUrl ? (
@@ -69,7 +76,6 @@ const ProductCard = ({ product }: Props) => {
           </div>
         )}
       </div>
-
       <div className="h-[15%] px-2 flex items-center">
         <p className="text-xs font-medium truncate leading-tight">
           {product.name}

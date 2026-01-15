@@ -7,7 +7,7 @@ export type KeypadContext =
   | "PAYMENT"
   | "SHIPPING"
   | "GUEST_COUNT"
-  | undefined; 
+  | undefined;
 
 export const KEYPAD_CONFIG: Record<
   Exclude<KeypadContext, undefined>,
@@ -27,7 +27,7 @@ export const KEYPAD_CONFIG: Record<
     minValue: 0,
     maxValue: 999,
     decimals: 0,
-    allowZero: false,
+    allowZero: true,
     step: 1,
     confirmLabel: "Set",
     requiresPermission: false,

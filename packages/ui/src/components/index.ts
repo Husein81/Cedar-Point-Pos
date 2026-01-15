@@ -201,6 +201,7 @@ export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Switch } from "./switch";
 export { Textarea } from "./textarea";
+export { useSidebar } from "./sidebar";
 
 export const Shad = {
   Avatar,

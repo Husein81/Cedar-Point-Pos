@@ -11,7 +11,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (isAuthenticated) {
       navigate({
-        to: "/",
+        to: "/orders",
       });
     }
   }, [isAuthenticated, navigate]);

@@ -52,18 +52,28 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
             </Shad.SidebarGroup>
           ))}
         </div>
-        <Shad.SidebarMenuItem className="mt-4 ml-2">
-          <Shad.SidebarMenuButton
-            className={cn(
-              "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200 ",
-              {
-                "bg-primary text-gray-200": isActive("/settings"),
-              }
-            )}
-          >
-            <Icon name="Settings" className="size-4 " />
-          </Shad.SidebarMenuButton>
-        </Shad.SidebarMenuItem>
+
+        {/* Settings */}
+        <Shad.SidebarMenu>
+          <Shad.SidebarMenuItem>
+            <Link to="/settings">
+              <Shad.SidebarMenuButton
+                className={cn(
+                  "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200",
+                  {
+                    "bg-primary text-gray-200":
+                      pathname === "/settings" ||
+                      pathname.startsWith("/settings/"),
+                  }
+                )}
+                tooltip="Settings"
+              >
+                <Icon name="Settings" className="w-4 h-4" />
+                <span>Settings</span>
+              </Shad.SidebarMenuButton>
+            </Link>
+          </Shad.SidebarMenuItem>
+        </Shad.SidebarMenu>
       </Shad.SidebarContent>
 
       {/* Footer */}

@@ -64,13 +64,14 @@ export const getCurrencyColumns = (
     header: "Exchange Rate",
     cell: ({ row }) => {
       const rate = parseFloat(row.original.exchangeRate?.toString() || "0");
+      const decimalPlaces = row.original.currency?.decimalPlaces ?? 2;
       const isBase = row.original.currencyCode === baseCurrencyCode;
       return (
         <div className="font-mono">
           {isBase ? (
-            <span className="text-muted-foreground">1.000000</span>
+            <span className="text-muted-foreground">1.00</span>
           ) : (
-            rate.toFixed(6)
+            rate.toFixed(decimalPlaces)
           )}
         </div>
       );

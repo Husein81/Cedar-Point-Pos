@@ -104,11 +104,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
 
   // Get currency symbol for display
   const currencySymbol = useMemo(() => {
-    return (
-      selectedCurrency?.currency?.symbol ||
-      selectedCurrency?.currencyCode ||
-      "$"
-    );
+    return selectedCurrency?.currencyCode || "$";
   }, [selectedCurrency]);
 
   // Guard against empty or loading state - NOW AFTER ALL HOOKS
@@ -266,8 +262,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
                   changeDue > 0 ? "text-green-600" : "text-muted-foreground"
                 )}
               >
-                {currencySymbol}
-                {formatPrice(changeDue)}
+                {currencySymbol} {formatPrice(changeDue)}
               </span>
             </div>
           </>

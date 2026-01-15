@@ -182,8 +182,16 @@ export class OrdersService {
     }
 
     subtotal = this.round(subtotal);
+
+    if (discount && discount > subtotal) {
+      throw new BadRequestException('Order discount cannot exceed subtotal');
+    }
+
+    const orderType =
+      shippingFee && shippingFee > 0 ? OrderType.DELIVERY : type;
+
     const total = this.round(
-      Number(subtotal) - (discount || 0) + (shippingFee || 0),
+      Math.max(0, Number(subtotal) - (discount || 0) + (shippingFee || 0)),
     );
 
     return this.prisma.order.create({
@@ -191,7 +199,7 @@ export class OrdersService {
         tenantId,
         branchId,
         userId,
-        type,
+        type: orderType,
         status: OrderStatus.DRAFT,
         orderNumber,
         subtotal,
@@ -341,7 +349,6 @@ export class OrdersService {
 
     return this.prisma.$transaction(
       async (tx) => {
-        // 🔒 Lock order row to avoid race conditions
         const order = await tx.order.findFirst({
           where: { id: orderId, tenantId },
           select: {
@@ -372,16 +379,18 @@ export class OrdersService {
           order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
         );
 
-        const newPaidTotal = this.money(alreadyPaid + Number(payment.amount));
+        const newPaidTotal = this.money(
+          alreadyPaid + Number(payment.amount) + Number(order.shippingFee),
+        );
 
-        if (newPaidTotal > totalDue) {
+        if (payment.method !== PaymentMethod.CASH && newPaidTotal > totalDue) {
           throw new BadRequestException(
             `Payment exceeds total. Paid: ${newPaidTotal}, Due: ${totalDue}`,
           );
         }
 
         const isFullyPaid = newPaidTotal === totalDue;
-
+        console.log('isFullyPaid', isFullyPaid, newPaidTotal, totalDue);
         // 1️⃣ Create payment record
         await tx.payment.create({
           data: {
@@ -414,16 +423,22 @@ export class OrdersService {
           });
         }
 
+        const change =
+          payment.method === PaymentMethod.CASH
+            ? this.money(Math.max(0, newPaidTotal - totalDue))
+            : 0;
+
         return {
           orderId,
           status: isFullyPaid ? OrderStatus.PAID : OrderStatus.PENDING,
           totalDue,
-          paid: newPaidTotal,
-          remaining: this.money(totalDue - newPaidTotal),
+          paid: this.money(Math.min(newPaidTotal, totalDue)),
+          remaining: this.money(Math.max(0, totalDue - newPaidTotal)),
+          change,
         };
       },
       {
-        isolationLevel: 'Serializable', // 🔐 critical for POS
+        isolationLevel: 'Serializable',
       },
     );
   }

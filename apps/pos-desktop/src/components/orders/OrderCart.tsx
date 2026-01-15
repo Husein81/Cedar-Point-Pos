@@ -1,8 +1,9 @@
-import { useOrderStore } from "@/store/orderStore";
 import { useKeypadStore } from "@/store/keypadStore";
+import { useOrderStore } from "@/store/orderStore";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { CartItem } from "./CartItem";
 import { InlineKeypad } from "../common/InlineKeypad";
+import { CartItem } from "./CartItem";
+import { CustomerSelector } from "./CustomerSelector";
 import OrderSummary from "./OrderSummary";
 
 type Props = {
@@ -49,30 +50,36 @@ export const OrderCart = ({ className }: Props) => {
   return (
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Cart Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Icon name="ShoppingCart" className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Order</h2>
+      <div className="flex flex-col gap-2 px-3 py-2 border-b border-border bg-muted/30">
+        <div className="flex items-center justify-between ">
+          <div className="flex items-center gap-2">
+            <Icon
+              name="ShoppingCart"
+              className="w-4 h-4 text-muted-foreground"
+            />
+            <h2 className="text-sm font-semibold">Order</h2>
+            {items.length > 0 && (
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {items.length}
+              </span>
+            )}
+          </div>
           {items.length > 0 && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {items.length}
-            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearOrder();
+                closeKeypad();
+              }}
+              className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Icon name="Trash2" className="w-3.5 h-3.5 mr-1" />
+              Clear
+            </Button>
           )}
         </div>
-        {items.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              clearOrder();
-              closeKeypad();
-            }}
-            className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Icon name="Trash2" className="w-3.5 h-3.5 mr-1" />
-            Clear
-          </Button>
-        )}
+        <CustomerSelector />
       </div>
 
       {/* Items List - Scrollable */}

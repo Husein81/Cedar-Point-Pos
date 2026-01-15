@@ -5,7 +5,6 @@ import { useRef, useState, useEffect } from "react";
 import { useModalStore } from "@/store/modalStore";
 import { useNavigate } from "@tanstack/react-router";
 import { useOrderStore } from "@/store/orderStore";
-import { useCartStore } from "@/store/cartStore";
 import {
   useCreateOrder,
   useProcessPayment,
@@ -17,6 +16,8 @@ import { BusinessType, OrderType, PaymentMethod } from "@repo/types";
 import type { CreateOrderDto } from "@/apis/ordersApi";
 import { PaymentForm } from "@/components/orders/PaymentForm";
 import { OrderStatus } from "@repo/types";
+
+type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
 export const InlineKeypad = () => {
   const navigate = useNavigate();
@@ -40,34 +41,35 @@ export const InlineKeypad = () => {
   const {
     getActiveOrder,
     getDiscountAmount,
+    setDiscount,
     setOrderStatus,
+    setShippingFee,
     clearOrder,
     closeTab,
     activeTabId,
+    getOrderSubtotal,
   } = useOrderStore();
-  const { getOrderSubtotal } = useOrderStore();
+
   const order = getActiveOrder();
-  const subtotalAfterItemDiscounts = getOrderSubtotal();
-  const orderDiscount = getDiscountAmount();
-
+  const subtotal = getOrderSubtotal();
+  const discount = getDiscountAmount();
   const shippingFee = order?.shippingFee || 0;
-  const total = subtotalAfterItemDiscounts - orderDiscount + shippingFee;
+  const total = subtotal - discount + shippingFee;
 
-  const { clearCart } = useCartStore();
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
 
-  const createOrderMutation = useCreateOrder();
-  const processPaymentMutation = useProcessPayment();
-  const updateOrderStatusMutation = useUpdateOrderStatus();
-
-  const [stringValue, setStringValue] = useState("0");
-  const [isTyping, setIsTyping] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const createOrder = useCreateOrder();
+  const processPayment = useProcessPayment();
+  const updateOrderStatus = useUpdateOrderStatus();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const config = KEYPAD_CONFIG[context];
-  const effectiveMaxValue = maxValueOverride ?? config.maxValue;
+  const maxValue = maxValueOverride ?? config.maxValue;
+
+  const [value, setValue] = useState("0");
+  const [mode, setMode] = useState<InputMode>("IDLE");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   /* ---------------------------------------------
      Init / Context Reset
@@ -79,16 +81,9 @@ export const InlineKeypad = () => {
         ? currentValue.toFixed(config.decimals)
         : String(currentValue || (config.allowZero ? 0 : config.minValue));
 
-    setStringValue(formatted);
-    setIsTyping(false);
-  }, [
-    currentValue,
-    context,
-    itemId,
-    config.decimals,
-    config.allowZero,
-    config.minValue,
-  ]);
+    setValue(formatted);
+    setMode("REPLACE");
+  }, [currentValue, context, itemId]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) inputRef.current.focus();
@@ -98,120 +93,125 @@ export const InlineKeypad = () => {
      Helpers
   --------------------------------------------- */
 
-  const parse = (v: string): number => {
-    const cleaned = v.replace(/[^\d.-]/g, "");
-    if (cleaned === "" || cleaned === "-" || cleaned === ".") return 0;
-    return config.decimals === 0
-      ? parseInt(cleaned, 10) || 0
-      : parseFloat(cleaned) || 0;
-  };
+  const parse = (v: string) =>
+    config.decimals === 0 ? parseInt(v || "0", 10) : parseFloat(v || "0");
 
-  const clamp = (n: number): number => {
-    let value = Math.max(config.minValue, Math.min(effectiveMaxValue, n));
+  const clamp = (n: number) => {
+    let v = Math.max(config.minValue, Math.min(maxValue, n));
     if (config.decimals > 0) {
       const m = Math.pow(10, config.decimals);
-      value = Math.round(value * m) / m;
+      v = Math.round(v * m) / m;
     } else {
-      value = Math.round(value);
+      v = Math.round(v);
     }
-    return value;
+    return v;
   };
 
   const validate = () => {
-    const value = parse(stringValue);
-    if (value < config.minValue) return false;
-    if (value > effectiveMaxValue) return false;
-    if (!config.allowZero && value === 0) return false;
+    const n = parse(value);
+    if (!config.allowZero && n === 0) return false;
+    if (n < config.minValue) return false;
+    if (n > maxValue) return false;
+    if (context === "DISCOUNT_PERCENT" && n > 100) return false;
     return true;
   };
 
+  const clearEntry = () => {
+    setMode("IDLE");
+    setValue(String(config.allowZero ? 0 : config.minValue));
+  };
   /* ---------------------------------------------
      LIVE UPDATE CORE
   --------------------------------------------- */
-
-  const emitLiveValue = async (value: number) => {
-    if (config.requiresPermission && onPermissionRequired) {
-      const allowed = await onPermissionRequired(context);
-      if (!allowed) {
-        return;
-      }
-    }
-
-    if (context === "QUANTITY") {
-      onConfirm?.(value);
-    }
-
-    if (context === "PRICE_OVERRIDE") {
-      onPriceChange?.(value);
-    }
-
-    if (
-      context === "DISCOUNT" ||
-      context === "DISCOUNT_PERCENT" ||
-      context === "DISCOUNT_FIXED"
-    ) {
-      const type =
-        context === "DISCOUNT_FIXED"
-          ? "FIXED"
-          : context === "DISCOUNT_PERCENT"
-            ? "PERCENTAGE"
-            : discountType || "PERCENTAGE";
-
-      onDiscountChange?.(value, type);
-    }
-  };
-
   useEffect(() => {
-    if (!isTyping) return;
+    if (mode !== "APPEND") return;
     if (!validate()) return;
 
-    const value = clamp(parse(stringValue));
-    emitLiveValue(value);
-  }, [stringValue, context]);
+    const timeout = setTimeout(async () => {
+      const numeric = clamp(parse(value));
+
+      if (config.requiresPermission && onPermissionRequired) {
+        const allowed = await onPermissionRequired(context);
+        if (!allowed) {
+          clearEntry();
+          return;
+        }
+      }
+
+      if (context === "QUANTITY") onConfirm?.(numeric);
+      if (context === "PRICE_OVERRIDE") onPriceChange?.(numeric);
+      if (context === "SHIPPING") {
+        setShippingFee(numeric);
+      }
+      if (
+        context === "DISCOUNT" ||
+        context === "DISCOUNT_FIXED" ||
+        context === "DISCOUNT_PERCENT"
+      ) {
+        const type =
+          context === "DISCOUNT_FIXED"
+            ? "FIXED"
+            : context === "DISCOUNT_PERCENT"
+              ? "PERCENTAGE"
+              : discountType || "PERCENTAGE";
+
+        onDiscountChange?.(numeric, type);
+      }
+    }, 120);
+
+    return () => clearTimeout(timeout);
+  }, [value, context, mode]);
 
   /* ---------------------------------------------
      Input Handlers (UNCHANGED UI)
   --------------------------------------------- */
 
   const handleDigit = (digit: number) => {
-    setStringValue((prev) => {
-      if (!isTyping) {
-        setIsTyping(true);
+    setValue((prev) => {
+      if (mode !== "APPEND") {
+        setMode("APPEND");
         return String(digit);
       }
-      if (prev === "0") return String(digit);
-      return prev + digit;
+      if (
+        config.decimals > 0 &&
+        prev.includes(".") &&
+        prev.split(".")[1]!.length >= config.decimals
+      ) {
+        return prev;
+      }
+
+      return prev === "0" ? String(digit) : prev + digit;
     });
   };
 
   const handleBackspace = () => {
-    setStringValue((prev) => {
+    setValue((prev) => {
       if (prev.length <= 1) {
-        setIsTyping(false);
-        return "0";
+        setMode("IDLE");
+        return String(config.allowZero ? 0 : config.minValue);
       }
       return prev.slice(0, -1);
     });
   };
-
   const handleDecimal = () => {
     if (config.decimals === 0) return;
-    setStringValue((prev) => (prev.includes(".") ? prev : prev + "."));
-    setIsTyping(true);
+
+    setValue((prev) => {
+      if (mode !== "APPEND") {
+        setMode("APPEND");
+        return "0.";
+      }
+      return prev.includes(".") ? prev : prev + ".";
+    });
   };
 
-  const handleNegate = () => {
-    if (context !== "PRICE_OVERRIDE" && context !== "DISCOUNT") return;
-    setStringValue((prev) =>
-      prev.startsWith("-") ? prev.slice(1) : "-" + prev
-    );
-    setIsTyping(true);
-  };
-
-  const handleContextSwitch = (newContext: KeypadContext) => {
-    if (newContext === context) return;
-    setIsTyping(false);
-    switchContext(newContext);
+  const handleContextSwitch = (next: KeypadContext) => {
+    if (next === context) {
+      clearEntry();
+      return;
+    }
+    setMode("REPLACE");
+    switchContext(next);
   };
 
   const handleOpenModal = () => {
@@ -223,6 +223,7 @@ export const InlineKeypad = () => {
           closeModal();
         }}
         size="lg"
+        className="flex-1 rounded-xs"
         iconName="RotateCw"
       >
         Refund
@@ -240,63 +241,51 @@ export const InlineKeypad = () => {
 
     try {
       const order = getActiveOrder();
+      if (!order || !branchId || !user?.tenantId || total <= 0) return;
 
       clearOrder();
-      clearCart();
-
       closeKeypad();
-      if (activeTabId) closeTab(activeTabId);
+
+      if (activeTabId) {
+        closeTab(activeTabId);
+      }
+
       closeModal();
 
-      if (!order || order.items.length === 0 || !branchId || !user?.tenantId) {
-        throw new Error("Missing order or required data");
-      }
-
-      if (total <= 0) {
-        throw new Error("Order total must be greater than 0");
-      }
-
-      const businessType = user.tenant?.businessType;
-
       const orderType =
-        order.type ??
-        (businessType === BusinessType.RETAIL
-          ? OrderType.RETAIL
-          : OrderType.DINE_IN);
+        order.shippingFee && order.shippingFee > 0
+          ? OrderType.DELIVERY
+          : (order.type ??
+            (user.tenant?.businessType === BusinessType.RETAIL
+              ? OrderType.RETAIL
+              : OrderType.DINE_IN));
 
-      const discountAmount = getDiscountAmount();
-
-      const items = order.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        discount: item.discount,
-        notes: item.notes,
-      }));
-
-      const createOrderDto: CreateOrderDto = {
+      const dto: CreateOrderDto = {
         branchId,
         type: orderType,
         customerId: order.customerId || undefined,
-        items,
-        ...(discountAmount > 0 && { discount: discountAmount }),
+        shippingFee: order.shippingFee,
+        items: order.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          discount: i.discount,
+          notes: i.notes,
+        })),
+        ...(discount > 0 && { discount }),
       };
 
-      const createdOrder =
-        await createOrderMutation.mutateAsync(createOrderDto);
+      const created = await createOrder.mutateAsync(dto);
 
-      const paidOrder = await processPaymentMutation.mutateAsync({
-        id: createdOrder.id,
+      const paid = await processPayment.mutateAsync({
+        id: created.id,
         amount: total,
         method,
       });
 
-      if (
-        orderType === OrderType.RETAIL &&
-        paidOrder.status === OrderStatus.PAID
-      ) {
-        await updateOrderStatusMutation.mutateAsync({
-          id: createdOrder.id,
+      if (orderType === OrderType.RETAIL && paid.status === OrderStatus.PAID) {
+        await updateOrderStatus.mutateAsync({
+          id: created.id,
           status: OrderStatus.COMPLETED,
         });
       }
@@ -326,19 +315,19 @@ export const InlineKeypad = () => {
       <Shad.CollapsibleContent className="border-t border-border bg-background">
         {/* Header */}
         <div className="flex border-b border-border">
-          <button className="flex-1 py-2.5 text-sm font-medium bg-primary/10 text-primary border-b-2 border-primary">
-            Customer
-          </button>
-          <button className="flex-1 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted-foreground/50">
-            Note
-          </button>
-          <button
-            title="actions"
-            className="px-3 py-2.5 text-muted-foreground hover:bg-muted-foreground/50"
+          <Button
+            onClick={() => setDiscount({ value: 10, type: "PERCENTAGE" })}
+            className="flex-1 rounded-xs py-2.5 text-sm bg-primary/20 font-medium text-muted-foreground hover:text-white hover:bg-primary"
+          >
+            Discount
+          </Button>
+          <Button
+            variant={"ghost"}
+            className="px-3 rounded-xs py-2.5 text-muted-foreground hover:bg-primary/50"
             onClick={handleOpenModal}
           >
             <Icon name="EllipsisVertical" className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* 🔢 ORIGINAL KEYPAD UI (UNCHANGED) */}
@@ -347,7 +336,7 @@ export const InlineKeypad = () => {
             <Button
               key={n}
               variant="ghost"
-              className="h-12 text-lg font-medium rounded-none bg-background hover:bg-muted-foreground"
+              className="h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -356,10 +345,8 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 text-sm font-semibold rounded-none",
-              context === "QUANTITY"
-                ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-500"
-                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+              "h-12 rounded-xs bg-background text-lg",
+              context === "QUANTITY" && "bg-accent/10"
             )}
             onClick={() => handleContextSwitch("QUANTITY")}
           >
@@ -370,7 +357,7 @@ export const InlineKeypad = () => {
             <Button
               key={n}
               variant="ghost"
-              className="h-12 text-lg font-medium rounded-none bg-background hover:bg-muted-foreground"
+              className="h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -379,10 +366,8 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 text-sm font-semibold rounded-none",
-              context === "DISCOUNT"
-                ? "bg-muted text-foreground"
-                : "bg-background hover:bg-muted-foreground"
+              "h-12 rounded-xs bg-background text-lg",
+              context === "DISCOUNT" && "bg-accent/10"
             )}
             onClick={() => handleContextSwitch("DISCOUNT")}
           >
@@ -393,7 +378,7 @@ export const InlineKeypad = () => {
             <Button
               key={n}
               variant="ghost"
-              className="h-12 text-lg font-medium rounded-none bg-background hover:bg-muted-foreground"
+              className="h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -402,44 +387,45 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 text-sm font-semibold rounded-none",
-              context === "PRICE_OVERRIDE"
-                ? "bg-red-500 text-white hover:bg-red-600"
-                : "bg-red-100 text-red-800 hover:bg-red-200"
+              "h-12 rounded-xs bg-background text-lg",
+              context === "PRICE_OVERRIDE" && "bg-accent/10"
             )}
             onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
           >
             Price
           </Button>
+          <Button
+            variant="ghost"
+            className={cn(
+              "h-12 rounded-xs text-sm font-semibold flex items-center gap-1",
+              context === "SHIPPING" ? "bg-primary text-white" : "bg-background"
+            )}
+            onClick={() => handleContextSwitch("SHIPPING")}
+          >
+            <Icon name="Truck" className="w-4 h-4" />
+          </Button>
 
           <Button
             variant="ghost"
-            className="h-12 text-lg font-medium rounded-none bg-muted/50 hover:bg-muted-foreground"
-            onClick={handleNegate}
-          >
-            +/-
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-12 text-lg font-medium rounded-none bg-background hover:bg-muted-foreground"
+            className="h-12 rounded-xs bg-background text-lg"
             onClick={() => handleDigit(0)}
           >
             0
           </Button>
           <Button
             variant="ghost"
-            className="h-12 text-lg font-medium rounded-none bg-background hover:bg-muted-foreground"
+            className="h-12 rounded-xs bg-background text-lg"
             onClick={handleDecimal}
             disabled={config.decimals === 0}
           >
             .
           </Button>
           <Button
-            variant="ghost"
-            className="h-12 rounded-none bg-red-50 hover:bg-red-100"
+            variant="destructive"
+            className={"h-12 rounded-xs text-lg "}
             onClick={handleBackspace}
           >
-            <Icon name="Delete" className="w-5 h-5 text-red-600" />
+            <Icon name="Delete" className="w-5 h-5 text-white" />
           </Button>
         </div>
         <Button
@@ -448,7 +434,7 @@ export const InlineKeypad = () => {
           isSubmitting={isProcessing}
           onClick={handlePay}
         >
-          Pay
+          Payment
         </Button>
       </Shad.CollapsibleContent>
     </Shad.Collapsible>

@@ -1,68 +1,76 @@
-import { Separator } from "@repo/ui";
+import { cn, Separator } from "@repo/ui";
 import { formatPrice } from "./config";
 import { useOrderStore } from "@/store/orderStore";
 
-const OrderSummary = () => {
-  const {
-    getItemDiscountsTotal,
-    getActiveOrder,
-    getDiscountAmount,
-    getOrderSubtotal,
-  } = useOrderStore();
-  const order = getActiveOrder();
-  const items = order?.items || [];
-  const subtotalAfterItemDiscounts = getOrderSubtotal();
-  const orderDiscount = getDiscountAmount();
-
-  const rawSubtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+const Row = ({
+  label,
+  value,
+  variant = "normal",
+}: {
+  label: string;
+  value: React.ReactNode;
+  variant?: "normal" | "discount" | "charge";
+}) => {
+  return (
+    <div className="flex justify-between items-center text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          "font-medium",
+          variant === "discount" && "text-destructive"
+        )}
+      >
+        {value}
+      </span>
+    </div>
   );
-  const itemDiscounts = getItemDiscountsTotal();
-  const taxRate = 0.11; // 11% tax rate - should come from settings
-  const taxes = (subtotalAfterItemDiscounts - orderDiscount) * taxRate;
+};
+
+const OrderSummary = () => {
+  const { getActiveOrder, getDiscountAmount, getOrderSubtotal } =
+    useOrderStore();
+
+  const order = getActiveOrder();
+
+  const orderDiscount = getDiscountAmount();
+  const subtotalAfterItemDiscounts = getOrderSubtotal();
   const shippingFee = order?.shippingFee || 0;
-  const total =
-    subtotalAfterItemDiscounts - orderDiscount + taxes + shippingFee;
+
+  const total = subtotalAfterItemDiscounts - orderDiscount + shippingFee;
 
   return (
-    <div>
+    <div className="space-y-3">
       <Separator />
-      <div className="space-y-1 text-xs px-2">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span className="font-medium">${formatPrice(rawSubtotal)}</span>
-        </div>
-        {itemDiscounts > 0 && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Item Discounts</span>
-            <span>- ${formatPrice(itemDiscounts)}</span>
-          </div>
-        )}
-        {orderDiscount > 0 && (
-          <div className="flex justify-between text-destructive">
-            <span>Order Discount</span>
-            <span>- ${formatPrice(orderDiscount)}</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Tax (11%)</span>
-          <span>+ ${formatPrice(taxes)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Shipping</span>
-          <span>+ ${formatPrice(shippingFee)}</span>
-        </div>
+
+      <div className="space-y-1 px-2">
+        <Row
+          label="Subtotal"
+          value={`$${formatPrice(subtotalAfterItemDiscounts)}`}
+        />
+
+        <Row
+          label="Order Discount"
+          value={`− $${formatPrice(orderDiscount)}`}
+          variant="discount"
+        />
+
+        <Row
+          label="Delivery Fee"
+          value={`+ $${formatPrice(shippingFee)}`}
+          variant="charge"
+        />
       </div>
 
-      {/* TOTAL */}
-      <div className="flex justify-between items-center p-2">
-        <span className="text-base font-semibold">Total Due</span>
-        <span className="text-lg font-bold text-primary">
+      <Separator />
+
+      <div className="flex justify-between items-center px-2 py-1">
+        <span className="text-sm font-semibold">Total Due</span>
+        <span className="text-xl font-bold text-primary">
           ${formatPrice(total)}
         </span>
       </div>
     </div>
   );
 };
+
 export default OrderSummary;

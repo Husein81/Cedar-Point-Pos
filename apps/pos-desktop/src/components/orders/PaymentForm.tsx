@@ -23,10 +23,10 @@ const PAYMENT_METHODS: {
 
 export const PaymentForm = ({ total, onConfirm }: Props) => {
   const { closeModal } = useModalStore();
+
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [amountTendered, setAmountTendered] = useState<number>(total);
 
-  // Reset when modal opens / total changes
   useEffect(() => {
     setSelectedMethod("CASH");
     setAmountTendered(total);
@@ -46,127 +46,106 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   };
 
   return (
-    <div className="sm:max-w-md">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-          <Icon name="CreditCard" className="w-5 h-5 text-primary" />
-        </div>
-        <Shad.DialogTitle>Complete Payment</Shad.DialogTitle>
+    <div className="sm:max-w-md flex flex-col gap-5">
+      {/* TOTAL */}
+      <div className="rounded-lg bg-muted/30 p-4 text-center">
+        <p className="text-xs text-muted-foreground uppercase">Total Due</p>
+        <p className="text-4xl font-bold text-primary">${formatPrice(total)}</p>
       </div>
 
-      <div className="space-y-5 pt-4">
-        {/* Total */}
-        <div className="text-center py-4 bg-muted/30 rounded-lg">
-          <p className="text-sm text-muted-foreground">Total Due</p>
-          <p className="text-4xl font-bold text-primary">
-            ${formatPrice(total)}
-          </p>
+      {/* PAYMENT METHOD */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground uppercase">
+          Method
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {PAYMENT_METHODS.map((method) => (
+            <Button
+              key={method.value}
+              variant={selectedMethod === method.value ? "default" : "outline"}
+              className="h-14 flex flex-col gap-1"
+              onClick={() => setSelectedMethod(method.value)}
+            >
+              <Icon name={method.icon} className="w-5 h-5" />
+              <span className="text-xs">{method.label}</span>
+            </Button>
+          ))}
         </div>
+      </div>
 
-        {/* Payment Method */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">
-            Payment Method
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_METHODS.map((method) => (
-              <Button
-                key={method.value}
-                variant={
-                  selectedMethod === method.value ? "default" : "outline"
-                }
-                className="flex flex-col gap-1 h-auto py-3"
-                onClick={() => setSelectedMethod(method.value)}
-              >
-                <Icon name={method.icon} className="w-5 h-5" />
-                <span className="text-xs">{method.label}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
+      {/* CASH FLOW */}
+      {selectedMethod === "CASH" && (
+        <>
+          <Separator />
 
-        {/* Cash Flow */}
-        {selectedMethod === "CASH" && (
-          <>
-            <Separator />
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase">
+              Cash Received
+            </p>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-muted-foreground">
-                Amount Tendered
-              </label>
-
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={amountTendered}
-                  onChange={(e) =>
-                    setAmountTendered(Math.max(0, Number(e.target.value) || 0))
-                  }
-                  className="pl-7 text-xl font-semibold h-12 text-center"
-                  autoFocus
-                />
-              </div>
-
-              {/* Quick amounts */}
-              <div className="grid grid-cols-4 gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setAmountTendered(total)}
-                  className="text-xs"
-                >
-                  Exact
-                </Button>
-
-                {quickAmounts.map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAmountTendered(amount)}
-                    className="text-xs"
-                  >
-                    ${formatPrice(amount)}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Change */}
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm font-medium">Change Due</span>
-              <span
-                className={cn(
-                  "text-2xl font-bold",
-                  changeDue > 0 ? "text-green-600" : "text-muted-foreground"
-                )}
-              >
-                ${formatPrice(changeDue)}
+            {/* AMOUNT INPUT */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">
+                $
               </span>
+              <Input
+                type="number"
+                min={0}
+                value={amountTendered}
+                onChange={(e) =>
+                  setAmountTendered(Math.max(0, Number(e.target.value) || 0))
+                }
+                className="pl-7 h-14 text-2xl font-bold text-center"
+                autoFocus
+              />
             </div>
-          </>
-        )}
-      </div>
 
-      {/* Actions */}
-      <div className="flex pt-4 gap-2">
-        <Button variant="outline" type="button">
+            {/* QUICK CASH */}
+            <div className="grid grid-cols-4 gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setAmountTendered(total)}
+              >
+                Exact
+              </Button>
+
+              {quickAmounts.map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  onClick={() => setAmountTendered(amount)}
+                >
+                  ${formatPrice(amount)}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* CHANGE */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Change Due</span>
+            <span
+              className={cn(
+                "text-3xl font-bold",
+                changeDue > 0 ? "text-green-600" : "text-muted-foreground"
+              )}
+            >
+              ${formatPrice(changeDue)}
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* ACTIONS */}
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" className="flex-1" onClick={closeModal}>
           Cancel
         </Button>
 
-        <Button
-          onClick={handleConfirm}
-          disabled={!isValid}
-          className="min-w-32"
-        >
-          <Icon name="Check" className="w-4 h-4" />
+        <Button className="flex-1" onClick={handleConfirm} disabled={!isValid}>
+          <Icon name="Check" className="w-4 h-4 mr-1" />
           {selectedMethod === "CASH"
             ? `Pay $${formatPrice(total)}`
             : "Process Payment"}

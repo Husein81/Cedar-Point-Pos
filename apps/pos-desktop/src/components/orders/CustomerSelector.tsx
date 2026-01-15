@@ -104,7 +104,7 @@ export const CustomerSelector = ({ className }: Props) => {
         searchPlaceholder="Search by name or phone..."
         emptyText={searchQuery ? "No customers found" : "No recent customers"}
         isLoading={isLoading}
-        className="w-full h-10 text-muted-foreground"
+        className="w-full h-8 text-muted-foreground"
         popoverWidth="w-104"
         open={open}
         onOpenChange={setOpen}

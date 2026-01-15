@@ -53,7 +53,6 @@ enum OrderStatus {
     IN_PROGRESS // Restaurant: Order being prepared
     SENT_TO_KITCHEN // Order sent to kitchen/bar
     READY // Ready for pickup/serve
-    PAID // Payment received, inventory deducted
     COMPLETED // Order fully completed
     FULLY_REFUNDED // Order fully refunded
     CANCELLED

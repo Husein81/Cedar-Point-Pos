@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 // =====================
 // Types
 // =====================
-
 export type DiscountType = "PERCENTAGE" | "FIXED";
 
 export type OrderItem = {

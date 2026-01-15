@@ -11,7 +11,7 @@ export class RefundsController {
 
   /**
    * Get orders eligible for refund
-   * Returns orders with status PAID, COMPLETED, or PARTIALLY_REFUNDED
+   * Returns orders with status COMPLETED
    */
   @Get('orders')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)

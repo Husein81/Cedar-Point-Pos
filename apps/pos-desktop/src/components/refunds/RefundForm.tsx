@@ -142,8 +142,7 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
           className="w-8 h-8 text-muted-foreground mx-auto mb-2"
         />
         <p className="text-muted-foreground">
-          This order cannot be refunded. Only paid or completed orders can be
-          refunded.
+          This order cannot be refunded. Only completed orders can be refunded.
         </p>
       </div>
     );

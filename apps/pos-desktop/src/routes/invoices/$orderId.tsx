@@ -29,7 +29,6 @@ const statusConfig: Record<
     icon: "ChefHat",
   },
   READY: { label: "Ready", color: "bg-green-500", icon: "Package" },
-  PAID: { label: "Paid", color: "bg-teal-600", icon: "CreditCard" },
   COMPLETED: {
     label: "Completed",
     color: "bg-emerald-600",
@@ -55,9 +54,7 @@ function OrderDetailPage() {
   const { data: order, isLoading, refetch } = useOrder(orderId);
   const { openModal } = useModalStore();
 
-  const canRefund =
-    order?.status === OrderStatus.COMPLETED ||
-    order?.status === OrderStatus.PAID;
+  const canRefund = order?.status === OrderStatus.COMPLETED;
 
   const handleRefund = () => {
     openModal(

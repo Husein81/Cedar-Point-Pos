@@ -15,7 +15,6 @@ const statusConfig = {
   IN_PROGRESS: { label: "In Progress", color: "bg-indigo-500" },
   SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
   READY: { label: "Ready", color: "bg-green-500" },
-  PAID: { label: "Paid", color: "bg-teal-600" },
   FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
   COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   CANCELLED: { label: "Cancelled", color: "bg-red-500" },
@@ -66,7 +65,9 @@ export const invoiceColumns: ColumnDef<Order>[] = [
       const status = row.original.status;
       const config = statusConfig[status];
       return (
-        <Badge className={`${config.color} text-white`}>{config.label}</Badge>
+        <Badge className={`${config.color! ?? "bg-gray-500"} text-white`}>
+          {config.label}
+        </Badge>
       );
     },
   },
@@ -146,9 +147,7 @@ export const invoiceColumns: ColumnDef<Order>[] = [
       const { openModal } = useModalStore();
 
       const order = row.original;
-      const canRefund =
-        order.status === OrderStatus.COMPLETED ||
-        order.status === OrderStatus.PAID;
+      const canRefund = order.status === OrderStatus.COMPLETED;
 
       const handleRefund = () => {
         openModal("Create Refund", <RefundForm orderId={order.id} />);

@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/authStore";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { Activity, useId } from "react";
+import { Activity, useEffect, useId, useState } from "react";
 import logo from "/assets/logo.png";
 import { BranchSelector } from "./common/BranchSelector";
 import { format } from "date-fns";
@@ -32,7 +32,17 @@ export function Header() {
     },
   ];
 
-  const currentTime = format(new Date(), "p dd MMM yyyy");
+  const [currentTime, setCurrentTime] = useState(
+    format(new Date(), "p dd MMM yyyy")
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(format(new Date(), "p dd MMM yyyy"));
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">

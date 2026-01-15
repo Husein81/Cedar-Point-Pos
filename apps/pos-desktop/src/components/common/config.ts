@@ -6,10 +6,11 @@ export type KeypadContext =
   | "DISCOUNT_FIXED"
   | "PAYMENT"
   | "SHIPPING"
-  | "GUEST_COUNT";
+  | "GUEST_COUNT"
+  | undefined; 
 
 export const KEYPAD_CONFIG: Record<
-  KeypadContext,
+  Exclude<KeypadContext, undefined>,
   {
     label: string;
     minValue: number;
@@ -23,7 +24,7 @@ export const KEYPAD_CONFIG: Record<
 > = {
   QUANTITY: {
     label: "Edit Quantity",
-    minValue: 1,
+    minValue: 0,
     maxValue: 999,
     decimals: 0,
     allowZero: false,

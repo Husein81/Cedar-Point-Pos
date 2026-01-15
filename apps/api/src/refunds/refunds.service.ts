@@ -27,7 +27,7 @@ export class RefundsService {
 
   /**
    * Get orders eligible for refund
-   * Returns orders with status PAID, COMPLETED, or that have existing refunds
+   * Returns orders with status COMPLETED
    */
   async getRefundableOrders(tenantId: string, params: RefundableOrdersParams) {
     const page = params.page || 1;
@@ -38,7 +38,7 @@ export class RefundsService {
     const where: Prisma.OrderWhereInput = {
       tenantId,
       status: {
-        in: [OrderStatus.PAID, OrderStatus.COMPLETED],
+        in: [OrderStatus.COMPLETED],
       },
       ...(params.branchId && { branchId: params.branchId }),
       ...(params.search && {
@@ -199,8 +199,8 @@ export class RefundsService {
       0,
     );
 
-    // Check if order can be refunded (PAID or COMPLETED)
-    const canRefund = order.status === 'COMPLETED' || order.status === 'PAID';
+    // Check if order can be refunded (COMPLETED)
+    const canRefund = order.status === 'COMPLETED';
 
     // Check if fully refunded
     const isFullyRefunded = itemsWithRefundInfo.every(
@@ -243,9 +243,9 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    if (!['PAID', 'COMPLETED'].includes(order.status)) {
+    if (!['COMPLETED'].includes(order.status)) {
       throw new BadRequestException(
-        `Orders with status "${order.status}" cannot be refunded. Only PAID or COMPLETED orders can be refunded.`,
+        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
       );
     }
 

@@ -36,30 +36,28 @@ export class OrdersService {
     current: OrderStatus,
     next: OrderStatus,
   ) {
-    // Retail: DRAFT → ON_HOLD/PENDING/PAID/CANCELLED, PAID → COMPLETED
+    // Retail: DRAFT → ON_HOLD/PENDING/COMPLETED/CANCELLED
     const retail: Partial<Record<OrderStatus, OrderStatus[]>> = {
       DRAFT: [
         OrderStatus.ON_HOLD,
         OrderStatus.PENDING,
-        OrderStatus.PAID,
+        OrderStatus.COMPLETED,
         OrderStatus.CANCELLED,
       ],
       ON_HOLD: [OrderStatus.DRAFT, OrderStatus.CANCELLED],
-      PENDING: [OrderStatus.PAID, OrderStatus.CANCELLED],
-      PAID: [OrderStatus.COMPLETED],
+      PENDING: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
       COMPLETED: [],
       CANCELLED: [],
     };
 
-    // Restaurant: DRAFT → CONFIRMED → IN_PROGRESS → READY → COMPLETED → PAID
+    // Restaurant: DRAFT → CONFIRMED → IN_PROGRESS → READY → COMPLETED
     const restaurant: Partial<Record<OrderStatus, OrderStatus[]>> = {
       DRAFT: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
       CONFIRMED: [OrderStatus.IN_PROGRESS, OrderStatus.SENT_TO_KITCHEN],
       SENT_TO_KITCHEN: [OrderStatus.IN_PROGRESS],
       IN_PROGRESS: [OrderStatus.READY],
       READY: [OrderStatus.COMPLETED],
-      COMPLETED: [OrderStatus.PAID],
-      PAID: [],
+      COMPLETED: [],
       CANCELLED: [],
     };
 
@@ -311,8 +309,8 @@ export class OrdersService {
       },
     });
 
-    // 2️⃣ Deduct stock AFTER status becomes PAID
-    if (nextStatus === OrderStatus.PAID) {
+    // 2️⃣ Deduct stock AFTER status becomes COMPLETED
+    if (nextStatus === OrderStatus.COMPLETED) {
       await this.inventoryDeductionService.deductStockForOrder(
         tenantId,
         orderId,
@@ -363,10 +361,6 @@ export class OrdersService {
 
         if (!order) throw new NotFoundException('Order not found');
 
-        if (order.status === OrderStatus.PAID) {
-          throw new BadRequestException('Order already paid');
-        }
-
         if (order.status === OrderStatus.CANCELLED) {
           throw new BadRequestException('Cannot pay a cancelled order');
         }
@@ -406,7 +400,7 @@ export class OrdersService {
         if (isFullyPaid) {
           await tx.order.update({
             where: { id: orderId },
-            data: { status: OrderStatus.PAID },
+            data: { status: OrderStatus.COMPLETED },
           });
 
           // 3️⃣ Deduct inventory ONCE
@@ -430,7 +424,7 @@ export class OrdersService {
 
         return {
           orderId,
-          status: isFullyPaid ? OrderStatus.PAID : OrderStatus.PENDING,
+          status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
           totalDue,
           paid: this.money(Math.min(newPaidTotal, totalDue)),
           remaining: this.money(Math.max(0, totalDue - newPaidTotal)),

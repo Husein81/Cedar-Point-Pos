@@ -24,7 +24,6 @@ export const RefundHeader = ({ onRefresh }: RefundHeaderProps) => {
 
   const statusOptions = [
     { label: "All Statuses", value: "all" },
-    { label: "Paid", value: OrderStatus.PAID },
     { label: "Completed", value: OrderStatus.COMPLETED },
   ];
 
@@ -64,13 +63,6 @@ export const RefundHeader = ({ onRefresh }: RefundHeaderProps) => {
         </div>
 
         {/* Date From */}
-        {/* <Input
-          type="date"
-          value={filterDateFrom || ""}
-          onChange={(e) => setFilterDateFrom(e.target.value || null)}
-          className="w-36 h-9"
-          placeholder="From"
-        /> */}
         <DatePicker
           date={filterDateFrom ? new Date(filterDateFrom) : undefined}
           onDateChange={(date) =>

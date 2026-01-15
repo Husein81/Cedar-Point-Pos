@@ -47,12 +47,6 @@ export const RefundOrdersList = ({
     }
 
     switch (status) {
-      case OrderStatus.PAID:
-        return (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
-            Paid
-          </span>
-        );
       case OrderStatus.COMPLETED:
         return (
           <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
@@ -102,7 +96,7 @@ export const RefundOrdersList = ({
           <Icon name="Receipt" className="w-12 h-12 opacity-50" />
           <span className="text-sm font-medium">No refundable orders</span>
           <span className="text-xs text-center">
-            Orders with status PAID or COMPLETED will appear here
+            Orders with status COMPLETED will appear here
           </span>
         </div>
       </div>

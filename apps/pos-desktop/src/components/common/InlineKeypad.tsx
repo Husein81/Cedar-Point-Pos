@@ -67,7 +67,7 @@ export const InlineKeypad = () => {
   const updateOrderStatus = useUpdateOrderStatus();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const config = KEYPAD_CONFIG[context];
+  const config = KEYPAD_CONFIG[context || "QUANTITY"];
   const maxValue = maxValueOverride ?? config.maxValue;
 
   const [value, setValue] = useState("0");
@@ -122,7 +122,9 @@ export const InlineKeypad = () => {
   const clearEntry = () => {
     setMode("IDLE");
     setValue(String(config.allowZero ? 0 : config.minValue));
+    switchContext(undefined);
   };
+
   /* ---------------------------------------------
      LIVE UPDATE CORE
   --------------------------------------------- */
@@ -158,12 +160,22 @@ export const InlineKeypad = () => {
               ? "PERCENTAGE"
               : discountType || "PERCENTAGE";
 
-        onDiscountChange?.(numeric, type);
+        // For item discount (when itemId is present)
+        if (itemId && onDiscountChange) {
+          onDiscountChange(numeric, type);
+        }
+        // For order-level discount
+        else if (!itemId) {
+          setDiscount({
+            value: numeric,
+            type,
+          });
+        }
       }
     }, 120);
 
     return () => clearTimeout(timeout);
-  }, [value, context, mode]);
+  }, [value, context, mode, itemId]);
 
   /* ---------------------------------------------
      Input Handlers (UNCHANGED UI)
@@ -189,13 +201,14 @@ export const InlineKeypad = () => {
 
   const handleBackspace = () => {
     setValue((prev) => {
-      if (prev.length <= 1) {
+      if (prev.length < 1) {
         setMode("IDLE");
         return String(config.allowZero ? 0 : config.minValue);
       }
       return prev.slice(0, -1);
     });
   };
+
   const handleDecimal = () => {
     if (config.decimals === 0) return;
 
@@ -215,6 +228,32 @@ export const InlineKeypad = () => {
     }
     setMode("REPLACE");
     switchContext(next);
+  };
+
+  const handleOpenOrderDiscount = () => {
+    const currentDiscount = order?.discount;
+    const discountValue = currentDiscount?.value ?? 0;
+    const discountTypeValue = currentDiscount?.type ?? "PERCENTAGE";
+
+    // Close current keypad and open new one for order discount
+    closeKeypad();
+
+    // Use openKeypad to set up order-level discount context
+    // Note: no itemId means it's order-level discount
+    const openKeypad = useKeypadStore.getState().openKeypad;
+    openKeypad({
+      context: "DISCOUNT",
+      currentValue: discountValue,
+      discountType: discountTypeValue,
+      onConfirm: () => {},
+      onDiscountChange: (value, type) => {
+        setDiscount({
+          value,
+          type,
+        });
+      },
+      maxValueOverride: subtotal,
+    });
   };
 
   const handleOpenModal = () => {
@@ -243,14 +282,13 @@ export const InlineKeypad = () => {
       const order = getActiveOrder();
       if (!order || !branchId || !user?.tenantId || total <= 0) return;
 
-      clearOrder();
+      // POS-style UX: close input early
       closeKeypad();
+      closeModal();
 
       if (activeTabId) {
         closeTab(activeTabId);
       }
-
-      closeModal();
 
       const orderType =
         order.shippingFee && order.shippingFee > 0
@@ -277,36 +315,27 @@ export const InlineKeypad = () => {
 
       const created = await createOrder.mutateAsync(dto);
 
-      // Process each payment sequentially
+      let finalStatus: OrderStatus | null = null;
+
       for (const payment of payments) {
-        await processPayment.mutateAsync({
+        const result = await processPayment.mutateAsync({
           id: created.id,
           amount: payment.amount,
           method: payment.method,
           currencyCode: payment.currencyCode,
           exchangeRate: payment.exchangeRate,
         });
+
+        finalStatus = result.status;
       }
 
-      // Mark order as PAID
-      await updateOrderStatus.mutateAsync({
-        id: created.id,
-        status: OrderStatus.PAID,
-      });
+      if (!finalStatus) return;
 
-      // Only RETAIL orders are marked as COMPLETED immediately
-      if (orderType === OrderType.RETAIL) {
-        await updateOrderStatus.mutateAsync({
-          id: created.id,
-          status: OrderStatus.COMPLETED,
-        });
-        setOrderStatus(OrderStatus.COMPLETED);
-      } else {
-        setOrderStatus(OrderStatus.PAID);
+      setOrderStatus(finalStatus);
+
+      if (finalStatus === OrderStatus.COMPLETED) {
+        clearOrder();
       }
-
-      clearOrder();
-      if (activeTabId) closeTab(activeTabId);
     } catch (error) {
       console.error("Payment failed:", error);
     } finally {
@@ -332,8 +361,13 @@ export const InlineKeypad = () => {
         {/* Header */}
         <div className="flex border-b border-border">
           <Button
-            onClick={() => setDiscount({ value: 10, type: "PERCENTAGE" })}
-            className="flex-1 rounded-xs py-2.5 text-sm bg-primary/20 font-medium text-muted-foreground hover:text-white hover:bg-primary"
+            onClick={handleOpenOrderDiscount}
+            className={cn(
+              "flex-1 rounded-xs py-2.5 text-sm font-medium transition-colors",
+              context === "DISCOUNT" && !itemId
+                ? "bg-primary text-white hover:bg-primary/90"
+                : "bg-primary/20 text-muted-foreground hover:text-white hover:bg-primary"
+            )}
           >
             Discount
           </Button>
@@ -347,7 +381,7 @@ export const InlineKeypad = () => {
         </div>
 
         {/* 🔢 ORIGINAL KEYPAD UI (UNCHANGED) */}
-        <div className="grid grid-cols-4 gap-px bg-border p-px">
+        <div className="grid grid-cols-4 gap-0.5 bg-border p-px">
           {[1, 2, 3].map((n) => (
             <Button
               key={n}
@@ -413,8 +447,8 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs text-sm font-semibold flex items-center gap-1",
-              context === "SHIPPING" ? "bg-primary text-white" : "bg-background"
+              "h-12 rounded-xs bg-background text-sm font-semibold flex items-center gap-1",
+              context === "SHIPPING" && "bg-accent/10 "
             )}
             onClick={() => handleContextSwitch("SHIPPING")}
           >

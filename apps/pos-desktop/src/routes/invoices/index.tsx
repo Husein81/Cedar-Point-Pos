@@ -42,7 +42,6 @@ function InvoicesPage() {
           options={[
             // { label: "All Statuses", value: "" },
             { label: "Completed", value: "COMPLETED" },
-            { label: "Paid", value: "PAID" },
             { label: "Ready", value: "READY" },
             { label: "In Progress", value: "IN_PROGRESS" },
             { label: "Confirmed", value: "CONFIRMED" },

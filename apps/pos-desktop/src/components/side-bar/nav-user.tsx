@@ -15,7 +15,16 @@ const NavUser = () => {
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
-        <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
+        <div className="flex items-center text-muted-foreground gap-2 cursor-pointer px-3 py-2 hover:bg-primary rounded-sm hover:text-white">
+          <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
+          <div className="flex flex-col leading-tight items-start">
+            <span className="text-sm font-medium ">
+              {user?.name || "User menu"}
+            </span>
+            <span className="text-xs ">{user?.role || "No email"}</span>
+          </div>
+          <Icon name="ChevronsUpDown" className="w-4 h-4 " />
+        </div>
       </Shad.DropdownMenuTrigger>
 
       <Shad.DropdownMenuContent align="start" className="sm:max-w-lg">

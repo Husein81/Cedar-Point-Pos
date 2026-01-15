@@ -12,8 +12,10 @@ import {
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
+import { usePrinterStore } from "@/store/printerStore";
 import { BusinessType, OrderType } from "@repo/types";
 import type { CreateOrderDto } from "@/apis/ordersApi";
+import { ReceiptPreview } from "../receipts";
 
 type Props = {
   className?: string;
@@ -179,6 +181,40 @@ export const OrderActions = ({
         id: createdOrder.id,
         status: "COMPLETED",
       });
+
+      // Show receipt / auto-print
+      const { autoPrintOnPayment, silentPrint, defaultPrinter } =
+        usePrinterStore.getState();
+
+      if (
+        autoPrintOnPayment &&
+        silentPrint &&
+        defaultPrinter &&
+        window.electron?.print
+      ) {
+        // Silent auto-print: print directly without showing preview
+        window.electron
+          .print({
+            silent: true,
+            printerName: defaultPrinter,
+            printBackground: true,
+          })
+          .catch((err) => {
+            console.error("Auto-print failed:", err);
+          });
+      } else if (autoPrintOnPayment) {
+        // Show receipt preview for manual printing
+        openModal(
+          "Receipt",
+          <ReceiptPreview
+            orderId={createdOrder.id}
+            onClose={closeModal}
+            onPrintSuccess={() => {
+              closeModal();
+            }}
+          />
+        );
+      }
 
       // Clear the cart
       clearOrder();

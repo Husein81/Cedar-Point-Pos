@@ -24,7 +24,14 @@ const orderTypeConfig = {
   RETAIL: { label: "Retail", icon: "Store" },
 };
 
-export const invoiceColumns: ColumnDef<Order>[] = [
+export type InvoiceColumnCallbacks = {
+  onViewOrder: (order: Order) => void;
+  onPrintInvoice: (order: Order) => void;
+};
+
+export const createInvoiceColumns = (
+  callbacks: InvoiceColumnCallbacks
+): ColumnDef<Order>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
@@ -123,21 +130,31 @@ export const invoiceColumns: ColumnDef<Order>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <Actions
-        actions={[
-          {
-            title: "View Order",
-            icon: "Eye",
-            onClick: () => {},
-          },
-          {
-            title: "Print Invoice",
-            icon: "Printer",
-            onClick: () => {},
-          },
-        ]}
-      />
-    ),
+    cell: ({ row }) => {
+      const order = row.original;
+      const isCancelled = order.status === "CANCELLED";
+
+      return (
+        <Actions
+          actions={[
+            {
+              title: "View Order",
+              icon: "Eye",
+              onClick: () => callbacks.onViewOrder(order),
+            },
+            {
+              title: isCancelled ? "Cannot Print (Cancelled)" : "Print Invoice",
+              icon: "Printer",
+              onClick: () => {
+                if (!isCancelled) {
+                  callbacks.onPrintInvoice(order);
+                }
+              },
+              className: isCancelled ? "opacity-50 cursor-not-allowed" : "",
+            },
+          ]}
+        />
+      );
+    },
   },
 ];

@@ -1,9 +1,12 @@
 import Heading from "@/components/heading";
-import { invoiceColumns } from "@/config/invoiceColumn";
+import { ReceiptPreview } from "@/components/receipts";
+import { createInvoiceColumns } from "@/config/invoiceColumn";
 import { useOrders } from "@/hooks/useOrder";
+import { useModalStore } from "@/store/modalStore";
+import { Order } from "@repo/types";
 import { Button, DataTable, Icon, Select } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/invoices/")({
   component: InvoicesPage,
@@ -14,6 +17,7 @@ function InvoicesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const { openModal, closeModal } = useModalStore();
 
   const { data, isLoading, refetch } = useOrders({
     page: String(page),
@@ -25,6 +29,36 @@ function InvoicesPage() {
   const orders = data?.data ?? [];
   const totalPages = Math.ceil(
     Number(data?.pagination?.totalCount ?? 1) / pageSize
+  );
+
+  // Memoize columns with callbacks
+  const invoiceColumns = useMemo(
+    () =>
+      createInvoiceColumns({
+        onViewOrder: (order: Order) => {
+          // Open receipt preview in view mode (shows order details)
+          openModal(
+            `Order #${order.orderNumber}`,
+            <ReceiptPreview
+              orderId={order.id}
+              isReprint={true}
+              onClose={closeModal}
+            />
+          );
+        },
+        onPrintInvoice: (order: Order) => {
+          // Open receipt preview modal for reprinting
+          openModal(
+            "Print Invoice",
+            <ReceiptPreview
+              orderId={order.id}
+              isReprint={true}
+              onClose={closeModal}
+            />
+          );
+        },
+      }),
+    [openModal, closeModal]
   );
 
   return (

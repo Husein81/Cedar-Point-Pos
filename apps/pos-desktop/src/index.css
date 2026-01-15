@@ -86,3 +86,63 @@ html, body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Roboto', sans-serif;
 }
+
+/* =====================
+   PRINT STYLES - THERMAL RECEIPT (80mm)
+===================== */
+@media print {
+  /* Hide everything except the receipt */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the receipt container */
+  .receipt-container,
+  .receipt-container * {
+    visibility: visible;
+  }
+
+  /* Position receipt at top-left */
+  .receipt-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Reset page settings for thermal printer */
+  @page {
+    size: 80mm auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Ensure monospace font for receipt */
+  .receipt-container {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Hide print button overlay */
+  .receipt-actions {
+    display: none !important;
+  }
+
+  /* Force black text, no shadows */
+  .receipt-container * {
+    color: black !important;
+    background: white !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure dashed borders print as dashes */
+  .receipt-container .receipt-divider {
+    border-top: 1px dashed black !important;
+  }
+}

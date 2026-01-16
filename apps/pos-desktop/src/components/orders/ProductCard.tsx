@@ -11,7 +11,9 @@ const ProductCard = ({ product }: Props) => {
   const { addItem, getActiveOrder } = useOrderStore();
 
   const { items } = getActiveOrder() || { items: [] };
+
   const item = items.find((i) => i.productId === product.id);
+
   const totalStock =
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
 
@@ -42,7 +44,7 @@ const ProductCard = ({ product }: Props) => {
       )}
     >
       {item && (
-        <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded-md bg-accent/40 backdrop-blur text-xs font-bold text-primary shadow">
+        <div className="absolute top-1 left-1 z-10 px-2 py-0.5 rounded-md bg-accent/40 backdrop-blur text-xs font-bold text-primary shadow">
           {`${item.quantity}`}
         </div>
       )}

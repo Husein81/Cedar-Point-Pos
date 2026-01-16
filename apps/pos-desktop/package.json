@@ -21,6 +21,7 @@
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.90.1",
     "electron-squirrel-startup": "^1.0.1",
+    "lodash": "^4.17.21",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0"
@@ -38,6 +39,7 @@
     "@repo/typescript-config": "workspace:*",
     "@tanstack/react-router": "^1.143.3",
     "@tanstack/router-plugin": "^1.143.3",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^24.10.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",

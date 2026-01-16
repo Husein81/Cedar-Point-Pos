@@ -5,6 +5,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
 import ProductCard from "./ProductCard";
+import { Subcategory } from "@repo/types";
 
 type Props = {
   className?: string;
@@ -98,7 +99,7 @@ export const ProductGrid = ({ className }: Props) => {
   }, [categories, products]);
 
   // Get subcategories for the selected category
-  const activeSubcategories = useMemo(() => {
+  const activeSubcategories = useMemo((): Subcategory[] => {
     if (!selectedCategoryId || !categories || !products) return [];
 
     const selectedCategory = categories.find(

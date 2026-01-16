@@ -1,11 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Order, OrderStatus, PaymentMethod } from "@repo/types";
-import {
-  ordersApi,
-  type CreateOrderDto,
-  type OrderFilters,
-  type AddItemDto,
-} from "@/apis/ordersApi";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ordersApi } from "@/apis/ordersApi";
+import { AddItemDto, CreateOrderDto, OrderFilters } from "@/dto/order.dto";
 
 const ORDER_QUERY_KEY = ["orders"];
 

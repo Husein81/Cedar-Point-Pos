@@ -1,45 +1,21 @@
+import {
+  CreateTenantCurrencyDto,
+  SetBaseCurrencyResponse,
+  UpdateTenantCurrencyDto,
+} from "@/dto/currency.dto";
 import type {
   Currency,
-  TenantCurrency,
-  TenantCurrenciesResponse,
-  QueryParams,
   PaginationResponse,
+  QueryParams,
+  TenantCurrenciesResponse,
+  TenantCurrency,
 } from "@repo/types";
 import { api } from "./api";
 
 // ==========================================
-// DTOs for Currency Operations
-// ==========================================
-
-export interface CreateTenantCurrencyDto {
-  currencyCode: string;
-  exchangeRate: number | string;
-  isActive?: boolean;
-}
-
-export interface UpdateTenantCurrencyDto {
-  exchangeRate?: number | string;
-  isActive?: boolean;
-}
-
-export interface SetBaseCurrencyResponse {
-  id: string;
-  baseCurrencyCode: string;
-}
-
-// ==========================================
 // Currency API
 // ==========================================
-
 export const currencyApi = {
-  // ==========================================
-  // TENANT CURRENCY ENDPOINTS
-  // ==========================================
-
-  /**
-   * Get all currencies configured for the current tenant
-   * Includes base currency information
-   */
   getTenantCurrencies: async (): Promise<TenantCurrenciesResponse> => {
     const response = await api.get<TenantCurrenciesResponse>("/currencies");
     return response.data;

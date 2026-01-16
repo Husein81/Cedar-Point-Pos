@@ -1,15 +1,6 @@
 import type { Subcategory } from "@repo/types";
 import { api } from "./api";
-
-export interface CreateSubcategoryDto {
-  name: string;
-  description?: string;
-}
-
-export interface UpdateSubcategoryDto {
-  name?: string;
-  description?: string;
-}
+import { CreateSubcategoryDto, UpdateSubcategoryDto } from "@/dto/category.dto";
 
 export const subcategoryApi = {
   createSubcategory: async (

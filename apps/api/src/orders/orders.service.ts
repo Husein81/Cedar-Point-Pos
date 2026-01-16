@@ -21,6 +21,8 @@ interface OrderQueryParams extends QueryParams {
   tableId?: string;
 }
 
+const VAT_RATE = 0.11; // 11% VAT
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -84,6 +86,7 @@ export class OrdersService {
       items,
       discount,
       shippingFee,
+      includeVAT,
     } = dto;
 
     // Fetch tenant info and branch order count in parallel
@@ -188,9 +191,15 @@ export class OrdersService {
     const orderType =
       shippingFee && shippingFee > 0 ? OrderType.DELIVERY : type;
 
-    const total = this.round(
+    // Calculate VAT (11%) on subtotal after discount and shipping
+    const subtotalAfterDiscountAndShipping = this.round(
       Math.max(0, Number(subtotal) - (discount || 0) + (shippingFee || 0)),
     );
+    const vatAmount = includeVAT
+      ? this.round(subtotalAfterDiscountAndShipping * VAT_RATE)
+      : 0;
+
+    const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
     return this.prisma.order.create({
       data: {
@@ -204,6 +213,8 @@ export class OrdersService {
         total,
         discount: discount ?? 0,
         shippingFee: shippingFee ?? 0,
+        includeVAT: includeVAT ?? false,
+        vat: vatAmount,
         ...(tableId && { tableId }),
         ...(customerId && { customerId }),
         items: { create: orderItems },
@@ -602,14 +613,28 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { discount: true },
+      select: { discount: true, shippingFee: true, includeVAT: true },
     });
 
-    const total = this.round(subtotal - Number(order?.discount || 0));
+    const discount = Number(order?.discount || 0);
+    const shippingFee = Number(order?.shippingFee || 0);
+    const includeVAT = Boolean(order?.includeVAT);
+
+    // Calculate total before VAT
+    const subtotalAfterDiscountAndShipping = this.round(
+      Math.max(0, subtotal - discount + shippingFee),
+    );
+
+    // Calculate VAT (11%)
+    const vat = includeVAT
+      ? this.round(subtotalAfterDiscountAndShipping * VAT_RATE)
+      : 0;
+
+    const total = this.round(subtotalAfterDiscountAndShipping + vat);
 
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { subtotal, total },
+      data: { subtotal, total, vat },
     });
   }
 

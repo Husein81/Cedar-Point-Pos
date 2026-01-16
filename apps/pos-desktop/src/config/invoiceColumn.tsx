@@ -102,6 +102,18 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     },
   },
   {
+    accessorKey: "vat",
+    header: "VAT",
+    cell: ({ row }) => {
+      const vat = Number(row.original.vat || 0);
+      return vat > 0 ? (
+        <div className="text-sm text-green-600">+${formatPrice(vat)}</div>
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
     accessorKey: "total",
     header: "Total",
     cell: ({ row }) => (

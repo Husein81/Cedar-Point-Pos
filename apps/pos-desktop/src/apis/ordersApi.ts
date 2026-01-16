@@ -1,81 +1,16 @@
-import type {
-  Order,
-  OrderStatus,
-  OrderType,
-  PaginationResponse,
-  QueryParams,
-  PaymentMethod,
-} from "@repo/types";
+import type { Order, PaginationResponse } from "@repo/types";
 import { api } from "./api";
-
-export interface CreateOrderItemDto {
-  productId: string;
-  quantity: number;
-  unitPrice?: number; // Override product price
-  discount?: {
-    value: number;
-    type: "PERCENTAGE" | "FIXED";
-  }; // Item-level discount
-  notes?: string;
-  modifiers?: string[]; // Array of modifier IDs
-}
-
-export interface CreateOrderDto {
-  branchId: string;
-  type: OrderType;
-  tableId?: string;
-  deviceId?: string;
-  shiftId?: string;
-  customerId?: string;
-  items?: CreateOrderItemDto[];
-  discount?: number; // Discount amount (must be >= 0)
-  shippingFee?: number; // Shipping fee (must be >= 0)
-}
-
-export interface UpdateOrderStatusDto {
-  status: OrderStatus;
-}
-
-export interface UpdateOrderDiscountDto {
-  discount: number;
-}
-
-export interface AssignTableDto {
-  tableId: string;
-}
-
-export interface AddItemDto {
-  productId: string;
-  quantity: number;
-  notes?: string;
-  modifiers?: string[];
-}
-
-export interface UpdateQuantityDto {
-  quantity: number;
-}
-
-export interface UpdateItemDiscountDto {
-  value: number;
-  type: "PERCENTAGE" | "FIXED";
-}
-
-export interface PaymentDto {
-  amount: number;
-  method: PaymentMethod;
-  currencyCode?: string;
-  exchangeRate?: number;
-}
-
-export interface OrderFilters extends QueryParams {
-  status?: OrderStatus;
-  branchId?: string;
-  userId?: string;
-  type?: OrderType;
-  startDate?: string;
-  endDate?: string;
-  tableId?: string;
-}
+import {
+  AddItemDto,
+  AssignTableDto,
+  CreateOrderDto,
+  OrderFilters,
+  PaymentDto,
+  UpdateItemDiscountDto,
+  UpdateOrderDiscountDto,
+  UpdateOrderStatusDto,
+  UpdateQuantityDto,
+} from "@/dto/order.dto";
 
 export const ordersApi = {
   // Create a new order

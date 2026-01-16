@@ -1,7 +1,7 @@
 import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "../common/InlineKeypad";
+import { InlineKeypad } from "../common";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
 import OrderSummary from "./OrderSummary";

@@ -167,7 +167,6 @@ export class OrdersController {
     const user = req.user as { tenantId: string };
     return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
   }
-
   /**
    * Assign or change table (restaurant only)
    */

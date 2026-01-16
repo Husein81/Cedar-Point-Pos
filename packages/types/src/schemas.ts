@@ -52,7 +52,9 @@ export const TenantCurrenciesResponseSchema = z.object({
   baseCurrencyCode: z.string(),
   currencies: z.array(TenantCurrencySchema),
 });
-export type TenantCurrenciesResponse = z.infer<typeof TenantCurrenciesResponseSchema>;
+export type TenantCurrenciesResponse = z.infer<
+  typeof TenantCurrenciesResponseSchema
+>;
 
 // User
 export const UserSchema = z.object({
@@ -319,7 +321,6 @@ export const OrderSchema = z.object({
   branchId: cuid,
   tableId: cuid.nullable().optional(),
   deviceId: cuid.nullable().optional(),
-
   customerId: cuid.nullable().optional(),
   customer: z
     .object({
@@ -331,12 +332,12 @@ export const OrderSchema = z.object({
     .nullable()
     .optional(),
   shiftId: cuid.nullable().optional(),
-
   orderNumber: z.string().nullable().optional(),
-
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
-
+  vat: decimal.nullable().optional(),
+  includeVat: z.boolean().default(false),
+  shippingFee: decimal.nullable().optional(),
   subtotal: decimal.default("0"),
   total: decimal.default("0"),
   discount: decimal.nullable().optional(),

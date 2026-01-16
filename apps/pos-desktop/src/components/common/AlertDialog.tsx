@@ -8,6 +8,7 @@ type Props = {
   title: string;
   description?: string;
   icon?: string;
+  className?: string;
   iconButton?: string;
   size?:
     | "default"
@@ -57,8 +58,9 @@ const AlertDialog = ({
   description,
   icon,
   iconButton,
-  size = "default",
+  className,
   section,
+  size = "default",
   variant = "default",
   buttonVariant = "default",
   confirmText = "Confirm",
@@ -79,7 +81,7 @@ const AlertDialog = ({
               size={size}
               disabled={!hasItems}
               variant={buttonVariant ?? config.buttonVariant}
-              className="flex items-center gap-2 w-full"
+              className={cn("flex items-center gap-2 w-full", className)}
             >
               <Icon name={iconButton ?? config.icon} className="h-4 w-4" />
               {label}

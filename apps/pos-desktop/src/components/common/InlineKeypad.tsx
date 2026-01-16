@@ -1,6 +1,6 @@
 import { useKeypadStore } from "@/store/keypadStore";
 import { KEYPAD_CONFIG, type KeypadContext } from "./config";
-import { Button, cn, Icon, Shad } from "@repo/ui";
+import { Button, cn, Icon, Separator, Shad } from "@repo/ui";
 import { useRef, useState, useEffect } from "react";
 import { useModalStore } from "@/store/modalStore";
 import { useNavigate } from "@tanstack/react-router";
@@ -13,12 +13,13 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { BusinessType, OrderType } from "@repo/types";
-import type { CreateOrderDto } from "@/apis/ordersApi";
+import type { CreateOrderDto } from "@/dto/order.dto";
 import {
   PaymentForm,
   type PaymentEntry,
 } from "@/components/orders/PaymentForm";
 import { OrderStatus } from "@repo/types";
+import AlertDialog from "./AlertDialog";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
@@ -47,17 +48,20 @@ export const InlineKeypad = () => {
     setDiscount,
     setOrderStatus,
     setShippingFee,
+    toggleVAT,
     clearOrder,
     closeTab,
     activeTabId,
     getOrderSubtotal,
+    getVATAmount,
   } = useOrderStore();
 
   const order = getActiveOrder();
   const subtotal = getOrderSubtotal();
   const discount = getDiscountAmount();
   const shippingFee = order?.shippingFee || 0;
-  const total = subtotal - discount + shippingFee;
+  const vat = getVATAmount();
+  const total = subtotal - discount + shippingFee + vat;
 
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
@@ -73,7 +77,8 @@ export const InlineKeypad = () => {
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [isDiffMode, setIsDiffMode] = useState(false);
+  const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
   /* ---------------------------------------------
      Init / Context Reset
   --------------------------------------------- */
@@ -122,6 +127,9 @@ export const InlineKeypad = () => {
   const clearEntry = () => {
     setMode("IDLE");
     setValue(String(config.allowZero ? 0 : config.minValue));
+
+    setIsDiffMode(false);
+    setDiffBaseValue(null);
     switchContext(undefined);
   };
 
@@ -144,7 +152,14 @@ export const InlineKeypad = () => {
       }
 
       if (context === "QUANTITY") onConfirm?.(numeric);
-      if (context === "PRICE_OVERRIDE") onPriceChange?.(numeric);
+      if (context === "PRICE_OVERRIDE") {
+        const finalPrice =
+          isDiffMode && diffBaseValue !== null
+            ? clamp(diffBaseValue + numeric)
+            : numeric;
+
+        onPriceChange?.(finalPrice);
+      }
       if (context === "SHIPPING") {
         setShippingFee(numeric);
       }
@@ -177,6 +192,10 @@ export const InlineKeypad = () => {
     return () => clearTimeout(timeout);
   }, [value, context, mode, itemId]);
 
+  useEffect(() => {
+    setIsDiffMode(false);
+    setDiffBaseValue(null);
+  }, [context, itemId]);
   /* ---------------------------------------------
      Input Handlers (UNCHANGED UI)
   --------------------------------------------- */
@@ -228,6 +247,17 @@ export const InlineKeypad = () => {
     }
     setMode("REPLACE");
     switchContext(next);
+  };
+
+  const handleDifferent = () => {
+    if (context !== "PRICE_OVERRIDE") return;
+
+    const base = parse(currentValue.toString());
+
+    setIsDiffMode(true);
+    setDiffBaseValue(base);
+    setMode("REPLACE");
+    setValue("0");
   };
 
   const handleOpenOrderDiscount = () => {
@@ -303,6 +333,7 @@ export const InlineKeypad = () => {
         type: orderType,
         customerId: order.customerId || undefined,
         shippingFee: order.shippingFee,
+        includeVAT: order.includeVAT,
         items: order.items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -414,29 +445,73 @@ export const InlineKeypad = () => {
     >
       <Shad.CollapsibleContent className="border-t border-border bg-background">
         {/* Header */}
-        <div className="flex border-b border-border">
+        <div className="flex items-center gap-1 border-b border-border bg-background px-1 py-1">
+          {/* VAT Toggle */}
           <Button
-            onClick={handleOpenOrderDiscount}
+            variant="ghost"
+            size="sm"
             className={cn(
-              "flex-1 rounded-xs py-2.5 text-sm font-medium transition-colors",
-              context === "DISCOUNT" && !itemId
-                ? "bg-primary text-white hover:bg-primary/90"
-                : "bg-primary/20 text-muted-foreground hover:text-white hover:bg-primary"
+              "flex items-center gap-1 rounded-xs px-3 font-semibold",
+              order?.includeVAT
+                ? "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-accent/40"
             )}
+            onClick={toggleVAT}
           >
+            <Icon name="ReceiptPercent" className="h-4 w-4" />
+            VAT 11%
+          </Button>
+
+          {/* Divider */}
+          <div className="h-6 w-px bg-border mx-0.5" />
+
+          {/* Shipping */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "flex items-center gap-1 rounded-xs px-3",
+              context === "SHIPPING"
+                ? "bg-accent/15 text-primary"
+                : "text-muted-foreground hover:bg-accent/40"
+            )}
+            onClick={() => handleContextSwitch("SHIPPING")}
+          >
+            <Icon name="Truck" className="h-4 w-4" />
+            Shipping
+          </Button>
+
+          {/* Order Discount */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "flex items-center gap-1 rounded-xs px-3",
+              context === "DISCOUNT" && !itemId
+                ? "bg-accent/15 text-primary"
+                : "text-muted-foreground hover:bg-accent/40"
+            )}
+            onClick={handleOpenOrderDiscount}
+          >
+            <Icon name="Percent" className="h-4 w-4" />
             Discount
           </Button>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* More Actions */}
           <Button
-            variant={"ghost"}
-            className="px-3 rounded-xs py-2.5 text-muted-foreground hover:bg-primary/50"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-xs text-primary hover:bg-accent/50"
             onClick={handleOpenModal}
           >
-            <Icon name="EllipsisVertical" className="w-4 h-4" />
+            <Icon name="EllipsisVertical" className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* 🔢 ORIGINAL KEYPAD UI (UNCHANGED) */}
-        <div className="grid grid-cols-4 gap-0.5 bg-border p-px">
+        <div className="flex-1 grid grid-cols-4 gap-1 bg-border p-px">
           {[1, 2, 3].map((n) => (
             <Button
               key={n}
@@ -475,9 +550,8 @@ export const InlineKeypad = () => {
               context === "DISCOUNT" && "bg-accent/10"
             )}
             onClick={() => handleContextSwitch("DISCOUNT")}
-          >
-            %
-          </Button>
+            iconName="Percent"
+          />
 
           {[7, 8, 9].map((n) => (
             <Button
@@ -496,19 +570,18 @@ export const InlineKeypad = () => {
               context === "PRICE_OVERRIDE" && "bg-accent/10"
             )}
             onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
-          >
-            PRICE
-          </Button>
+            iconName="DollarSign"
+          />
+
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs bg-background text-sm font-semibold flex items-center gap-1",
-              context === "SHIPPING" && "bg-accent/10 "
+              "h-12 rounded-xs bg-background text-lg",
+              context === "PRICE_OVERRIDE" && "bg-accent/10"
             )}
-            onClick={() => handleContextSwitch("SHIPPING")}
-          >
-            <Icon name="Truck" className="w-4 h-4" />
-          </Button>
+            onClick={() => handleDifferent()}
+            iconName="Diff"
+          />
 
           <Button
             variant="ghost"
@@ -533,24 +606,10 @@ export const InlineKeypad = () => {
             <Icon name="Delete" className="w-5 h-5 text-white" />
           </Button>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center border-t border-border">
           <Button
-            variant="outline"
-            className="flex-1 rounded-xs"
-            disabled={
-              !order?.customerId ||
-              !order?.items?.length ||
-              total <= 0 ||
-              isProcessing
-            }
-            isSubmitting={isProcessing}
-            onClick={handleConfirmWithoutPayment}
-          >
-            <Icon name="Check" className="w-4 h-4 mr-2" />
-            Confirm
-          </Button>
-          <Button
-            className="flex-1 rounded-xs"
+            className="rounded-xs flex-1"
+            size={"default"}
             disabled={!order?.items?.length || total <= 0 || isProcessing}
             isSubmitting={isProcessing}
             onClick={handlePay}
@@ -558,6 +617,15 @@ export const InlineKeypad = () => {
             <Icon name="CreditCard" className="w-4 h-4 mr-2" />
             Payment
           </Button>
+          <AlertDialog
+            title="Confirm Order Without Payment"
+            description="Are you sure you want to confirm this order without processing a payment? This action cannot be undone."
+            onConfirm={handleConfirmWithoutPayment}
+            iconButton="Check"
+            buttonVariant="outline"
+            label="Confirm Payment"
+            className="rounded-xs flex-1"
+          />
         </div>
       </Shad.CollapsibleContent>
     </Shad.Collapsible>

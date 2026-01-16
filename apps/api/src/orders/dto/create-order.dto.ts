@@ -5,10 +5,12 @@ export const createOrderItemDto = z.object({
   productId: z.string(),
   quantity: z.number(),
   unitPrice: z.number().optional(), // Override product price
-  discount: z.object({
-    value: z.number().min(0),
-    type: z.enum(['PERCENTAGE', 'FIXED']),
-  }).optional(), // Item-level discount
+  discount: z
+    .object({
+      value: z.number().min(0),
+      type: z.enum(['PERCENTAGE', 'FIXED']),
+    })
+    .optional(), // Item-level discount
   notes: z.string().optional(),
   modifiers: z.array(z.string()).optional(), // Array of modifier IDs
 });
@@ -24,5 +26,6 @@ export const createOrderDto = z.object({
   items: z.array(createOrderItemDto).optional(),
   discount: z.number().min(0).optional(), // Discount amount (must be >= 0)
   shippingFee: z.number().min(0).optional(), // Shipping fee (must be >= 0)
+  includeVAT: z.boolean().optional(), // Whether to include 11% VAT
 });
 export type CreateOrderDto = z.infer<typeof createOrderDto>;

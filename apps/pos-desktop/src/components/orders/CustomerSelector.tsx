@@ -2,12 +2,12 @@ import { useState, useCallback, useMemo } from "react";
 import { Combobox, Icon, Shad } from "@repo/ui";
 import type { ComboboxOption } from "@repo/ui";
 import { useSearchCustomers } from "@/hooks/useCustomer";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useOrderStore } from "@/store/orderStore";
 import { CustomerCard } from "./CustomerCard";
 import type { CustomerSummary } from "@/dto/customer.dto";
 import { useModalStore } from "@/store/modalStore";
 import { CustomerForm } from "./CustomerForm";
+import _ from "lodash";
 
 type Props = {
   className?: string;
@@ -18,9 +18,12 @@ export const CustomerSelector = ({ className }: Props) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const debouncedQuery = useDebounce(searchQuery, 300);
+  const debounce = useMemo(() => _.debounce((query: string) => query, 200), []);
+
+  const debouncedQuery = debounce(searchQuery);
+
   const { data: customers, isLoading } = useSearchCustomers(
-    debouncedQuery,
+    debouncedQuery ?? "",
     open
   );
 

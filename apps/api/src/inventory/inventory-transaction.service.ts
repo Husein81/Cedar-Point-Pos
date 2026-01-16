@@ -38,6 +38,7 @@ export class InventoryTransactionService {
       quantity,
       reason,
       minStock,
+      allowNegativeStock = false,
     } = input;
 
     return await this.prisma.$transaction(
@@ -74,7 +75,8 @@ export class InventoryTransactionService {
             minStock,
           );
 
-        if (afterStock < 0) {
+        // Allow negative stock for SALE transactions when explicitly permitted
+        if (afterStock < 0 && !allowNegativeStock) {
           throw new BadRequestException(
             `Insufficient stock (${beforeStock} available)`,
           );

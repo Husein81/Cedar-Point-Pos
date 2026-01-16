@@ -1,10 +1,12 @@
+import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
-import { Button, cn, Icon } from "@repo/ui";
+import { Button, cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
 
 type CartItemProps = {
   item: {
     id: string;
+    productId: string;
     name: string;
     price: number;
     quantity: number;
@@ -46,6 +48,7 @@ export const CartItem = ({
   onRemove,
 }: CartItemProps) => {
   const { openKeypad, isOpen, itemId } = useKeypadStore();
+  const { warning } = useCartItemStockWarning(item.productId);
 
   const lineTotal = item.price * item.quantity;
   const discountAmount = item.discount
@@ -54,6 +57,10 @@ export const CartItem = ({
       : item.discount.value
     : 0;
   const finalTotal = lineTotal - discountAmount;
+
+  // Stock warning state
+  const showStockWarning = warning?.isNegative ?? false;
+  const resultingStock = warning?.resultingStock ?? 0;
 
   const handleSelect = () => {
     onSelect?.(item.id);
@@ -98,14 +105,41 @@ export const CartItem = ({
         "border-b border-border/40",
         isActive
           ? "bg-primary/5 border-l-2 border-l-primary"
-          : "hover:bg-muted/30"
+          : "hover:bg-muted/30",
+        showStockWarning && "bg-amber-50/50 dark:bg-amber-950/20"
       )}
       onClick={handleSelect}
     >
-      {/* Quantity */}
-      <span className="w-6 text-sm font-semibold text-foreground tabular-nums">
-        {item.quantity}
-      </span>
+      {/* Quantity with Stock Warning */}
+      <div className="flex items-center gap-1">
+        <span className="w-6 text-sm font-semibold text-foreground tabular-nums">
+          {item.quantity}
+        </span>
+        {showStockWarning && (
+          <Shad.Tooltip>
+            <Shad.TooltipTrigger asChild>
+              <span
+                className="cursor-help"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Icon
+                  name="TriangleAlert"
+                  className="h-3.5 w-3.5 text-amber-500"
+                />
+              </span>
+            </Shad.TooltipTrigger>
+            <Shad.TooltipContent side="top" className="max-w-50">
+              <p className="text-xs">
+                <span className="font-semibold text-amber-600">
+                  Low stock warning
+                </span>
+                <br />
+                Stock after sale: {resultingStock.toFixed(2)}
+              </p>
+            </Shad.TooltipContent>
+          </Shad.Tooltip>
+        )}
+      </div>
 
       {/* Item Details */}
       <div className="flex-1 min-w-0">
@@ -125,6 +159,14 @@ export const CartItem = ({
             {item.discount.value}
             {item.discount.type === "PERCENTAGE" ? "%" : " $"} discount -
             {formatPrice(discountAmount)} $ off
+          </p>
+        )}
+
+        {/* Stock Warning Inline (alternative to tooltip for visibility) */}
+        {showStockWarning && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+            <Icon name="AlertCircle" className="h-3 w-3" />
+            Stock after sale: {resultingStock.toFixed(2)}
           </p>
         )}
       </div>

@@ -2,6 +2,7 @@ import { Product } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
 import { useOrderStore } from "@/store/orderStore";
+import { useBranchStore } from "@/store/branchStore";
 
 type Props = {
   product: Product;
@@ -9,17 +10,30 @@ type Props = {
 
 const ProductCard = ({ product }: Props) => {
   const { addItem, getActiveOrder } = useOrderStore();
+  const { branchId } = useBranchStore();
 
   const { items } = getActiveOrder() || { items: [] };
   const item = items.find((i) => i.productId === product.id);
+
+  // Get branch-specific stock (more accurate than summing all branches)
+  const branchInventory = product.inventory?.find(
+    (inv) => inv.branchId === branchId
+  );
+  const currentStock = branchInventory ? Number(branchInventory.stock) : 0;
+
+  // Fallback to total stock if no branch-specific inventory
   const totalStock =
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
+  const displayStock = branchInventory ? currentStock : totalStock;
 
-  const isOutOfStock = totalStock === 0;
+  const isOutOfStock = displayStock <= 0;
+
+  // Calculate resulting stock after adding one more (or current cart quantity + 1)
+  const cartQuantity = item?.quantity ?? 0;
+  const resultingStockIfAdded = displayStock - (cartQuantity + 1);
+  const wouldGoNegative = resultingStockIfAdded < 0 || isOutOfStock;
 
   const handleAddItem = () => {
-    if (isOutOfStock) return;
-
     addItem({
       productId: product.id,
       name: product.name,
@@ -36,16 +50,27 @@ const ProductCard = ({ product }: Props) => {
         "relative overflow-hidden rounded-md border",
         "h-37.5 w-full p-0",
         "bg-background transition",
+        "cursor-pointer",
         isOutOfStock
-          ? "opacity-60 cursor-not-allowed"
-          : "cursor-pointer hover:ring-1 hover:ring-primary/40 active:scale-[0.98]"
+          ? "opacity-60"
+          : "hover:ring-1 hover:ring-primary/40 active:scale-[0.98]",
+        wouldGoNegative && !isOutOfStock && "ring-1 ring-amber-400"
       )}
     >
+      {/* Cart quantity badge */}
       {item && (
-        <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded-md bg-accent/40 backdrop-blur text-xs font-bold text-primary shadow">
+        <div
+          className={cn(
+            "absolute bottom-1 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
+            wouldGoNegative
+              ? "bg-amber-500/90 text-white"
+              : "bg-accent/40 text-primary"
+          )}
+        >
           {`${item.quantity}`}
         </div>
       )}
+
       {/* IMAGE (≈ 85–90%) */}
       <div className="relative h-2/3 w-full bg-muted">
         {product.imageUrl ? (

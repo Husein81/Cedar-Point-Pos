@@ -28,7 +28,6 @@ const PAYMENT_METHODS: {
 }[] = [
   { value: "CASH", label: "Cash", icon: "Banknote" },
   { value: "CARD", label: "Card", icon: "CreditCard" },
-  { value: "CREDIT", label: "Credit", icon: "Wallet" },
   { value: "ONLINE", label: "Online", icon: "Smartphone" },
 ];
 

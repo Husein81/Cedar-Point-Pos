@@ -1,10 +1,8 @@
-import { useKeypadStore } from "@/store/keypadStore";
-import { KEYPAD_CONFIG, type KeypadContext } from "./config";
-import { Button, cn, Icon, Separator, Shad } from "@repo/ui";
-import { useRef, useState, useEffect } from "react";
-import { useModalStore } from "@/store/modalStore";
-import { useNavigate } from "@tanstack/react-router";
-import { useOrderStore } from "@/store/orderStore";
+import {
+  PaymentForm,
+  type PaymentEntry,
+} from "@/components/orders/PaymentForm";
+import type { CreateOrderDto } from "@/dto/order.dto";
 import {
   useCreateOrder,
   useProcessPayment,
@@ -12,14 +10,15 @@ import {
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
-import { BusinessType, OrderType } from "@repo/types";
-import type { CreateOrderDto } from "@/dto/order.dto";
-import {
-  PaymentForm,
-  type PaymentEntry,
-} from "@/components/orders/PaymentForm";
-import { OrderStatus } from "@repo/types";
+import { useKeypadStore } from "@/store/keypadStore";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
+import { BusinessType, OrderStatus, OrderType } from "@repo/types";
+import { Button, cn, Icon, Shad } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import AlertDialog from "./AlertDialog";
+import { KEYPAD_CONFIG, type KeypadContext } from "./config";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
@@ -54,12 +53,13 @@ export const InlineKeypad = () => {
     activeTabId,
     getOrderSubtotal,
     getVATAmount,
+    setOrderType,
   } = useOrderStore();
 
   const order = getActiveOrder();
   const subtotal = getOrderSubtotal();
   const discount = getDiscountAmount();
-  const shippingFee = order?.shippingFee || 0;
+  const shippingFee = order?.shippingFee ?? 0;
   const vat = getVATAmount();
   const total = subtotal - discount + shippingFee + vat;
 
@@ -79,6 +79,7 @@ export const InlineKeypad = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
+  const [isShippingActive, setIsShippingActive] = useState(false);
   /* ---------------------------------------------
      Init / Context Reset
   --------------------------------------------- */
@@ -286,6 +287,19 @@ export const InlineKeypad = () => {
     });
   };
 
+  const handleShippingToggle = () => {
+    if (isShippingActive) {
+      // Reset order type to default
+      setOrderType(undefined);
+      setIsShippingActive(false);
+    } else {
+      // Set order type to DELIVERY
+      setOrderType(OrderType.DELIVERY);
+      setIsShippingActive(true);
+      handleContextSwitch("SHIPPING");
+    }
+  };
+
   const handleOpenModal = () => {
     openModal(
       "Actions",
@@ -319,9 +333,8 @@ export const InlineKeypad = () => {
       if (activeTabId) {
         closeTab(activeTabId);
       }
-
       const orderType =
-        order.shippingFee && order.shippingFee > 0
+        order.shippingFee && order.shippingFee >= 0
           ? OrderType.DELIVERY
           : (order.type ??
             (user.tenant?.businessType === BusinessType.RETAIL
@@ -458,7 +471,7 @@ export const InlineKeypad = () => {
             )}
             onClick={toggleVAT}
           >
-            <Icon name="ReceiptPercent" className="h-4 w-4" />
+            <Icon name="Receipt" className="h-4 w-4" />
             VAT 11%
           </Button>
 
@@ -471,11 +484,11 @@ export const InlineKeypad = () => {
             size="sm"
             className={cn(
               "flex items-center gap-1 rounded-xs px-3",
-              context === "SHIPPING"
+              isShippingActive
                 ? "bg-accent/15 text-primary"
                 : "text-muted-foreground hover:bg-accent/40"
             )}
-            onClick={() => handleContextSwitch("SHIPPING")}
+            onClick={handleShippingToggle}
           >
             <Icon name="Truck" className="h-4 w-4" />
             Shipping

@@ -132,7 +132,7 @@ interface OrderStoreState {
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
-  setOrderType: (type: string) => void;
+  setOrderType: (type?: string) => void;
   holdOrder: () => void;
   resumeOrder: () => void;
 
@@ -562,7 +562,7 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      setOrderType: (type: string) => {
+      setOrderType: (type?: string) => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -574,7 +574,7 @@ export const useOrderStore = create<OrderStoreState>()(
               ...tab,
               order: {
                 ...tab.order,
-                type: type as OrderType,
+                type: type ? (type as OrderType) : undefined,
                 modifiedAt: new Date(),
               },
             };

@@ -114,6 +114,20 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     },
   },
   {
+    accessorKey: "shippingFee",
+    header: "Shipping",
+    cell: ({ row }) => {
+      const shippingFee = Number(row.original.shippingFee || 0);
+      return shippingFee > 0 ? (
+        <div className="text-sm text-green-600">
+          +${formatPrice(shippingFee)}
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
     accessorKey: "total",
     header: "Total",
     cell: ({ row }) => (

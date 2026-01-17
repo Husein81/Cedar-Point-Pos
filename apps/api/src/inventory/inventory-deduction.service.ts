@@ -1,37 +1,12 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { OrderStatus } from '@repo/types';
+import { OrderItem, OrderStatus } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryTransactionService } from './inventory-transaction.service.js';
-
-interface StockDeductionItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  orderItemId?: string;
-}
-
-interface StockValidationResult {
-  isValid: boolean;
-  insufficientStock: Array<{
-    productId: string;
-    productName: string;
-    ingredientId?: string;
-    ingredientName?: string;
-    required: number;
-    available: number;
-  }>;
-}
-
-// Stock warning info returned after deduction (does NOT block the order)
-interface StockWarningInfo {
-  productId: string;
-  productName: string;
-  ingredientId?: string;
-  ingredientName?: string;
-  quantityDeducted: number;
-  stockBefore: number;
-  stockAfter: number;
-}
+import type {
+  StockDeductionItem,
+  StockValidationResult,
+  StockWarningInfo,
+} from './dto/stock-adjustment.dto.js';
 
 @Injectable()
 export class InventoryDeductionService {
@@ -42,7 +17,7 @@ export class InventoryDeductionService {
     private readonly inventoryTransactionService: InventoryTransactionService,
   ) {}
   /**
-   * Validate and deduct stock when order is PAID or COMPLETED
+   * Validate and deduct stock when order is COMPLETED
    * Handles both direct products and recipe-based ingredient deduction
    * Implements idempotency to prevent double-deduction
    *

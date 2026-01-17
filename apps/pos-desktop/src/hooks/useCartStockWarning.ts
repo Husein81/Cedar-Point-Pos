@@ -4,16 +4,12 @@ import { stockApi } from "@/apis/stockApi";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-/**
- * Stock warning information for a cart item
- */
 export type StockWarning = {
   productId: string;
   currentStock: number;
   cartQuantity: number;
   resultingStock: number;
   isNegative: boolean;
-  /** True if no inventory record exists (treat as 0 stock) */
   noInventoryRecord: boolean;
 };
 
@@ -42,7 +38,6 @@ export const useCartStockWarnings = () => {
         try {
           return await stockApi.getInventoryItem(branchId, item.productId);
         } catch {
-          // Product has no inventory record - treat as 0 stock
           return null;
         }
       },
@@ -105,11 +100,6 @@ export const useCartStockWarnings = () => {
   };
 };
 
-/**
- * Hook to get stock warning for a single cart item
- *
- * Use this in individual CartItem components for efficiency
- */
 export const useCartItemStockWarning = (productId: string) => {
   const { branchId } = useBranchStore();
   const order = useOrderStore((state) => state.getActiveOrder());

@@ -32,3 +32,33 @@ export const stockAdjustmentHistoryQuerySchema = z.object({
 export type StockAdjustmentHistoryQueryDto = z.infer<
   typeof stockAdjustmentHistoryQuerySchema
 >;
+
+export interface StockDeductionItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  orderItemId?: string;
+}
+
+export interface StockValidationResult {
+  isValid: boolean;
+  insufficientStock: Array<{
+    productId: string;
+    productName: string;
+    ingredientId?: string;
+    ingredientName?: string;
+    required: number;
+    available: number;
+  }>;
+}
+
+// Stock warning info returned after deduction (does NOT block the order)
+export interface StockWarningInfo {
+  productId: string;
+  productName: string;
+  ingredientId?: string;
+  ingredientName?: string;
+  quantityDeducted: number;
+  stockBefore: number;
+  stockAfter: number;
+}

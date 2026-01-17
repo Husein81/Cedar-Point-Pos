@@ -2,42 +2,31 @@ import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
+import { DiscountType } from "@/store/orderStore";
 
-type CartItemProps = {
-  item: {
-    id: string;
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    discount?: {
-      value: number;
-      type: "PERCENTAGE" | "FIXED";
-    };
-    imageUrl?: string | null;
+type Item = {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  discount?: {
+    value: number;
+    type: DiscountType;
   };
+  imageUrl?: string | null;
+};
+
+type Props = {
+  item: Item;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
   onQuantityChange: (id: string, quantity: number) => void;
   onPriceChange?: (id: string, price: number) => void;
-  onDiscountChange?: (
-    id: string,
-    value: number,
-    type: "PERCENTAGE" | "FIXED"
-  ) => void;
+  onDiscountChange?: (id: string, value: number, type: DiscountType) => void;
   onRemove: (id: string) => void;
 };
 
-/**
- * CartItem Component - POS Style
- *
- * Compact row layout matching professional POS systems:
- * | Qty | Item Name                    | Line Total |
- * |     | Unit price / discount info   |            |
- *
- * Clicking selects the item and opens the inline keypad.
- * User can switch contexts in keypad to edit Qty/Price/Discount.
- */
 export const CartItem = ({
   item,
   isSelected = false,
@@ -46,7 +35,7 @@ export const CartItem = ({
   onPriceChange,
   onDiscountChange,
   onRemove,
-}: CartItemProps) => {
+}: Props) => {
   const { openKeypad, isOpen, itemId } = useKeypadStore();
   const { warning } = useCartItemStockWarning(item.productId);
 

@@ -98,7 +98,7 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
     return (
       <div className="flex-1 grid place-items-center p-6">
         <div className="max-w-sm text-center space-y-2 text-destructive">
-          <Icon name="AlertCircle" className="h-7 w-7 mx-auto" />
+          <Icon name="CircleAlert" className="h-7 w-7 mx-auto" />
           <p className="text-sm font-medium">{selectedOrderError}</p>
         </div>
       </div>
@@ -240,7 +240,7 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
         {processError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <div className="flex gap-2">
-              <Icon name="AlertCircle" className="w-4 h-4 mt-0.5 shrink-0" />
+              <Icon name="CircleAlert" className="w-4 h-4 mt-0.5 shrink-0" />
               <span className="font-medium">{processError}</span>
             </div>
           </div>

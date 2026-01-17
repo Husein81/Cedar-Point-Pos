@@ -2,25 +2,11 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderItem, OrderStatus } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryTransactionService } from './inventory-transaction.service.js';
-
-interface StockDeductionItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  orderItemId?: string;
-}
-
-interface StockValidationResult {
-  isValid: boolean;
-  insufficientStock: Array<{
-    productId: string;
-    productName: string;
-    ingredientId?: string;
-    ingredientName?: string;
-    required: number;
-    available: number;
-  }>;
-}
+import type {
+  StockDeductionItem,
+  StockValidationResult,
+  StockWarningInfo,
+} from './dto/stock-adjustment.dto.js';
 
 @Injectable()
 export class InventoryDeductionService {
@@ -31,16 +17,24 @@ export class InventoryDeductionService {
     private readonly inventoryTransactionService: InventoryTransactionService,
   ) {}
   /**
-   * Validate and deduct stock when order is PAID or COMPLETED
+   * Validate and deduct stock when order is COMPLETED
    * Handles both direct products and recipe-based ingredient deduction
    * Implements idempotency to prevent double-deduction
+   *
+   * ⚠️ IMPORTANT: This method ALLOWS negative stock for SALE transactions.
+   * Orders should NOT be blocked due to insufficient stock - cashiers are warned
+   * during the cart-building phase, and the business decision is to proceed.
    */
   async deductStockForOrder(
     tenantId: string,
     orderId: string,
     branchId: string,
     userId: string,
-  ) {
+  ): Promise<{
+    success: boolean;
+    deductionsApplied: number;
+    stockWarnings: StockWarningInfo[];
+  }> {
     // Get order with items and product details (including recipes for ingredient deduction)
     const order = await this.prisma.order.findFirst({
       where: {
@@ -80,27 +74,33 @@ export class InventoryDeductionService {
     const orderItems = order.items as unknown as OrderItem[];
     const deductions = this.calculateStockDeductions(orderItems);
 
-    // Validate stock availability
-    const validation = await this.validateStockAvailability(
+    // Check stock availability (for warnings only - does NOT block)
+    const stockCheck = await this.checkStockAvailability(
       tenantId,
       branchId,
       deductions,
     );
 
-    if (!validation.isValid) {
-      throw new BadRequestException({
-        message: 'Insufficient stock to complete order',
-        insufficientStock: validation.insufficientStock,
-      });
+    // Log warnings for items that will go negative (informational only)
+    if (stockCheck.insufficientItems.length > 0) {
+      this.logger.warn(
+        `⚠️ Order ${orderId} will result in negative stock for ${stockCheck.insufficientItems.length} item(s)`,
+      );
+      for (const item of stockCheck.insufficientItems) {
+        this.logger.warn(
+          `  - ${item.productName}: ${item.available} available, ${item.required} required → ${item.available - item.required} after sale`,
+        );
+      }
     }
 
-    // Execute deductions atomically with audit trail
-    await this.executeStockDeductions(
+    // Execute deductions atomically with audit trail (allows negative stock)
+    const stockWarnings = await this.executeStockDeductions(
       tenantId,
       branchId,
       deductions,
       orderId,
       userId,
+      true, // allowNegativeStock = true for SALE transactions
     );
 
     this.logger.log(
@@ -110,6 +110,7 @@ export class InventoryDeductionService {
     return {
       success: true,
       deductionsApplied: deductions.length,
+      stockWarnings,
     };
   }
 
@@ -175,6 +176,7 @@ export class InventoryDeductionService {
 
   /**
    * Validate that sufficient stock exists for all deductions
+   * @deprecated Use checkStockAvailability for non-blocking validation
    */
   private async validateStockAvailability(
     tenantId: string,
@@ -239,8 +241,90 @@ export class InventoryDeductionService {
   }
 
   /**
+   * Check stock availability (non-blocking - returns warnings only)
+   * Used to log and inform about items that will go negative
+   */
+  private async checkStockAvailability(
+    tenantId: string,
+    branchId: string,
+    deductions: StockDeductionItem[],
+  ): Promise<{
+    insufficientItems: Array<{
+      productId: string;
+      productName: string;
+      ingredientId?: string;
+      ingredientName?: string;
+      required: number;
+      available: number;
+    }>;
+  }> {
+    const productIds = deductions.map((d) => d.productId);
+
+    const inventoryRecords = await this.prisma.inventory.findMany({
+      where: {
+        tenantId,
+        branchId,
+        productId: { in: productIds },
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            isIngredient: true,
+          },
+        },
+      },
+    });
+
+    const inventoryMap = new Map(
+      inventoryRecords.map((inv) => [inv.productId, inv]),
+    );
+
+    const insufficientItems: Array<{
+      productId: string;
+      productName: string;
+      ingredientId?: string;
+      ingredientName?: string;
+      required: number;
+      available: number;
+    }> = [];
+
+    for (const deduction of deductions) {
+      const inventory = inventoryMap.get(deduction.productId);
+      const available = inventory ? Number(inventory.stock) : 0;
+
+      if (available < deduction.quantity) {
+        const product =
+          inventory?.product ||
+          (await this.prisma.product.findUnique({
+            where: { id: deduction.productId },
+            select: { name: true, isIngredient: true },
+          }));
+
+        insufficientItems.push({
+          productId: String(deduction.productId),
+          productName: String(product?.name),
+          ...(product?.isIngredient && {
+            ingredientId: String(deduction.productId),
+            ingredientName: String(product.name),
+          }),
+          required: deduction.quantity,
+          available,
+        });
+      }
+    }
+
+    return { insufficientItems };
+  }
+
+  /**
    * Execute stock deductions atomically with audit trail
    * Now uses InventoryTransactionService for consistency
+   *
+   * @param allowNegativeStock - When true, allows stock to go negative (for SALE transactions)
+   * @returns Array of stock warnings for items that went negative
    */
   private async executeStockDeductions(
     tenantId: string,
@@ -248,12 +332,15 @@ export class InventoryDeductionService {
     deductions: StockDeductionItem[],
     orderId?: string,
     userId?: string,
-  ) {
+    allowNegativeStock = false,
+  ): Promise<StockWarningInfo[]> {
     if (!userId) {
       throw new BadRequestException(
         'userId is required for inventory transactions',
       );
     }
+
+    const stockWarnings: StockWarningInfo[] = [];
 
     // Get order number for better history tracking
     let orderNumber: string | undefined;
@@ -271,7 +358,7 @@ export class InventoryDeductionService {
         ? `${deduction.productName} removed for Order ${orderNumber}`
         : `${deduction.productName} removed for Order #${orderId}`;
 
-      await this.inventoryTransactionService.executeTransaction({
+      const result = await this.inventoryTransactionService.executeTransaction({
         tenantId,
         branchId,
         productId: deduction.productId,
@@ -281,8 +368,23 @@ export class InventoryDeductionService {
         reason,
         referenceId: orderId,
         referenceType: 'ORDER',
-        allowNegativeStock: false,
+        allowNegativeStock,
       });
+
+      // Track items that went negative
+      if (result.afterStock < 0) {
+        stockWarnings.push({
+          productId: deduction.productId,
+          productName: deduction.productName,
+          quantityDeducted: deduction.quantity,
+          stockBefore: result.beforeStock,
+          stockAfter: result.afterStock,
+        });
+
+        this.logger.warn(
+          `⚠️ Stock went negative: ${deduction.productName} (${result.beforeStock} → ${result.afterStock}) | Order ${orderNumber || orderId}`,
+        );
+      }
 
       this.logger.log(
         `📉 Stock removed: ${deduction.productName} (-${deduction.quantity}) | Order ${orderNumber || orderId}`,
@@ -292,6 +394,8 @@ export class InventoryDeductionService {
     this.logger.log(
       `✅ Completed inventory deduction: ${deductions.length} items removed for order ${orderNumber || orderId}`,
     );
+
+    return stockWarnings;
   }
 
   /**

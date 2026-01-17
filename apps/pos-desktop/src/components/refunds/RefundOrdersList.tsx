@@ -82,7 +82,7 @@ export const RefundOrdersList = ({
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-2 text-destructive">
-          <Icon name="AlertCircle" className="w-8 h-8" />
+          <Icon name="CircleAlert" className="w-8 h-8" />
           <span className="text-sm text-center">{ordersError}</span>
         </div>
       </div>

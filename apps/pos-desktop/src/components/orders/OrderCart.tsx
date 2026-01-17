@@ -1,3 +1,4 @@
+import { useCartStockWarnings } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
@@ -17,6 +18,7 @@ export const OrderCart = () => {
   } = useOrderStore();
 
   const { closeKeypad, itemId: selectedKeypadItemId } = useKeypadStore();
+  const { hasAnyWarning } = useCartStockWarnings();
 
   const order = getActiveOrder();
   const items = order?.items || [];
@@ -77,6 +79,19 @@ export const OrderCart = () => {
         </div>
         <CustomerSelector />
       </div>
+
+      {/* Stock Warning Banner */}
+      {hasAnyWarning && items.length >= 0 && (
+        <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
+          <Icon
+            name="TriangleAlert"
+            className="h-4 w-4 text-amber-500 shrink-0"
+          />
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Some items will exceed available stock
+          </p>
+        </div>
+      )}
 
       {/* Items List - Scrollable */}
       {items.length === 0 ? (

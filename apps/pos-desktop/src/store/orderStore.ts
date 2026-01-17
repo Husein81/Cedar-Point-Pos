@@ -286,7 +286,7 @@ export const useOrderStore = create<OrderStoreState>()(
         if (!state.activeTabId) return;
 
         // Ensure quantity is at least 1
-        const validQuantity = Math.max(1, quantity);
+        const validQuantity = Math.max(0, quantity);
 
         set({
           tabs: state.tabs.map((tab) => {

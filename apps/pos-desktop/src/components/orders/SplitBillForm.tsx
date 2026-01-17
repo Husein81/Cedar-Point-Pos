@@ -338,7 +338,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
             >
               <div className="flex items-center gap-2">
                 <Icon
-                  name={isValid ? "Check" : "AlertCircle"}
+                  name={isValid ? "Check" : "CircleAlert"}
                   className={cn(
                     "w-4 h-4",
                     isValid ? "text-green-600" : "text-destructive"

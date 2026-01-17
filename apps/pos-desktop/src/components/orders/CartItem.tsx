@@ -154,7 +154,7 @@ export const CartItem = ({
         {/* Stock Warning Inline (alternative to tooltip for visibility) */}
         {showStockWarning && (
           <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
-            <Icon name="AlertCircle" className="h-3 w-3" />
+            <Icon name="CircleAlert" className="h-3 w-3" />
             Stock after sale: {resultingStock.toFixed(2)}
           </p>
         )}

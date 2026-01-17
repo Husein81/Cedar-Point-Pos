@@ -64,7 +64,7 @@ export const useCartStockWarnings = () => {
 
       // Calculate resulting stock
       const resultingStock = currentStock - cartQuantity;
-      const isNegative = resultingStock < 0;
+      const isNegative = resultingStock <= 0;
 
       warningsMap.set(item.productId, {
         productId: item.productId,

@@ -223,7 +223,7 @@ export const InlineKeypad = () => {
     setValue((prev) => {
       if (prev.length < 1) {
         setMode("IDLE");
-        return String(config.allowZero ? 0 : config.minValue);
+        return String(config.allowZero ? 1 : config.minValue);
       }
       return prev.slice(0, -1);
     });
@@ -470,7 +470,7 @@ export const InlineKeypad = () => {
           </Button>
 
           {/* Divider */}
-          <div className="h-6 w-px bg-border mx-0.5" />
+          <div className="h-8 w-px bg-border mx-0.5" />
 
           {/* Shipping */}
           <Button
@@ -487,6 +487,7 @@ export const InlineKeypad = () => {
             <Icon name="Truck" className="h-4 w-4" />
             Shipping
           </Button>
+          <div className="h-8 w-px bg-border mx-0.5" />
 
           {/* Order Discount */}
           <Button

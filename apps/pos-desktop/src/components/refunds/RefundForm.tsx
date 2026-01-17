@@ -126,7 +126,7 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
     return (
       <div className="text-center py-8">
         <Icon
-          name="AlertCircle"
+          name="CircleAlert"
           className="w-8 h-8 text-destructive mx-auto mb-2"
         />
         <p className="text-destructive">Failed to load order information</p>

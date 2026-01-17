@@ -81,7 +81,7 @@ export const OrderCart = () => {
       </div>
 
       {/* Stock Warning Banner */}
-      {hasAnyWarning && items.length > 0 && (
+      {hasAnyWarning && items.length >= 0 && (
         <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
           <Icon
             name="TriangleAlert"

@@ -1,7 +1,23 @@
-import SignIn from "../auth/sign-in";
+import SignIn from "@/components/auth/sign-in";
 import logo from "/assets/logo.png";
+import { useAuthStore } from "@/store/authStore";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
-const AuthLayout = () => {
+export const Route = createFileRoute("/auth")({
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ to: "/orders" });
+    }
+  }, [isAuthenticated]);
+
   return (
     <div className="min-h-screen w-full grid grid-cols-1 md:grid-cols-3 bg-background">
       {/* LEFT / BRAND */}
@@ -21,6 +37,4 @@ const AuthLayout = () => {
       <SignIn />
     </div>
   );
-};
-
-export default AuthLayout;
+}

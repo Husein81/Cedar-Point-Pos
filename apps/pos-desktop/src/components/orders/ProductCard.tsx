@@ -13,6 +13,7 @@ const ProductCard = ({ product }: Props) => {
   const { branchId } = useBranchStore();
 
   const { items } = getActiveOrder() || { items: [] };
+
   const item = items.find((i) => i.productId === product.id);
 
   // Get branch-specific stock (more accurate than summing all branches)
@@ -31,7 +32,7 @@ const ProductCard = ({ product }: Props) => {
   // Calculate resulting stock after adding one more (or current cart quantity + 1)
   const cartQuantity = item?.quantity ?? 0;
   const resultingStockIfAdded = displayStock - (cartQuantity + 1);
-  const wouldGoNegative = resultingStockIfAdded < 0 || isOutOfStock;
+  const isNegative = resultingStockIfAdded < 0 || isOutOfStock;
 
   const handleAddItem = () => {
     addItem({
@@ -54,7 +55,7 @@ const ProductCard = ({ product }: Props) => {
         isOutOfStock
           ? "opacity-60"
           : "hover:ring-1 hover:ring-primary/40 active:scale-[0.98]",
-        wouldGoNegative && !isOutOfStock && "ring-1 ring-amber-400"
+        isNegative && !isOutOfStock && "ring-1 ring-amber-400"
       )}
     >
       {/* Cart quantity badge */}
@@ -62,7 +63,7 @@ const ProductCard = ({ product }: Props) => {
         <div
           className={cn(
             "absolute bottom-1 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
-            wouldGoNegative
+           isNegative
               ? "bg-amber-500/90 text-white"
               : "bg-accent/40 text-primary"
           )}

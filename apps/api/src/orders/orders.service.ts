@@ -8,7 +8,7 @@ import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
-import type { CreateOrderDto } from './dto/create-order.dto.js';
+import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
 
 // Extended QueryParams for order-specific filtering
 interface OrderQueryParams extends QueryParams {
@@ -20,6 +20,8 @@ interface OrderQueryParams extends QueryParams {
   endDate?: string;
   tableId?: string;
 }
+
+const VAT_RATE = 0.11; // 11% VAT
 
 @Injectable()
 export class OrdersService {
@@ -84,6 +86,7 @@ export class OrdersService {
       items,
       discount,
       shippingFee,
+      includeVAT,
     } = dto;
 
     // Fetch tenant info and branch order count in parallel
@@ -188,9 +191,15 @@ export class OrdersService {
     const orderType =
       shippingFee && shippingFee > 0 ? OrderType.DELIVERY : type;
 
-    const total = this.round(
+    // Calculate VAT (11%) on subtotal after discount and shipping
+    const subtotalAfterDiscountAndShipping = this.round(
       Math.max(0, Number(subtotal) - (discount || 0) + (shippingFee || 0)),
     );
+    const vatAmount = includeVAT
+      ? this.round(subtotalAfterDiscountAndShipping * VAT_RATE)
+      : 0;
+
+    const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
     return this.prisma.order.create({
       data: {
@@ -204,6 +213,8 @@ export class OrdersService {
         total,
         discount: discount ?? 0,
         shippingFee: shippingFee ?? 0,
+        includeVAT: includeVAT ?? false,
+        vat: vatAmount,
         ...(tableId && { tableId }),
         ...(customerId && { customerId }),
         items: { create: orderItems },
@@ -325,24 +336,62 @@ export class OrdersService {
   /* ----
 
   /**
-   * Process a single payment for an order
-   * - Creates Payment record
-   * - Marks order as PAID if fully paid
+   * Process batch or single payment for an order
+   * - Creates Payment records for all payments
+   * - Marks order as PAID only if fully paid after ALL payments combined
+   * - All payments pre-converted to base currency by frontend
    * - Deducts inventory ONCE when fully paid
    */
   async processPayment(
     tenantId: string,
     orderId: string,
-    payment: {
-      amount: number;
-      method: PaymentMethod;
+    paymentsInput: {
+      payments?: Array<{
+        amount: number;
+        method: PaymentMethod;
+        currencyCode?: string;
+        exchangeRate?: number;
+      }>;
+      amount?: number;
+      method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
     },
     userId: string,
   ) {
-    if (payment.amount <= 0) {
-      throw new BadRequestException('Payment amount must be greater than 0');
+    // ✅ Handle backwards compatibility: convert single payment to array
+    let payments: Array<{
+      amount: number;
+      method: PaymentMethod;
+      currencyCode?: string;
+      exchangeRate?: number;
+    }>;
+
+    if (paymentsInput.payments && Array.isArray(paymentsInput.payments)) {
+      payments = paymentsInput.payments;
+    } else if (paymentsInput.amount !== undefined && paymentsInput.method) {
+      // Legacy single payment format
+      payments = [
+        {
+          amount: paymentsInput.amount,
+          method: paymentsInput.method,
+          currencyCode: paymentsInput.currencyCode,
+          exchangeRate: paymentsInput.exchangeRate,
+        },
+      ];
+    } else {
+      throw new BadRequestException('No payments provided');
+    }
+
+    // Validate all payments
+    if (payments.length === 0) {
+      throw new BadRequestException('At least one payment is required');
+    }
+
+    if (payments.some((p) => p.amount <= 0)) {
+      throw new BadRequestException(
+        'All payment amounts must be greater than 0',
+      );
     }
 
     return this.prisma.$transaction(
@@ -352,10 +401,12 @@ export class OrdersService {
           select: {
             id: true,
             status: true,
-            total: true,
-            shippingFee: true,
+            total: true, // ✅ already includes VAT + shipping
             branchId: true,
-            payments: { select: { amount: true } },
+            currencyCode: true,
+            payments: {
+              select: { amount: true }, // amount is in BASE currency
+            },
           },
         });
 
@@ -365,45 +416,105 @@ export class OrdersService {
           throw new BadRequestException('Cannot pay a cancelled order');
         }
 
-        const totalDue = this.money(
-          Number(order.total) + Number(order.shippingFee),
-        );
+        /* ============================================
+           BATCH CALCULATION IN BASE CURRENCY
+        ============================================ */
 
+        const totalDue = this.money(Number(order.total));
+
+        // Already paid (all in base currency)
         const alreadyPaid = this.money(
           order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
         );
 
-        const newPaidTotal = this.money(
-          alreadyPaid + Number(payment.amount) + Number(order.shippingFee),
+        // Convert all payments to base currency and sum them
+        const batchTotalBase = this.money(
+          payments.reduce((sum, payment) => {
+            const exchangeRate =
+              payment.currencyCode &&
+              payment.currencyCode !== order.currencyCode
+                ? payment.exchangeRate || 1
+                : 1;
+
+            if (!exchangeRate || exchangeRate <= 0) {
+              throw new BadRequestException('Invalid exchange rate');
+            }
+
+            const paymentInBase = payment.amount * exchangeRate;
+            return sum + paymentInBase;
+          }, 0),
         );
 
-        if (payment.method !== PaymentMethod.CASH && newPaidTotal > totalDue) {
+        // New total paid (in base currency)
+        const newTotalPaid = this.money(alreadyPaid + batchTotalBase);
+
+        // Check if any card payment exceeds remaining (card cannot overpay)
+        const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+        const hasCardPayment = payments.some(
+          (p) => p.method !== PaymentMethod.CASH,
+        );
+
+        if (hasCardPayment && batchTotalBase > remaining) {
           throw new BadRequestException(
-            `Payment exceeds total. Paid: ${newPaidTotal}, Due: ${totalDue}`,
+            `Payment exceeds remaining balance. Remaining: ${remaining}`,
           );
         }
 
-        const isFullyPaid = newPaidTotal === totalDue;
-        console.log('isFullyPaid', isFullyPaid, newPaidTotal, totalDue);
-        // 1️⃣ Create payment record
-        await tx.payment.create({
-          data: {
-            orderId,
-            amount: payment.amount,
-            method: payment.method,
-            currencyCode: payment.currencyCode,
-            exchangeRate: payment.exchangeRate,
-          },
+        // ✅ Order is fully paid when total >= due
+        const isFullyPaid = newTotalPaid >= totalDue;
+
+        console.log('Batch Payment Processing:', {
+          orderId,
+          totalDue,
+          alreadyPaid,
+          batchTotalBase,
+          newTotalPaid,
+          isFullyPaid,
+          paymentCount: payments.length,
         });
 
-        // 2️⃣ Update order status if needed
+        /* ============================================
+           CREATE PAYMENT RECORDS FOR ALL PAYMENTS
+        ============================================ */
+
+        await Promise.all(
+          payments.map((payment) => {
+            const exchangeRate =
+              payment.currencyCode &&
+              payment.currencyCode !== order.currencyCode
+                ? payment.exchangeRate || 1
+                : 1;
+
+            const paymentInBase = this.money(payment.amount * exchangeRate);
+
+            return tx.payment.create({
+              data: {
+                orderId,
+                method: payment.method,
+                amount: new Prisma.Decimal(paymentInBase), // Store BASE currency
+                currencyCode: payment.currencyCode,
+                exchangeRate: exchangeRate
+                  ? new Prisma.Decimal(exchangeRate)
+                  : undefined,
+              },
+            });
+          }),
+        );
+
+        /* ============================================
+           UPDATE ORDER STATUS
+        ============================================ */
+
         if (isFullyPaid) {
           await tx.order.update({
             where: { id: orderId },
-            data: { status: OrderStatus.COMPLETED },
+            data: {
+              status: OrderStatus.COMPLETED,
+              completedAt: new Date(),
+            },
           });
 
-          // 3️⃣ Deduct inventory ONCE
+          // ✅ Deduct inventory ONCE
           await this.inventoryDeductionService.deductStockForOrder(
             tenantId,
             orderId,
@@ -417,23 +528,189 @@ export class OrdersService {
           });
         }
 
-        const change =
-          payment.method === PaymentMethod.CASH
-            ? this.money(Math.max(0, newPaidTotal - totalDue))
-            : 0;
+        /* ============================================
+           CALCULATE CHANGE (CASH ONLY)
+        ============================================ */
+
+        const changeBase = Math.max(0, newTotalPaid - totalDue);
+
+        // For cash payments, return change in the first cash payment's currency
+        const firstCashPayment = payments.find(
+          (p) => p.method === PaymentMethod.CASH,
+        );
+
+        const changeInfo = firstCashPayment
+          ? {
+              amount: this.money(
+                changeBase / (firstCashPayment.exchangeRate || 1),
+              ),
+              currency: firstCashPayment.currencyCode || order.currencyCode,
+            }
+          : {
+              amount: this.money(0),
+              currency: order.currencyCode,
+            };
 
         return {
           orderId,
           status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
           totalDue,
-          paid: this.money(Math.min(newPaidTotal, totalDue)),
-          remaining: this.money(Math.max(0, totalDue - newPaidTotal)),
-          change,
+          paid: this.money(Math.min(newTotalPaid, totalDue)),
+          remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
+          change: changeInfo,
+          paymentCount: payments.length,
         };
       },
-      {
-        isolationLevel: 'Serializable',
+      { isolationLevel: 'Serializable' },
+    );
+  }
+
+  /**
+   * Process a single payment for an order
+   * - Creates Payment record
+   * - Marks order as PAID if fully paid
+   * - Deducts inventory ONCE when fully paid
+   */
+  async processPayment_LEGACY(
+    tenantId: string,
+    orderId: string,
+    payment: PaymentDto,
+    userId: string,
+  ) {
+    if (payment.amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, tenantId },
+          select: {
+            id: true,
+            status: true,
+            total: true, // ✅ already includes VAT + shipping
+            branchId: true,
+            currencyCode: true,
+            payments: {
+              select: { amount: true }, // amount is BASE currency
+            },
+          },
+        });
+
+        if (!order) throw new NotFoundException('Order not found');
+
+        if (order.status === OrderStatus.CANCELLED) {
+          throw new BadRequestException('Cannot pay a cancelled order');
+        }
+
+        /* --------------------------------------------
+         BASE CURRENCY CALCULATIONS ONLY
+      -------------------------------------------- */
+
+        const totalDue = this.money(Number(order.total));
+
+        const alreadyPaid = this.money(
+          order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+        );
+
+        const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+
+        /* --------------------------------------------
+         Convert incoming payment to BASE currency
+      -------------------------------------------- */
+
+        const exchangeRate =
+          payment.currencyCode && payment.currencyCode !== order.currencyCode
+            ? payment.exchangeRate
+            : 1;
+
+        if (!exchangeRate || exchangeRate <= 0) {
+          throw new BadRequestException('Invalid exchange rate');
+        }
+
+        const paymentBase = this.money(payment.amount * exchangeRate);
+
+        /* --------------------------------------------
+         CARD RULE: cannot exceed remaining
+      -------------------------------------------- */
+
+        if (payment.method !== PaymentMethod.CASH && paymentBase > remaining) {
+          throw new BadRequestException(
+            `Payment exceeds remaining balance. Remaining: ${remaining}`,
+          );
+        }
+
+        /* --------------------------------------------
+         Create payment record (BASE currency stored)
+      -------------------------------------------- */
+
+        await tx.payment.create({
+          data: {
+            orderId,
+            method: payment.method,
+            amount: paymentBase, // ✅ BASE currency
+            currencyCode: payment.currencyCode,
+            exchangeRate: payment.exchangeRate,
+          },
+        });
+
+        const newPaidBase = this.money(alreadyPaid + paymentBase);
+
+        const isFullyPaid = newPaidBase >= totalDue;
+
+        /* --------------------------------------------
+         Order state + inventory
+      -------------------------------------------- */
+
+        if (isFullyPaid) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: OrderStatus.COMPLETED,
+              completedAt: new Date(),
+            },
+          });
+
+          // ✅ Deduct inventory ONCE
+          await this.inventoryDeductionService.deductStockForOrder(
+            tenantId,
+            orderId,
+            order.branchId,
+            userId,
+          );
+        } else if (order.status === OrderStatus.DRAFT) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.PENDING },
+          });
+        }
+
+        /* --------------------------------------------
+         CASH CHANGE (returned in ORIGINAL currency)
+      -------------------------------------------- */
+
+        const changeBase = Math.max(0, newPaidBase - totalDue);
+
+        const changeOriginal =
+          payment.method === PaymentMethod.CASH
+            ? this.money(changeBase / exchangeRate)
+            : 0;
+
+        return {
+          orderId,
+          status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+
+          totalDue,
+          paid: this.money(Math.min(newPaidBase, totalDue)),
+          remaining: this.money(Math.max(0, totalDue - newPaidBase)),
+
+          change: {
+            amount: changeOriginal,
+            currency: payment.currencyCode ?? order.currencyCode,
+          },
+        };
       },
+      { isolationLevel: 'Serializable' },
     );
   }
 
@@ -602,14 +879,28 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { discount: true },
+      select: { discount: true, shippingFee: true, includeVAT: true },
     });
 
-    const total = this.round(subtotal - Number(order?.discount || 0));
+    const discount = Number(order?.discount || 0);
+    const shippingFee = Number(order?.shippingFee || 0);
+    const includeVAT = Boolean(order?.includeVAT);
+
+    // Calculate total before VAT
+    const subtotalAfterDiscountAndShipping = this.round(
+      Math.max(0, subtotal - discount + shippingFee),
+    );
+
+    // Calculate VAT (11%)
+    const vat = includeVAT
+      ? this.round(subtotalAfterDiscountAndShipping * VAT_RATE)
+      : 0;
+
+    const total = this.round(subtotalAfterDiscountAndShipping + vat);
 
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { subtotal, total },
+      data: { subtotal, total, vat },
     });
   }
 

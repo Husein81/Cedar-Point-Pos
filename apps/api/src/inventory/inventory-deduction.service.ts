@@ -96,7 +96,8 @@ export class InventoryDeductionService {
     }
 
     // Calculate all stock deductions needed (pass full items with product data)
-    const deductions = this.calculateStockDeductions(order.items);
+    const orderItems = order.items as unknown as OrderItem[];
+    const deductions = this.calculateStockDeductions(orderItems);
 
     // Check stock availability (for warnings only - does NOT block)
     const stockCheck = await this.checkStockAvailability(
@@ -142,7 +143,9 @@ export class InventoryDeductionService {
    * Calculate stock deductions from order items
    * For products with recipes, calculate ingredient requirements
    */
-  private calculateStockDeductions(orderItems: any[]): StockDeductionItem[] {
+  private calculateStockDeductions(
+    orderItems: OrderItem[],
+  ): StockDeductionItem[] {
     const deductions = new Map<string, StockDeductionItem>();
 
     for (const item of orderItems) {

@@ -1,10 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  subcategoryApi,
-  CreateSubcategoryDto,
-  UpdateSubcategoryDto,
-} from "../apis/subcategoryApi";
+import { CreateSubcategoryDto, UpdateSubcategoryDto } from "@/dto/category.dto";
 import type { Subcategory } from "@repo/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { subcategoryApi } from "../apis/subcategoryApi";
 
 const CATEGORY_QUERY_KEY = ["categories"];
 

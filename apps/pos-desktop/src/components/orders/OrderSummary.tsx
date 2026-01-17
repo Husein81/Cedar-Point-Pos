@@ -27,7 +27,7 @@ const Row = ({
 };
 
 const OrderSummary = () => {
-  const { getActiveOrder, getDiscountAmount, getOrderSubtotal } =
+  const { getActiveOrder, getDiscountAmount, getOrderSubtotal, getVATAmount } =
     useOrderStore();
 
   const order = getActiveOrder();
@@ -35,8 +35,11 @@ const OrderSummary = () => {
   const orderDiscount = getDiscountAmount();
   const subtotalAfterItemDiscounts = getOrderSubtotal();
   const shippingFee = order?.shippingFee || 0;
+  const vatAmount = getVATAmount();
 
-  const total = subtotalAfterItemDiscounts - orderDiscount + shippingFee;
+  const subtotalAfterDiscountAndShipping =
+    subtotalAfterItemDiscounts - orderDiscount + shippingFee;
+  const total = subtotalAfterDiscountAndShipping + vatAmount;
 
   return (
     <div className="space-y-3">
@@ -59,6 +62,14 @@ const OrderSummary = () => {
           value={`+ $${formatPrice(shippingFee)}`}
           variant="charge"
         />
+
+        {order?.includeVAT && (
+          <Row
+            label="VAT (11%)"
+            value={`+ $${formatPrice(vatAmount)}`}
+            variant="charge"
+          />
+        )}
       </div>
 
       <Separator />

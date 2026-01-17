@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -18,6 +17,7 @@ import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CurrenciesRouteImport } from './routes/currencies'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -32,11 +32,6 @@ import { Route as InvoicesOrderIdRouteImport } from './routes/invoices/$orderId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers/$customerId'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
 
-const TransfersRoute = TransfersRouteImport.update({
-  id: '/transfers',
-  path: '/transfers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TablesRoute = TablesRouteImport.update({
   id: '/tables',
   path: '/tables',
@@ -75,6 +70,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const CurrenciesRoute = CurrenciesRouteImport.update({
   id: '/currencies',
   path: '/currencies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -145,6 +145,7 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
@@ -153,7 +154,6 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
@@ -169,6 +169,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
@@ -177,7 +178,6 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
@@ -194,6 +194,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
@@ -202,7 +203,6 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
@@ -220,6 +220,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/currencies'
     | '/dashboard'
     | '/payments'
@@ -228,7 +229,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/invoices/$orderId'
@@ -244,6 +244,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/currencies'
     | '/dashboard'
     | '/payments'
@@ -252,7 +253,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/invoices/$orderId'
@@ -268,6 +268,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/currencies'
     | '/dashboard'
     | '/payments'
@@ -276,7 +277,6 @@ export interface FileRouteTypes {
     | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/invoices/$orderId'
@@ -293,6 +293,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CurrenciesRoute: typeof CurrenciesRoute
   DashboardRoute: typeof DashboardRoute
   PaymentsRoute: typeof PaymentsRoute
@@ -301,7 +302,6 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
-  TransfersRoute: typeof TransfersRoute
   CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
@@ -318,13 +318,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/transfers': {
-      id: '/transfers'
-      path: '/transfers'
-      fullPath: '/transfers'
-      preLoaderRoute: typeof TransfersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tables': {
       id: '/tables'
       path: '/tables'
@@ -379,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/currencies'
       fullPath: '/currencies'
       preLoaderRoute: typeof CurrenciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -477,6 +477,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CurrenciesRoute: CurrenciesRoute,
   DashboardRoute: DashboardRoute,
   PaymentsRoute: PaymentsRoute,
@@ -485,7 +486,6 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
-  TransfersRoute: TransfersRoute,
   CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   InvoicesOrderIdRoute: InvoicesOrderIdRoute,

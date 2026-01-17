@@ -33,6 +33,7 @@ export type Order = {
   items: OrderItem[];
   discount: OrderDiscount | null;
   shippingFee: number;
+  includeVAT: boolean;
   customerId: string | null;
   customerName: string | null;
   notes: string;
@@ -65,6 +66,7 @@ const createEmptyOrder = (): Order => ({
   type: undefined,
   discount: null,
   shippingFee: 0,
+  includeVAT: false,
   customerId: null,
   customerName: null,
   notes: "",
@@ -118,6 +120,10 @@ interface OrderStoreState {
   // Shipping fee actions
   setShippingFee: (fee: number) => void;
 
+  // VAT actions
+  toggleVAT: () => void;
+  setVAT: (includeVAT: boolean) => void;
+
   // Customer actions
   setCustomer: (customerId: string | null, customerName: string | null) => void;
 
@@ -126,7 +132,7 @@ interface OrderStoreState {
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
-  setOrderType: (type: string) => void;
+  setOrderType: (type?: string) => void;
   holdOrder: () => void;
   resumeOrder: () => void;
 
@@ -136,6 +142,7 @@ interface OrderStoreState {
   getOrderSubtotal: (tabId?: string) => number;
   getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
+  getVATAmount: (tabId?: string) => number;
   getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
@@ -440,6 +447,49 @@ export const useOrderStore = create<OrderStoreState>()(
       },
 
       // =====================
+      // VAT Actions
+      // =====================
+      toggleVAT: () => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                includeVAT: !tab.order.includeVAT,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      setVAT: (includeVAT: boolean) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                includeVAT,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      // =====================
       // Customer Actions
       // =====================
 
@@ -512,7 +562,7 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      setOrderType: (type: string) => {
+      setOrderType: (type?: string) => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -524,7 +574,7 @@ export const useOrderStore = create<OrderStoreState>()(
               ...tab,
               order: {
                 ...tab.order,
-                type: type as OrderType,
+                type: type ? (type as OrderType) : undefined,
                 modifiedAt: new Date(),
               },
             };
@@ -628,7 +678,30 @@ export const useOrderStore = create<OrderStoreState>()(
         const targetTabId = tabId ?? state.activeTabId;
         const tab = state.tabs.find((t) => t.id === targetTabId);
         const shippingFee = tab?.order.shippingFee ?? 0;
-        return Math.max(0, subtotal - discount + shippingFee);
+        const subtotalAfterDiscount = Math.max(
+          0,
+          subtotal - discount + shippingFee
+        );
+        const vatAmount = state.getVATAmount(tabId);
+        return subtotalAfterDiscount + vatAmount;
+      },
+
+      getVATAmount: (tabId?: string) => {
+        const state = get();
+        const targetTabId = tabId ?? state.activeTabId;
+        const tab = state.tabs.find((t) => t.id === targetTabId);
+        if (!tab?.order.includeVAT) return 0;
+
+        const subtotal = state.getOrderSubtotal(tabId);
+        const discount = state.getDiscountAmount(tabId);
+        const shippingFee = tab?.order.shippingFee ?? 0;
+        const subtotalAfterDiscountAndShipping = Math.max(
+          0,
+          subtotal - discount + shippingFee
+        );
+
+        // 11% VAT
+        return parseFloat((subtotalAfterDiscountAndShipping * 0.11).toFixed(2));
       },
 
       hasUnsavedChanges: (tabId: string) => {

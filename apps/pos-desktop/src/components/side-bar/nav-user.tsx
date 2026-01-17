@@ -15,9 +15,9 @@ const NavUser = () => {
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
-        <div className="flex items-center text-muted-foreground gap-2 cursor-pointer px-3 py-2 hover:bg-primary rounded-sm hover:text-white">
+        <div className="flex items-center text-muted-foreground gap-2 cursor-pointer px-3 py-1 hover:bg-primary rounded-sm ">
           <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
-          <div className="flex flex-col leading-tight items-start">
+          <div className="flex flex-col leading-tight items-start hover:text-white">
             <span className="text-sm font-medium ">
               {user?.name || "User menu"}
             </span>

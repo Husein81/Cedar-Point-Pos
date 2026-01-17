@@ -2,16 +2,12 @@ import { useCartStockWarnings } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "../common/InlineKeypad";
+import { InlineKeypad } from "../common";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
 import OrderSummary from "./OrderSummary";
 
-type Props = {
-  className?: string;
-};
-
-export const OrderCart = ({ className }: Props) => {
+export const OrderCart = () => {
   const {
     getActiveOrder,
     updateItemQuantity,
@@ -50,7 +46,7 @@ export const OrderCart = ({ className }: Props) => {
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-background", className)}>
+    <div className={cn("flex flex-col h-full bg-background")}>
       {/* Cart Header */}
       <div className="flex flex-col gap-2 px-3 py-2 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between ">

@@ -1,16 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { currencyApi } from "@/apis/currencyApi";
 import {
-  currencyApi,
   CreateTenantCurrencyDto,
   UpdateTenantCurrencyDto,
-} from "../apis/currencyApi";
+} from "@/dto/currency.dto";
 import type {
   Currency,
-  TenantCurrency,
-  TenantCurrenciesResponse,
-  QueryParams,
   PaginationResponse,
+  QueryParams,
+  TenantCurrenciesResponse,
+  TenantCurrency,
 } from "@repo/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const CURRENCY_QUERY_KEY = ["currencies"];
 const TENANT_CURRENCY_QUERY_KEY = ["tenant-currencies"];

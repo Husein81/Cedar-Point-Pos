@@ -28,7 +28,6 @@ const PAYMENT_METHODS: {
 }[] = [
   { value: "CASH", label: "Cash", icon: "Banknote" },
   { value: "CARD", label: "Card", icon: "CreditCard" },
-  { value: "CREDIT", label: "Credit", icon: "Wallet" },
   { value: "ONLINE", label: "Online", icon: "Smartphone" },
 ];
 
@@ -263,14 +262,22 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
                   key={p.id}
                   className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 flex-1">
                     <Badge variant="outline" className="text-xs">
                       {p.method}
                     </Badge>
-                    <span className="font-mono text-sm font-medium">
-                      {getCurrencySymbol(p.currencyCode)}{" "}
-                      {formatPrice(p.amount)}
-                    </span>
+                    <div>
+                      <span className="font-mono text-sm font-medium">
+                        {getCurrencySymbol(p.currencyCode)}{" "}
+                        {formatPrice(p.amount)}
+                      </span>
+                      {/* Show conversion if not in base currency */}
+                      {p.currencyCode !== baseCurrency?.currencyCode && (
+                        <p className="text-xs text-muted-foreground font-mono">
+                          ≈ ${formatPrice(p.amountInBase)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

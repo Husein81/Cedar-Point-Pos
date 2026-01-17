@@ -452,7 +452,7 @@ export const InlineKeypad = () => {
     >
       <Shad.CollapsibleContent className="border-t border-border bg-background">
         {/* Header */}
-        <div className="flex items-center gap-1 border-b border-border bg-background px-1 py-1">
+        <div className="flex items-center justify-evenly gap-1 border-b border-border  px-1 py-1">
           {/* VAT Toggle */}
           <Button
             variant="ghost"
@@ -487,6 +487,7 @@ export const InlineKeypad = () => {
             <Icon name="Truck" className="h-4 w-4" />
             Shipping
           </Button>
+
           <div className="h-8 w-px bg-border mx-0.5" />
 
           {/* Order Discount */}
@@ -506,7 +507,7 @@ export const InlineKeypad = () => {
           </Button>
 
           {/* Spacer */}
-          <div className="flex-1" />
+          <div className="" />
 
           {/* More Actions */}
           <Button

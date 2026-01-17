@@ -8,10 +8,11 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
- packagerConfig: {
+  packagerConfig: {
     asar: true,
-    icon: "assets/icon",
+    icon: "public/assets/icon",
   },
+
   rebuildConfig: {},
 
   makers: [

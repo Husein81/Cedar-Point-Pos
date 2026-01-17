@@ -326,7 +326,7 @@ export const ProductGrid = () => {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 2xl:grid-cols-8 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-lg" />
+              <Skeleton key={i} className="h-37.5 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (

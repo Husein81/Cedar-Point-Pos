@@ -42,7 +42,7 @@ const OrderSummary = () => {
   const total = subtotalAfterDiscountAndShipping + vatAmount;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1">
       <Separator />
 
       <div className="space-y-1 px-2">
@@ -74,7 +74,7 @@ const OrderSummary = () => {
 
       <Separator />
 
-      <div className="flex justify-between items-center px-2 py-1">
+      <div className="flex justify-between items-center px-2 ">
         <span className="text-sm font-semibold">Total Due</span>
         <span className="text-xl font-bold text-primary">
           ${formatPrice(total)}

@@ -21,6 +21,21 @@ const config: ForgeConfig = {
     new MakerDeb({}),
     new MakerSquirrel({}),
   ],
+
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "Husein81",
+          name: "Pointverse",
+        },
+        prerelease: false,
+        draft: false,
+      },
+    },
+  ],
+
   plugins: [
     new VitePlugin({
       build: [

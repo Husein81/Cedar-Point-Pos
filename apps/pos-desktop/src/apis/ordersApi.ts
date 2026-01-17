@@ -33,8 +33,11 @@ export const ordersApi = {
     return response.data;
   },
 
-  // Process single payment for an order
-  processPayment: async (id: string, data: PaymentDto): Promise<Order> => {
+  // Process single or batch payment for an order
+  processPayment: async (
+    id: string,
+    data: PaymentDto[] | PaymentDto | { payments: PaymentDto[] }
+  ): Promise<Order> => {
     const response = await api.post(`/orders/${id}/payment`, data);
     return response.data;
   },

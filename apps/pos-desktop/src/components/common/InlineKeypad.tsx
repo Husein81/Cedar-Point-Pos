@@ -289,7 +289,7 @@ export const InlineKeypad = () => {
 
   const handleShippingToggle = () => {
     if (isShippingActive) {
-      // Reset order type to default
+      setShippingFee(0);
       setOrderType(undefined);
       setIsShippingActive(false);
     } else {
@@ -333,13 +333,12 @@ export const InlineKeypad = () => {
       if (activeTabId) {
         closeTab(activeTabId);
       }
-      const orderType =
-        order.shippingFee && order.shippingFee >= 0
-          ? OrderType.DELIVERY
-          : (order.type ??
-            (user.tenant?.businessType === BusinessType.RETAIL
-              ? OrderType.RETAIL
-              : OrderType.DINE_IN));
+      const orderType = isShippingActive
+        ? OrderType.DELIVERY
+        : (order.type ??
+          (user.tenant?.businessType === BusinessType.RETAIL
+            ? OrderType.RETAIL
+            : OrderType.DINE_IN));
 
       const dto: CreateOrderDto = {
         branchId,
@@ -359,25 +358,21 @@ export const InlineKeypad = () => {
 
       const created = await createOrder.mutateAsync(dto);
 
-      let finalStatus: OrderStatus | null = null;
+      const result = await processPayment.mutateAsync({
+        id: created.id,
+        payments: payments.map((p) => ({
+          amount: p.amount,
+          method: p.method,
+          currencyCode: p.currencyCode,
+          exchangeRate: p.exchangeRate,
+        })),
+      });
 
-      for (const payment of payments) {
-        const result = await processPayment.mutateAsync({
-          id: created.id,
-          amount: payment.amount,
-          method: payment.method,
-          currencyCode: payment.currencyCode,
-          exchangeRate: payment.exchangeRate,
-        });
+      if (!result) return;
 
-        finalStatus = result.status;
-      }
+      setOrderStatus(result.status);
 
-      if (!finalStatus) return;
-
-      setOrderStatus(finalStatus);
-
-      if (finalStatus === OrderStatus.COMPLETED) {
+      if (result.status === OrderStatus.COMPLETED) {
         clearOrder();
       }
     } catch (error) {
@@ -411,13 +406,12 @@ export const InlineKeypad = () => {
 
       closeModal();
       // Create order without payment
-      const orderType =
-        orderToSave.shippingFee && orderToSave.shippingFee > 0
-          ? OrderType.DELIVERY
-          : (orderToSave.type ??
-            (user.tenant?.businessType === BusinessType.RETAIL
-              ? OrderType.RETAIL
-              : OrderType.DINE_IN));
+      const orderType = isShippingActive
+        ? OrderType.DELIVERY
+        : (orderToSave.type ??
+          (user.tenant?.businessType === BusinessType.RETAIL
+            ? OrderType.RETAIL
+            : OrderType.DINE_IN));
 
       const dto: CreateOrderDto = {
         branchId,

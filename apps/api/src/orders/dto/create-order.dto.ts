@@ -1,4 +1,4 @@
-import { OrderType } from '@repo/types';
+import { OrderType, PaymentMethod } from '@repo/types';
 import { z } from 'zod';
 
 export const createOrderItemDto = z.object({
@@ -29,3 +29,14 @@ export const createOrderDto = z.object({
   includeVAT: z.boolean().optional(), // Whether to include 11% VAT
 });
 export type CreateOrderDto = z.infer<typeof createOrderDto>;
+
+export const PaymentDto = z.object({
+  amount: z.number(),
+  method: z.enum(PaymentMethod),
+  currencyCode: z.string().optional(),
+  exchangeRate: z.number().optional(),
+});
+export type PaymentDto = z.infer<typeof PaymentDto>;
+
+export const BatchPaymentDto = z.array(PaymentDto);
+export type BatchPaymentDto = z.infer<typeof BatchPaymentDto>;

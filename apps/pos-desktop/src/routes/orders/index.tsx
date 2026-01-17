@@ -17,15 +17,15 @@ function OrderPage() {
       {/* Main layout - takes remaining height */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Left: Product selection - scrollable */}
-        <div className="flex-1 p-4 min-w-0 min-h-0 overflow-hidden">
-          <ProductGrid className="h-full" />
+        <div className="flex-1 p-4 min-h-0 overflow-hidden">
+          <ProductGrid />
         </div>
 
         <Separator orientation="vertical" className="hidden md:block" />
 
         {/* Right: Cart Panel - fixed width, contains inline keypad */}
-        <div className="w-full md:w-96 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
-          <OrderCart className="h-full" />
+        <div className="w-full md:w-110 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
+          <OrderCart />
         </div>
       </div>
     </div>

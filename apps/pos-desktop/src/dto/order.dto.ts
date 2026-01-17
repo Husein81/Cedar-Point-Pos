@@ -4,18 +4,22 @@ import {
   PaymentMethod,
   QueryParams,
 } from "@repo/types";
+import { z } from "zod";
 
-export interface CreateOrderItemDto {
-  productId: string;
-  quantity: number;
-  unitPrice?: number; // Override product price
-  discount?: {
-    value: number;
-    type: "PERCENTAGE" | "FIXED";
-  }; // Item-level discount
-  notes?: string;
-  modifiers?: string[]; // Array of modifier IDs
-}
+export const CreateOrderItemDto = z.object({
+  productId: z.string(),
+  quantity: z.number(),
+  unitPrice: z.number().optional(), // Override product price
+  discount: z
+    .object({
+      value: z.number(),
+      type: z.enum(["PERCENTAGE", "FIXED"]),
+    })
+    .optional(), // Item-level discount
+  notes: z.string().optional(),
+  modifiers: z.array(z.string()).optional(), // Array of modifier IDs
+});
+export type CreateOrderItemDto = z.infer<typeof CreateOrderItemDto>;
 
 export interface CreateOrderDto {
   branchId: string;
@@ -58,12 +62,13 @@ export interface UpdateItemDiscountDto {
   type: "PERCENTAGE" | "FIXED";
 }
 
-export interface PaymentDto {
-  amount: number;
-  method: PaymentMethod;
-  currencyCode?: string;
-  exchangeRate?: number;
-}
+export const PaymentDto = z.object({
+  amount: z.number().positive(),
+  method: z.nativeEnum(PaymentMethod),
+  currencyCode: z.string().optional(),
+  exchangeRate: z.number().positive().optional(),
+});
+export type PaymentDto = z.infer<typeof PaymentDto>;
 
 export interface OrderFilters extends QueryParams {
   status?: OrderStatus;

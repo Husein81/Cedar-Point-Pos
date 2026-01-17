@@ -47,7 +47,7 @@ export function Header() {
   return (
     <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
       <div className="flex items-center gap-4">
-        {isAuthenticated && (
+        {isAuthenticated && user?.role !== "CASHIER" && (
           <>
             <Shad.SidebarTrigger className="no-drag" />
             <div className="h-10 border" />

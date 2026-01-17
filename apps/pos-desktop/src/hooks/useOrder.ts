@@ -1,7 +1,12 @@
-import type { Order, OrderStatus, PaymentMethod } from "@repo/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ordersApi } from "@/apis/ordersApi";
-import { AddItemDto, CreateOrderDto, OrderFilters } from "@/dto/order.dto";
+import {
+  AddItemDto,
+  CreateOrderDto,
+  OrderFilters,
+  PaymentDto,
+} from "@/dto/order.dto";
+import type { Order, OrderStatus } from "@repo/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const ORDER_QUERY_KEY = ["orders"];
 
@@ -38,18 +43,9 @@ export const useCreateOrder = () => {
 export const useProcessPayment = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Order,
-    Error,
-    {
-      id: string;
-      amount: number;
-      method: PaymentMethod;
-      currencyCode?: string;
-      exchangeRate?: number;
-    }
-  >({
-    mutationFn: ({ id, ...payment }) => ordersApi.processPayment(id, payment),
+  return useMutation({
+    mutationFn: ({ id, payments }: { id: string; payments: PaymentDto[] }) =>
+      ordersApi.processPayment(id, { payments }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["stock"] });

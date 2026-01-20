@@ -3,12 +3,15 @@ import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
 import { Avatar, Icon, Shad } from "@repo/ui";
 import Appearance from "./appearance";
+import { useNavigate } from "@tanstack/react-router";
 
 const NavUser = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const logoutMutation = useLogout();
 
   const handleLogout = async () => {
+    navigate({ to: "/auth" });
     await logoutMutation.mutateAsync();
   };
 

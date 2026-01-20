@@ -14,6 +14,15 @@ const MainLayout = () => {
     }
   }, [isAuthenticated]);
 
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col">
+        <Header />
+        <Outlet />
+      </div>
+    );
+  }
+
   return (
     <ClientLayout>
       <Header />

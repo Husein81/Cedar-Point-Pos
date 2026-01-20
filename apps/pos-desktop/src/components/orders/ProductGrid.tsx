@@ -324,7 +324,7 @@ export const ProductGrid = () => {
       {/* Product Grid */}
       <Shad.ScrollArea className="flex-1 min-h-0 p-3">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 2xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-37.5 rounded-lg" />
             ))}
@@ -334,7 +334,7 @@ export const ProductGrid = () => {
             <Empty title="No products found" icon="Search" />
           </div>
         ) : (
-          <div className="grid p-1 grid-cols-4 md:grid-cols-6 2xl:grid-cols-8 gap-2">
+          <div className="grid p-1 grid-cols-4 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-2">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

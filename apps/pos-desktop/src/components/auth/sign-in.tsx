@@ -30,7 +30,7 @@ const SignIn = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col col-span-2 justify-center items-center px-6 md:px-10"
+      className="flex flex-col col-span-2 w-full justify-center items-center px-6"
     >
       <div className="w-full max-w-md">
         {/* Mobile brand */}
@@ -92,7 +92,7 @@ const SignIn = () => {
                 </Button>
 
                 <Button
-                  variant="ghost"
+                  variant="link"
                   className="text-sm text-muted-foreground"
                 >
                   Forgot Password?

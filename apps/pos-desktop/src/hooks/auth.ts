@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../apis/authApi";
 import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
 
 export const useLogin = () => {
   const { setUser } = useAuthStore();
@@ -17,6 +18,7 @@ export const useLogin = () => {
       // Store both user data and access token
       setUser(data.user, data.accessToken);
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
+      toast.success("Logged in successfully.");
     },
   });
 };

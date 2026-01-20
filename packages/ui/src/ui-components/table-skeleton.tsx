@@ -11,7 +11,7 @@ export function TableSkeleton() {
           <Shad.TableRow>
             {columns.map((_, i) => (
               <Shad.TableHead key={i} className="py-3">
-                <Skeleton className="h-4 w-24 bg-primary/45" />
+                <Skeleton className="h-5 w-24 bg-primary/45" />
               </Shad.TableHead>
             ))}
           </Shad.TableRow>
@@ -23,7 +23,7 @@ export function TableSkeleton() {
                 <Shad.TableCell key={c} className="py-3">
                   <Skeleton
                     className={cn(
-                      "h-4  bg-primary/45",
+                      "h-4 bg-primary/45",
                       c === 0 && "w-28",
                       c === 1 && "w-24",
                       c === 2 && "w-20",

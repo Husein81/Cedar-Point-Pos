@@ -1,16 +1,17 @@
-import { ForgeConfig } from "@electron-forge/shared-types";
-import { VitePlugin } from "@electron-forge/plugin-vite";
+import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerDMG } from "@electron-forge/maker-dmg";
+import { MakerRpm } from "@electron-forge/maker-rpm";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
-import { MakerDeb } from "@electron-forge/maker-deb";
-import { MakerRpm } from "@electron-forge/maker-rpm";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { VitePlugin } from "@electron-forge/plugin-vite";
+import { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: "public/assets/icon",
+    icon: "./public/assets/icon",
   },
 
   rebuildConfig: {},
@@ -18,8 +19,20 @@ const config: ForgeConfig = {
   makers: [
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
-    new MakerDeb({}),
-    new MakerSquirrel({}),
+    new MakerDMG({
+      icon: "./public/assets/icon.icns",
+    }),
+    new MakerDeb({
+      options: {
+        icon: "./public/assets/icon.png",
+      },
+    }),
+    new MakerSquirrel({
+      name: "Pointverse",
+      iconUrl:
+        "https://github.com/Husein81/Pointverse/tree/main/apps/pos-desktop/public/assets/icon.ico",
+      setupIcon: "./public/assets/icon.ico",
+    }),
   ],
 
   publishers: [

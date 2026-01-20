@@ -4,9 +4,14 @@ import { format } from "date-fns";
 import { Activity, useEffect, useId, useState } from "react";
 import { BranchSelector } from "./common";
 import logo from "/assets/logo.png";
+import { useLogout } from "@/hooks/auth";
+import { useNavigate } from "@tanstack/react-router";
 
 export function Header() {
   const { user, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+  const logoutMutation = useLogout();
+
   const frameActions = [
     {
       id: "minimize",
@@ -47,12 +52,27 @@ export function Header() {
   return (
     <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
       <div className="flex items-center gap-4">
-        {isAuthenticated && user?.role !== "CASHIER" && (
+        {isAuthenticated && user?.role !== "CASHIER" ? (
           <>
             <Shad.SidebarTrigger className="no-drag" />
             <div className="h-10 border" />
           </>
-        )}
+        ) : isAuthenticated ? (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              iconName="LogOut"
+              onClick={async () => {
+                await logoutMutation.mutateAsync();
+                navigate({ to: "/auth" });
+              }}
+              className=" no-drag"
+            />
+            <div className="h-10 border" />
+          </>
+        ) : undefined}
+
         <div className="flex items-center">
           <img src={logo} alt="point verse" width={24} height={24} />
           <h2 className="text-sm font-semibold text-text">

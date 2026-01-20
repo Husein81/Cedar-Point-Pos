@@ -40,6 +40,11 @@ export const ModifierModal = ({
     closeModal();
   };
 
+  const handleQuantityChange = (delta: number) => {
+    const newQty = Math.max(1, quantity + delta);
+    setQuantity(newQty);
+  };
+
   // Calculate pricing
   const basePrice = Number(product.price) || 0;
   const unitPriceWithModifiers = basePrice + totalModifierPrice;
@@ -75,18 +80,64 @@ export const ModifierModal = ({
       </div>
 
       {/* Footer - Fixed */}
-      <div className="p-6 border-t bg-background">
+      <div className="border-t p-6 bg-background">
+        {/* Quantity Selector */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-medium text-muted-foreground">
+            Quantity
+          </span>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleQuantityChange(-1)}
+              disabled={quantity <= 1}
+            >
+              <Icon name="Minus" className="h-4 w-4" />
+            </Button>
+            <span className="text-lg font-bold w-12 text-center">
+              {quantity}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleQuantityChange(1)}
+            >
+              <Icon name="Plus" className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Price Breakdown */}
+        <div className="space-y-2 mb-4 text-sm">
+          <div className="flex justify-between text-muted-foreground">
+            <span>Base Price</span>
+            <span>${basePrice.toFixed(2)}</span>
+          </div>
+          {totalModifierPrice > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Modifiers</span>
+              <span>+${totalModifierPrice.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-base pt-2 border-t">
+            <span>Total</span>
+            <span className="text-primary">${totalPrice.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex-1 h-12"
+            className="flex-1"
             onClick={closeModal}
             size="lg"
           >
-            Discard
+            Cancel
           </Button>
           <Button
-            className="flex-1 h-12"
+            className="flex-1"
             onClick={handleConfirm}
             size="lg"
             disabled={
@@ -95,7 +146,7 @@ export const ModifierModal = ({
               groups.modifierGroups.length === 0
             }
           >
-            Add
+            Add to Cart
           </Button>
         </div>
       </div>
@@ -141,14 +192,14 @@ export const ModifierGroup = ({
                 : "";
 
           return (
-            <button
+            <Button
               key={modifier.id}
               onClick={() => toggleModifier(group.id, modifier.id, group.type)}
               className={cn(
                 "inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all",
                 "border border-border hover:border-primary/50",
                 checked
-                  ? "bg-[#17a2b8] text-white border-[#17a2b8]"
+                  ? "bg-primary text-white border-primary"
                   : "bg-background text-foreground",
               )}
             >
@@ -160,7 +211,7 @@ export const ModifierGroup = ({
                   {priceText}
                 </span>
               )}
-            </button>
+            </Button>
           );
         })}
       </div>

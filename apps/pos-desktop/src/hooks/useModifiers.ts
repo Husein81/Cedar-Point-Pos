@@ -13,7 +13,6 @@ const MODIFIER_QUERY_KEY = ["modifiers"];
 export const modifiersApi = {
   getModifiersByProduct: async (productId: string): Promise<ModifierGroup> => {
     const response = await api.get(`/products/${productId}/modifiers`);
-    console.log("Fetched modifiers for product:", productId, response.data);
     return response.data;
   },
 

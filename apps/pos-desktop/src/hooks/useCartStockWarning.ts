@@ -13,16 +13,6 @@ export type StockWarning = {
   noInventoryRecord: boolean;
 };
 
-/**
- * Hook to compute stock warnings for all cart items
- *
- * This hook:
- * - Fetches current inventory for each product in the cart (branch-scoped)
- * - Calculates resulting stock after the sale
- * - Returns warning info for items that would go negative
- *
- * IMPORTANT: This is READ-ONLY - does NOT mutate inventory
- */
 export const useCartStockWarnings = () => {
   const { branchId } = useBranchStore();
   const order = useOrderStore((state) => state.getActiveOrder());
@@ -64,7 +54,7 @@ export const useCartStockWarnings = () => {
 
       // Calculate resulting stock
       const resultingStock = currentStock - cartQuantity;
-      const isNegative = resultingStock <= 0;
+      const isNegative = resultingStock < 0;
 
       warningsMap.set(item.productId, {
         productId: item.productId,

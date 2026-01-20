@@ -7,6 +7,12 @@ import { persist } from "zustand/middleware";
 // =====================
 export type DiscountType = "PERCENTAGE" | "FIXED";
 
+export type OrderItemModifier = {
+  modifierId: string;
+  name: string;
+  price: number;
+};
+
 export type OrderItem = {
   id: string;
   productId: string;
@@ -15,6 +21,7 @@ export type OrderItem = {
   quantity: number;
   notes?: string;
   imageUrl?: string | null;
+  modifiers?: OrderItemModifier[]; // Restaurant modifiers
   discount?: {
     value: number;
     type: "PERCENTAGE" | "FIXED";
@@ -109,8 +116,9 @@ interface OrderStoreState {
   updateItemPrice: (itemId: string, price: number) => void;
   updateItemDiscount: (
     itemId: string,
-    discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+    discount: { value: number; type: "PERCENTAGE" | "FIXED" },
   ) => void;
+  updateItemModifiers: (itemId: string, modifiers: OrderItemModifier[]) => void; // New
   removeItem: (itemId: string) => void;
   clearOrder: () => void;
 
@@ -230,7 +238,7 @@ export const useOrderStore = create<OrderStoreState>()(
       renameTab: (tabId: string, newLabel: string) => {
         set((state) => ({
           tabs: state.tabs.map((tab) =>
-            tab.id === tabId ? { ...tab, label: newLabel } : tab
+            tab.id === tabId ? { ...tab, label: newLabel } : tab,
           ),
         }));
       },
@@ -247,10 +255,39 @@ export const useOrderStore = create<OrderStoreState>()(
           tabs: state.tabs.map((tab) => {
             if (tab.id !== state.activeTabId) return tab;
 
-            // Check if item already exists in order
-            const existingItemIndex = tab.order.items.findIndex(
-              (i) => i.productId === item.productId
-            );
+            // For items with modifiers, check if exact same modifiers exist
+            // Different modifiers = separate line items
+            const existingItemIndex = tab.order.items.findIndex((i) => {
+              if (i.productId !== item.productId) return false;
+
+              // If product is not modifiable or no modifiers, merge by productId
+              if (!item.modifiers || item.modifiers.length === 0) {
+                return !i.modifiers || i.modifiers.length === 0;
+              }
+
+              // Compare modifiers
+              if (
+                !i.modifiers ||
+                i.modifiers.length !== item.modifiers.length
+              ) {
+                return false;
+              }
+
+              const itemModIds = new Set(
+                item.modifiers.map((m) => m.modifierId),
+              );
+              const existingModIds = new Set(
+                i.modifiers.map((m) => m.modifierId),
+              );
+
+              // Check if both sets are equal
+              if (itemModIds.size !== existingModIds.size) return false;
+              for (const id of itemModIds) {
+                if (!existingModIds.has(id)) return false;
+              }
+
+              return true;
+            });
 
             let newItems: OrderItem[];
             if (existingItemIndex !== -1) {
@@ -258,7 +295,7 @@ export const useOrderStore = create<OrderStoreState>()(
               newItems = tab.order.items.map((i, index) =>
                 index === existingItemIndex
                   ? { ...i, quantity: i.quantity + item.quantity }
-                  : i
+                  : i,
               );
             } else {
               // Add new item
@@ -299,7 +336,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 items: tab.order.items.map((item) =>
                   item.id === itemId
                     ? { ...item, quantity: validQuantity }
-                    : item
+                    : item,
                 ),
                 modifiedAt: new Date(),
               },
@@ -324,7 +361,7 @@ export const useOrderStore = create<OrderStoreState>()(
               order: {
                 ...tab.order,
                 items: tab.order.items.map((item) =>
-                  item.id === itemId ? { ...item, price: validPrice } : item
+                  item.id === itemId ? { ...item, price: validPrice } : item,
                 ),
                 modifiedAt: new Date(),
               },
@@ -335,7 +372,7 @@ export const useOrderStore = create<OrderStoreState>()(
 
       updateItemDiscount: (
         itemId: string,
-        discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+        discount: { value: number; type: "PERCENTAGE" | "FIXED" },
       ) => {
         const state = get();
         if (!state.activeTabId) return;
@@ -349,7 +386,29 @@ export const useOrderStore = create<OrderStoreState>()(
               order: {
                 ...tab.order,
                 items: tab.order.items.map((item) =>
-                  item.id === itemId ? { ...item, discount } : item
+                  item.id === itemId ? { ...item, discount } : item,
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemModifiers: (itemId: string, modifiers: OrderItemModifier[]) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId ? { ...item, modifiers } : item,
                 ),
                 modifiedAt: new Date(),
               },
@@ -614,7 +673,11 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Calculate subtotal with item-level discounts applied
         return tab.order.items.reduce((sum, item) => {
-          const lineTotal = item.price * item.quantity;
+          // Calculate base price + modifiers
+          const modifiersTotal =
+            item.modifiers?.reduce((modSum, mod) => modSum + mod.price, 0) || 0;
+          const unitPrice = item.price + modifiersTotal;
+          const lineTotal = unitPrice * item.quantity;
 
           // Apply item-level discount if present
           let itemDiscount = 0;
@@ -642,7 +705,11 @@ export const useOrderStore = create<OrderStoreState>()(
         return tab.order.items.reduce((sum, item) => {
           if (!item.discount) return sum;
 
-          const lineTotal = item.price * item.quantity;
+          // Calculate base price + modifiers
+          const modifiersTotal =
+            item.modifiers?.reduce((modSum, mod) => modSum + mod.price, 0) || 0;
+          const unitPrice = item.price + modifiersTotal;
+          const lineTotal = unitPrice * item.quantity;
 
           if (item.discount.type === "PERCENTAGE") {
             return sum + lineTotal * (item.discount.value / 100);
@@ -680,7 +747,7 @@ export const useOrderStore = create<OrderStoreState>()(
         const shippingFee = tab?.order.shippingFee ?? 0;
         const subtotalAfterDiscount = Math.max(
           0,
-          subtotal - discount + shippingFee
+          subtotal - discount + shippingFee,
         );
         const vatAmount = state.getVATAmount(tabId);
         return subtotalAfterDiscount + vatAmount;
@@ -697,7 +764,7 @@ export const useOrderStore = create<OrderStoreState>()(
         const shippingFee = tab?.order.shippingFee ?? 0;
         const subtotalAfterDiscountAndShipping = Math.max(
           0,
-          subtotal - discount + shippingFee
+          subtotal - discount + shippingFee,
         );
 
         // 11% VAT
@@ -735,6 +802,6 @@ export const useOrderStore = create<OrderStoreState>()(
         activeTabId: state.activeTabId,
         maxTabs: state.maxTabs,
       }),
-    }
-  )
+    },
+  ),
 );

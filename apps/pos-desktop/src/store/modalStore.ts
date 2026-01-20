@@ -5,7 +5,11 @@ type ModalState = {
   modalContent: React.ReactNode | null;
   modalTitle: string;
   modalDescription?: string;
-  openModal: (title: string, content: React.ReactNode) => void;
+  openModal: (
+    title: string,
+    content: React.ReactNode,
+    description?: string,
+  ) => void;
   closeModal: () => void;
 };
 

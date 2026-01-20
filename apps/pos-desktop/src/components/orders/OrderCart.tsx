@@ -1,10 +1,15 @@
 import { useCartStockWarnings } from "@/hooks/useCartStockWarning";
+import { useProducts } from "@/hooks/useProduct";
 import { useKeypadStore } from "@/store/keypadStore";
-import { useOrderStore } from "@/store/orderStore";
+import { useModalStore } from "@/store/modalStore";
+import { OrderItem, useOrderStore } from "@/store/orderStore";
+import { SelectedModifier } from "@/types/modifiers";
+import { Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
 import { InlineKeypad } from "../common";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
+import { ModifierModal } from "./ModifierModal";
 import OrderSummary from "./OrderSummary";
 
 export const OrderCart = () => {
@@ -15,10 +20,13 @@ export const OrderCart = () => {
     removeItem,
     clearOrder,
     updateItemDiscount,
+    updateItemModifiers,
   } = useOrderStore();
 
+  const { openModal } = useModalStore();
   const { closeKeypad, itemId: selectedKeypadItemId } = useKeypadStore();
   const { hasAnyWarning } = useCartStockWarnings();
+  const { data: products } = useProducts();
 
   const order = getActiveOrder();
   const items = order?.items || [];
@@ -35,7 +43,7 @@ export const OrderCart = () => {
   const handleDiscountChange = (
     id: string,
     value: number,
-    type: "PERCENTAGE" | "FIXED"
+    type: "PERCENTAGE" | "FIXED",
   ) => {
     updateItemDiscount(id, { value, type });
   };
@@ -43,6 +51,46 @@ export const OrderCart = () => {
   const handleRemoveItem = (id: string) => {
     removeItem(id);
     closeKeypad();
+  };
+
+  const handleEditModifiers = (item: OrderItem) => {
+    // Find the product for this cart item
+    const product = products?.find((p: Product) => p.id === item.productId);
+    if (!product) return;
+
+    // Convert existing modifiers to SelectedModifier format
+    const initialModifiers: SelectedModifier[] =
+      item.modifiers?.map((m) => ({
+        modifierId: m.modifierId,
+        name: m.name,
+        price: m.price,
+        groupId: "", // Will be populated by the hook
+      })) || [];
+
+    openModal(
+      `Edit - ${item.name}`,
+      <ModifierModal
+        product={product}
+        initialModifiers={initialModifiers}
+        initialQuantity={item.quantity}
+        onConfirm={(modifiers, quantity) => {
+          // Update the item modifiers
+          updateItemModifiers(
+            item.id,
+            modifiers.map((m) => ({
+              modifierId: m.modifierId,
+              name: m.name,
+              price: m.price,
+            })),
+          );
+          // Update quantity if changed
+          if (quantity !== item.quantity) {
+            updateItemQuantity(item.id, quantity);
+          }
+        }}
+      />,
+      "Update your selections",
+    );
   };
 
   return (
@@ -110,6 +158,11 @@ export const OrderCart = () => {
                 onPriceChange={handlePriceChange}
                 onDiscountChange={handleDiscountChange}
                 onRemove={handleRemoveItem}
+                onEditModifiers={
+                  item.modifiers && item.modifiers.length > 0
+                    ? handleEditModifiers
+                    : undefined
+                }
               />
             ))}
           </div>

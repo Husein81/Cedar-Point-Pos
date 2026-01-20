@@ -20,7 +20,6 @@ import {
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
 } from "./breadcrumb";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import { Calendar, CalendarDayButton } from "./calendar";
 import {
   Card,
@@ -182,6 +181,7 @@ import {
   TableHeader,
   TableRow,
 } from "./table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 import {
   Tooltip,
   TooltipContent,

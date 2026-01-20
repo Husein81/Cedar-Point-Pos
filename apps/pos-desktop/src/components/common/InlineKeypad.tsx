@@ -313,7 +313,7 @@ export const InlineKeypad = () => {
         iconName="RotateCw"
       >
         Refund
-      </Button>
+      </Button>,
     );
   };
 
@@ -352,6 +352,7 @@ export const InlineKeypad = () => {
           unitPrice: i.price,
           discount: i.discount,
           notes: i.notes,
+          modifiers: i.modifiers?.map((m) => m.modifierId),
         })),
         ...(discount > 0 && { discount }),
       };
@@ -385,7 +386,7 @@ export const InlineKeypad = () => {
   const handlePay = () => {
     openModal(
       "Payment Form",
-      <PaymentForm total={total} onConfirm={handlePaymentConfirm} />
+      <PaymentForm total={total} onConfirm={handlePaymentConfirm} />,
     );
   };
 
@@ -424,6 +425,7 @@ export const InlineKeypad = () => {
           unitPrice: i.price,
           discount: i.discount,
           notes: i.notes,
+          modifiers: i.modifiers?.map((m) => m.modifierId),
         })),
         ...(discount > 0 && { discount }),
       };
@@ -461,7 +463,7 @@ export const InlineKeypad = () => {
               "flex items-center gap-1 rounded-xs px-3 font-semibold",
               order?.includeVAT
                 ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40"
+                : "text-muted-foreground hover:bg-accent/40",
             )}
             onClick={toggleVAT}
           >
@@ -480,7 +482,7 @@ export const InlineKeypad = () => {
               "flex items-center gap-1 rounded-xs px-3",
               isShippingActive
                 ? "bg-accent/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40"
+                : "text-muted-foreground hover:bg-accent/40",
             )}
             onClick={handleShippingToggle}
           >
@@ -498,7 +500,7 @@ export const InlineKeypad = () => {
               "flex items-center gap-1 rounded-xs px-3",
               context === "DISCOUNT" && !itemId
                 ? "bg-accent/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40"
+                : "text-muted-foreground hover:bg-accent/40",
             )}
             onClick={handleOpenOrderDiscount}
           >
@@ -535,7 +537,7 @@ export const InlineKeypad = () => {
             variant="ghost"
             className={cn(
               "h-12 rounded-xs bg-background text-lg",
-              context === "QUANTITY" && "bg-accent/10"
+              context === "QUANTITY" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("QUANTITY")}
           >
@@ -556,7 +558,7 @@ export const InlineKeypad = () => {
             variant="ghost"
             className={cn(
               "h-12 rounded-xs bg-background text-lg",
-              context === "DISCOUNT" && "bg-accent/10"
+              context === "DISCOUNT" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("DISCOUNT")}
             iconName="Percent"
@@ -576,7 +578,7 @@ export const InlineKeypad = () => {
             variant="ghost"
             className={cn(
               "h-12 rounded-xs bg-background text-lg",
-              context === "PRICE_OVERRIDE" && "bg-accent/10"
+              context === "PRICE_OVERRIDE" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
             iconName="DollarSign"
@@ -586,7 +588,7 @@ export const InlineKeypad = () => {
             variant="ghost"
             className={cn(
               "h-12 rounded-xs bg-background text-lg",
-              context === "PRICE_OVERRIDE" && "bg-accent/10"
+              context === "PRICE_OVERRIDE" && "bg-accent/10",
             )}
             onClick={() => handleDifferent()}
             iconName="Diff"

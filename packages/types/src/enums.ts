@@ -46,6 +46,7 @@ export const OrderStatus = {
   PAID: "PAID", // Payment received, inventory deducted
   PARTIALLY_PAID: "PARTIALLY_PAID", // Partial payment received
   COMPLETED: "COMPLETED", // Order fully completed
+  FULLY_REFUNDED: "FULLY_REFUNDED", // Order fully refunded
   CANCELLED: "CANCELLED",
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];

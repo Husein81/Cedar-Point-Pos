@@ -12,6 +12,10 @@ interface ReportsFilterBarProps {
     isLoading?: boolean;
     datePreset: DateRangePreset;
     onDatePresetChange: (preset: DateRangePreset) => void;
+    hideOrderType?: boolean;
+    hidePaymentMethod?: boolean;
+    showCategory?: boolean;
+    categories?: { id: string; name: string }[];
 }
 
 const DATE_PRESETS: { value: DateRangePreset; label: string }[] = [
@@ -45,6 +49,10 @@ export const ReportsFilterBar = ({
     isLoading,
     datePreset,
     onDatePresetChange,
+    hideOrderType = false,
+    hidePaymentMethod = false,
+    showCategory = false,
+    categories = [],
 }: ReportsFilterBarProps) => {
     const showBranchSelector = branches.length > 1;
     const showCustomDateInputs = datePreset === "custom";
@@ -129,47 +137,73 @@ export const ReportsFilterBar = ({
                     </Shad.Select>
                 )}
 
+                {/* Category Selector */}
+                {showCategory && (
+                    <Shad.Select
+                        value={filters.categoryId || "all"}
+                        onValueChange={(value: string) =>
+                            onFiltersChange({ categoryId: value === "all" ? undefined : value })
+                        }
+                    >
+                        <Shad.SelectTrigger className="w-[160px]">
+                            <Shad.SelectValue placeholder="All Categories" />
+                        </Shad.SelectTrigger>
+                        <Shad.SelectContent>
+                            <Shad.SelectItem value="all">All Categories</Shad.SelectItem>
+                            {categories.map((category) => (
+                                <Shad.SelectItem key={category.id} value={category.id}>
+                                    {category.name}
+                                </Shad.SelectItem>
+                            ))}
+                        </Shad.SelectContent>
+                    </Shad.Select>
+                )}
+
                 {/* Order Type Selector */}
-                <Shad.Select
-                    value={filters.orderType || "all"}
-                    onValueChange={(value: string) =>
-                        onFiltersChange({
-                            orderType: value === "all" ? undefined : (value as ReportsFilterState["orderType"]),
-                        })
-                    }
-                >
-                    <Shad.SelectTrigger className="w-[150px]">
-                        <Shad.SelectValue placeholder="All Order Types" />
-                    </Shad.SelectTrigger>
-                    <Shad.SelectContent>
-                        {ORDER_TYPES.map((type) => (
-                            <Shad.SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                            </Shad.SelectItem>
-                        ))}
-                    </Shad.SelectContent>
-                </Shad.Select>
+                {!hideOrderType && (
+                    <Shad.Select
+                        value={filters.orderType || "all"}
+                        onValueChange={(value: string) =>
+                            onFiltersChange({
+                                orderType: value === "all" ? undefined : (value as ReportsFilterState["orderType"]),
+                            })
+                        }
+                    >
+                        <Shad.SelectTrigger className="w-[150px]">
+                            <Shad.SelectValue placeholder="All Order Types" />
+                        </Shad.SelectTrigger>
+                        <Shad.SelectContent>
+                            {ORDER_TYPES.map((type) => (
+                                <Shad.SelectItem key={type.value} value={type.value}>
+                                    {type.label}
+                                </Shad.SelectItem>
+                            ))}
+                        </Shad.SelectContent>
+                    </Shad.Select>
+                )}
 
                 {/* Payment Method Selector */}
-                <Shad.Select
-                    value={filters.paymentMethod || "all"}
-                    onValueChange={(value: string) =>
-                        onFiltersChange({
-                            paymentMethod: value === "all" ? undefined : (value as ReportsFilterState["paymentMethod"]),
-                        })
-                    }
-                >
-                    <Shad.SelectTrigger className="w-[140px]">
-                        <Shad.SelectValue placeholder="All Payments" />
-                    </Shad.SelectTrigger>
-                    <Shad.SelectContent>
-                        {PAYMENT_METHODS.map((method) => (
-                            <Shad.SelectItem key={method.value} value={method.value}>
-                                {method.label}
-                            </Shad.SelectItem>
-                        ))}
-                    </Shad.SelectContent>
-                </Shad.Select>
+                {!hidePaymentMethod && (
+                    <Shad.Select
+                        value={filters.paymentMethod || "all"}
+                        onValueChange={(value: string) =>
+                            onFiltersChange({
+                                paymentMethod: value === "all" ? undefined : (value as ReportsFilterState["paymentMethod"]),
+                            })
+                        }
+                    >
+                        <Shad.SelectTrigger className="w-[140px]">
+                            <Shad.SelectValue placeholder="All Payments" />
+                        </Shad.SelectTrigger>
+                        <Shad.SelectContent>
+                            {PAYMENT_METHODS.map((method) => (
+                                <Shad.SelectItem key={method.value} value={method.value}>
+                                    {method.label}
+                                </Shad.SelectItem>
+                            ))}
+                        </Shad.SelectContent>
+                    </Shad.Select>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2 ml-auto">

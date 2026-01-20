@@ -4,12 +4,19 @@ import type {
     PaymentsReportData,
     OrdersReportData,
     InventoryReportData,
+    DebtsReportData,
+    CustomersReportData,
+    FinancialsReportData,
     ReportListParams,
     PaginatedResponse,
     SalesOrderRow,
     PaymentTransactionRow,
     InventoryMovementRow,
     TopProductRow,
+    DebtOrderRow,
+    CustomerReportRow,
+    ProductProfitRow,
+    CategoryRevenueRow,
 } from "../types/reports";
 import type {
     WeeklySalesData,
@@ -129,6 +136,36 @@ export const reportsApi = {
         return data;
     },
 
+    /**
+     * Fetch debts orders list with pagination
+     * GET /reports/debts/orders
+     */
+    async getDebtsOrdersList(
+        params: ReportListParams
+    ): Promise<PaginatedResponse<DebtOrderRow>> {
+        const queryParams = buildListParams(params);
+        const { data } = await api.get<PaginatedResponse<DebtOrderRow>>(
+            `${basePath}/debts/orders`,
+            { params: queryParams }
+        );
+        return data;
+    },
+
+    /**
+     * Fetch customers report list with pagination
+     * GET /reports/customers/list
+     */
+    async getCustomersReportList(
+        params: ReportListParams
+    ): Promise<PaginatedResponse<CustomerReportRow>> {
+        const queryParams = buildListParams(params);
+        const { data } = await api.get<PaginatedResponse<CustomerReportRow>>(
+            `${basePath}/customers/list`,
+            { params: queryParams }
+        );
+        return data;
+    },
+
     // ============================================================
     // SUMMARY ENDPOINTS (EXISTING - for dashboard/charts)
     // ============================================================
@@ -157,6 +194,63 @@ export const reportsApi = {
     },
 
     /**
+     * Fetch payments report summary
+     */
+    async getPaymentsReport(
+        from: Date,
+        to: Date,
+        branchId?: string
+    ): Promise<PaymentsReportData> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<PaymentsReportData>(`${basePath}/payments`, {
+            params,
+        });
+        return data;
+    },
+
+    /**
+     * Fetch debts report summary
+     */
+    async getDebtsReport(
+        from: Date,
+        to: Date,
+        branchId?: string
+    ): Promise<DebtsReportData> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<DebtsReportData>(`${basePath}/debts`, {
+            params,
+        });
+        return data;
+    },
+
+    /**
+     * Fetch customers report summary
+     */
+    async getCustomersReport(
+        from: Date,
+        to: Date,
+        branchId?: string
+    ): Promise<CustomersReportData> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<CustomersReportData>(`${basePath}/customers`, {
+            params,
+        });
+        return data;
+    },
+
+    /**
      * Fetch orders report (grouped by status)
      */
     async getOrdersReport(
@@ -179,28 +273,6 @@ export const reportsApi = {
         return data;
     },
 
-    /**
-     * Fetch payments report (grouped by payment method)
-     */
-    async getPaymentsReport(
-        from: Date,
-        to: Date,
-        branchId?: string,
-        orderType?: string,
-        paymentMethod?: string
-    ): Promise<PaymentsReportData> {
-        const params: ReportQueryParams = {
-            from: from.toISOString(),
-            to: to.toISOString(),
-            ...(branchId && { branchId }),
-            ...(orderType && { orderType }),
-            ...(paymentMethod && { paymentMethod }),
-        };
-        const { data } = await api.get<PaymentsReportData>(`${basePath}/payments`, {
-            params,
-        });
-        return data;
-    },
 
     /**
      * Fetch inventory report (stock movements summary)
@@ -263,6 +335,67 @@ export const reportsApi = {
         };
         const { data } = await api.get<TopProductData[]>(
             `${basePath}/dashboard/top-products`,
+            { params }
+        );
+        return data;
+    },
+
+    /**
+     * Fetch financials report summary
+     */
+    async getFinancialsReport(
+        from: Date,
+        to: Date,
+        branchId?: string
+    ): Promise<FinancialsReportData> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<FinancialsReportData>(`${basePath}/financials`, {
+            params,
+        });
+        return data;
+    },
+
+    /**
+     * Fetch products with profit data
+     */
+    async getProductsWithProfit(
+        from: Date,
+        to: Date,
+        branchId?: string,
+        limit = 5
+    ): Promise<ProductProfitRow[]> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            limit,
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<ProductProfitRow[]>(
+            `${basePath}/financials/products`,
+            { params }
+        );
+        return data;
+    },
+
+    /**
+     * Fetch category revenue data
+     */
+    async getCategoryRevenue(
+        from: Date,
+        to: Date,
+        branchId?: string
+    ): Promise<CategoryRevenueRow[]> {
+        const params: ReportQueryParams = {
+            from: from.toISOString(),
+            to: to.toISOString(),
+            ...(branchId && { branchId }),
+        };
+        const { data } = await api.get<CategoryRevenueRow[]>(
+            `${basePath}/financials/categories`,
             { params }
         );
         return data;

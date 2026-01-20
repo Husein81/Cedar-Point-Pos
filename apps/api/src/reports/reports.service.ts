@@ -6,7 +6,7 @@ import {
   type PaginatedResponse,
   type PaginationMeta,
 } from './dto/report-query.dto.js';
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma, OrderType } from '../../generated/prisma/client.js';
 
 // ============================================================
 // Response Row Types (exported for controller return type inference)
@@ -70,6 +70,48 @@ export interface TopProductRow {
   revenue: number;
   avgUnitPrice: number;
 }
+
+export interface DebtOrderRow {
+  id: string;
+  orderNumber: string | null;
+  createdAt: Date;
+  branch: { id: string; name: string };
+  type: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  customer: { id: string; name: string } | null;
+  cashier: { id: string; name: string; username: string } | null;
+}
+
+export interface CustomerReportRow {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  ordersCount: number;
+  totalSpent: number;
+  outstandingDebt: number;
+  lastOrderDate: Date | null;
+}
+
+export interface ProductProfitRow {
+  productId: string;
+  productName: string;
+  categoryName: string | null;
+  revenue: number;
+  profit: number;
+  margin: number;
+  qtySold: number;
+}
+
+export interface CategoryRevenueRow {
+  categoryId: string;
+  categoryName: string;
+  revenue: number;
+  profit: number;
+}
+
 
 // ============================================================
 // Helper Functions
@@ -256,115 +298,6 @@ export class ReportsService {
     };
   }
 
-  /**
-   * Payment Transactions List - Paginated payment rows
-   * GET /reports/payments/transactions
-   *
-   * Filters by paidAt date range for payment-specific filtering
-   */
-  async getPaymentTransactionsList(
-    tenantId: string,
-    query: ReportQueryDto,
-  ): Promise<PaginatedResponse<PaymentTransactionRow>> {
-    const {
-      from,
-      to,
-      branchId,
-      paymentMethod,
-      userId,
-      search,
-      sortBy,
-      sortDir = 'desc',
-      page = 1,
-      pageSize = 25,
-    } = query;
-
-    // Validate sortBy
-    validateSortBy(
-      sortBy,
-      ALLOWED_SORT_FIELDS.paymentTransactions,
-      'payment transactions',
-    );
-
-    // Build where clause
-    const where: Prisma.PaymentWhereInput = {
-      order: {
-        tenantId,
-        ...(branchId && { branchId }),
-        ...(userId && { userId }),
-        // Search by order number
-        ...(search && {
-          orderNumber: { contains: search, mode: 'insensitive' as const },
-        }),
-      },
-      paidAt: {
-        gte: from,
-        lte: to,
-      },
-      ...(paymentMethod && { method: paymentMethod }),
-    };
-
-    // Build orderBy
-    const orderBy: Prisma.PaymentOrderByWithRelationInput = sortBy
-      ? { [sortBy]: sortDir }
-      : { paidAt: sortDir };
-
-    // Execute count and list queries in parallel
-    const [totalItems, payments] = await Promise.all([
-      this.prisma.payment.count({ where }),
-      this.prisma.payment.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        select: {
-          id: true,
-          paidAt: true,
-          method: true,
-          currencyCode: true,
-          amount: true,
-          exchangeRate: true,
-          order: {
-            select: {
-              id: true,
-              orderNumber: true,
-              type: true,
-              status: true,
-              branch: {
-                select: { id: true, name: true },
-              },
-              user: {
-                select: { id: true, name: true, username: true },
-              },
-            },
-          },
-        },
-      }),
-    ]);
-
-    // Transform to response shape
-    const data: PaymentTransactionRow[] = payments.map((p) => ({
-      id: p.id,
-      paidAt: p.paidAt,
-      method: p.method,
-      currencyCode: p.currencyCode,
-      amount: Number(p.amount),
-      exchangeRate: p.exchangeRate ? Number(p.exchangeRate) : null,
-      order: {
-        id: p.order.id,
-        orderNumber: p.order.orderNumber,
-        branch: p.order.branch,
-        cashier: p.order.user,
-        type: p.order.type,
-        status: p.order.status,
-      },
-    }));
-
-    return {
-      data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
-    };
-  }
 
   /**
    * Inventory Movements List - Paginated inventory history rows
@@ -489,6 +422,7 @@ export class ReportsService {
       page = 1,
       pageSize = 25,
       limit,
+      categoryId,
     } = query;
 
     // Validate sortBy (if provided as column names we use internally)
@@ -514,6 +448,11 @@ export class ReportsService {
           },
           ...(branchId && { branchId }),
         },
+        ...(categoryId && {
+          product: {
+            categoryId,
+          },
+        }),
       },
       _sum: {
         total: true,
@@ -596,10 +535,28 @@ export class ReportsService {
   // ============================================================
 
   /**
-   * Sales Report - Total revenue, order count, average order value
+   * Sales Report - Total revenue, order count, average order value, and best order type
    */
   async getSalesReport(tenantId: string, query: ReportQueryDto) {
     const { from, to, branchId } = query;
+
+    // Fetch tenant business type to determine allowed order types
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { businessType: true },
+    });
+
+    if (!tenant) {
+      throw new Error(`Tenant ${tenantId} not found`);
+    }
+
+    // Define allowed order types based on business type
+    // RETAIL: Compare RETAIL and DELIVERY only
+    // RESTAURANT: Compare DINE_IN, TAKEAWAY, and DELIVERY
+    const allowedOrderTypes: OrderType[] =
+      tenant.businessType === 'RETAIL'
+        ? [OrderType.RETAIL, OrderType.DELIVERY]
+        : [OrderType.DINE_IN, OrderType.TAKEAWAY, OrderType.DELIVERY];
 
     const where: Prisma.OrderWhereInput = {
       tenantId,
@@ -611,39 +568,303 @@ export class ReportsService {
       ...(branchId && { branchId }),
     };
 
-    const aggregation = await this.prisma.order.aggregate({
-      where,
-      _sum: {
-        total: true,
-        subtotal: true,
-        discount: true,
-      },
-      _count: true,
-    });
+    // Run aggregation and order type groupBy in parallel
+    const [aggregation, ordersByType] = await Promise.all([
+      this.prisma.order.aggregate({
+        where,
+        _sum: {
+          total: true,
+          subtotal: true,
+          discount: true,
+        },
+        _count: true,
+      }),
+      this.prisma.order.groupBy({
+        by: ['type'],
+        where: {
+          ...where,
+          type: { in: allowedOrderTypes }, // Filter by business-type-specific order types
+        },
+        _count: true,
+      }),
+    ]);
 
     const totalRevenue = Number(aggregation._sum.total) || 0;
     const orderCount = aggregation._count || 0;
-    const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+    // Calculate revenue from PARTIALLY_PAID orders (only the paid portion)
+    const partiallyPaidOrders = await this.prisma.order.findMany({
+      where: {
+        tenantId,
+        status: 'PARTIALLY_PAID',
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+      include: {
+        payments: true,
+      },
+    });
+
+    const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
+      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      return sum + totalPaid;
+    }, 0);
+
+    const combinedRevenue = totalRevenue + partiallyPaidRevenue;
+    const combinedOrderCount = orderCount + partiallyPaidOrders.length;
+    const averageOrderValue = combinedOrderCount > 0 ? combinedRevenue / combinedOrderCount : 0;
+
+    // Determine best order type (most frequent)
+    let bestOrderType: string | null = null;
+    let maxCount = 0;
+
+    for (const group of ordersByType) {
+      // Prisma groupBy _count represents the total count of grouped items
+      const count = typeof group._count === 'number' ? group._count : (group._count as any)?._all || 0;
+      if (count > maxCount) {
+        maxCount = count;
+        bestOrderType = group.type;
+      }
+    }
 
     return {
-      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalRevenue: Number(combinedRevenue.toFixed(2)),
       totalSubtotal: Number(aggregation._sum.subtotal) || 0,
       totalDiscount: Number(aggregation._sum.discount) || 0,
-      orderCount,
+      orderCount: combinedOrderCount,
       averageOrderValue: Number(averageOrderValue.toFixed(2)),
+      bestOrderType, // New: Most frequent order type based on business type
       dateRange: { from, to },
       branchId: branchId || null,
     };
   }
 
   /**
-   * Payments Report - Revenue grouped by payment method
+   * Debts Report - Total debts, unpaid orders count, and top debtor
    */
-  async getPaymentsReport(tenantId: string, query: ReportQueryDto) {
+  async getDebtsReport(tenantId: string, query: ReportQueryDto) {
     const { from, to, branchId } = query;
 
-    const payments = await this.prisma.payment.groupBy({
-      by: ['method'],
+    const where: Prisma.OrderWhereInput = {
+      tenantId,
+      status: 'PENDING', // Only pending orders are considered debts
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+    };
+
+    // Get aggregated totals
+    const aggregation = await this.prisma.order.aggregate({
+      where,
+      _sum: {
+        total: true,
+      },
+      _count: true,
+    });
+
+    const totalDebts = Number(aggregation._sum.total) || 0;
+    const unpaidOrdersCount = aggregation._count || 0;
+
+    // Calculate debts from PARTIALLY_PAID orders (only the unpaid portion)
+    const partiallyPaidOrders = await this.prisma.order.findMany({
+      where: {
+        tenantId,
+        status: 'PARTIALLY_PAID',
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+      include: {
+        payments: true,
+      },
+    });
+
+    const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
+      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const unpaid = Number(order.total) - totalPaid;
+      return sum + unpaid;
+    }, 0);
+
+    const combinedDebts = totalDebts + partiallyPaidDebts;
+    const combinedUnpaidCount = unpaidOrdersCount + partiallyPaidOrders.length;
+
+    // Find top debtor (customer with highest total debt)
+    // Include both PENDING and PARTIALLY_PAID orders
+    const ordersByCustomer = await this.prisma.order.groupBy({
+      by: ['customerId'],
+      where: {
+        tenantId,
+        status: { in: ['PENDING', 'PARTIALLY_PAID'] },
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+        customerId: { not: null }, // Only orders with customers
+      },
+      _sum: {
+        total: true,
+      },
+      orderBy: {
+        _sum: {
+          total: 'desc',
+        },
+      },
+      take: 1, // Get only the top debtor
+    });
+
+    let topDebtorName: string | null = null;
+    let topDebtorAmount = 0;
+
+    if (ordersByCustomer.length > 0 && ordersByCustomer[0].customerId) {
+      const topDebtorId = ordersByCustomer[0].customerId;
+      const topDebtorTotalOrdered = Number(ordersByCustomer[0]._sum.total) || 0;
+
+      // For partially paid orders of this customer, calculate actual debt
+      const customerPartialOrders = partiallyPaidOrders.filter(o => o.customerId === topDebtorId);
+      const customerPartialDebt = customerPartialOrders.reduce((sum, order) => {
+        const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+        return sum + (Number(order.total) - totalPaid);
+      }, 0);
+
+      // Get PENDING orders total for this customer
+      const customerPendingOrders = await this.prisma.order.aggregate({
+        where: {
+          customerId: topDebtorId,
+          status: 'PENDING',
+          createdAt: { gte: from, lte: to },
+          ...(branchId && { branchId }),
+        },
+        _sum: { total: true },
+      });
+
+      topDebtorAmount = Number(customerPendingOrders._sum.total || 0) + customerPartialDebt;
+
+      // Fetch customer name
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: topDebtorId },
+        select: { name: true },
+      });
+
+      topDebtorName = customer?.name || null;
+    }
+
+    return {
+      totalDebts: Number(combinedDebts.toFixed(2)),
+      unpaidOrdersCount: combinedUnpaidCount,
+      topDebtorName,
+      topDebtorAmount: Number(topDebtorAmount.toFixed(2)),
+      dateRange: { from, to },
+      branchId: branchId || null,
+    };
+  }
+
+  /**
+   * Debts Orders List - Paginated list of pending orders (debts)
+   */
+  async getDebtsOrdersList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<DebtOrderRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      search,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 10,
+    } = query;
+
+    // Validate sortBy
+    validateSortBy(sortBy, ALLOWED_SORT_FIELDS.salesOrders, 'debt orders');
+
+    // Build where clause for PENDING orders
+    const where: Prisma.OrderWhereInput = {
+      tenantId,
+      status: 'PENDING',
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+      // Search by order number
+      ...(search && {
+        orderNumber: { contains: search, mode: 'insensitive' as const },
+      }),
+    };
+
+    // Build orderBy
+    const orderBy: Prisma.OrderOrderByWithRelationInput = sortBy
+      ? { [sortBy]: sortDir }
+      : { createdAt: sortDir };
+
+    // Execute count and list queries in parallel
+    const [totalItems, orders] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          orderNumber: true,
+          type: true,
+          createdAt: true,
+          subtotal: true,
+          discount: true,
+          total: true,
+          branch: {
+            select: { id: true, name: true },
+          },
+          customer: {
+            select: { id: true, name: true },
+          },
+          user: {
+            select: { id: true, name: true, username: true },
+          },
+        },
+      }),
+    ]);
+
+    // Transform to response shape
+    const data: DebtOrderRow[] = orders.map((order) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      branch: order.branch,
+      type: order.type,
+      subtotal: Number(order.subtotal),
+      discount: Number(order.discount) || 0,
+      total: Number(order.total),
+      customer: order.customer,
+      cashier: order.user,
+    }));
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
+  }
+
+  /**
+   * Top Selling Products - Top 10 products by revenue
+   */
+  async getTopSellingProducts(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    // Get order items for completed orders
+    const topProducts = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
       where: {
         order: {
           tenantId,
@@ -656,6 +877,180 @@ export class ReportsService {
         },
       },
       _sum: {
+        subtotal: true,
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          subtotal: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    // Fetch product details
+    const productIds = topProducts.map((p) => p.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        category: {
+          select: { name: true },
+        },
+      },
+    });
+
+    // Map to response with product details
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    return topProducts.map((item) => {
+      const product = productMap.get(item.productId);
+      return {
+        productId: item.productId,
+        productName: product?.name || 'Unknown',
+        categoryName: product?.category?.name || null,
+        revenue: Number(item._sum.subtotal) || 0,
+        quantitySold: Number(item._sum.quantity) || 0,
+      };
+    });
+  }
+
+  /**
+   * Most Ordered Products - Top 5 products by quantity sold
+   */
+  async getMostOrderedProducts(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    const topProducts = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          tenantId,
+          status: 'COMPLETED',
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take: 5,
+    });
+
+    // Fetch product details
+    const productIds = topProducts.map((p) => p.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        category: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    return topProducts.map((item) => {
+      const product = productMap.get(item.productId);
+      return {
+        productId: item.productId,
+        productName: product?.name || 'Unknown',
+        categoryName: product?.category?.name || null,
+        quantitySold: Number(item._sum.quantity) || 0,
+      };
+    });
+  }
+
+  /**
+   * Least Sold Products - Bottom 5 products by quantity sold
+   */
+  async getLeastSoldProducts(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    const leastProducts = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          tenantId,
+          status: 'COMPLETED',
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        },
+      },
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'asc',
+        },
+      },
+      take: 5,
+    });
+
+    // Fetch product details
+    const productIds = leastProducts.map((p) => p.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        category: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    return leastProducts.map((item) => {
+      const product = productMap.get(item.productId);
+      return {
+        productId: item.productId,
+        productName: product?.name || 'Unknown',
+        categoryName: product?.category?.name || null,
+        quantitySold: Number(item._sum.quantity) || 0,
+      };
+    });
+  }
+
+  /**
+   * Payments Report - Revenue grouped by payment method
+   */
+  async getPaymentsReport(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    const where: Prisma.PaymentWhereInput = {
+      order: {
+        tenantId,
+        status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+    };
+
+    // Get payment breakdown by method
+    const payments = await this.prisma.payment.groupBy({
+      by: ['method'],
+      where,
+      _sum: {
         amount: true,
       },
       _count: true,
@@ -664,7 +1059,10 @@ export class ReportsService {
     const paymentBreakdown = payments.map((p) => ({
       method: p.method,
       totalAmount: Number(p._sum.amount) || 0,
-      transactionCount: p._count,
+      transactionCount:
+        typeof p._count === 'number'
+          ? p._count
+          : (p._count as unknown as { _all: number })._all ?? 0,
     }));
 
     const grandTotal = paymentBreakdown.reduce(
@@ -672,11 +1070,87 @@ export class ReportsService {
       0,
     );
 
+    // Get total payments count
+    const totalPaymentsCount = await this.prisma.payment.count({ where });
+
+    // Determine most used payment method
+    let mostUsedMethod: string | null = null;
+    if (paymentBreakdown.length > 0) {
+      mostUsedMethod = paymentBreakdown.reduce((max, p) =>
+        p.transactionCount > max.transactionCount ? p : max
+      ).method;
+    }
+
     return {
+      totalAmount: Number(grandTotal.toFixed(2)),
+      paymentsCount: totalPaymentsCount,
+      mostUsedMethod,
       paymentBreakdown,
-      grandTotal: Number(grandTotal.toFixed(2)),
       dateRange: { from, to },
       branchId: branchId || null,
+    };
+  }
+
+  /**
+   * Payment Transactions List - Individual payment records with pagination
+   */
+  async getPaymentTransactionsList(
+    tenantId: string,
+    query: ReportQueryDto & { page?: number; pageSize?: number },
+  ) {
+    const { from, to, branchId, page = 1, pageSize = 25 } = query;
+
+    const where: Prisma.PaymentWhereInput = {
+      order: {
+        tenantId,
+        status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+    };
+
+    const [data, totalItems] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        include: {
+          order: {
+            select: {
+              orderNumber: true,
+              status: true,
+              type: true,
+              branch: {
+                select: {
+                  name: true,
+                },
+              },
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          paidAt: 'desc',
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.payment.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages: Math.ceil(totalItems / pageSize),
+      },
     };
   }
 
@@ -1009,4 +1483,540 @@ export class ReportsService {
       sold: Number(p._sum.quantity) || 0,
     }));
   }
+
+  // ============================================================
+  // CUSTOMER REPORTS
+  // ============================================================
+
+  /**
+   * Customer Reports Summary - Total customers, active customers, top customer by revenue
+   * GET /reports/customers
+   */
+  async getCustomersReport(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    // Count total customers for the tenant
+    const totalCustomers = await this.prisma.customer.count({
+      where: { tenantId },
+    });
+
+    // Build where clause for orders in date range
+    const orderWhere: Prisma.OrderWhereInput = {
+      tenantId,
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+      customerId: { not: null }, // Only orders with customers
+    };
+
+    // Get orders grouped by customer for completed orders (for revenue calculation)
+    const completedOrdersByCustomer = await this.prisma.order.groupBy({
+      by: ['customerId'],
+      where: {
+        ...orderWhere,
+        status: 'COMPLETED',
+      },
+      _sum: {
+        total: true,
+      },
+      _count: true,
+    });
+
+    // Count distinct active customers (who placed at least one order in date range)
+    const activeCustomers = completedOrdersByCustomer.length;
+
+    // Calculate total revenue and find top customer
+    let topCustomerName: string | null = null;
+    let topCustomerRevenue = 0;
+    let totalRevenue = 0;
+
+    for (const group of completedOrdersByCustomer) {
+      const revenue = Number(group._sum.total) || 0;
+      totalRevenue += revenue;
+
+      if (revenue > topCustomerRevenue && group.customerId) {
+        topCustomerRevenue = revenue;
+        // Fetch customer name
+        const customer = await this.prisma.customer.findUnique({
+          where: { id: group.customerId },
+          select: { name: true },
+        });
+        topCustomerName = customer?.name || null;
+      }
+    }
+
+    const averageCustomerSpend =
+      activeCustomers > 0 ? totalRevenue / activeCustomers : 0;
+
+    return {
+      totalCustomers,
+      activeCustomers,
+      topCustomerName,
+      topCustomerRevenue: Number(topCustomerRevenue.toFixed(2)),
+      averageCustomerSpend: Number(averageCustomerSpend.toFixed(2)),
+      dateRange: { from, to },
+      branchId: branchId || null,
+    };
+  }
+
+  /**
+   * Customer Reports List - Paginated customer rows with aggregated order data
+   * GET /reports/customers/list
+   *
+   * For each customer, aggregates:
+   * - ordersCount: Total number of orders
+   * - totalSpent: Sum of completed orders
+   * - outstandingDebt: Sum of pending orders
+   * - lastOrderDate: Most recent order date
+   */
+  async getCustomersReportList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<CustomerReportRow>> {
+    const {
+      from,
+      to,
+      branchId,
+      search,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+    } = query;
+
+    // Build base where clause for customers
+    const customerWhere: Prisma.CustomerWhereInput = {
+      tenantId,
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
+    };
+
+    // Get total count of customers
+    const totalItems = await this.prisma.customer.count({
+      where: customerWhere,
+    });
+
+    // Fetch paginated customers
+    const customers = await this.prisma.customer.findMany({
+      where: customerWhere,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+      },
+    });
+
+    // For each customer, aggregate their order data
+    const data: CustomerReportRow[] = await Promise.all(
+      customers.map(async (customer) => {
+        // Build order where clause
+        const orderWhere: Prisma.OrderWhereInput = {
+          tenantId,
+          customerId: customer.id,
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        };
+
+        // Aggregate all orders
+        const [allOrders, completedOrders, pendingOrders, lastOrder] =
+          await Promise.all([
+            // Total order count
+            this.prisma.order.count({ where: orderWhere }),
+
+            // Completed orders total
+            this.prisma.order.aggregate({
+              where: { ...orderWhere, status: 'COMPLETED' },
+              _sum: { total: true },
+            }),
+
+            // Pending orders total (debt)
+            this.prisma.order.aggregate({
+              where: { ...orderWhere, status: 'PENDING' },
+              _sum: { total: true },
+            }),
+
+            // Last order date
+            this.prisma.order.findFirst({
+              where: orderWhere,
+              orderBy: { createdAt: 'desc' },
+              select: { createdAt: true },
+            }),
+          ]);
+
+        return {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          ordersCount: allOrders,
+          totalSpent: Number(completedOrders._sum.total) || 0,
+          outstandingDebt: Number(pendingOrders._sum.total) || 0,
+          lastOrderDate: lastOrder?.createdAt || null,
+        };
+      }),
+    );
+
+    // Sort results if needed (since we aggregate in-memory, we sort here)
+    if (sortBy) {
+      const sortMultiplier = sortDir === 'asc' ? 1 : -1;
+      data.sort((a, b) => {
+        const aVal = a[sortBy as keyof CustomerReportRow];
+        const bVal = b[sortBy as keyof CustomerReportRow];
+
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return (aVal - bVal) * sortMultiplier;
+        }
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return aVal.localeCompare(bVal) * sortMultiplier;
+        }
+        if (aVal instanceof Date && bVal instanceof Date) {
+          return (aVal.getTime() - bVal.getTime()) * sortMultiplier;
+        }
+        return 0;
+      });
+    }
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
+  }
+
+  // ============================================================
+  // FINANCIALS REPORTS
+  // ============================================================
+
+  /**
+   * Financials Report Summary - Revenue, profits, debts, top profit product
+   * GET /reports/financials
+   */
+  async getFinancialsReport(tenantId: string, query: ReportQueryDto) {
+    const { from, to, branchId } = query;
+
+    // Build where clause for completed orders
+    const orderWhere: Prisma.OrderWhereInput = {
+      tenantId,
+      status: 'COMPLETED',
+      createdAt: {
+        gte: from,
+        lte: to,
+      },
+      ...(branchId && { branchId }),
+    };
+
+    // 1. Get total revenue (COMPLETED orders only)
+    const revenueAgg = await this.prisma.order.aggregate({
+      where: orderWhere,
+      _sum: {
+        total: true,
+      },
+    });
+
+    const completedRevenue = Number(revenueAgg._sum.total) || 0;
+
+    // Get PARTIALLY_PAID revenue (only the paid portion)
+    const partiallyPaidOrders = await this.prisma.order.findMany({
+      where: {
+        tenantId,
+        status: 'PARTIALLY_PAID',
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+      include: {
+        payments: true,
+      },
+    });
+
+    const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
+      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      return sum + totalPaid;
+    }, 0);
+
+    const totalRevenue = completedRevenue + partiallyPaidRevenue;
+
+    // 2. Get total debts (PENDING orders full amount)
+    const debtsAgg = await this.prisma.order.aggregate({
+      where: {
+        tenantId,
+        status: 'PENDING',
+        createdAt: {
+          gte: from,
+          lte: to,
+        },
+        ...(branchId && { branchId }),
+      },
+      _sum: {
+        total: true,
+      },
+    });
+
+    const pendingDebts = Number(debtsAgg._sum.total) || 0;
+
+    // Get PARTIALLY_PAID debts (only the unpaid portion)
+    const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
+      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const unpaid = Number(order.total) - totalPaid;
+      return sum + unpaid;
+    }, 0);
+
+    const totalDebts = pendingDebts + partiallyPaidDebts;
+
+    // 3. Calculate total COGS and find top profit product
+    // Get all order items with product cost
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: {
+        order: orderWhere,
+      },
+      select: {
+        quantity: true,
+        total: true,
+        productId: true,
+        product: {
+          select: {
+            cost: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    let totalCOGS = 0;
+    const productProfits = new Map<
+      string,
+      { name: string; revenue: number; cost: number; profit: number }
+    >();
+
+    for (const item of orderItems) {
+      const cost = Number(item.product.cost) || 0;
+      const quantity = Number(item.quantity);
+      const revenue = Number(item.total);
+      const itemCOGS = cost * quantity;
+
+      totalCOGS += itemCOGS;
+
+      // Aggregate per product
+      const existing = productProfits.get(item.productId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.cost += itemCOGS;
+        existing.profit = existing.revenue - existing.cost;
+      } else {
+        productProfits.set(item.productId, {
+          name: item.product.name,
+          revenue,
+          cost: itemCOGS,
+          profit: revenue - itemCOGS,
+        });
+      }
+    }
+
+    const totalProfits = totalRevenue - totalCOGS;
+
+    // Find top profit product
+    let topProfitProductName: string | null = null;
+    let topProfitProductProfit = 0;
+
+    for (const product of productProfits.values()) {
+      if (product.profit > topProfitProductProfit) {
+        topProfitProductProfit = product.profit;
+        topProfitProductName = product.name;
+      }
+    }
+
+    return {
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalProfits: Number(totalProfits.toFixed(2)),
+      totalDebts: Number(totalDebts.toFixed(2)),
+      topProfitProductName,
+      topProfitProductProfit: Number(topProfitProductProfit.toFixed(2)),
+      dateRange: { from, to },
+      branchId: branchId || null,
+    };
+  }
+
+  /**
+   * Products with Profit - Returns products with revenue, cost, profit, margin
+   * GET /reports/financials/products
+   * 
+   * Follows same pattern as getTopProductsReportList but includes cost/profit
+   */
+  async getProductsWithProfit(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<ProductProfitRow[]> {
+    const { from, to, branchId, limit = 5 } = query;
+
+    // Group order items by product (same pattern as top products)
+    const groupedProducts = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          tenantId,
+          status: 'COMPLETED',
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        },
+      },
+      _sum: {
+        total: true,
+        quantity: true,
+      },
+    });
+
+    // Fetch product details with cost and category
+    const productIds = groupedProducts.map((p) => p.productId);
+    const productDetails = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        cost: true,
+        category: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const productMap = new Map(
+      productDetails.map((p) => [
+        p.id,
+        {
+          name: p.name,
+          cost: Number(p.cost) || 0,
+          categoryName: p.category?.name ?? null,
+        },
+      ]),
+    );
+
+    // Calculate profit for each product
+    const results: ProductProfitRow[] = groupedProducts.map((p) => {
+      const details = productMap.get(p.productId);
+      const revenue = Number(p._sum.total) || 0;
+      const qtySold = Number(p._sum.quantity) || 0;
+      const costPerUnit = details?.cost || 0;
+      const totalCost = costPerUnit * qtySold;
+      const profit = revenue - totalCost;
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+      return {
+        productId: p.productId,
+        productName: details?.name || 'Unknown Product',
+        categoryName: details?.categoryName ?? null,
+        revenue,
+        profit,
+        margin: Number(margin.toFixed(2)),
+        qtySold,
+      };
+    });
+
+    // Sort by profit DESC (following existing sort pattern)
+    results.sort((a, b) => b.profit - a.profit);
+
+    // Return top N (following existing limit pattern)
+    return results.slice(0, limit);
+  }
+
+  /**
+   * Category Revenue - Returns revenue and profit grouped by category
+   * GET /reports/financials/categories
+   */
+  async getCategoryRevenue(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<CategoryRevenueRow[]> {
+    const { from, to, branchId } = query;
+
+    // Get all order items with product category and cost
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: {
+        order: {
+          tenantId,
+          status: 'COMPLETED',
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+          ...(branchId && { branchId }),
+        },
+      },
+      select: {
+        total: true,
+        quantity: true,
+        product: {
+          select: {
+            cost: true,
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Aggregate by category
+    const categoryMap = new Map<
+      string,
+      { name: string; revenue: number; cost: number }
+    >();
+
+    for (const item of orderItems) {
+      const categoryId = item.product.category?.id;
+      const categoryName = item.product.category?.name;
+
+      if (!categoryId || !categoryName) continue;
+
+      const revenue = Number(item.total);
+      const cost = Number(item.product.cost) || 0;
+      const quantity = Number(item.quantity);
+      const totalCost = cost * quantity;
+
+      const existing = categoryMap.get(categoryId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.cost += totalCost;
+      } else {
+        categoryMap.set(categoryId, {
+          name: categoryName,
+          revenue,
+          cost: totalCost,
+        });
+      }
+    }
+
+    // Transform to array with profit
+    const results: CategoryRevenueRow[] = Array.from(categoryMap.entries()).map(
+      ([categoryId, data]) => ({
+        categoryId,
+        categoryName: data.name,
+        revenue: Number(data.revenue.toFixed(2)),
+        profit: Number((data.revenue - data.cost).toFixed(2)),
+      }),
+    );
+
+    // Sort by revenue DESC (following existing pattern)
+    results.sort((a, b) => b.revenue - a.revenue);
+
+    return results;
+  }
 }
+

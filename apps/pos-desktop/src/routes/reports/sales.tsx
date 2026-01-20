@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable, Badge, Button } from "@repo/ui";
-import { FileDown } from "lucide-react";
+import { FileDown, DollarSign, ShoppingCart, TrendingUp, Award } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
-import { useSalesOrdersReport } from "@/hooks/useReports";
+import { useSalesOrdersReport, useReportsSales } from "@/hooks/useReports";
 import { exportSalesReportPdf } from "@/pdf/utils/exportSalesReportPdf";
 import { formatDateTime } from "@/pdf/utils/formatters";
 import type {
@@ -109,6 +109,116 @@ const getTypeLabel = (type: string) => {
 };
 
 // ============================================================
+// Sales Summary Types (colocated in this file)
+// ============================================================
+
+interface SalesSummaryData {
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  bestOrderType: string | null;
+}
+
+// ============================================================
+// Sales Summary Cards Component (colocated in this file)
+// ============================================================
+
+interface SummaryCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  subtitle?: string;
+}
+
+/**
+ * Individual summary card component for displaying a single metric.
+ * Styled consistently with existing UI patterns.
+ */
+function SummaryCard({ title, value, icon, subtitle }: SummaryCardProps) {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <div className="rounded-md bg-muted p-2">{icon}</div>
+      </div>
+      <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
+      {subtitle && (
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+      )}
+    </div>
+  );
+}
+
+interface SalesSummaryCardsProps {
+  summary: SalesSummaryData;
+  isLoading: boolean;
+}
+
+/**
+ * Sales Summary Cards Section
+ * Displays key business metrics derived from fetched order data.
+ * Renders gracefully when no data is available.
+ */
+function SalesSummaryCards({ summary, isLoading }: SalesSummaryCardsProps) {
+  const iconClassName = "h-4 w-4 text-muted-foreground";
+
+  // Handle loading state with skeleton-like placeholders
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="rounded-lg border bg-card p-4 shadow-sm animate-pulse"
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-4 w-20 bg-muted rounded" />
+              <div className="h-8 w-8 bg-muted rounded-md" />
+            </div>
+            <div className="mt-2 h-8 w-24 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <SummaryCard
+        title="Total Revenue"
+        value={formatCurrency(summary.totalRevenue)}
+        icon={<DollarSign className={iconClassName} />}
+        subtitle="Sum of all completed order totals"
+      />
+      <SummaryCard
+        title="Total Orders"
+        value={summary.totalOrders.toLocaleString()}
+        icon={<ShoppingCart className={iconClassName} />}
+        subtitle="Number of completed orders"
+      />
+      <SummaryCard
+        title="Avg Order Value"
+        value={
+          summary.totalOrders > 0
+            ? formatCurrency(summary.averageOrderValue)
+            : "-"
+        }
+        icon={<TrendingUp className={iconClassName} />}
+        subtitle="Revenue per order"
+      />
+      <SummaryCard
+        title="Best Order Type"
+        value={
+          summary.bestOrderType ? getTypeLabel(summary.bestOrderType) : "-"
+        }
+        icon={<Award className={iconClassName} />}
+        subtitle="Most frequent type"
+      />
+    </div>
+  );
+}
+
+// ============================================================
 // Sales Report Page Component
 // ============================================================
 
@@ -122,8 +232,9 @@ function SalesReportPage() {
   }));
 
   // Pagination state
+  // FIX #2: Changed default page size from 25 to 10 to match the first dropdown option
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Applied filters (only updated on Apply click)
@@ -138,6 +249,18 @@ function SalesReportPage() {
 
   // Fetch branches for filter dropdown
   const { data: branches = [] } = useBranches();
+
+  // ============================================================
+  // AUTO-LOAD: Fetch data for "Today" on first render
+  // This improves UX by showing data immediately without requiring Apply
+  // ============================================================
+  useEffect(() => {
+    // Only trigger auto-load once on initial mount
+    if (!hasFetched) {
+      setHasFetched(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Mapper function to transform SalesOrderRow to SalesOrderRowPdf
   const mapToSalesOrderPdf = useCallback(
@@ -168,10 +291,22 @@ function SalesReportPage() {
     [appliedFilters, searchTerm, page, pageSize]
   );
 
-  // Fetch sales orders
+  // Fetch sales orders (paginated for table)
   const { data, isLoading, refetch } = useSalesOrdersReport(listParams, {
     enabled: hasFetched,
   });
+
+  // ============================================================
+  // FIX #1: Fetch FULL DATASET summary from backend API
+  // This ensures summary cards reflect ALL orders matching filters,
+  // NOT just the current page of table data.
+  // Uses useReportsSales which returns aggregated totals from backend:
+  // - totalRevenue (sum of all orders' totals)
+  // - orderCount (total number of orders)
+  // - averageOrderValue (revenue / count calculated server-side)
+  // ============================================================
+  const { data: fullDatasetSummary, isLoading: isSummaryLoading } =
+    useReportsSales(appliedFilters, { enabled: hasFetched });
 
   // Handlers
   const handleFiltersChange = useCallback(
@@ -317,10 +452,43 @@ function SalesReportPage() {
   const rows = data?.data ?? [];
   const meta = data?.meta ?? {
     page: 1,
-    pageSize: 25,
+    pageSize: 10, // FIX #2: Updated default to match new pageSize default
     totalItems: 0,
     totalPages: 0,
   };
+
+  // ============================================================
+  // Use FULL DATASET summary from backend API
+  // The summary cards now reflect the ENTIRE result set (all pages),
+  // NOT just the currently displayed table rows.
+  //
+  // Data source: useReportsSales returns aggregated totals computed
+  // by the backend for all orders matching the applied filters.
+  //
+  // bestOrderType is now calculated server-side with business-type awareness:
+  // - RETAIL tenants: Compares RETAIL and DELIVERY order types
+  // - RESTAURANT tenants: Compares DINE_IN, TAKEAWAY, and DELIVERY order types
+  // ============================================================
+  const salesSummary = useMemo((): SalesSummaryData => {
+    // If we have the full dataset summary from the API, use it
+    if (fullDatasetSummary) {
+      return {
+        // All values from backend API, representing full dataset
+        totalRevenue: fullDatasetSummary.totalRevenue,
+        totalOrders: fullDatasetSummary.orderCount,
+        averageOrderValue: fullDatasetSummary.averageOrderValue,
+        bestOrderType: fullDatasetSummary.bestOrderType, // Server-side calculation with business-type filtering
+      };
+    }
+
+    // Fallback: no data yet
+    return {
+      totalRevenue: 0,
+      totalOrders: 0,
+      averageOrderValue: 0,
+      bestOrderType: null,
+    };
+  }, [fullDatasetSummary]);
 
   // Export PDF handler
   const handleExportPdf = useCallback(async () => {
@@ -386,71 +554,55 @@ function SalesReportPage() {
         onDatePresetChange={handleDatePresetChange}
       />
 
-      {/* Content */}
-      {hasFetched ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Sales Orders</h2>
-              <p className="text-sm text-muted-foreground">
-                {meta.totalItems} orders found
-              </p>
-            </div>
-            <Button
-              onClick={handleExportPdf}
-              disabled={!hasFetched || rows.length === 0 || isExporting}
-              variant="outline"
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export PDF"}
-            </Button>
-          </div>
+      {/* ============================================================ */}
+      {/* Sales Summary Section */}
+      {/* Displays key business metrics derived from fetched order data */}
+      {/* ============================================================ */}
+      {/* FIX #1: Use isSummaryLoading since summary comes from separate useReportsSales API call */}      <SalesSummaryCards summary={salesSummary} isLoading={isSummaryLoading} />
 
-          <DataTable
-            columns={columns}
-            data={rows}
-            isLoading={isLoading}
-            onRefetch={() => refetch()}
-            search={{
-              term: searchTerm,
-              onTermChange: handleSearchChange,
-              keys: ["orderNumber" as keyof SalesOrderRow],
-            }}
-            pagination={{
-              rows: meta.totalItems,
-              page: page,
-              pageSize: pageSize,
-              totalPages: meta.totalPages,
-              onPageChange: handlePageChange,
-              onPageSizeChange: handlePageSizeChange,
-            }}
-          />
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <svg
-              className="w-8 h-8 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+      {/* ============================================================ */}
+      {/* Orders Table Section */}
+      {/* Full-featured table with search, pagination, and export */}
+      {/* ============================================================ */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Sales Orders</h2>
+            <p className="text-sm text-muted-foreground">
+              {meta.totalItems} orders found
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            Generate Sales Report
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Configure filters above and click Apply to load sales data.
-          </p>
+          {/* PDF Export - kept as outline button for visual de-emphasis */}
+          <Button
+            onClick={handleExportPdf}
+            disabled={!hasFetched || rows.length === 0 || isExporting}
+            variant="outline"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export PDF"}
+          </Button>
         </div>
-      )}
+
+        <DataTable
+          columns={columns}
+          data={rows}
+          isLoading={isLoading}
+          onRefetch={() => refetch()}
+          search={{
+            term: searchTerm,
+            onTermChange: handleSearchChange,
+            keys: ["orderNumber" as keyof SalesOrderRow],
+          }}
+          pagination={{
+            rows: meta.totalItems,
+            page: page,
+            pageSize: pageSize,
+            totalPages: meta.totalPages,
+            onPageChange: handlePageChange,
+            onPageSizeChange: handlePageSizeChange,
+          }}
+        />
+      </div>
     </div>
   );
 }

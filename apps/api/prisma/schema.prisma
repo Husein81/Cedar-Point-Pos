@@ -48,7 +48,8 @@ enum OrderType {
 enum OrderStatus {
     DRAFT // New: For orders being built on the POS
     ON_HOLD // Order put on hold
-    PENDING // Order created but not processed
+    PENDING // Order created but not processed (no payment)
+    PARTIALLY_PAID // Order with partial payment received
     CONFIRMED // Restaurant: Order confirmed by staff
     IN_PROGRESS // Restaurant: Order being prepared
     SENT_TO_KITCHEN // Order sent to kitchen/bar

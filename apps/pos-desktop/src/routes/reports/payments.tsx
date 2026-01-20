@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button } from "@repo/ui";
-import { FileDown } from "lucide-react";
+import { DataTable, Badge, Button } from "@repo/ui"; // Removed SummaryCard from @repo/ui
+import { SummaryCard } from "@/components/dashboard/SummaryCard"; // Added correct import
+import { FileDown, DollarSign, CreditCard, Activity } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
-import { usePaymentTransactionsReport } from "@/hooks/useReports";
+import { usePaymentTransactionsReport, usePaymentsReport } from "@/hooks/useReports";
 import { exportPaymentsTransactionsReportPdf } from "@/pdf/utils/exportPaymentsTransactionsReportPdf";
 import { formatDate as formatDatePdf, formatDateTime } from "@/pdf/utils/formatters";
 import type {
@@ -22,8 +23,6 @@ import type {
 export const Route = createFileRoute("/reports/payments")({
   component: PaymentsReportPage,
 });
-
-// TODO: This is a complete implementation following the Sales pattern
 
 const getDateRangeFromPreset = (
   preset: DateRangePreset
@@ -56,12 +55,13 @@ const getDateRangeFromPreset = (
   }
 };
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
+const formatCurrency = (value: number, currency = "USD") => {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: currency,
     minimumFractionDigits: 2,
   }).format(value);
+};
 
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString("en-US", {
@@ -120,7 +120,7 @@ function PaymentsReportPage() {
         currency: row.currencyCode || "-",
         exchangeRate: row.exchangeRate ? String(row.exchangeRate) : "-",
         branch: row.order.branch.name,
-        cashier: row.order.cashier?.name || "-",
+        cashier: row.order.user?.name || "-",
         orderType: formatOrderType(row.order.type),
         orderStatus: row.order.status,
       };
@@ -138,10 +138,19 @@ function PaymentsReportPage() {
     [appliedFilters, searchTerm, page, pageSize]
   );
 
-  const { data, isLoading, refetch } = usePaymentTransactionsReport(
+  // Fetch Transactions List
+  const { data, isLoading: isListLoading, refetch } = usePaymentTransactionsReport(
     listParams,
     { enabled: hasFetched }
   );
+
+  // Fetch Summary Data
+  const { data: summaryData, isLoading: isSummaryLoading } = usePaymentsReport(
+    appliedFilters,
+    { enabled: hasFetched }
+  );
+
+  const isLoading = isListLoading || isSummaryLoading;
 
   const handleFiltersChange = useCallback(
     (updates: Partial<ReportsFilterState>) => {
@@ -181,6 +190,11 @@ function PaymentsReportPage() {
   const columns: ColumnDef<PaymentTransactionRow>[] = useMemo(
     () => [
       {
+        accessorKey: "id",
+        header: "Payment ID",
+        cell: ({ row }) => <span className="text-xs text-muted-foreground font-mono">{row.original.id.slice(0, 8)}...</span>,
+      },
+      {
         accessorKey: "paidAt",
         header: "Paid At",
         cell: ({ row }) => <span className="text-sm">{formatDate(row.original.paidAt)}</span>,
@@ -217,14 +231,16 @@ function PaymentsReportPage() {
         accessorKey: "amount",
         header: "Amount",
         cell: ({ row }) => (
-          <span className="font-semibold">{formatCurrency(row.original.amount)}</span>
+          <span className="font-semibold">
+            {formatCurrency(row.original.amount, row.original.currencyCode || "USD")}
+          </span>
         ),
       },
       {
-        accessorKey: "order.cashier",
+        accessorKey: "order.user",
         header: "Cashier",
         cell: ({ row }) =>
-          row.original.order.cashier?.name || <span className="text-muted-foreground">-</span>,
+          row.original.order.user?.name || <span className="text-muted-foreground">-</span>, // Fixed: use user.name
       },
     ],
     []
@@ -234,32 +250,22 @@ function PaymentsReportPage() {
   const meta = data?.meta ?? { page: 1, pageSize: 25, totalItems: 0, totalPages: 0 };
 
   const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0) return;
+    if (!hasFetched || rows.length === 0 || !summaryData) return;
 
     setIsExporting(true);
     try {
       const pdfRows = rows.map(mapToPaymentTransactionPdf);
 
-      const totalAmount = rows.reduce((sum, r) => sum + r.amount, 0);
-
-      const methodsMap = new Map<string, { amount: number; count: number }>();
-      rows.forEach((r) => {
-        const existing = methodsMap.get(r.method) || { amount: 0, count: 0 };
-        methodsMap.set(r.method, {
-          amount: existing.amount + r.amount,
-          count: existing.count + 1,
-        });
-      });
-
-      const byMethod = Array.from(methodsMap.entries()).map(([method, data]) => ({
-        method,
-        amount: data.amount,
-        count: data.count,
+      // Use backend summary data for PDF too
+      const byMethod = summaryData.paymentBreakdown.map((p) => ({
+        method: p.method,
+        amount: p.totalAmount,
+        count: p.transactionCount,
       }));
 
       const summary: PaymentsTransactionsReportSummary = {
-        totalTransactions: rows.length,
-        totalAmount,
+        totalTransactions: summaryData.paymentsCount,
+        totalAmount: summaryData.totalAmount,
         byMethod,
       };
 
@@ -284,7 +290,7 @@ function PaymentsReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [hasFetched, rows, mapToPaymentTransactionPdf, appliedFilters, branches]);
+  }, [hasFetched, rows, summaryData, mapToPaymentTransactionPdf, appliedFilters, branches]);
 
   return (
     <div className="space-y-6">
@@ -298,6 +304,26 @@ function PaymentsReportPage() {
         datePreset={datePreset}
         onDatePresetChange={handleDatePresetChange}
       />
+
+      {hasFetched && summaryData && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <SummaryCard
+            title="Total Payments Amount"
+            value={formatCurrency(summaryData.totalAmount)}
+            icon={<DollarSign className="w-4 h-4 text-muted-foreground" />}
+          />
+          <SummaryCard
+            title="Payments Count"
+            value={summaryData.paymentsCount.toString()}
+            icon={<Activity className="w-4 h-4 text-muted-foreground" />}
+          />
+          <SummaryCard
+            title="Most Used Payment Method"
+            value={summaryData.mostUsedMethod || "-"}
+            icon={<CreditCard className="w-4 h-4 text-muted-foreground" />}
+          />
+        </div>
+      )}
 
       {hasFetched ? (
         <div className="space-y-4">

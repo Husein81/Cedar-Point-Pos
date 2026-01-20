@@ -5,6 +5,7 @@ import { DataTable, Badge, Button } from "@repo/ui";
 import { FileDown } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useCategories } from "@/hooks/useCategory";
 import { useTopProductsReportList } from "@/hooks/useReports";
 import { exportTopProductsReportPdf } from "@/pdf/utils/exportTopProductsReportPdf";
 import { formatDate as formatDatePdf } from "@/pdf/utils/formatters";
@@ -77,6 +78,7 @@ function ProductsReportPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: branches = [] } = useBranches();
+  const { data: categories = [] } = useCategories();
 
   const mapToTopProductPdf = useCallback(
     (row: TopProductRow): TopProductRowPdf => {
@@ -242,6 +244,9 @@ function ProductsReportPage() {
         isLoading={isLoading}
         datePreset={datePreset}
         onDatePresetChange={handleDatePresetChange}
+        hideOrderType={true}
+        showCategory={true}
+        categories={categories}
       />
 
       {hasFetched ? (

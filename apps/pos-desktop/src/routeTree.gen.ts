@@ -27,6 +27,9 @@ import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
 import { Route as ReportsProductsRouteImport } from './routes/reports/products'
 import { Route as ReportsPaymentsRouteImport } from './routes/reports/payments'
 import { Route as ReportsInventoryRouteImport } from './routes/reports/inventory'
+import { Route as ReportsFinancialsRouteImport } from './routes/reports/financials'
+import { Route as ReportsDebtsRouteImport } from './routes/reports/debts'
+import { Route as ReportsCustomersRouteImport } from './routes/reports/customers'
 import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers/$customerId'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
@@ -121,6 +124,21 @@ const ReportsInventoryRoute = ReportsInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => ReportsRouteRoute,
 } as any)
+const ReportsFinancialsRoute = ReportsFinancialsRouteImport.update({
+  id: '/financials',
+  path: '/financials',
+  getParentRoute: () => ReportsRouteRoute,
+} as any)
+const ReportsDebtsRoute = ReportsDebtsRouteImport.update({
+  id: '/debts',
+  path: '/debts',
+  getParentRoute: () => ReportsRouteRoute,
+} as any)
+const ReportsCustomersRoute = ReportsCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => ReportsRouteRoute,
+} as any)
 const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   id: '/products/$productId',
   path: '/products/$productId',
@@ -149,6 +167,9 @@ export interface FileRoutesByFullPath {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/reports/customers': typeof ReportsCustomersRoute
+  '/reports/debts': typeof ReportsDebtsRoute
+  '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
@@ -172,6 +193,9 @@ export interface FileRoutesByTo {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/reports/customers': typeof ReportsCustomersRoute
+  '/reports/debts': typeof ReportsDebtsRoute
+  '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
@@ -196,6 +220,9 @@ export interface FileRoutesById {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/reports/customers': typeof ReportsCustomersRoute
+  '/reports/debts': typeof ReportsDebtsRoute
+  '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
@@ -221,6 +248,9 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/products/$productId'
+    | '/reports/customers'
+    | '/reports/debts'
+    | '/reports/financials'
     | '/reports/inventory'
     | '/reports/payments'
     | '/reports/products'
@@ -244,6 +274,9 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/products/$productId'
+    | '/reports/customers'
+    | '/reports/debts'
+    | '/reports/financials'
     | '/reports/inventory'
     | '/reports/payments'
     | '/reports/products'
@@ -267,6 +300,9 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/customers/$customerId'
     | '/products/$productId'
+    | '/reports/customers'
+    | '/reports/debts'
+    | '/reports/financials'
     | '/reports/inventory'
     | '/reports/payments'
     | '/reports/products'
@@ -427,6 +463,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsInventoryRouteImport
       parentRoute: typeof ReportsRouteRoute
     }
+    '/reports/financials': {
+      id: '/reports/financials'
+      path: '/financials'
+      fullPath: '/reports/financials'
+      preLoaderRoute: typeof ReportsFinancialsRouteImport
+      parentRoute: typeof ReportsRouteRoute
+    }
+    '/reports/debts': {
+      id: '/reports/debts'
+      path: '/debts'
+      fullPath: '/reports/debts'
+      preLoaderRoute: typeof ReportsDebtsRouteImport
+      parentRoute: typeof ReportsRouteRoute
+    }
+    '/reports/customers': {
+      id: '/reports/customers'
+      path: '/customers'
+      fullPath: '/reports/customers'
+      preLoaderRoute: typeof ReportsCustomersRouteImport
+      parentRoute: typeof ReportsRouteRoute
+    }
     '/products/$productId': {
       id: '/products/$productId'
       path: '/products/$productId'
@@ -452,6 +509,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface ReportsRouteRouteChildren {
+  ReportsCustomersRoute: typeof ReportsCustomersRoute
+  ReportsDebtsRoute: typeof ReportsDebtsRoute
+  ReportsFinancialsRoute: typeof ReportsFinancialsRoute
   ReportsInventoryRoute: typeof ReportsInventoryRoute
   ReportsPaymentsRoute: typeof ReportsPaymentsRoute
   ReportsProductsRoute: typeof ReportsProductsRoute
@@ -459,6 +519,9 @@ interface ReportsRouteRouteChildren {
 }
 
 const ReportsRouteRouteChildren: ReportsRouteRouteChildren = {
+  ReportsCustomersRoute: ReportsCustomersRoute,
+  ReportsDebtsRoute: ReportsDebtsRoute,
+  ReportsFinancialsRoute: ReportsFinancialsRoute,
   ReportsInventoryRoute: ReportsInventoryRoute,
   ReportsPaymentsRoute: ReportsPaymentsRoute,
   ReportsProductsRoute: ReportsProductsRoute,

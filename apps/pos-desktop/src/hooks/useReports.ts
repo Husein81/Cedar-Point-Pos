@@ -5,6 +5,9 @@ import type {
     OrdersReportData,
     PaymentsReportData,
     InventoryReportData,
+    DebtsReportData,
+    CustomersReportData,
+    FinancialsReportData,
     ReportsFilterState,
     ReportListParams,
     PaginatedResponse,
@@ -12,6 +15,10 @@ import type {
     PaymentTransactionRow,
     InventoryMovementRow,
     TopProductRow,
+    DebtOrderRow,
+    CustomerReportRow,
+    ProductProfitRow,
+    CategoryRevenueRow,
 } from "../types/reports";
 import type {
     WeeklySalesData,
@@ -137,7 +144,8 @@ export const reportsKeys = {
     topProductsReport: (params: ReportListParams) =>
         [
             ...reportsKeys.all,
-            "top-products-report",
+            "products",
+            "top",
             params.from.toISOString(),
             params.to.toISOString(),
             params.branchId,
@@ -147,6 +155,44 @@ export const reportsKeys = {
             params.pageSize,
             params.limit,
         ] as const,
+    debtsOrdersList: (params: ReportListParams) =>
+        [
+            ...reportsKeys.all,
+            "debts",
+            "orders",
+            params.from.toISOString(),
+            params.to.toISOString(),
+            params.branchId,
+            params.search,
+            params.sortBy,
+            params.sortDir,
+            params.page,
+            params.pageSize,
+        ] as const,
+    debts: (from: string, to: string, branchId?: string) =>
+        [...reportsKeys.all, "debts", from, to, branchId] as const,
+    customersReportList: (params: ReportListParams) =>
+        [
+            ...reportsKeys.all,
+            "customers",
+            "list",
+            params.from.toISOString(),
+            params.to.toISOString(),
+            params.branchId,
+            params.search,
+            params.sortBy,
+            params.sortDir,
+            params.page,
+            params.pageSize,
+        ] as const,
+    customers: (from: string, to: string, branchId?: string) =>
+        [...reportsKeys.all, "customers", from, to, branchId] as const,
+    financials: (from: string, to: string, branchId?: string) =>
+        [...reportsKeys.all, "financials", from, to, branchId] as const,
+    financialsProducts: (from: string, to: string, branchId?: string, limit?: number) =>
+        [...reportsKeys.all, "financials", "products", from, to, branchId, limit] as const,
+    financialsCategories: (from: string, to: string, branchId?: string) =>
+        [...reportsKeys.all, "financials", "categories", from, to, branchId] as const,
 };
 
 interface ReportsQueryOptions {
@@ -229,6 +275,24 @@ export const useTopProductsReportList = (
     });
 };
 
+/**
+ * Hook to fetch debts orders list with pagination
+ * Used by /reports/debts table
+ */
+export const useDebtsOrdersList = (
+    params: ReportListParams,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<PaginatedResponse<DebtOrderRow>, Error> => {
+    const { enabled = true } = options;
+
+    return useQuery({
+        queryKey: reportsKeys.debtsOrdersList(params),
+        queryFn: () => reportsApi.getDebtsOrdersList(params),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
 // ============================================================
 // SUMMARY HOOKS (EXISTING - for dashboard/charts)
 // ============================================================
@@ -254,6 +318,29 @@ export const useReportsSales = (
         ),
         queryFn: () =>
             reportsApi.getSalesReport(from, to, branchId, orderType, paymentMethod),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch debts report
+ * Only fetches when enabled is true (after Apply button click)
+ */
+export const useReportsDebts = (
+    filters: ReportsFilterState,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<DebtsReportData, Error> => {
+    const { enabled = true } = options;
+    const { from, to, branchId } = filters;
+
+    return useQuery({
+        queryKey: reportsKeys.debts(
+            from.toISOString(),
+            to.toISOString(),
+            branchId
+        ),
+        queryFn: () => reportsApi.getDebtsReport(from, to, branchId),
         enabled,
         staleTime: 60000,
     });
@@ -287,27 +374,28 @@ export const useReportsOrders = (
 /**
  * Hook to fetch payments report
  */
-export const useReportsPayments = (
+/**
+ * Hook to fetch payments report summary
+ */
+export const usePaymentsReport = (
     filters: ReportsFilterState,
     options: ReportsQueryOptions = {}
 ): UseQueryResult<PaymentsReportData, Error> => {
     const { enabled = true } = options;
-    const { from, to, branchId, orderType, paymentMethod } = filters;
+    const { from, to, branchId } = filters;
 
     return useQuery({
         queryKey: reportsKeys.payments(
             from.toISOString(),
             to.toISOString(),
-            branchId,
-            orderType,
-            paymentMethod
+            branchId
         ),
-        queryFn: () =>
-            reportsApi.getPaymentsReport(from, to, branchId, orderType, paymentMethod),
+        queryFn: () => reportsApi.getPaymentsReport(from, to, branchId),
         enabled,
         staleTime: 60000,
     });
 };
+
 
 /**
  * Hook to fetch inventory report
@@ -384,6 +472,116 @@ export const useReportsTopProducts = (
             limit
         ),
         queryFn: () => reportsApi.getTopProducts(from, to, branchId, limit),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch customers report list with pagination
+ * Used by /reports/customers table
+ */
+export const useCustomersReportList = (
+    params: ReportListParams,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<PaginatedResponse<CustomerReportRow>, Error> => {
+    const { enabled = true } = options;
+
+    return useQuery({
+        queryKey: reportsKeys.customersReportList(params),
+        queryFn: () => reportsApi.getCustomersReportList(params),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch customers report summary
+ * Only fetches when enabled is true (after Apply button click)
+ */
+export const useCustomersReport = (
+    filters: ReportsFilterState,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<CustomersReportData, Error> => {
+    const { enabled = true } = options;
+    const { from, to, branchId } = filters;
+
+    return useQuery({
+        queryKey: reportsKeys.customers(
+            from.toISOString(),
+            to.toISOString(),
+            branchId
+        ),
+        queryFn: () => reportsApi.getCustomersReport(from, to, branchId),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch financials report summary
+ * Only fetches when enabled is true (after Apply button click)
+ */
+export const useFinancialsReport = (
+    filters: ReportsFilterState,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<FinancialsReportData, Error> => {
+    const { enabled = true } = options;
+    const { from, to, branchId } = filters;
+
+    return useQuery({
+        queryKey: reportsKeys.financials(
+            from.toISOString(),
+            to.toISOString(),
+            branchId
+        ),
+        queryFn: () => reportsApi.getFinancialsReport(from, to, branchId),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch products with profit data
+ */
+export const useProductsWithProfit = (
+    filters: ReportsFilterState,
+    limit = 5,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<ProductProfitRow[], Error> => {
+    const { enabled = true } = options;
+    const { from, to, branchId } = filters;
+
+    return useQuery({
+        queryKey: reportsKeys.financialsProducts(
+            from.toISOString(),
+            to.toISOString(),
+            branchId,
+            limit
+        ),
+        queryFn: () => reportsApi.getProductsWithProfit(from, to, branchId, limit),
+        enabled,
+        staleTime: 60000,
+    });
+};
+
+/**
+ * Hook to fetch category revenue data
+ */
+export const useCategoryRevenue = (
+    filters: ReportsFilterState,
+    options: ReportsQueryOptions = {}
+): UseQueryResult<CategoryRevenueRow[], Error> => {
+    const { enabled = true } = options;
+    const { from, to, branchId } = filters;
+
+    return useQuery({
+        queryKey: reportsKeys.financialsCategories(
+            from.toISOString(),
+            to.toISOString(),
+            branchId
+        ),
+        queryFn: () => reportsApi.getCategoryRevenue(from, to, branchId),
         enabled,
         staleTime: 60000,
     });

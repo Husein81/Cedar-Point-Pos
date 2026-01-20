@@ -70,6 +70,9 @@ export const reportQuerySchema = z
             ])
             .optional(),
 
+        // Product filters
+        categoryId: z.string().cuid().optional(),
+
         // Search (interpreted differently per endpoint)
         search: z.string().max(100).optional(),
 

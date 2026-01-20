@@ -7,7 +7,7 @@ import {
 import { useMemo } from "react";
 import Heading from "@/components/heading";
 import { Button } from "@repo/ui";
-import { FileText, CreditCard, Package, TrendingUp } from "lucide-react";
+import { FileText, CreditCard, Package, TrendingUp, AlertCircle, Users, LineChart } from "lucide-react";
 
 export const Route = createFileRoute("/reports")({
     component: ReportsLayout,
@@ -16,9 +16,12 @@ export const Route = createFileRoute("/reports")({
 // Navigation tabs
 const REPORT_TABS = [
     { path: "/reports/sales", label: "Sales", icon: FileText },
+    { path: "/reports/debts", label: "Debts", icon: AlertCircle },
     { path: "/reports/payments", label: "Payments", icon: CreditCard },
     { path: "/reports/inventory", label: "Inventory", icon: Package },
     { path: "/reports/products", label: "Products", icon: TrendingUp },
+    { path: "/reports/customers", label: "Customers", icon: Users },
+    { path: "/reports/financials", label: "Financials", icon: LineChart },
 ] as const;
 
 /**

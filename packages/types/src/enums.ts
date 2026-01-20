@@ -44,6 +44,7 @@ export const OrderStatus = {
   SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
   READY: "READY", // Ready for pickup/serve
   PAID: "PAID", // Payment received, inventory deducted
+  PARTIALLY_PAID: "PARTIALLY_PAID", // Partial payment received
   COMPLETED: "COMPLETED", // Order fully completed
   CANCELLED: "CANCELLED",
 } as const;

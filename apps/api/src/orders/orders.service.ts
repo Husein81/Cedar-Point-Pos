@@ -119,22 +119,45 @@ export class OrdersService {
 
     // Fetch products only if items exist, and do it in parallel with validation
     if (items?.length) {
-      const products = await this.prisma.product.findMany({
-        where: {
-          id: { in: items.map((i) => i.productId) },
-          tenantId,
-          isDeleted: false,
-        },
-        select: {
-          id: true,
-          price: true,
-        },
-      });
+      // Collect all modifier IDs from all items
+      const allModifierIds = items
+        .filter((i) => i.modifiers?.length)
+        .flatMap((i) => i.modifiers || []);
 
-      const map = new Map(products.map((p) => [p.id, p]));
+      // Fetch products and modifiers in parallel
+      const [products, modifiers] = (await Promise.all([
+        this.prisma.product.findMany({
+          where: {
+            id: { in: items.map((i) => i.productId) },
+            tenantId,
+            isDeleted: false,
+          },
+          select: {
+            id: true,
+            price: true,
+          },
+        }),
+        allModifierIds.length > 0
+          ? this.prisma.modifier.findMany({
+              where: {
+                id: { in: allModifierIds },
+                tenantId,
+                isDeleted: false,
+              },
+            })
+          : [],
+      ])) as [
+        Prisma.ProductGetPayload<{
+          select: { id: true; price: true };
+        }>[],
+        Prisma.ModifierGetPayload<{}>[],
+      ];
+
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      const modifierMap = new Map(modifiers.map((m) => [m.id, m]));
 
       for (const item of items) {
-        const product = map.get(item.productId);
+        const product = productMap.get(item.productId);
         if (!product) throw new BadRequestException('Product not found');
 
         // Use override price or product price
@@ -142,7 +165,27 @@ export class OrdersService {
           'unitPrice' in item && typeof item.unitPrice === 'number'
             ? item.unitPrice
             : Number(product.price);
-        let lineSubtotal = unitPrice * item.quantity;
+
+        // Calculate modifier prices
+        let modifiersTotal = 0;
+        const itemModifiers: { modifierId: string; price: number }[] = [];
+
+        if (item.modifiers?.length) {
+          for (const modifierId of item.modifiers) {
+            const modifier = modifierMap.get(modifierId);
+            if (modifier) {
+              const modifierPrice = Number(modifier.price);
+              modifiersTotal += modifierPrice;
+              itemModifiers.push({
+                modifierId,
+                price: modifierPrice,
+              });
+            }
+          }
+        }
+
+        // Include modifier prices in line subtotal
+        let lineSubtotal = (unitPrice + modifiersTotal) * item.quantity;
 
         // Apply item-level discount if present
         const discount =
@@ -178,6 +221,15 @@ export class OrdersService {
           total: new Prisma.Decimal(lineSubtotal),
           notes: item.notes,
           discount: discountValue,
+          // Create modifiers for this order item
+          ...(itemModifiers.length > 0 && {
+            modifiers: {
+              create: itemModifiers.map((m) => ({
+                modifier: { connect: { id: m.modifierId } },
+                price: new Prisma.Decimal(m.price),
+              })),
+            },
+          }),
         });
       }
     }
@@ -460,19 +512,7 @@ export class OrdersService {
           );
         }
 
-        // ✅ Order is fully paid when total >= due
         const isFullyPaid = newTotalPaid >= totalDue;
-
-        console.log('Batch Payment Processing:', {
-          orderId,
-          totalDue,
-          alreadyPaid,
-          batchTotalBase,
-          newTotalPaid,
-          isFullyPaid,
-          paymentCount: payments.length,
-        });
-
         /* ============================================
            CREATE PAYMENT RECORDS FOR ALL PAYMENTS
         ============================================ */

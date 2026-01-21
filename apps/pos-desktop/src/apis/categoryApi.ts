@@ -1,6 +1,10 @@
 import type { Category, QueryParams } from "@repo/types";
 import { api } from "./api";
-import { CategoryWithSubcategories, CreateCategoryDto, UpdateCategoryDto } from "@/dto/category.dto";
+import {
+  CategoryWithSubcategories,
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from "@/dto/category.dto";
 
 export const categoryApi = {
   getCategories: async (

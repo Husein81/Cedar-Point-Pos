@@ -6,6 +6,7 @@ import { z } from "zod";
  */
 export const CreateProductSchema = ProductSchema.omit({
   id: true,
+  tenantId: true,
   createdAt: true,
   isDeleted: true,
 });

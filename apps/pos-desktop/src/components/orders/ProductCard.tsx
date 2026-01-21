@@ -1,8 +1,12 @@
+import { useBranchStore } from "@/store/branchStore";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
+import { SelectedModifier } from "@/types/modifiers";
 import { Product } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
+import { useProductModifiers } from "@/hooks/useModifiers";
 import { formatPrice } from "./config";
-import { useOrderStore } from "@/store/orderStore";
-import { useBranchStore } from "@/store/branchStore";
+import { ModifierModal } from "./ModifierModal";
 
 type Props = {
   product: Product;
@@ -10,7 +14,12 @@ type Props = {
 
 const ProductCard = ({ product }: Props) => {
   const { addItem, getActiveOrder } = useOrderStore();
+  const { openModal } = useModalStore();
   const { branchId } = useBranchStore();
+  const { data: modifiers } = useProductModifiers(
+    product.id,
+    product.isModifiable,
+  );
 
   const { items } = getActiveOrder() || { items: [] };
 
@@ -18,7 +27,7 @@ const ProductCard = ({ product }: Props) => {
 
   // Get branch-specific stock (more accurate than summing all branches)
   const branchInventory = product.inventory?.find(
-    (inv) => inv.branchId === branchId
+    (inv) => inv.branchId === branchId,
   );
   const currentStock = branchInventory ? Number(branchInventory.stock) : 0;
 
@@ -35,12 +44,58 @@ const ProductCard = ({ product }: Props) => {
   const isNegative = resultingStockIfAdded < 0 || isOutOfStock;
 
   const handleAddItem = () => {
+    // If product is modifiable, check if it has modifiers
+    if (product.isModifiable) {
+      // If no modifiers to configure, add directly
+      if (
+        !modifiers ||
+        !modifiers.modifierGroups ||
+        modifiers.modifierGroups.length === 0
+      ) {
+        addItem({
+          productId: product.id,
+          name: product.name,
+          price: Number(product.price) || 0,
+          quantity: 1,
+          imageUrl: product.imageUrl,
+        });
+        return;
+      }
+
+      // Has modifiers, show modal
+      openModal(
+        product?.name,
+        <ModifierModal product={product} onConfirm={handleModifierConfirm} />,
+        "Customize your item",
+      );
+      return;
+    }
+
+    // Otherwise add directly
     addItem({
       productId: product.id,
       name: product.name,
       price: Number(product.price) || 0,
       quantity: 1,
       imageUrl: product.imageUrl,
+    });
+  };
+
+  const handleModifierConfirm = (
+    modifiers: SelectedModifier[],
+    quantity: number,
+  ) => {
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+      quantity,
+      imageUrl: product.imageUrl,
+      modifiers: modifiers.map((m) => ({
+        modifierId: m.modifierId,
+        name: m.name,
+        price: m.price,
+      })),
     });
   };
 
@@ -55,7 +110,7 @@ const ProductCard = ({ product }: Props) => {
         isOutOfStock
           ? "opacity-60"
           : "hover:ring-1 hover:ring-primary/40 active:scale-[0.98]",
-        isNegative && !isOutOfStock && "ring-1 ring-amber-400"
+        isNegative && !isOutOfStock && "ring-1 ring-amber-400",
       )}
     >
       {/* Cart quantity badge */}
@@ -63,9 +118,9 @@ const ProductCard = ({ product }: Props) => {
         <div
           className={cn(
             "absolute bottom-1 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
-           isNegative
+            isNegative
               ? "bg-amber-500/90 text-white"
-              : "bg-accent/40 text-primary"
+              : "bg-accent/40 text-primary",
           )}
         >
           {`${item.quantity}`}

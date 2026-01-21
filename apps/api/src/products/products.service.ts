@@ -186,15 +186,12 @@ export class ProductsService {
     try {
       const modifiers = await this.prisma.modifier.findMany({
         where: {
-          productId,
           tenantId,
           isDeleted: false,
           group: {
             isDeleted: false,
           },
-          product: {
-            isDeleted: false,
-          },
+          productId,
         },
         include: {
           group: {

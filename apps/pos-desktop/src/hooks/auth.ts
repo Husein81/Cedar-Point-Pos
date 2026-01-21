@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "../apis/authApi";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
+import { useOrderStore } from "@/store/orderStore";
 
 export const useLogin = () => {
   const { setUser } = useAuthStore();
@@ -25,12 +26,14 @@ export const useLogin = () => {
 
 export const useLogout = () => {
   const { logout } = useAuthStore();
+  const { clearOrder } = useOrderStore();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
       logout();
+      clearOrder();
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
     onError: (error) => {

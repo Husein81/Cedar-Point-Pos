@@ -91,6 +91,13 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL"],
       },
       {
+        label: "Modifiers",
+        icon: "Package",
+        href: "/modifiers",
+        tooltip: "Manage Modifiers",
+        showFor: ["RESTAURANT"],
+      },
+      {
         label: "Recipes",
         icon: "ChefHat",
         href: "/recipes",

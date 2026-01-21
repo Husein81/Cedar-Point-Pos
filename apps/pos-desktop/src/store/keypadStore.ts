@@ -1,16 +1,5 @@
+import { KeypadContext } from "@/components/orders/config";
 import { create } from "zustand";
-import type { KeypadContext } from "@/components/common/config";
-
-/**
- * Global Keypad Store
- *
- * This store manages the inline collapsible keypad state for the entire POS application.
- * The keypad is integrated into the cart panel and:
- * - Expands when an item is selected
- * - Supports context switching (Qty, Price, Discount)
- * - Stays visible until another item is selected or collapsed
- * - Matches real POS systems (Square, Clover, Lightspeed)
- */
 
 type KeypadState = {
   // Core state

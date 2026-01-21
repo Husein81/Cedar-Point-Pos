@@ -52,7 +52,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   const selectedCurrency = useMemo(() => {
     if (!selectedCurrencyCode) return baseCurrency;
     return activeCurrencies.find(
-      (c) => c.currencyCode === selectedCurrencyCode
+      (c) => c.currencyCode === selectedCurrencyCode,
     );
   }, [activeCurrencies, selectedCurrencyCode, baseCurrency]);
 
@@ -81,7 +81,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
       const currency = activeCurrencies.find((c) => c.currencyCode === code);
       return currency?.currency?.symbol || code;
     },
-    [activeCurrencies]
+    [activeCurrencies],
   );
 
   // ===== PAYMENT CALCULATIONS =====
@@ -113,7 +113,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   // Quick amounts based on remaining
   const quickAmounts = useMemo(
     () => generateQuickCashAmounts(remainingInCurrency),
-    [remainingInCurrency]
+    [remainingInCurrency],
   );
 
   // ===== EFFECTS =====
@@ -218,7 +218,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
           <div
             className={cn(
               "text-center py-3 rounded-lg transition-colors",
-              isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10"
+              isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10",
             )}
           >
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
@@ -227,7 +227,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
             <p
               className={cn(
                 "text-2xl font-bold",
-                isFullyPaid ? "text-green-600" : "text-orange-600"
+                isFullyPaid ? "text-green-600" : "text-orange-600",
               )}
             >
               {isFullyPaid ? (
@@ -424,7 +424,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
         <Button
           onClick={handleConfirm}
           disabled={!isFullyPaid || payments.length === 0}
-          className="flex-1 h-11 text-base"
+          className="flex-1  text-base"
         >
           <Icon name="Check" className="w-5 h-5" />
           {isFullyPaid ? "Complete" : "Add Payment"}

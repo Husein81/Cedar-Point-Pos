@@ -2,7 +2,7 @@ import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
-import { DiscountType } from "@/store/orderStore";
+import { DiscountType, OrderItemModifier } from "@/store/orderStore";
 
 type Item = {
   id: string;
@@ -15,6 +15,7 @@ type Item = {
     type: DiscountType;
   };
   imageUrl?: string | null;
+  modifiers?: OrderItemModifier[];
 };
 
 type Props = {
@@ -25,6 +26,7 @@ type Props = {
   onPriceChange?: (id: string, price: number) => void;
   onDiscountChange?: (id: string, value: number, type: DiscountType) => void;
   onRemove: (id: string) => void;
+  onEditModifiers?: (item: Item) => void; // Edit modifiers callback
 };
 
 export const CartItem = ({
@@ -35,11 +37,17 @@ export const CartItem = ({
   onPriceChange,
   onDiscountChange,
   onRemove,
+  onEditModifiers,
 }: Props) => {
   const { openKeypad, isOpen, itemId } = useKeypadStore();
   const { warning } = useCartItemStockWarning(item.productId);
 
-  const lineTotal = item.price * item.quantity;
+  // Calculate line total with modifiers
+  const modifiersTotal =
+    item.modifiers?.reduce((sum, mod) => sum + mod.price, 0) || 0;
+  const unitPrice = item.price + modifiersTotal;
+  const lineTotal = unitPrice * item.quantity;
+
   const discountAmount = item.discount
     ? item.discount.type === "PERCENTAGE"
       ? lineTotal * (item.discount.value / 100)
@@ -95,7 +103,7 @@ export const CartItem = ({
         isActive
           ? "bg-primary/5 border-l-2 border-l-primary"
           : "hover:bg-muted/30",
-        showStockWarning && "bg-amber-50/50 dark:bg-amber-950/20"
+        showStockWarning && "bg-amber-50/50 dark:bg-amber-950/20",
       )}
       onClick={handleSelect}
     >
@@ -137,9 +145,33 @@ export const CartItem = ({
           {item.name}
         </p>
 
+        {/* Modifiers */}
+        {item.modifiers && item.modifiers.length > 0 && (
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {item.modifiers.map((mod, idx) => (
+              <span key={mod.modifierId}>
+                {mod.name}
+                {mod.price > 0 && ` (+$${mod.price.toFixed(2)})`}
+                {idx < item.modifiers!.length - 1 && ", "}
+              </span>
+            ))}
+            {onEditModifiers && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditModifiers(item);
+                }}
+                className="ml-1 text-primary hover:underline"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Unit Price */}
-        <p className="text-xs text-muted-foreground">
-          {formatPrice(item.price)} $/Units
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {formatPrice(unitPrice)} $/Units
         </p>
 
         {/* Discount Info (if any) */}

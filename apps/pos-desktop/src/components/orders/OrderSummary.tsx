@@ -17,7 +17,7 @@ const Row = ({
       <span
         className={cn(
           "font-medium",
-          variant === "discount" && "text-destructive"
+          variant === "discount" && "text-destructive",
         )}
       >
         {value}
@@ -51,17 +51,21 @@ const OrderSummary = () => {
           value={`$${formatPrice(subtotalAfterItemDiscounts)}`}
         />
 
-        <Row
-          label="Order Discount"
-          value={`− $${formatPrice(orderDiscount)}`}
-          variant="discount"
-        />
+        {orderDiscount > 0 && (
+          <Row
+            label="Order Discount"
+            value={`− $${formatPrice(orderDiscount)}`}
+            variant="discount"
+          />
+        )}
 
-        <Row
-          label="Delivery Fee"
-          value={`+ $${formatPrice(shippingFee)}`}
-          variant="charge"
-        />
+        {shippingFee > 0 && (
+          <Row
+            label="Delivery Fee"
+            value={`+ $${formatPrice(shippingFee)}`}
+            variant="charge"
+          />
+        )}
 
         {order?.includeVAT && (
           <Row

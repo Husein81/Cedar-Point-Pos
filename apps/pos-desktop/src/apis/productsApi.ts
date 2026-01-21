@@ -15,7 +15,7 @@ export const productsApi = {
   },
   getProductsPaginated: async (
     params?: QueryParams,
-    branchId?: string
+    branchId?: string,
   ): Promise<PaginationResponse<Product>> => {
     const response = await api.get("/products/paginated", {
       params: {
@@ -37,7 +37,7 @@ export const productsApi = {
 
   updateProduct: async (
     id: string,
-    data: UpdateProductDto
+    data: UpdateProductDto,
   ): Promise<Product> => {
     const response = await api.put<Product>(`/products/${id}`, data);
     return response.data;

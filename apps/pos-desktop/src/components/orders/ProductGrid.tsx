@@ -15,7 +15,7 @@ export const ProductGrid = () => {
   const [isAvailableOnly, setIsAvailableOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null
+    null,
   );
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<
     string | null
@@ -79,7 +79,7 @@ export const ProductGrid = () => {
         const totalStock =
           product.inventory?.reduce(
             (sum, inv) => Number(sum) + Number(inv.stock),
-            0
+            0,
           ) ?? 0;
         if (totalStock <= 0) {
           return false;
@@ -104,11 +104,11 @@ export const ProductGrid = () => {
       products
         .filter((p) => p.isActive && !p.isDeleted && !p.isIngredient)
         .map((p) => p.categoryId)
-        .filter(Boolean)
+        .filter(Boolean),
     );
 
     return categories.filter(
-      (cat) => !cat.isDeleted && categoryIdsWithProducts.has(cat.id)
+      (cat) => !cat.isDeleted && categoryIdsWithProducts.has(cat.id),
     );
   }, [categories, products]);
 
@@ -117,7 +117,7 @@ export const ProductGrid = () => {
     if (!selectedCategoryId || !categories || !products) return [];
 
     const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
+      (cat) => cat.id === selectedCategoryId,
     );
     if (!selectedCategory?.subcategories) return [];
 
@@ -129,14 +129,14 @@ export const ProductGrid = () => {
             p.isActive &&
             !p.isDeleted &&
             !p.isIngredient &&
-            p.categoryId === selectedCategoryId
+            p.categoryId === selectedCategoryId,
         )
         .map((p) => p.subcategoryId)
-        .filter(Boolean)
+        .filter(Boolean),
     );
 
     return selectedCategory.subcategories.filter(
-      (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id)
+      (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id),
     );
   }, [selectedCategoryId, categories, products]);
 
@@ -326,7 +326,7 @@ export const ProductGrid = () => {
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-37.5 rounded-lg" />
+              <Skeleton key={i} className="h-37 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (

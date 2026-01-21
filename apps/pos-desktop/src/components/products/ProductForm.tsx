@@ -107,7 +107,6 @@ export const ProductForm = ({ product }: Props) => {
         }
 
         const data = {
-          tenantId: user?.tenantId!,
           name: value.name,
           description: value.description || undefined,
           sku: value.sku || undefined,

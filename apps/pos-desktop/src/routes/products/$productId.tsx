@@ -44,7 +44,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-4">
       <div className="flex items-center gap-4">
         <Link to="/products">
           <Button variant="ghost" size="icon">

@@ -48,8 +48,6 @@ function DebtsReportPage() {
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
   } = useReportPageState();
@@ -74,11 +72,6 @@ function DebtsReportPage() {
     [],
   );
 
-  // Auto-load on first render
-  useEffect(() => {
-    setHasFetched(true);
-  }, [setHasFetched]);
-
   // Combined params for debts orders list query
   const listParams: ReportListParams = useMemo(
     () => ({
@@ -91,15 +84,11 @@ function DebtsReportPage() {
   );
 
   // Fetch debts orders (paginated for table)
-  const { data, isLoading, refetch } = useDebtsOrdersList(listParams, {
-    enabled: hasFetched,
-  });
+  const { data, isLoading, refetch } = useDebtsOrdersList(listParams);
 
   // Fetch full dataset summary
   const { data: fullDatasetSummary, isLoading: isSummaryLoading } =
-    useReportsDebts(appliedFilters, {
-      enabled: hasFetched,
-    });
+    useReportsDebts(appliedFilters);
 
   const rows = data?.data || [];
   const meta = data?.meta || {
@@ -108,11 +97,6 @@ function DebtsReportPage() {
     totalItems: 0,
     totalPages: 0,
   };
-
-  // Auto-load on first render
-  useEffect(() => {
-    setHasFetched(true);
-  }, []);
 
   // Calculate summary from full dataset
   const debtsSummary = useMemo((): DebtsSummaryData => {
@@ -134,8 +118,8 @@ function DebtsReportPage() {
   }, [fullDatasetSummary]);
 
   // Export PDF handler
-  const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0) return;
+  const handleExportPdf = async () => {
+    if (rows.length === 0) return;
 
     setIsExporting(true);
     try {
@@ -177,14 +161,7 @@ function DebtsReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [
-    hasFetched,
-    rows,
-    mapToDebtOrderPdf,
-    debtsSummary,
-    appliedFilters,
-    branches,
-  ]);
+  };
 
   // Table columns definition
   const columns: ColumnDef<DebtOrderRow>[] = useMemo(
@@ -265,20 +242,18 @@ function DebtsReportPage() {
     [setDatePreset, handleFiltersChange],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters({ ...filters });
     setPage(1);
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setPage, setHasFetched]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const resetFilters = { ...getDateRangeFromPreset("today") };
     setFilters(resetFilters);
     setAppliedFilters(resetFilters);
     setSearchTerm("");
     setPage(1);
-    setHasFetched(true);
-  }, [setFilters, setAppliedFilters, setSearchTerm, setPage, setHasFetched]);
+  };
 
   return (
     <div className="space-y-6">
@@ -338,7 +313,7 @@ function DebtsReportPage() {
           {/* PDF Export */}
           <Button
             onClick={handleExportPdf}
-            disabled={!hasFetched || rows.length === 0 || isExporting}
+            disabled={rows.length === 0 || isExporting}
             variant="outline"
             isSubmitting={isExporting}
           >

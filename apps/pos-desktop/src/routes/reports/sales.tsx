@@ -51,20 +51,11 @@ function SalesReportPage() {
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
   } = useReportPageState("today");
 
   const { data: branches = [] } = useBranches();
-
-  useEffect(() => {
-    if (!hasFetched) {
-      setHasFetched(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const mapToSalesOrderPdf = useCallback(
     (row: SalesOrderRow): SalesOrderRowPdf => {
@@ -93,19 +84,14 @@ function SalesReportPage() {
     [appliedFilters, searchTerm, page, pageSize],
   );
 
-  const { data, isLoading, refetch } = useSalesOrdersReport(listParams, {
-    enabled: hasFetched,
-  });
+  const { data, isLoading, refetch } = useSalesOrdersReport(listParams);
 
   const { data: fullDatasetSummary, isLoading: isSummaryLoading } =
-    useReportsSales(appliedFilters, { enabled: hasFetched });
+    useReportsSales(appliedFilters);
 
-  const handleFiltersChange = useCallback(
-    (updates: Partial<typeof filters>) => {
-      setFilters((prev) => ({ ...prev, ...updates }));
-    },
-    [setFilters],
-  );
+  const handleFiltersChange = (updates: Partial<typeof filters>) => {
+    setFilters((prev) => ({ ...prev, ...updates }));
+  };
 
   const handleDatePresetChange = useCallback(
     (preset: DateRangePreset) => {
@@ -122,28 +108,19 @@ function SalesReportPage() {
     [setDatePreset, setFilters],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters(filters);
     setPage(1);
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setPage, setHasFetched]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const defaultFilters = getDateRangeFromPreset("today");
     setDatePreset("today");
     setFilters(defaultFilters);
     setAppliedFilters(defaultFilters);
     setPage(1);
     setSearchTerm("");
-    setHasFetched(true);
-  }, [
-    setDatePreset,
-    setFilters,
-    setAppliedFilters,
-    setPage,
-    setSearchTerm,
-    setHasFetched,
-  ]);
+  };
 
   const handleSearchChange = useCallback(
     (term: string) => {
@@ -269,8 +246,8 @@ function SalesReportPage() {
     totalPages: 0,
   };
 
-  const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0) return;
+  const handleExportPdf = async () => {
+    if (rows.length === 0) return;
 
     setIsExporting(true);
     try {
@@ -310,14 +287,7 @@ function SalesReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [
-    hasFetched,
-    rows,
-    mapToSalesOrderPdf,
-    appliedFilters,
-    branches,
-    setIsExporting,
-  ]);
+  };
 
   const summaryItems = [
     {
@@ -380,7 +350,7 @@ function SalesReportPage() {
           </div>
           <Button
             onClick={handleExportPdf}
-            disabled={!hasFetched || rows.length === 0 || isExporting}
+            disabled={rows.length === 0 || isExporting}
             variant="outline"
           >
             <FileDown className="mr-2 h-4 w-4" />

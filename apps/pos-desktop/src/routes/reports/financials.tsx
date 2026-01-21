@@ -42,32 +42,24 @@ function FinancialsReportPage() {
     setSearchTerm: _setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
   } = useReportPageState();
 
   const { data: branches = [] } = useBranches();
 
   // Fetch financials summary
   const { data: financialsData, isLoading: isSummaryLoading } =
-    useFinancialsReport(appliedFilters, { enabled: hasFetched });
+    useFinancialsReport(appliedFilters);
 
   // Fetch top 5 profit products
   const { data: profitProducts = [], isLoading: isProfitProductsLoading } =
-    useProductsWithProfit(appliedFilters, 5, { enabled: hasFetched });
-
+    useProductsWithProfit(appliedFilters, 5);
   // Fetch all products for best sellers and low performance (fetch more for sorting)
   const { data: allProducts = [], isLoading: isAllProductsLoading } =
-    useProductsWithProfit(appliedFilters, 100, { enabled: hasFetched });
+    useProductsWithProfit(appliedFilters, 100);
 
   // Fetch category revenue
   const { data: categoryData = [], isLoading: isCategoryLoading } =
-    useCategoryRevenue(appliedFilters, { enabled: hasFetched });
-
-  // Auto-load on first render
-  useEffect(() => {
-    setHasFetched(true);
-  }, [setHasFetched]);
+    useCategoryRevenue(appliedFilters);
 
   const summary = useMemo(
     () => ({
@@ -220,19 +212,17 @@ function FinancialsReportPage() {
     [setDatePreset, handleFiltersChange],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters({ ...filters });
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setHasFetched]);
+   }
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const resetFilters = { ...getDateRangeFromPreset("today") };
     setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    setHasFetched(true);
-  }, [setFilters, setAppliedFilters, setHasFetched]);
+    setAppliedFilters(resetFilters)
+  }
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = async () => {
     if (!financialsData) return;
 
     const selectedBranch = appliedFilters.branchId
@@ -291,15 +281,7 @@ function FinancialsReportPage() {
       lowPerformance: lowPerformancePdf,
       categories: categoriesPdf,
     });
-  }, [
-    financialsData,
-    appliedFilters,
-    branches,
-    profitProducts,
-    bestSellers,
-    lowPerformanceProducts,
-    categoryData,
-  ]);
+  };
 
   return (
     <div className="space-y-6">

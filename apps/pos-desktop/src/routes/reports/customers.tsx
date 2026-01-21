@@ -21,7 +21,7 @@ import {
 import { Button, DataTable, Icon } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { ColumnDef } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/customers")({
   component: CustomersReportPage,
@@ -49,8 +49,6 @@ function CustomersReportPage() {
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
   } = useReportPageState();
@@ -75,11 +73,6 @@ function CustomersReportPage() {
     [],
   );
 
-  // Auto-load on first render
-  useEffect(() => {
-    setHasFetched(true);
-  }, [setHasFetched]);
-
   // Combined params for list query
   const listParams: ReportListParams = useMemo(
     () => ({
@@ -92,15 +85,11 @@ function CustomersReportPage() {
   );
 
   // Fetch customers list (paginated for table)
-  const { data, isLoading, refetch } = useCustomersReportList(listParams, {
-    enabled: hasFetched,
-  });
+  const { data, isLoading, refetch } = useCustomersReportList(listParams);
 
   // Fetch full dataset summary
   const { data: fullDatasetSummary, isLoading: isSummaryLoading } =
-    useCustomersReport(appliedFilters, {
-      enabled: hasFetched,
-    });
+    useCustomersReport(appliedFilters);
 
   const rows = data?.data || [];
   const meta = data?.meta || {
@@ -132,8 +121,8 @@ function CustomersReportPage() {
   }, [fullDatasetSummary]);
 
   // Export PDF handler
-  const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0) return;
+  const handleExportPdf = async () => {
+    if (rows.length === 0) return;
 
     setIsExporting(true);
     try {
@@ -176,14 +165,7 @@ function CustomersReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [
-    hasFetched,
-    rows,
-    mapToCustomerReportPdf,
-    customersSummary,
-    appliedFilters,
-    branches,
-  ]);
+  };
 
   // Table columns definition
   const columns: ColumnDef<CustomerReportRow>[] = useMemo(
@@ -264,20 +246,18 @@ function CustomersReportPage() {
     [setDatePreset, handleFiltersChange],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters({ ...filters });
     setPage(1);
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setPage, setHasFetched]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const resetFilters = { ...getDateRangeFromPreset("today") };
     setFilters(resetFilters);
     setAppliedFilters(resetFilters);
     setSearchTerm("");
     setPage(1);
-    setHasFetched(true);
-  }, [setFilters, setAppliedFilters, setSearchTerm, setPage, setHasFetched]);
+  };
 
   return (
     <div className="space-y-6">
@@ -337,7 +317,7 @@ function CustomersReportPage() {
           {/* PDF Export */}
           <Button
             onClick={handleExportPdf}
-            disabled={!hasFetched || rows.length === 0 || isExporting}
+            disabled={rows.length === 0 || isExporting}
             variant="outline"
             isSubmitting={isExporting}
           >

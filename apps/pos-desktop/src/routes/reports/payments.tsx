@@ -50,8 +50,6 @@ function PaymentsReportPage() {
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
   } = useReportPageState("today");
@@ -91,13 +89,11 @@ function PaymentsReportPage() {
     data,
     isLoading: isListLoading,
     refetch,
-  } = usePaymentTransactionsReport(listParams, { enabled: hasFetched });
+  } = usePaymentTransactionsReport(listParams);
 
   // Fetch Summary Data
-  const { data: summaryData, isLoading: isSummaryLoading } = usePaymentsReport(
-    appliedFilters,
-    { enabled: hasFetched },
-  );
+  const { data: summaryData, isLoading: isSummaryLoading } =
+    usePaymentsReport(appliedFilters);
 
   const isLoading = isListLoading || isSummaryLoading;
 
@@ -123,28 +119,19 @@ function PaymentsReportPage() {
     [setDatePreset, setFilters],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters(filters);
     setPage(1);
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setPage, setHasFetched]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const defaultFilters = getDateRangeFromPreset("today");
     setDatePreset("today");
     setFilters(defaultFilters);
     setAppliedFilters(defaultFilters);
     setPage(1);
     setSearchTerm("");
-    setHasFetched(true);
-  }, [
-    setDatePreset,
-    setFilters,
-    setAppliedFilters,
-    setPage,
-    setSearchTerm,
-    setHasFetched,
-  ]);
+  };
 
   const columns: ColumnDef<PaymentTransactionRow>[] = useMemo(
     () => [
@@ -224,8 +211,8 @@ function PaymentsReportPage() {
     totalPages: 0,
   };
 
-  const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0 || !summaryData) return;
+  const handleExportPdf = async () => {
+    if (rows.length === 0 || !summaryData) return;
 
     setIsExporting(true);
     try {
@@ -265,14 +252,7 @@ function PaymentsReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [
-    hasFetched,
-    rows,
-    summaryData,
-    mapToPaymentTransactionPdf,
-    appliedFilters,
-    branches,
-  ]);
+  }
 
   return (
     <div className="space-y-6">
@@ -287,7 +267,7 @@ function PaymentsReportPage() {
         onDatePresetChange={handleDatePresetChange}
       />
 
-      {hasFetched && summaryData && (
+      {summaryData && (
         <SummaryGrid
           items={[
             {
@@ -310,7 +290,6 @@ function PaymentsReportPage() {
         />
       )}
 
-      {hasFetched ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -321,7 +300,7 @@ function PaymentsReportPage() {
             </div>
             <Button
               onClick={handleExportPdf}
-              disabled={!hasFetched || rows.length === 0 || isExporting}
+              disabled={rows.length === 0 || isExporting}
               variant="outline"
               isSubmitting={isExporting}
             >
@@ -355,31 +334,6 @@ function PaymentsReportPage() {
             }}
           />
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <svg
-              className="w-8 h-8 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            Generate Payments Report
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Configure filters above and click Apply to load payment data.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

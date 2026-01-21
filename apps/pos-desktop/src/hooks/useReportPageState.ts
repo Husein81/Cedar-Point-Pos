@@ -17,13 +17,11 @@ export const useReportPageState = (
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedFilters, setAppliedFilters] =
     useState<ReportsFilterState>(filters);
-  const [hasFetched, setHasFetched] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleApplyFilters = useCallback((newFilters: ReportsFilterState) => {
     setAppliedFilters(newFilters);
     setPage(1);
-    setHasFetched(false);
   }, []);
 
   const handleResetFilters = useCallback(() => {
@@ -33,7 +31,6 @@ export const useReportPageState = (
     setAppliedFilters(getDateRangeFromPreset(preset));
     setSearchTerm("");
     setPage(1);
-    setHasFetched(false);
   }, []);
 
   return {
@@ -49,8 +46,6 @@ export const useReportPageState = (
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
     handleApplyFilters,

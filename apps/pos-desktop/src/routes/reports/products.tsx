@@ -39,8 +39,6 @@ function ProductsReportPage() {
     setSearchTerm,
     appliedFilters,
     setAppliedFilters,
-    hasFetched,
-    setHasFetched,
     isExporting,
     setIsExporting,
   } = useReportPageState();
@@ -71,9 +69,7 @@ function ProductsReportPage() {
     [appliedFilters, searchTerm, page, pageSize],
   );
 
-  const { data, isLoading, refetch } = useTopProductsReportList(listParams, {
-    enabled: hasFetched,
-  });
+  const { data, isLoading, refetch } = useTopProductsReportList(listParams);
 
   const handleFiltersChange = useCallback(
     (updates: Partial<typeof filters>) => {
@@ -97,28 +93,19 @@ function ProductsReportPage() {
     [setDatePreset, setFilters],
   );
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     setAppliedFilters(filters);
     setPage(1);
-    setHasFetched(true);
-  }, [filters, setAppliedFilters, setPage, setHasFetched]);
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     const defaultFilters = getDateRangeFromPreset("today");
     setDatePreset("today");
     setFilters(defaultFilters);
     setAppliedFilters(defaultFilters);
     setPage(1);
     setSearchTerm("");
-    setHasFetched(true);
-  }, [
-    setDatePreset,
-    setFilters,
-    setAppliedFilters,
-    setPage,
-    setSearchTerm,
-    setHasFetched,
-  ]);
+  };
 
   const columns: ColumnDef<TopProductRow>[] = useMemo(
     () => [
@@ -172,8 +159,8 @@ function ProductsReportPage() {
     totalPages: 0,
   };
 
-  const handleExportPdf = useCallback(async () => {
-    if (!hasFetched || rows.length === 0) return;
+  const handleExportPdf = async () => {
+    if (rows.length === 0) return;
 
     setIsExporting(true);
     try {
@@ -218,7 +205,7 @@ function ProductsReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [hasFetched, rows, mapToTopProductPdf, appliedFilters, branches]);
+  };
 
   return (
     <div className="space-y-6">
@@ -236,75 +223,49 @@ function ProductsReportPage() {
         categories={categories}
       />
 
-      {hasFetched ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Top Products</h2>
-              <p className="text-sm text-muted-foreground">
-                {meta.totalItems} products found
-              </p>
-            </div>
-            <Button
-              onClick={handleExportPdf}
-              disabled={!hasFetched || rows.length === 0 || isExporting}
-              variant="outline"
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              {isExporting ? "Exporting..." : "Export PDF"}
-            </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Top Products</h2>
+            <p className="text-sm text-muted-foreground">
+              {meta.totalItems} products found
+            </p>
           </div>
-          <DataTable
-            columns={columns}
-            data={rows}
-            isLoading={isLoading}
-            onRefetch={() => refetch()}
-            search={{
-              term: searchTerm,
-              onTermChange: (t) => {
-                setSearchTerm(t);
-                setPage(1);
-              },
-              keys: ["productName" as keyof TopProductRow],
-            }}
-            pagination={{
-              rows: meta.totalItems,
-              page,
-              pageSize,
-              totalPages: meta.totalPages,
-              onPageChange: setPage,
-              onPageSizeChange: (s) => {
-                setPageSize(s);
-                setPage(1);
-              },
-            }}
-          />
+          <Button
+            onClick={handleExportPdf}
+            disabled={rows.length === 0 || isExporting}
+            variant="outline"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export PDF"}
+          </Button>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <svg
-              className="w-8 h-8 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            Generate Products Report
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Configure filters above and click Apply to load product data.
-          </p>
-        </div>
-      )}
+        <DataTable
+          columns={columns}
+          data={rows}
+          isLoading={isLoading}
+          onRefetch={() => refetch()}
+          search={{
+            term: searchTerm,
+            onTermChange: (t) => {
+              setSearchTerm(t);
+              setPage(1);
+            },
+            keys: ["productName" as keyof TopProductRow],
+          }}
+          pagination={{
+            rows: meta.totalItems,
+            page,
+            pageSize,
+            totalPages: meta.totalPages,
+            onPageChange: setPage,
+            onPageSizeChange: (s) => {
+              setPageSize(s);
+              setPage(1);
+            },
+          }}
+        />
+      </div>
     </div>
   );
 }

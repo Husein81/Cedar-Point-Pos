@@ -418,10 +418,16 @@ export const ProductForm = ({ product }: Props) => {
             subLabel="If no branch is selected, the product will be available at all branches."
             placeholder="Select branch (leave empty for all branches)"
             field={field}
-            options={branches.map((branch) => ({
-              label: branch.name,
-              value: branch.id,
-            }))}
+            options={[
+              {
+                label: "All Branches",
+                value: "all",
+              },
+              ...branches.map((branch) => ({
+                label: branch.name,
+                value: branch.id,
+              })),
+            ]}
           />
         )}
       </form.Field>

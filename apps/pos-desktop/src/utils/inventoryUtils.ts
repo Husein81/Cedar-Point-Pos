@@ -1,15 +1,4 @@
-/**
- * Frontend Inventory Utilities
- *
- * Provides client-side validation, calculations, and safeguards
- * for inventory operations to complement backend enforcement.
- */
-
 import { AdjustmentType } from "@/dto/inventory.dto";
-
-/**
- * Validate stock adjustment before submission
- */
 export interface StockValidation {
   valid: boolean;
   message?: string;
@@ -20,7 +9,7 @@ export const validateStockAdjustment = (
   adjustmentType: AdjustmentType,
   quantity: number,
   currentStock: number,
-  minStock?: number
+  minStock?: number,
 ): StockValidation => {
   // Validate quantity is positive
   if (quantity <= 0) {
@@ -56,7 +45,7 @@ export const validateStockAdjustment = (
     // Warn if overriding to a lower value AND below minimum stock
     if (quantity < currentStock) {
       const reduction = currentStock - quantity;
-      
+
       // Check if also below minimum
       if (minStock && quantity < minStock) {
         return {
@@ -65,14 +54,14 @@ export const validateStockAdjustment = (
           severity: "warning",
         };
       }
-      
+
       return {
         valid: true,
         message: `Warning: Reducing stock by ${reduction} units (${currentStock} → ${quantity})`,
         severity: "warning",
       };
     }
-    
+
     // If increasing stock, only warn if still below minimum
     if (quantity > currentStock && minStock && quantity < minStock) {
       return {
@@ -81,7 +70,7 @@ export const validateStockAdjustment = (
         severity: "warning",
       };
     }
-    
+
     // If setting to exact same value, no warning needed
     if (quantity === currentStock) {
       return {
@@ -108,7 +97,7 @@ export interface StockPreview {
 export const calculateStockPreview = (
   adjustmentType: AdjustmentType,
   quantity: number,
-  currentStock: number
+  currentStock: number,
 ): StockPreview => {
   switch (adjustmentType) {
     case "STOCK_IN":
@@ -175,7 +164,7 @@ export interface StockStatus {
 
 export const getStockStatus = (
   currentStock: number,
-  minStock: number
+  minStock: number,
 ): StockStatus => {
   if (currentStock === 0) {
     return {
@@ -221,7 +210,7 @@ export const getStockStatus = (
  */
 export const formatQuantity = (
   quantity: number,
-  unit: string = "units"
+  unit: string = "units",
 ): string => {
   return `${quantity} ${unit}`;
 };
@@ -251,7 +240,7 @@ export const validateBulkStockAdjustment = (
     quantity: number;
     currentStock: number;
     minStock?: number;
-  }>
+  }>,
 ): BulkStockValidation => {
   const errors: BulkStockValidation["errors"] = [];
   const warnings: BulkStockValidation["warnings"] = [];
@@ -261,7 +250,7 @@ export const validateBulkStockAdjustment = (
       item.adjustmentType,
       item.quantity,
       item.currentStock,
-      item.minStock
+      item.minStock,
     );
 
     if (!validation.valid) {
@@ -291,7 +280,7 @@ export const validateBulkStockAdjustment = (
  */
 export const canPerformInventoryAction = (
   action: "view" | "adjust" | "transfer" | "refund",
-  userRole: "CASHIER" | "MANAGER" | "ADMIN" | "SYSTEM_ADMIN"
+  userRole: "CASHIER" | "MANAGER" | "ADMIN" | "SYSTEM_ADMIN",
 ): boolean => {
   const permissions = {
     view: ["CASHIER", "MANAGER", "ADMIN", "SYSTEM_ADMIN"],
@@ -309,7 +298,7 @@ export const canPerformInventoryAction = (
 export const generateDefaultReason = (
   adjustmentType: AdjustmentType,
   quantity: number,
-  productName?: string
+  productName?: string,
 ): string => {
   const product = productName ? ` for ${productName}` : "";
 
@@ -329,7 +318,7 @@ export const generateDefaultReason = (
  * Parse inventory history change type for display
  */
 export const parseChangeType = (
-  changeType: string
+  changeType: string,
 ): { label: string; icon: string; color: string } => {
   const types = {
     SET_STOCK: {
@@ -379,7 +368,7 @@ export const parseChangeType = (
 export const calculateTurnoverRate = (
   soldQuantity: number,
   averageStock: number,
-  periodDays: number = 30
+  periodDays: number = 30,
 ): number => {
   if (averageStock === 0) return 0;
   return (soldQuantity / averageStock) * (365 / periodDays);
@@ -391,7 +380,7 @@ export const calculateTurnoverRate = (
 export const estimateReorderPoint = (
   dailyUsage: number,
   leadTimeDays: number,
-  safetyStockDays: number = 3
+  safetyStockDays: number = 3,
 ): number => {
   return dailyUsage * (leadTimeDays + safetyStockDays);
 };

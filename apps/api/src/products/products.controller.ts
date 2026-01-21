@@ -6,7 +6,7 @@ import { ProductsService } from './products.service.js';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Get('paginated')
   async getProductsPaginated(
@@ -75,14 +75,24 @@ export class ProductsController {
     const body = req.body as Prisma.ProductUpdateInput & {
       branchId?: string;
       imageUrl?: string;
+      categoryId?: string;
+      subcategoryId?: string;
     };
 
-    // Handle branchId and imageUrl update
-    const { imageUrl, ...productData } = body;
+    // Handle relations and imageUrl update explicitly
+    const {
+      imageUrl,
+      categoryId,
+      subcategoryId,
+      branchId: _branchId, // Exclude branchId if it's there
+      ...productData
+    } = body;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...productData,
       ...(imageUrl !== undefined && { imageUrl }),
+      ...(categoryId && { category: { connect: { id: categoryId } } }),
+      ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
     };
 
     return this.productsService.updateProduct(id, updateData);

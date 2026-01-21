@@ -512,19 +512,7 @@ export class OrdersService {
           );
         }
 
-        // ✅ Order is fully paid when total >= due
         const isFullyPaid = newTotalPaid >= totalDue;
-
-        console.log('Batch Payment Processing:', {
-          orderId,
-          totalDue,
-          alreadyPaid,
-          batchTotalBase,
-          newTotalPaid,
-          isFullyPaid,
-          paymentCount: payments.length,
-        });
-
         /* ============================================
            CREATE PAYMENT RECORDS FOR ALL PAYMENTS
         ============================================ */

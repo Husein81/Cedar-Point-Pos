@@ -17,7 +17,7 @@ const Row = ({
       <span
         className={cn(
           "font-medium",
-          variant === "discount" && "text-destructive"
+          variant === "discount" && "text-destructive",
         )}
       >
         {value}
@@ -46,7 +46,7 @@ const OrderSummary = () => {
       <Separator />
 
       <div className="space-y-1 px-2">
-        <Row
+        {/* <Row
           label="Subtotal"
           value={`$${formatPrice(subtotalAfterItemDiscounts)}`}
         />
@@ -55,7 +55,7 @@ const OrderSummary = () => {
           label="Order Discount"
           value={`− $${formatPrice(orderDiscount)}`}
           variant="discount"
-        />
+        /> */}
 
         <Row
           label="Delivery Fee"

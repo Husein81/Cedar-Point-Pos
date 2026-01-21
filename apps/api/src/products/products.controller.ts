@@ -44,7 +44,6 @@ export class ProductsController {
   @Post()
   createProduct(@Req() req: Request) {
     const body = req.body as Prisma.ProductCreateInput & {
-      tenantId?: string;
       branchId?: string;
       imageUrl?: string;
       categoryId?: string;
@@ -53,14 +52,8 @@ export class ProductsController {
     const { tenantId } = req.user as { tenantId: string };
 
     // Extract fields from body - remove tenantId and branchId (they'll be handled as relations)
-    const {
-      tenantId: _,
-      branchId,
-      categoryId,
-      subcategoryId,
-      imageUrl,
-      ...productData
-    } = body;
+    const { branchId, categoryId, subcategoryId, imageUrl, ...productData } =
+      body;
 
     const createData: Prisma.ProductCreateInput = {
       ...productData,

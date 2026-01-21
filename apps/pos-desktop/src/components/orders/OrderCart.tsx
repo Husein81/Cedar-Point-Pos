@@ -6,11 +6,13 @@ import { OrderItem, useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
 import { Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "../common";
+import { InlineKeypad } from "./InlineKeypad";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
 import { ModifierModal } from "./ModifierModal";
 import OrderSummary from "./OrderSummary";
+import { OrderTypeSelector } from "./OrderTypeSelector";
+import { useAuthStore } from "@/store/authStore";
 
 export const OrderCart = () => {
   const {
@@ -23,8 +25,12 @@ export const OrderCart = () => {
     updateItemModifiers,
   } = useOrderStore();
 
+  const { user } = useAuthStore();
   const { openModal } = useModalStore();
   const { closeKeypad, itemId: selectedKeypadItemId } = useKeypadStore();
+
+  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
+
   const { hasAnyWarning } = useCartStockWarnings();
   const { data: products } = useProducts();
 
@@ -127,6 +133,9 @@ export const OrderCart = () => {
         </div>
         <CustomerSelector />
       </div>
+
+      {/* Order Type Selector */}
+      {isRestaurant && <OrderTypeSelector />}
 
       {/* Stock Warning Banner */}
       {hasAnyWarning && items.length >= 0 && (

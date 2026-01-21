@@ -15,15 +15,14 @@ import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import AlertDialog from "./AlertDialog";
+import AlertDialog from "../common/AlertDialog";
 import { KEYPAD_CONFIG, type KeypadContext } from "./config";
+import OrderActions from "./OrderActions";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
 export const InlineKeypad = () => {
-  const navigate = useNavigate();
   const { openModal, closeModal } = useModalStore();
 
   const {
@@ -47,13 +46,11 @@ export const InlineKeypad = () => {
     setDiscount,
     setOrderStatus,
     setShippingFee,
-    toggleVAT,
     clearOrder,
     closeTab,
     activeTabId,
     getOrderSubtotal,
     getVATAmount,
-    setOrderType,
   } = useOrderStore();
 
   const order = getActiveOrder();
@@ -71,7 +68,7 @@ export const InlineKeypad = () => {
   const updateOrderStatus = useUpdateOrderStatus();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const config = KEYPAD_CONFIG[context || "QUANTITY"];
+  const config = KEYPAD_CONFIG[context ?? "QUANTITY"];
   const maxValue = maxValueOverride ?? config.maxValue;
 
   const [value, setValue] = useState("0");
@@ -79,7 +76,6 @@ export const InlineKeypad = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
-  const [isShippingActive, setIsShippingActive] = useState(false);
   /* ---------------------------------------------
      Init / Context Reset
   --------------------------------------------- */
@@ -261,62 +257,6 @@ export const InlineKeypad = () => {
     setValue("0");
   };
 
-  const handleOpenOrderDiscount = () => {
-    const currentDiscount = order?.discount;
-    const discountValue = currentDiscount?.value ?? 0;
-    const discountTypeValue = currentDiscount?.type ?? "PERCENTAGE";
-
-    // Close current keypad and open new one for order discount
-    closeKeypad();
-
-    // Use openKeypad to set up order-level discount context
-    // Note: no itemId means it's order-level discount
-    const openKeypad = useKeypadStore.getState().openKeypad;
-    openKeypad({
-      context: "DISCOUNT",
-      currentValue: discountValue,
-      discountType: discountTypeValue,
-      onConfirm: () => {},
-      onDiscountChange: (value, type) => {
-        setDiscount({
-          value,
-          type,
-        });
-      },
-      maxValueOverride: subtotal,
-    });
-  };
-
-  const handleShippingToggle = () => {
-    if (isShippingActive) {
-      setShippingFee(0);
-      setOrderType(undefined);
-      setIsShippingActive(false);
-    } else {
-      // Set order type to DELIVERY
-      setOrderType(OrderType.DELIVERY);
-      setIsShippingActive(true);
-      handleContextSwitch("SHIPPING");
-    }
-  };
-
-  const handleOpenModal = () => {
-    openModal(
-      "Actions",
-      <Button
-        onClick={() => {
-          navigate({ to: "/refunds" });
-          closeModal();
-        }}
-        size="lg"
-        className="flex-1 rounded-xs"
-        iconName="RotateCw"
-      >
-        Refund
-      </Button>,
-    );
-  };
-
   const handlePaymentConfirm = async (payments: PaymentEntry[]) => {
     if (isProcessing || payments.length === 0) return;
 
@@ -333,16 +273,17 @@ export const InlineKeypad = () => {
       if (activeTabId) {
         closeTab(activeTabId);
       }
-      const orderType = isShippingActive
-        ? OrderType.DELIVERY
-        : (order.type ??
-          (user.tenant?.businessType === BusinessType.RETAIL
-            ? OrderType.RETAIL
-            : OrderType.DINE_IN));
+
+      if (
+        user.tenant?.businessType === BusinessType.RESTAURANT &&
+        !order.type
+      ) {
+        throw new Error("Order type is required");
+      }
 
       const dto: CreateOrderDto = {
         branchId,
-        type: orderType,
+        type: order.type!,
         customerId: order.customerId || undefined,
         shippingFee: order.shippingFee,
         includeVAT: order.includeVAT,
@@ -406,13 +347,18 @@ export const InlineKeypad = () => {
       }
 
       closeModal();
-      // Create order without payment
-      const orderType = isShippingActive
-        ? OrderType.DELIVERY
-        : (orderToSave.type ??
-          (user.tenant?.businessType === BusinessType.RETAIL
-            ? OrderType.RETAIL
-            : OrderType.DINE_IN));
+
+      if (
+        user.tenant?.businessType === BusinessType.RESTAURANT &&
+        !order.type
+      ) {
+        throw new Error("Order type is required");
+      }
+
+      const orderType =
+        user.tenant?.businessType === BusinessType.RESTAURANT
+          ? order.type!
+          : OrderType.RETAIL;
 
       const dto: CreateOrderDto = {
         branchId,
@@ -454,80 +400,14 @@ export const InlineKeypad = () => {
     >
       <Shad.CollapsibleContent className="border-t border-border bg-background">
         {/* Header */}
-        <div className="flex items-center justify-evenly gap-1 border-b border-border  px-1 py-1">
-          {/* VAT Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "flex items-center gap-1 rounded-xs px-3 font-semibold",
-              order?.includeVAT
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40",
-            )}
-            onClick={toggleVAT}
-          >
-            <Icon name="Receipt" className="h-4 w-4" />
-            VAT 11%
-          </Button>
-
-          {/* Divider */}
-          <div className="h-8 w-px bg-border mx-0.5" />
-
-          {/* Shipping */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "flex items-center gap-1 rounded-xs px-3",
-              isShippingActive
-                ? "bg-accent/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40",
-            )}
-            onClick={handleShippingToggle}
-          >
-            <Icon name="Truck" className="h-4 w-4" />
-            Shipping
-          </Button>
-
-          <div className="h-8 w-px bg-border mx-0.5" />
-
-          {/* Order Discount */}
-          <Button
-            size="sm"
-            variant="ghost"
-            className={cn(
-              "flex items-center gap-1 rounded-xs px-3",
-              context === "DISCOUNT" && !itemId
-                ? "bg-accent/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40",
-            )}
-            onClick={handleOpenOrderDiscount}
-          >
-            <Icon name="Percent" className="h-4 w-4" />
-            Discount
-          </Button>
-
-          {/* Spacer */}
-          <div className="" />
-
-          {/* More Actions */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-xs text-primary hover:bg-accent/50"
-            onClick={handleOpenModal}
-          >
-            <Icon name="EllipsisVertical" className="h-4 w-4" />
-          </Button>
-        </div>
+        <OrderActions />
 
         <div className="flex-1 grid grid-cols-4 gap-1 bg-border p-px">
           {[1, 2, 3].map((n) => (
             <Button
               key={n}
               variant="ghost"
-              className="h-12 rounded-xs bg-background text-lg"
+              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -536,7 +416,7 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs bg-background text-lg",
+              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
               context === "QUANTITY" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("QUANTITY")}
@@ -548,7 +428,7 @@ export const InlineKeypad = () => {
             <Button
               key={n}
               variant="ghost"
-              className="h-12 rounded-xs bg-background text-lg"
+              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -557,7 +437,7 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs bg-background text-lg",
+              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
               context === "DISCOUNT" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("DISCOUNT")}
@@ -568,7 +448,7 @@ export const InlineKeypad = () => {
             <Button
               key={n}
               variant="ghost"
-              className="h-12 rounded-xs bg-background text-lg"
+              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
               onClick={() => handleDigit(n)}
             >
               {n}
@@ -577,7 +457,7 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs bg-background text-lg",
+              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
               context === "PRICE_OVERRIDE" && "bg-accent/10",
             )}
             onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
@@ -587,7 +467,7 @@ export const InlineKeypad = () => {
           <Button
             variant="ghost"
             className={cn(
-              "h-12 rounded-xs bg-background text-lg",
+              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
               context === "PRICE_OVERRIDE" && "bg-accent/10",
             )}
             onClick={() => handleDifferent()}
@@ -596,14 +476,14 @@ export const InlineKeypad = () => {
 
           <Button
             variant="ghost"
-            className="h-12 rounded-xs bg-background text-lg"
+            className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
             onClick={() => handleDigit(0)}
           >
             0
           </Button>
           <Button
             variant="ghost"
-            className="h-12 rounded-xs bg-background text-lg"
+            className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
             onClick={handleDecimal}
             disabled={config.decimals === 0}
           >
@@ -611,7 +491,7 @@ export const InlineKeypad = () => {
           </Button>
           <Button
             variant="destructive"
-            className={"h-12 rounded-xs text-lg "}
+            className={"h-10 2xl:h-12 rounded-xs text-lg "}
             onClick={handleBackspace}
           >
             <Icon name="Delete" className="w-5 h-5 text-white" />

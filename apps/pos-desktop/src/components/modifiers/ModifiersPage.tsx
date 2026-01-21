@@ -143,7 +143,7 @@ export const ModifiersPage = () => {
             </div>
 
             {/* Filter */}
-            <div className="flex bg-muted rounded-md border p-1">
+            <div className="flex gap-1 border-b bg-muted p-1 rounded-xs">
               {(["ALL", "SINGLE", "MULTIPLE"] as FilterType[]).map((type) => (
                 <Button
                   variant={filterType === type ? "default" : "ghost"}
@@ -151,7 +151,7 @@ export const ModifiersPage = () => {
                   key={type}
                   onClick={() => setFilterType(type)}
                   className={cn(
-                    "px-3 py-1 text-sm rounded  hover:text-white",
+                    "px-3 py-1 text-sm rounded-xs hover:text-white",
                     filterType === type
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-accent",
@@ -171,13 +171,13 @@ export const ModifiersPage = () => {
               <Icon name="ChevronsUp" />
             </Button>
 
-            <div className="flex bg-muted rounded-md border p-1">
+            <div className="flex gap-1 border-b bg-muted p-1 rounded-xs">
               <Button
                 size="sm"
                 variant={viewMode === "grid" ? "default" : "ghost"}
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "rounded",
+                  "rounded-xs",
                   viewMode === "grid" && "bg-primary text-primary-foreground",
                 )}
               >
@@ -188,7 +188,7 @@ export const ModifiersPage = () => {
                 variant={viewMode === "list" ? "default" : "ghost"}
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  " rounded",
+                  "rounded-xs",
                   viewMode === "list" && "bg-primary text-primary-foreground",
                 )}
               >

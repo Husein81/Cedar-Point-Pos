@@ -18,6 +18,18 @@ export const useModifierSelection = ({
 }: UseModifierSelectionProps) => {
   const [selections, setSelections] = useState<Record<string, Set<string>>>({});
 
+  const modifierToGroupMap = useMemo(() => {
+    if (!groups?.modifierGroups) return new Map<string, string>();
+
+    const map = new Map<string, string>();
+    for (const group of groups.modifierGroups) {
+      for (const modifier of group.modifiers) {
+        map.set(modifier.id, group.id);
+      }
+    }
+    return map;
+  }, [groups]);
+
   useEffect(() => {
     if (
       !groups ||
@@ -30,17 +42,13 @@ export const useModifierSelection = ({
     const initialSelections: Record<string, Set<string>> = {};
 
     for (const modifier of initialModifiers) {
-      const group = groups.modifierGroups.find((g) =>
-        g.modifiers.some((m) => m.id === modifier.modifierId),
-      );
+      const groupId = modifierToGroupMap.get(modifier.modifierId);
+      if (!groupId) continue;
 
-      if (!group) continue;
-
-      if (!initialSelections[group.id]) {
-        initialSelections[group.id] = new Set();
+      if (!initialSelections[groupId]) {
+        initialSelections[groupId] = new Set();
       }
-
-      initialSelections[group.id]!.add(modifier.modifierId);
+      initialSelections[groupId].add(modifier.modifierId);
     }
 
     setSelections(initialSelections);
@@ -50,7 +58,7 @@ export const useModifierSelection = ({
     (groupId: string, modifierId: string, groupType: "SINGLE" | "MULTIPLE") => {
       setSelections((prev) => {
         const next = { ...prev };
-        const current = new Set(prev[groupId] ?? []);
+        const current = new Set(prev[groupId] ?? undefined);
 
         if (groupType === "SINGLE") {
           if (current.has(modifierId)) {
@@ -67,7 +75,12 @@ export const useModifierSelection = ({
             ? current.delete(modifierId)
             : current.add(modifierId);
         }
-
+        if (
+          prev[groupId]?.size === current.size &&
+          [...current].every((id) => prev[groupId]?.has(id))
+        ) {
+          return prev;
+        }
         next[groupId] = current;
         return next;
       });
@@ -96,10 +109,10 @@ export const useModifierSelection = ({
    * Validation
    * ----------------------------------------
    */
-  const validate = useCallback(
-    () => validateModifierSelections(groups, selections),
-    [groups, selections],
-  );
+  const validate = useCallback(() => {
+    if (!groups) return { valid: true };
+    return validateModifierSelections(groups, selections);
+  }, [groups, selections]);
 
   /**
    * ----------------------------------------

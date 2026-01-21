@@ -1,6 +1,8 @@
 import Heading from "@/components/heading";
 import { invoiceColumns } from "@/config/invoiceColumn";
 import { useOrders } from "@/hooks/useOrder";
+import { usePaginationState } from "@/hooks/usePaginationState";
+import { OrderStatus } from "@repo/types";
 import { Button, DataTable, Icon, Select } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -10,9 +12,15 @@ export const Route = createFileRoute("/invoices/")({
 });
 
 function InvoicesPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    page,
+    pageSize,
+    searchQuery,
+    setSearchQuery,
+    onPageSizeChange,
+    setPage,
+  } = usePaginationState();
+
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   const { data, isLoading, refetch } = useOrders({
@@ -24,14 +32,20 @@ function InvoicesPage() {
 
   const orders = data?.data ?? [];
   const totalPages = Math.ceil(
-    Number(data?.pagination?.totalCount ?? 1) / pageSize
+    Number(data?.pagination?.totalCount ?? 1) / pageSize,
   );
-
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPage(1); // Reset to first page when page size changes
-  };
-
+  const options: Option[] = [
+    { label: "All Statuses", value: "all" },
+    { label: "Completed", value: OrderStatus.COMPLETED },
+    { label: "Ready", value: OrderStatus.READY },
+    { label: "In Progress", value: OrderStatus.IN_PROGRESS },
+    { label: "Confirmed", value: OrderStatus.CONFIRMED },
+    { label: "In Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
+    { label: "Pending", value: OrderStatus.PENDING },
+    { label: "On Hold", value: OrderStatus.ON_HOLD },
+    { label: "Draft", value: OrderStatus.DRAFT },
+    { label: "Cancelled", value: OrderStatus.CANCELLED },
+  ];
   return (
     <div className="space-y-4 pt-4">
       <Heading
@@ -44,18 +58,7 @@ function InvoicesPage() {
           placeholder="Filter by status"
           value={statusFilter}
           onChange={(opt) => setStatusFilter(opt.value)}
-          options={[
-            // { label: "All Statuses", value: "" },
-            { label: "Completed", value: "COMPLETED" },
-            { label: "Ready", value: "READY" },
-            { label: "In Progress", value: "IN_PROGRESS" },
-            { label: "Confirmed", value: "CONFIRMED" },
-            { label: "In Kitchen", value: "SENT_TO_KITCHEN" },
-            { label: "Pending", value: "PENDING" },
-            { label: "On Hold", value: "ON_HOLD" },
-            { label: "Draft", value: "DRAFT" },
-            { label: "Cancelled", value: "CANCELLED" },
-          ]}
+          options={options}
         />
 
         <Button
@@ -88,7 +91,7 @@ function InvoicesPage() {
           pageSize,
           rows: data?.pagination?.totalCount || 0,
           onPageChange: setPage,
-          onPageSizeChange: handlePageSizeChange,
+          onPageSizeChange,
         }}
       />
     </div>

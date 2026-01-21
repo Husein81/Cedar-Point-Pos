@@ -16,6 +16,7 @@
     "publish": "electron-forge publish"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.90.1",

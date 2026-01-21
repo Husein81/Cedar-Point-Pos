@@ -1,0 +1,814 @@
+﻿src/components/common/NumericKeypad.tsx(1,28): error TS6133: 'Input' is declared but its value is never read.
+src/components/header.tsx(2,28): error TS6133: 'Shad' is declared but its value is never read.
+src/components/reports/OrdersByStatusChart.tsx(82,39): error TS6133: 'name' is declared but its value is never read.
+src/components/reports/OrdersByStatusChart.tsx(83,33): error TS18048: 'percent' is possibly 'undefined'.
+src/components/reports/OrdersByStatusChart.tsx(83,54): error TS18048: 'percent' is possibly 'undefined'.
+src/components/reports/OrdersByStatusChart.tsx(110,29): error TS2322: Type '(value: number, name: string) => [number, string]' is not assignable to type 'Formatter<number, string>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/reports/PaymentMethodChart.tsx(91,39): error TS2339: Property 'percentage' does not exist on type 'PieLabelRenderProps'.
+src/components/reports/PaymentMethodChart.tsx(104,29): error TS2322: Type '(value: number, _name: string, props: Payload<number, string>) => [string, any]' is not assignable to type 'Formatter<number, string>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/reports/ReportsFilterBar.tsx(1,1): error TS6133: 'useMemo' is declared but its value is never read.
+src/components/reports/ReportsFilterBar.tsx(5,5): error TS2305: Module '"@repo/ui"' has no exported member 'SelectContent'.
+src/components/reports/ReportsFilterBar.tsx(6,5): error TS2305: Module '"@repo/ui"' has no exported member 'SelectItem'.
+src/components/reports/ReportsFilterBar.tsx(7,5): error TS2305: Module '"@repo/ui"' has no exported member 'SelectTrigger'.
+src/components/reports/ReportsFilterBar.tsx(8,5): error TS2305: Module '"@repo/ui"' has no exported member 'SelectValue'.
+src/components/reports/ReportsFilterBar.tsx(82,22): error TS2322: Type '{ children: Element[]; value: DateRangePreset; onValueChange: (value: any) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/reports/ReportsFilterBar.tsx(84,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/reports/ReportsFilterBar.tsx(120,22): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (value: any) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/reports/ReportsFilterBar.tsx(122,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/reports/ReportsFilterBar.tsx(141,18): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (value: any) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/reports/ReportsFilterBar.tsx(143,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/reports/ReportsFilterBar.tsx(162,18): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (value: any) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/reports/ReportsFilterBar.tsx(164,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/components/reports/SalesOverTimeChart.tsx(111,29): error TS2322: Type '(value: number) => [string, "Revenue"]' is not assignable to type 'Formatter<number, "Revenue">'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/reports/TopProductsTable.tsx(56,31): error TS2339: Property 'Button' does not exist on type '{ Avatar: ({ className, ...props }: AvatarProps & RefAttributes<HTMLSpanElement>) => Element; AvatarImage: ({ className, ...props }: AvatarImageProps & RefAttributes<...>) => Element; ... 159 more ...; TooltipProvider: ({ delayDuration, ...props }: TooltipProviderProps) => Element; }'.
+src/components/reports/TopProductsTable.tsx(58,32): error TS2339: Property 'Button' does not exist on type '{ Avatar: ({ className, ...props }: AvatarProps & RefAttributes<HTMLSpanElement>) => Element; AvatarImage: ({ className, ...props }: AvatarImageProps & RefAttributes<...>) => Element; ... 159 more ...; TooltipProvider: ({ delayDuration, ...props }: TooltipProviderProps) => Element; }'.
+src/config/invoiceColumn.tsx(126,12): error TS6133: 'row' is declared but its value is never read.
+src/hooks/useCategory.ts(31,22): error TS2304: Cannot find name 'Category'.
+src/hooks/useCategory.ts(42,22): error TS2304: Cannot find name 'Category'.
+vite.config.ts(13,5): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'Plugin<any>[]' is not assignable to type 'PluginOption'.
+      Type 'Plugin<any>[]' is not assignable to type 'PluginOption[]'.
+        Type 'Plugin<any>' is not assignable to type 'PluginOption'.
+          Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").Plugin<any>' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/vite@7.3.0_@types+node@22.1_b91a72718fe6d1f3ff11a421750ba20d/node_modules/vite/dist/node/index").Plugin<any>'.
+            Types of property 'hotUpdate' are incompatible.
+              Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/rollup/dist/rollup").ObjectHook<(this: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/rollup/dist/rollup").MinimalPluginContext & { ...; }, options: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").HotUpdateOptions) => void |...' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/rollup@4.53.5/node_modules/rollup/dist/rollup").ObjectHook<(this: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/rollup@4.53.5/node_modules/rollup/dist/rollup").MinimalPluginContext & { ...; }, options: import("C:/Users/fadix/POS-SYS/Pointver...'.
+                Type '(this: MinimalPluginContext & { environment: DevEnvironment; }, options: HotUpdateOptions) => void | EnvironmentModuleNode[] | Promise<...>' is not assignable to type 'ObjectHook<(this: MinimalPluginContext & { environment: DevEnvironment; }, options: HotUpdateOptions) => void | EnvironmentModuleNode[] | Promise<...>> | undefined'.
+                  Type '(this: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/rollup/dist/rollup").MinimalPluginContext & { ...; }, options: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").HotUpdateOptions) => void | ... 1 more ... | Promise<...>' is not assignable to type '(this: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/rollup@4.53.5/node_modules/rollup/dist/rollup").MinimalPluginContext & { ...; }, options: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/vite@7.3.0_@types+node@22.1_b91a72718fe6d1f3ff11a421750ba20d/node_modules/vite/dist/node/index").H...'.
+                    The 'this' types of each signature are incompatible.
+                      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/rollup@4.53.5/node_modules/rollup/dist/rollup").MinimalPluginContext & { environment: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/vite@7.3.0_@types+node@22.1_b91a72718fe6d1f3ff11a421750ba20d/node_modules/vite/dist/node/index").DevEnvironme...' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/rollup/dist/rollup").MinimalPluginContext & { environment: import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").DevEnvironment; }'.
+                        Type 'MinimalPluginContext & { environment: DevEnvironment; }' is not assignable to type 'MinimalPluginContext'.
+                          Types of property 'environment' are incompatible.
+                            Type 'DevEnvironment' is not assignable to type 'Environment'.
+                              Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/vite@7.3.0_@types+node@22.1_b91a72718fe6d1f3ff11a421750ba20d/node_modules/vite/dist/node/index").DevEnvironment' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").DevEnvironment'.
+                                Types of property 'pluginContainer' are incompatible.
+                                  Type 'EnvironmentPluginContainer<import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/vite@7.3.0_@types+node@22.1_b91a72718fe6d1f3ff11a421750ba20d/node_modules/vite/dist/node/index").DevEnvironment>' is not assignable to type 'EnvironmentPluginContainer<import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/vite/dist/node/index").DevEnvironment>'.
+                                    Types have separate declarations of a private property '_pluginContextMap'.
+../../packages/ui/src/components/alert-dialog.tsx(71,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/alert-dialog.tsx(84,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/alert.tsx(28,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/alert.tsx(39,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/alert.tsx(55,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/badge.tsx(38,6): error TS2322: Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+      Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(8,11): error TS2322: Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; "data-slot": string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>'.
+  Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; "data-slot": string; }' is not assignable to type 'ClassAttributes<HTMLElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLElement> | undefined' is not assignable to type 'React.Ref<HTMLElement> | undefined'.
+        Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLElement> | undefined'.
+          Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(13,6): error TS2322: Type '{ ref?: Ref<HTMLOListElement> | undefined; key?: Key | null | undefined; reversed?: boolean | undefined; start?: number | undefined; type?: "1" | "a" | "i" | "A" | "I" | undefined; ... 278 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<OlHTMLAttributes<HTMLOListElement>, HTMLOListElement>'.
+  Type '{ ref?: Ref<HTMLOListElement> | undefined; key?: Key | null | undefined; reversed?: boolean | undefined; start?: number | undefined; type?: "1" | "a" | "i" | "A" | "I" | undefined; ... 278 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLOListElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLOListElement> | undefined' is not assignable to type 'React.Ref<HTMLOListElement> | undefined'.
+        Type '(instance: HTMLOListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLOListElement> | undefined'.
+          Type '(instance: HTMLOListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLOListElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(26,6): error TS2322: Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<LiHTMLAttributes<HTMLLIElement>, HTMLLIElement>'.
+  Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLLIElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLLIElement> | undefined' is not assignable to type 'React.Ref<HTMLLIElement> | undefined'.
+        Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLLIElement> | undefined'.
+          Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(44,6): error TS2322: Type '{ ref?: Ref<HTMLAnchorElement> | undefined; key?: Key | null | undefined; download?: any; href?: string | undefined; hrefLang?: string | undefined; media?: string | undefined; ... 282 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLAnchorElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLAnchorElement> | undefined' is not assignable to type 'React.Ref<HTMLAnchorElement> | undefined'.
+      Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLAnchorElement> | undefined'.
+        Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(54,6): error TS2322: Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(71,6): error TS2322: Type '{ children: string | number | bigint | boolean | Iterable<ReactNode> | Promise<AwaitedReactNode> | Element; ref?: Ref<...> | undefined; ... 279 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<LiHTMLAttributes<HTMLLIElement>, HTMLLIElement>'.
+  Type '{ children: string | number | bigint | boolean | Iterable<ReactNode> | Promise<AwaitedReactNode> | Element; ref?: Ref<...> | undefined; ... 279 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLLIElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLLIElement> | undefined' is not assignable to type 'React.Ref<HTMLLIElement> | undefined'.
+        Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLLIElement> | undefined'.
+          Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/breadcrumb.tsx(88,6): error TS2322: Type '{ children: Element[]; ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ children: Element[]; ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/button.tsx(52,6): error TS2322: Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 287 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined' is not assignable to type 'React.Ref<HTMLButtonElement> | undefined'.
+      Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/calendar.tsx(196,6): error TS2322: Type '{ disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<void>) | undefined; formEncType?: string | undefined; ... 291 more ...; className: string; }' is not assignable to type 'ButtonHTMLAttributes<HTMLButtonElement>'.
+  Types of property 'style' are incompatible.
+    Type 'React.CSSProperties | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").CSSProperties | undefined'.
+      Type 'CSSProperties' is not assignable to type 'Properties<string | number, string & {}>'.
+        Types of property 'borderBlockStyle' are incompatible.
+          Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/csstype/index").Property.BorderBlockStyle | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/csstype@3.1.3/node_modules/csstype/index").Property.BorderBlockStyle | undefined'.
+            Type 'string & {}' is not assignable to type 'BorderBlockStyle | undefined'.
+../../packages/ui/src/components/card.tsx(7,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(20,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(33,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(43,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(53,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(66,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/card.tsx(76,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/carousel.tsx(121,8): error TS2322: Type '{ children: ReactNode; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; "data-slot": string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ children: ReactNode; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; "data-slot": string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/carousel.tsx(144,8): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 275 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 275 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/carousel.tsx(160,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/command.tsx(163,6): error TS2322: Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/dialog.tsx(85,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/dialog.tsx(95,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/dropdown-menu.tsx(184,6): error TS2322: Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/input.tsx(7,6): error TS2322: Type '{ ref?: Ref<HTMLInputElement> | undefined; key?: Key | null | undefined; accept?: string | undefined; alt?: string | undefined; autoComplete?: HTMLInputAutoCompleteAttribute | undefined; ... 305 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'.
+  Type '{ ref?: Ref<HTMLInputElement> | undefined; key?: Key | null | undefined; accept?: string | undefined; alt?: string | undefined; autoComplete?: HTMLInputAutoCompleteAttribute | undefined; ... 305 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLInputElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLInputElement> | undefined' is not assignable to type 'React.Ref<HTMLInputElement> | undefined'.
+        Type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLInputElement> | undefined'.
+          Type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/menubar.tsx(202,6): error TS2322: Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/pagination.tsx(13,6): error TS2322: Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>'.
+  Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLElement> | undefined' is not assignable to type 'React.Ref<HTMLElement> | undefined'.
+        Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLElement> | undefined'.
+          Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/pagination.tsx(28,6): error TS2322: Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLUListElement>, HTMLUListElement>'.
+  Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLUListElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLUListElement> | undefined' is not assignable to type 'React.Ref<HTMLUListElement> | undefined'.
+        Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLUListElement> | undefined'.
+          Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/pagination.tsx(37,11): error TS2322: Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 277 more ...; "data-slot": string; }' is not assignable to type 'DetailedHTMLProps<LiHTMLAttributes<HTMLLIElement>, HTMLLIElement>'.
+  Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 277 more ...; "data-slot": string; }' is not assignable to type 'ClassAttributes<HTMLLIElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLLIElement> | undefined' is not assignable to type 'React.Ref<HTMLLIElement> | undefined'.
+        Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLLIElement> | undefined'.
+          Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/pagination.tsx(52,6): error TS2322: Type '{ ref?: Ref<HTMLAnchorElement> | undefined; key?: Key | null | undefined; download?: any; href?: string | undefined; hrefLang?: string | undefined; media?: string | undefined; ... 283 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>'.
+  Type '{ ref?: Ref<HTMLAnchorElement> | undefined; key?: Key | null | undefined; download?: any; href?: string | undefined; hrefLang?: string | undefined; media?: string | undefined; ... 283 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLAnchorElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLAnchorElement> | undefined' is not assignable to type 'React.Ref<HTMLAnchorElement> | undefined'.
+        Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLAnchorElement> | undefined'.
+          Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/pagination.tsx(107,6): error TS2322: Type '{ children: Element[]; ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>'.
+  Type '{ children: Element[]; ref?: Ref<HTMLSpanElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLSpanElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLSpanElement> | undefined' is not assignable to type 'React.Ref<HTMLSpanElement> | undefined'.
+        Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLSpanElement> | undefined'.
+          Type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLSpanElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sheet.tsx(86,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sheet.tsx(96,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(134,11): error TS2322: Type 'CSSProperties' is not assignable to type 'Properties<string | number, string & {}>'.
+  Types of property 'alignmentBaseline' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/csstype@3.1.3/node_modules/csstype/index").Property.AlignmentBaseline | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/csstype/index").Property.AlignmentBaseline | undefined'.
+      Type '"auto"' is not assignable to type 'AlignmentBaseline | undefined'.
+../../packages/ui/src/components/sidebar.tsx(170,8): error TS2322: Type '{ children: ReactNode; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ children: ReactNode; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(229,8): error TS2322: Type '{ children: Element; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ children: Element; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 275 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(286,6): error TS2322: Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 286 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>'.
+  Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 286 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined' is not assignable to type 'React.Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+          Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(309,6): error TS2322: Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>'.
+  Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLElement> | undefined' is not assignable to type 'React.Ref<HTMLElement> | undefined'.
+        Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLElement> | undefined'.
+          Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(337,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(348,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(373,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(387,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(404,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+      Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(425,6): error TS2322: Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 286 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined' is not assignable to type 'React.Ref<HTMLButtonElement> | undefined'.
+      Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(445,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(456,6): error TS2322: Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLUListElement>, HTMLUListElement>'.
+  Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLUListElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLUListElement> | undefined' is not assignable to type 'React.Ref<HTMLUListElement> | undefined'.
+        Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLUListElement> | undefined'.
+          Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(467,6): error TS2322: Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 278 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<LiHTMLAttributes<HTMLLIElement>, HTMLLIElement>'.
+  Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 278 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLLIElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLLIElement> | undefined' is not assignable to type 'React.Ref<HTMLLIElement> | undefined'.
+        Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLLIElement> | undefined'.
+          Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(515,6): error TS2322: Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 288 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined' is not assignable to type 'React.Ref<HTMLButtonElement> | undefined'.
+      Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(560,6): error TS2322: Type '{ ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled?: boolean | undefined; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<...>) | undefined; ... 286 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined' is not assignable to type 'React.Ref<HTMLButtonElement> | undefined'.
+      Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(585,6): error TS2322: Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(615,6): error TS2322: Type '{ children: (false | Element)[]; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Type '{ children: (false | Element)[]; ref?: Ref<HTMLDivElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | ... 2 more ... | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLDivElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+        Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+          Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(630,9): error TS2322: Type 'CSSProperties' is not assignable to type 'Properties<string | number, string & {}>'.
+  Types of property 'alignmentBaseline' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/csstype@3.1.3/node_modules/csstype/index").Property.AlignmentBaseline | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/csstype/index").Property.AlignmentBaseline | undefined'.
+      Type '"auto"' is not assignable to type 'AlignmentBaseline | undefined'.
+../../packages/ui/src/components/sidebar.tsx(642,6): error TS2322: Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLUListElement>, HTMLUListElement>'.
+  Type '{ ref?: Ref<HTMLUListElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 277 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLUListElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLUListElement> | undefined' is not assignable to type 'React.Ref<HTMLUListElement> | undefined'.
+        Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLUListElement> | undefined'.
+          Type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLUListElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(660,6): error TS2322: Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 278 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<LiHTMLAttributes<HTMLLIElement>, HTMLLIElement>'.
+  Type '{ ref?: Ref<HTMLLIElement> | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; defaultChecked?: boolean | undefined; ... 278 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLLIElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLLIElement> | undefined' is not assignable to type 'React.Ref<HTMLLIElement> | undefined'.
+        Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLLIElement> | undefined'.
+          Type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLLIElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/sidebar.tsx(683,6): error TS2322: Type '{ ref?: Ref<HTMLAnchorElement> | undefined; key?: Key | null | undefined; download?: any; href?: string | undefined; hrefLang?: string | undefined; media?: string | undefined; ... 285 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLAnchorElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLAnchorElement> | undefined' is not assignable to type 'React.Ref<HTMLAnchorElement> | undefined'.
+      Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLAnchorElement> | undefined'.
+        Type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLAnchorElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(13,8): error TS2322: Type '{ ref?: Ref<HTMLTableElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | undefined; bgcolor?: string | undefined; ... 285 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<TableHTMLAttributes<HTMLTableElement>, HTMLTableElement>'.
+  Type '{ ref?: Ref<HTMLTableElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | undefined; bgcolor?: string | undefined; ... 285 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableElement> | undefined' is not assignable to type 'React.Ref<HTMLTableElement> | undefined'.
+        Type '(instance: HTMLTableElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableElement> | undefined'.
+          Type '(instance: HTMLTableElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(24,6): error TS2322: Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLTableSectionElement>, HTMLTableSectionElement>'.
+  Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableSectionElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableSectionElement> | undefined' is not assignable to type 'React.Ref<HTMLTableSectionElement> | undefined'.
+        Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableSectionElement> | undefined'.
+          Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(34,6): error TS2322: Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLTableSectionElement>, HTMLTableSectionElement>'.
+  Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableSectionElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableSectionElement> | undefined' is not assignable to type 'React.Ref<HTMLTableSectionElement> | undefined'.
+        Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableSectionElement> | undefined'.
+          Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(44,6): error TS2322: Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLTableSectionElement>, HTMLTableSectionElement>'.
+  Type '{ ref?: Ref<HTMLTableSectionElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableSectionElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableSectionElement> | undefined' is not assignable to type 'React.Ref<HTMLTableSectionElement> | undefined'.
+        Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableSectionElement> | undefined'.
+          Type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableSectionElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(57,6): error TS2322: Type '{ ref?: Ref<HTMLTableRowElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLTableRowElement>, HTMLTableRowElement>'.
+  Type '{ ref?: Ref<HTMLTableRowElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableRowElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableRowElement> | undefined' is not assignable to type 'React.Ref<HTMLTableRowElement> | undefined'.
+        Type '(instance: HTMLTableRowElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableRowElement> | undefined'.
+          Type '(instance: HTMLTableRowElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableRowElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(70,6): error TS2322: Type '{ ref?: Ref<HTMLTableHeaderCellElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | "justify" | "char" | undefined; ... 283 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<ThHTMLAttributes<HTMLTableHeaderCellElement>, HTMLTableHeaderCellElement>'.
+  Type '{ ref?: Ref<HTMLTableHeaderCellElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | "justify" | "char" | undefined; ... 283 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableHeaderCellElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableHeaderCellElement> | undefined' is not assignable to type 'React.Ref<HTMLTableHeaderCellElement> | undefined'.
+        Type '(instance: HTMLTableHeaderCellElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableHeaderCellElement> | undefined'.
+          Type '(instance: HTMLTableHeaderCellElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableHeaderCellElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(83,6): error TS2322: Type '{ ref?: Ref<HTMLTableDataCellElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | "justify" | "char" | undefined; ... 286 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<TdHTMLAttributes<HTMLTableDataCellElement>, HTMLTableDataCellElement>'.
+  Type '{ ref?: Ref<HTMLTableDataCellElement> | undefined; key?: Key | null | undefined; align?: "left" | "right" | "center" | "justify" | "char" | undefined; ... 286 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTableDataCellElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTableDataCellElement> | undefined' is not assignable to type 'React.Ref<HTMLTableDataCellElement> | undefined'.
+        Type '(instance: HTMLTableDataCellElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTableDataCellElement> | undefined'.
+          Type '(instance: HTMLTableDataCellElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTableDataCellElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/table.tsx(99,6): error TS2322: Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>'.
+  Type '{ ref?: Ref<HTMLElement> | undefined; key?: Key | null | undefined; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; ... 276 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLElement> | undefined' is not assignable to type 'React.Ref<HTMLElement> | undefined'.
+        Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLElement> | undefined'.
+          Type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/components/textarea.tsx(7,6): error TS2322: Type '{ ref?: Ref<HTMLTextAreaElement> | undefined; key?: Key | null | undefined; autoComplete?: string | undefined; cols?: number | undefined; dirName?: string | undefined; ... 289 more ...; className: string; }' is not assignable to type 'DetailedHTMLProps<TextareaHTMLAttributes<HTMLTextAreaElement>, HTMLTextAreaElement>'.
+  Type '{ ref?: Ref<HTMLTextAreaElement> | undefined; key?: Key | null | undefined; autoComplete?: string | undefined; cols?: number | undefined; dirName?: string | undefined; ... 289 more ...; className: string; }' is not assignable to type 'ClassAttributes<HTMLTextAreaElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLTextAreaElement> | undefined' is not assignable to type 'React.Ref<HTMLTextAreaElement> | undefined'.
+        Type '(instance: HTMLTextAreaElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLTextAreaElement> | undefined'.
+          Type '(instance: HTMLTextAreaElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLTextAreaElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/ui-components/button.tsx(1,25): error TS6133: 'Skeleton' is declared but its value is never read.
+../../packages/ui/src/ui-components/button.tsx(48,6): error TS2322: Type '{ children: Element; variant: "default" | "link" | "destructive" | "outline" | "secondary" | "ghost"; onClick: ((args?: unknown) => void) | undefined; className: string; disabled: boolean | undefined; size: "icon" | ... 3 more ... | null; type: "button" | ... 1 more ... | "reset"; form: string | undefined; } | { ......' is not assignable to type 'IntrinsicAttributes & ClassAttributes<HTMLButtonElement> & ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<...> & { ...; }'.
+  Type '{ children: Element; ref?: Ref<HTMLButtonElement> | undefined; key?: Key | null | undefined; disabled: boolean | undefined; form: string | undefined; ... 286 more ...; size: "icon" | ... 3 more ... | null; }' is not assignable to type 'ClassAttributes<HTMLButtonElement>'.
+    Types of property 'ref' are incompatible.
+      Type 'React.Ref<HTMLButtonElement> | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLButtonElement> | undefined'.
+        Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLButtonElement> | undefined'.
+          Type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLButtonElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+../../packages/ui/src/ui-components/input-field.tsx(38,10): error TS2322: Type '{ onChange: (e: ChangeEvent<HTMLInputElement>) => void; ref?: Ref<HTMLInputElement> | undefined; key?: Key | null | undefined; ... 306 more ...; placeholder: string | undefined; }' is not assignable to type 'ClassAttributes<HTMLInputElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'React.Ref<HTMLInputElement> | undefined' is not assignable to type 'import("C:/Users/fadix/POS-SYS/Pointverse/node_modules/.pnpm/@types+react@19.2.2/node_modules/@types/react/index").Ref<HTMLInputElement> | undefined'.
+      Type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLInputElement> | undefined'.
+        Type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLInputElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.

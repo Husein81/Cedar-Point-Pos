@@ -43,6 +43,8 @@ export const OrderStatus = {
   PENDING: "PENDING", // Order created but not processed
   SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
   READY: "READY", // Ready for pickup/serve
+  PAID: "PAID", // Payment received, inventory deducted
+  PARTIALLY_PAID: "PARTIALLY_PAID", // Partial payment received
   COMPLETED: "COMPLETED", // Order fully completed
   FULLY_REFUNDED: "FULLY_REFUNDED", // Order fully refunded
   CANCELLED: "CANCELLED",

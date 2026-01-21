@@ -1,11 +1,13 @@
 // OrderTypeSelector.tsx
 import { useAuthStore } from "@/store/authStore";
+import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
 import { Button, cn } from "@repo/ui";
 
 export const OrderTypeSelector = () => {
   const { user } = useAuthStore();
+  const { switchContext } = useKeypadStore();
   const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
   const order = getActiveOrder();
 
@@ -18,7 +20,12 @@ export const OrderTypeSelector = () => {
     if (type !== OrderType.DELIVERY) {
       setShippingFee(0);
     }
+
+    if (type === OrderType.DELIVERY) {
+      switchContext("SHIPPING");
+    }
   };
+
   const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
 
   const orderTypes = isRestaurant

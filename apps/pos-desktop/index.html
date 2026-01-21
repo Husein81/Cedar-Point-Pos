@@ -9,11 +9,12 @@
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self' 'unsafe-eval';
+        script-src 'self' 'unsafe-eval' blob:;
         style-src 'self' 'unsafe-inline';
         img-src 'self' data: https://*.supabase.co;
         font-src 'self';
-        connect-src 'self' http://localhost:* ws://localhost:* https://*.supabase.co;
+        connect-src 'self' http://localhost:* ws://localhost:* https://*.supabase.co data:;
+        worker-src 'self' blob:;
       " />
 </head>
 

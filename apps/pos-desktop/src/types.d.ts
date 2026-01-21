@@ -6,3 +6,8 @@ interface Window {
     sendFrameAction: (payload: FrameWindowAction) => void;
   };
 }
+
+type Option = {
+  label: string;
+  value: string;
+};

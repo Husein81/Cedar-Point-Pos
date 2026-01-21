@@ -1,6 +1,6 @@
 import type { DateRangePreset, ReportsFilterState } from "@/types/reports";
 import type { Branch } from "@repo/types";
-import { Button, Input, Select, Shad, Icon, DatePicker } from "@repo/ui";
+import { Button, DatePicker, Icon, Select, Shad } from "@repo/ui";
 import { DATE_PRESETS, ORDER_TYPES, PAYMENT_METHODS } from "./config";
 
 type ReportsFilterBarProps = {
@@ -34,22 +34,6 @@ export const ReportsFilterBar = ({
 }: ReportsFilterBarProps) => {
   const showBranchSelector = branches.length > 1;
   const showCustomDateInputs = datePreset === "custom";
-
-  const formatDateForInput = (date: Date) => {
-    return date.toISOString().split("T")[0];
-  };
-
-  const handleCustomDateChange = (field: "from" | "to", value: string) => {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      if (field === "from") {
-        date.setHours(0, 0, 0, 0);
-      } else {
-        date.setHours(23, 59, 59, 999);
-      }
-      onFiltersChange({ [field]: date });
-    }
-  };
 
   return (
     <Shad.Card className="p-4">

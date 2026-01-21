@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable, Badge, Button, Icon } from "@repo/ui";
-import { SummaryCard, SummaryGrid } from "@/components/reports";
+import { SummaryGrid } from "@/components/reports";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
@@ -288,23 +288,26 @@ function PaymentsReportPage() {
       />
 
       {hasFetched && summaryData && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <SummaryCard
-            title="Total Payments Amount"
-            value={formatCurrency(summaryData.totalAmount)}
-            icon={"DollarSign"}
-          />
-          <SummaryCard
-            title="Payments Count"
-            value={summaryData.paymentsCount.toString()}
-            icon={"Activity"}
-          />
-          <SummaryCard
-            title="Most Used Payment Method"
-            value={summaryData.mostUsedMethod || "-"}
-            icon={"CreditCard"}
-          />
-        </div>
+        <SummaryGrid
+          items={[
+            {
+              title: "Total Payments Amount",
+              value: formatCurrency(summaryData.totalAmount),
+              icon: "DollarSign",
+            },
+            {
+              title: "Payments Count",
+              value: summaryData.paymentsCount.toString(),
+              icon: "Activity",
+            },
+            {
+              title: "Most Used Payment Method",
+              value: summaryData.mostUsedMethod || "-",
+              icon: "CreditCard",
+            },
+          ]}
+          columns="3"
+        />
       )}
 
       {hasFetched ? (
@@ -323,7 +326,7 @@ function PaymentsReportPage() {
               isSubmitting={isExporting}
             >
               <Icon name="FileDown" className="mr-2 h-4 w-4" />
-               Export PDF
+              Export PDF
             </Button>
           </div>
           <DataTable

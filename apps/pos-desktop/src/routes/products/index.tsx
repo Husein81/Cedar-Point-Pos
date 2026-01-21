@@ -1,27 +1,33 @@
 import Heading from "@/components/heading";
 import { ProductForm } from "@/components/products/ProductForm";
 import { productColumns } from "@/config/productColumn";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useProductsPaginated } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
-import { useState } from "react";
 
 export const Route = createFileRoute("/products/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    page,
+    pageSize,
+    searchQuery,
+    setSearchQuery,
+    onPageSizeChange,
+    setPage,
+  } = usePaginationState();
 
   const { data, isLoading, refetch } = useProductsPaginated({
     page: String(page),
     limit: String(pageSize),
     search: searchQuery,
   });
+
   const products = data?.data ?? [];
 
   const { openModal } = useModalStore();
@@ -31,13 +37,9 @@ function RouteComponent() {
   };
 
   const totalPages = Math.ceil(
-    Number(data?.pagination?.totalCount ?? 1) / pageSize
+    Number(data?.pagination?.totalCount ?? 1) / pageSize,
   );
 
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPage(1); // Reset to first page when page size changes
-  };
   return (
     <div className="space-y-4 pt-4">
       <Heading
@@ -67,7 +69,7 @@ function RouteComponent() {
           pageSize,
           totalPages,
           onPageChange: setPage,
-          onPageSizeChange: handlePageSizeChange,
+          onPageSizeChange,
         }}
       />
     </div>

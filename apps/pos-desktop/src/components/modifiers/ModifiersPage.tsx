@@ -7,6 +7,7 @@ import { ModifierGroupCard } from "./ModifierGroupCard";
 import { ModifierGroupForm } from "./ModifierGroupForm";
 import { ModifierForm } from "./ModifierForm";
 import { useModalStore } from "@/store/modalStore";
+import Heading from "../heading";
 
 type ViewMode = "grid" | "list";
 type FilterType = "ALL" | "SINGLE" | "MULTIPLE";
@@ -108,19 +109,17 @@ export const ModifiersPage = () => {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 p-6 border-b bg-background">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Modifiers</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage modifier groups and options for restaurant products
-            </p>
-          </div>
-          <Button onClick={openCreateGroupModal}>
-            <Icon name="Plus" className="h-4 w-4 mr-2" />
-            Create Group
-          </Button>
-        </div>
+      <div className="shrink-0 space-y-4 p-6 border-b bg-background">
+        <Heading
+          title="Modifiers"
+          subtitle="Manage modifier groups and options for restaurant products."
+          actions={
+            <Button onClick={openCreateGroupModal}>
+              <Icon name="Plus" className="h-4 w-4 mr-2" />
+              Create Group
+            </Button>
+          }
+        />
 
         {/* Controls */}
         <div className="flex items-center justify-between gap-4">

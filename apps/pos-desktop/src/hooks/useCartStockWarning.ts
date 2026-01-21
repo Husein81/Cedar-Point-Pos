@@ -27,7 +27,6 @@ export const useCartStockWarnings = () => {
   const order = useOrderStore((s) => s.getActiveOrder());
   const items = order?.items ?? [];
 
-
   const productIds = useMemo(
     () => [...new Set(items.map((i) => i.productId))],
     [items],
@@ -73,7 +72,7 @@ export const useCartStockWarnings = () => {
     const map = new Map<string, StockWarning>();
 
     items.forEach((item) => {
-      const currentStock = inventoryMap.get(item.productId) ?? 0;
+      const currentStock = inventoryMap.get(item.productId)!;
       const noInventoryRecord = !inventoryMap.has(item.productId);
       const cartQuantity = item.quantity;
       const resultingStock = currentStock - cartQuantity;

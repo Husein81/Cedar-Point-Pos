@@ -189,7 +189,7 @@ export const ModifierGroupCard = ({
         </div>
       </Shad.CardHeader>
 
-      <Shad.CardContent className="pt-0">
+      <Shad.CardContent className="pt-0 flex-1">
         <Shad.CardDescription className="text-xs mb-3">
           {isSingle
             ? "Customer selects exactly one option (required)"
@@ -197,7 +197,7 @@ export const ModifierGroupCard = ({
         </Shad.CardDescription>
 
         {/* Modifiers */}
-        <div className="space-y-2">
+        <div className="space-y-2 ">
           {modifierCount === 0 ? (
             <div className="text-center py-4 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
               No modifiers yet
@@ -256,6 +256,8 @@ export const ModifierGroupCard = ({
         </div>
 
         {/* Add Modifier Button */}
+      </Shad.CardContent>
+      <Shad.CardFooter>
         <Button
           variant="outline"
           size="sm"
@@ -265,7 +267,7 @@ export const ModifierGroupCard = ({
           <Icon name="Plus" className="h-4 w-4 mr-2" />
           Add Modifier
         </Button>
-      </Shad.CardContent>
+      </Shad.CardFooter>
     </Shad.Card>
   );
 };

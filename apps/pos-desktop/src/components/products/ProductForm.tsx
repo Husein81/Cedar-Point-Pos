@@ -36,11 +36,11 @@ export const ProductForm = ({ product }: Props) => {
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
-    product?.imageUrl || null
+    product?.imageUrl || null,
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
-    product?.categoryId || ""
+    product?.categoryId || "",
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +48,7 @@ export const ProductForm = ({ product }: Props) => {
   const { data: branches = [] } = useBranchesByTenant(user?.tenantId);
 
   const inventory = product?.inventory?.filter(
-    (inv) => inv?.branchId === branchId
+    (inv) => inv?.branchId === branchId,
   )[0];
 
   const initialStock = inventory?.stock ? Number(inventory.stock) : 0;
@@ -58,7 +58,7 @@ export const ProductForm = ({ product }: Props) => {
     if (!selectedCategoryId) return [];
 
     const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
+      (cat) => cat.id === selectedCategoryId,
     );
     return (
       selectedCategory?.subcategories?.filter((sub) => !sub.isDeleted) || []
@@ -93,7 +93,7 @@ export const ProductForm = ({ product }: Props) => {
           try {
             const uploadResult = await uploadProductImage(
               imageFile,
-              product?.id
+              product?.id,
             );
             imageUrl = uploadResult.url;
           } catch (error) {
@@ -307,7 +307,7 @@ export const ProductForm = ({ product }: Props) => {
                 onClick={() =>
                   form.setFieldValue(
                     "sku",
-                    generateSku(form.getFieldValue("name") || "")
+                    generateSku(form.getFieldValue("name") || ""),
                   )
                 }
               >
@@ -419,10 +419,16 @@ export const ProductForm = ({ product }: Props) => {
             subLabel="If no branch is selected, the product will be available at all branches."
             placeholder="Select branch (leave empty for all branches)"
             field={field}
-            options={branches.map((branch) => ({
-              label: branch.name,
-              value: branch.id,
-            }))}
+            options={[
+              {
+                label: "All Branches",
+                value: "all",
+              },
+              ...branches.map((branch) => ({
+                label: branch.name,
+                value: branch.id,
+              })),
+            ]}
           />
         )}
       </form.Field>

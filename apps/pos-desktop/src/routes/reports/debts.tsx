@@ -1,98 +1,31 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button } from "@repo/ui";
-import { DollarSign, FileText, User, CreditCard, FileDown } from "lucide-react";
-import { ReportsFilterBar } from "@/components/reports";
+import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useReportPageState } from "@/hooks/useReportPageState";
 import { useDebtsOrdersList, useReportsDebts } from "@/hooks/useReports";
-import { exportDebtsReportPdf } from "@/pdf/utils/exportDebtsReportPdf";
-import { formatDateTime } from "@/pdf/utils/formatters";
-import type {
-  DebtOrderRow,
-  ReportsFilterState,
-  ReportListParams,
-  DateRangePreset,
-} from "@/types/reports";
 import type {
   DebtsOrderRowPdf,
   DebtsReportSummary,
 } from "@/pdf/debts/DebtsReportPdf";
+import { exportDebtsReportPdf } from "@/pdf/utils/exportDebtsReportPdf";
+import { formatDate, formatDateTime } from "@/pdf/utils/formatters";
+import type {
+  DateRangePreset,
+  DebtOrderRow,
+  ReportListParams,
+} from "@/types/reports";
+import {
+  formatCurrency,
+  getDateRangeFromPreset,
+  getTypeLabel,
+} from "@/utils/reportHelpers";
+import { Badge, Button, DataTable, Icon } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { ColumnDef } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/debts")({
   component: DebtsReportPage,
 });
-
-// ============================================================
-// Helpers
-// ============================================================
-
-const getDateRangeFromPreset = (
-  preset: DateRangePreset
-): { from: Date; to: Date } => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setMilliseconds(-1);
-
-  switch (preset) {
-    case "today":
-      return { from: today, to: tomorrow };
-    case "yesterday": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { from: yesterday, to: today };
-    }
-    case "this_week": {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      return { from: startOfWeek, to: tomorrow };
-    }
-    case "this_month": {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: startOfMonth, to: tomorrow };
-    }
-    case "custom":
-    default:
-      return { from: today, to: tomorrow };
-  }
-};
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-const getTypeLabel = (type: string) => {
-  switch (type) {
-    case "DINE_IN":
-      return "Dine In";
-    case "TAKEAWAY":
-      return "Takeaway";
-    case "DELIVERY":
-      return "Delivery";
-    case "RETAIL":
-      return "Retail";
-    default:
-      return type;
-  }
-};
-
-// ============================================================
-// Debts Summary Types
-// ============================================================
 
 interface DebtsSummaryData {
   totalDebts: number;
@@ -101,113 +34,26 @@ interface DebtsSummaryData {
   topDebtorAmount: number;
 }
 
-// ============================================================
-// Debts Summary Cards Component
-// ============================================================
-
-interface SummaryCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  subtitle?: string;
-}
-
-function SummaryCard({ title, value, icon, subtitle }: SummaryCardProps) {
-  return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="rounded-md bg-muted p-2">{icon}</div>
-      </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
-      {subtitle && (
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-interface DebtsSummaryCardsProps {
-  summary: DebtsSummaryData;
-  isLoading: boolean;
-}
-
-function DebtsSummaryCards({ summary, isLoading }: DebtsSummaryCardsProps) {
-  const iconClassName = "h-4 w-4 text-muted-foreground";
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-[120px] animate-pulse rounded-lg border bg-muted"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <SummaryCard
-        title="Total Debts"
-        value={formatCurrency(summary.totalDebts)}
-        icon={<DollarSign className={iconClassName} />}
-        subtitle="Sum of all pending orders"
-      />
-      <SummaryCard
-        title="Unpaid Orders"
-        value={summary.unpaidOrders.toString()}
-        icon={<FileText className={iconClassName} />}
-        subtitle="Number of pending orders"
-      />
-      <SummaryCard
-        title="Top Debtor"
-        value={summary.topDebtorName || "-"}
-        icon={<User className={iconClassName} />}
-        subtitle="Customer with highest debt"
-      />
-      <SummaryCard
-        title="Top Debt Amount"
-        value={formatCurrency(summary.topDebtorAmount)}
-        icon={<CreditCard className={iconClassName} />}
-        subtitle="Amount owed by top debtor"
-      />
-    </div>
-  );
-}
-
-// ============================================================
-// Debts Report Page Component
-// ============================================================
-
 function DebtsReportPage() {
-  // Date preset state
-  const [datePreset, setDatePreset] = useState<DateRangePreset>("today");
+  const {
+    datePreset,
+    setDatePreset,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    searchTerm,
+    setSearchTerm,
+    appliedFilters,
+    setAppliedFilters,
+    hasFetched,
+    setHasFetched,
+    isExporting,
+    setIsExporting,
+  } = useReportPageState();
 
-  // Filter state
-  const [filters, setFilters] = useState<ReportsFilterState>(() => ({
-    ...getDateRangeFromPreset("today"),
-  }));
-
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // Applied filters (only updated on Apply click)
-  const [appliedFilters, setAppliedFilters] = useState<ReportsFilterState>(
-    () => ({
-      ...getDateRangeFromPreset("today"),
-    })
-  );
-
-  // Track if we've fetched data (for auto-load on mount)
-  const [hasFetched, setHasFetched] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-
-  // Fetch branches for filter dropdown
   const { data: branches = [] } = useBranches();
 
   // Mapper function to transform DebtOrderRow to DebtsOrderRowPdf
@@ -225,8 +71,13 @@ function DebtsReportPage() {
         cashier: row.cashier?.name || "-",
       };
     },
-    []
+    [],
   );
+
+  // Auto-load on first render
+  useEffect(() => {
+    setHasFetched(true);
+  }, [setHasFetched]);
 
   // Combined params for debts orders list query
   const listParams: ReportListParams = useMemo(
@@ -236,7 +87,7 @@ function DebtsReportPage() {
       page,
       pageSize,
     }),
-    [appliedFilters, searchTerm, page, pageSize]
+    [appliedFilters, searchTerm, page, pageSize],
   );
 
   // Fetch debts orders (paginated for table)
@@ -392,31 +243,16 @@ function DebtsReportPage() {
         cell: ({ row }) => row.original.cashier?.name || "-",
       },
     ],
-    []
+    [],
   );
 
   // Filter handlers
   const handleFiltersChange = useCallback(
-    (newFilters: Partial<ReportsFilterState>) => {
-      setFilters((prev) => ({ ...prev, ...newFilters }));
+    (updates: Partial<typeof filters>) => {
+      setFilters((prev) => ({ ...prev, ...updates }));
     },
-    []
+    [setFilters],
   );
-
-  const handleApply = useCallback(() => {
-    setAppliedFilters({ ...filters });
-    setPage(1);
-    setHasFetched(true);
-  }, [filters]);
-
-  const handleReset = useCallback(() => {
-    const resetFilters = { ...getDateRangeFromPreset("today") };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    setSearchTerm("");
-    setPage(1);
-    setHasFetched(true);
-  }, []);
 
   const handleDatePresetChange = useCallback(
     (preset: DateRangePreset) => {
@@ -426,23 +262,23 @@ function DebtsReportPage() {
         handleFiltersChange(range);
       }
     },
-    [handleFiltersChange]
+    [setDatePreset, handleFiltersChange],
   );
 
-  // Pagination handlers
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize);
+  const handleApply = useCallback(() => {
+    setAppliedFilters({ ...filters });
     setPage(1);
-  }, []);
+    setHasFetched(true);
+  }, [filters, setAppliedFilters, setPage, setHasFetched]);
 
-  const handleSearchChange = useCallback((term: string) => {
-    setSearchTerm(term);
+  const handleReset = useCallback(() => {
+    const resetFilters = { ...getDateRangeFromPreset("today") };
+    setFilters(resetFilters);
+    setAppliedFilters(resetFilters);
+    setSearchTerm("");
     setPage(1);
-  }, []);
+    setHasFetched(true);
+  }, [setFilters, setAppliedFilters, setSearchTerm, setPage, setHasFetched]);
 
   return (
     <div className="space-y-6">
@@ -459,7 +295,36 @@ function DebtsReportPage() {
       />
 
       {/* Debts Summary Section */}
-      <DebtsSummaryCards summary={debtsSummary} isLoading={isSummaryLoading} />
+      <SummaryGrid
+        items={[
+          {
+            title: "Total Debts",
+            value: formatCurrency(debtsSummary.totalDebts),
+            icon: "DollarSign",
+            subtitle: "Sum of all pending orders",
+          },
+          {
+            title: "Unpaid Orders",
+            value: debtsSummary.unpaidOrders.toString(),
+            icon: "FileText",
+            subtitle: "Number of pending orders",
+          },
+          {
+            title: "Top Debtor",
+            value: debtsSummary.topDebtorName || "-",
+            icon: "User",
+            subtitle: "Customer with highest debt",
+          },
+          {
+            title: "Top Debt Amount",
+            value: formatCurrency(debtsSummary.topDebtorAmount),
+            icon: "CreditCard",
+            subtitle: "Amount owed by top debtor",
+          },
+        ]}
+        isLoading={isSummaryLoading}
+        columns={"4"}
+      />
 
       {/* Debts Orders Table Section */}
       <div className="space-y-4">
@@ -475,9 +340,10 @@ function DebtsReportPage() {
             onClick={handleExportPdf}
             disabled={!hasFetched || rows.length === 0 || isExporting}
             variant="outline"
+            isSubmitting={isExporting}
           >
-            <FileDown className="mr-2 h-4 w-4" />
-            {isExporting ? "Exporting..." : "Export PDF"}
+            <Icon name="FileDown" className="mr-2 h-4 w-4" />
+            Export PDF
           </Button>
         </div>
 
@@ -488,7 +354,10 @@ function DebtsReportPage() {
           onRefetch={() => refetch()}
           search={{
             term: searchTerm,
-            onTermChange: handleSearchChange,
+            onTermChange: (term) => {
+              setSearchTerm(term);
+              setPage(1);
+            },
             keys: ["orderNumber" as keyof DebtOrderRow],
           }}
           pagination={{
@@ -496,8 +365,11 @@ function DebtsReportPage() {
             page: page,
             pageSize: pageSize,
             totalPages: meta.totalPages,
-            onPageChange: handlePageChange,
-            onPageSizeChange: handlePageSizeChange,
+            onPageChange: setPage,
+            onPageSizeChange: (size) => {
+              setPageSize(size);
+              setPage(1);
+            },
           }}
         />
       </div>

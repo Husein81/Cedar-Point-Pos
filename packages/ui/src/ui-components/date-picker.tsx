@@ -1,6 +1,6 @@
 "use client";
-import { ChevronDownIcon } from "lucide-react";
-import { Shad, Label, SButton } from "../components";
+
+import { Shad, Label, SButton, Icon } from "../components";
 import { Calendar } from "../components/calendar";
 
 type Props = {
@@ -33,7 +33,7 @@ export function DatePicker({
             className="w-48 justify-between font-normal"
           >
             {date ? date.toLocaleDateString() : "Select date"}
-            <ChevronDownIcon />
+            <Icon name="Calendar" />
           </SButton>
         </Shad.PopoverTrigger>
         <Shad.PopoverContent

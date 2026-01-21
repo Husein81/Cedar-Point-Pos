@@ -1,81 +1,31 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Button } from "@repo/ui";
-import { FileDown, Users, UserCheck, Trophy, DollarSign } from "lucide-react";
-import { ReportsFilterBar } from "@/components/reports";
+import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
-import { useCustomersReportList, useCustomersReport } from "@/hooks/useReports";
-import { exportCustomersReportPdf } from "@/pdf/utils/exportCustomersReportPdf";
-import { formatDateTime } from "@/pdf/utils/formatters";
-import type {
-  CustomerReportRow,
-  ReportsFilterState,
-  ReportListParams,
-  DateRangePreset,
-} from "@/types/reports";
+import { useReportPageState } from "@/hooks/useReportPageState";
+import { useCustomersReport, useCustomersReportList } from "@/hooks/useReports";
 import type {
   CustomerReportRowPdf,
   CustomersReportSummary,
 } from "@/pdf/customers/CustomersReportPdf";
+import { exportCustomersReportPdf } from "@/pdf/utils/exportCustomersReportPdf";
+import { formatDateTime } from "@/pdf/utils/formatters";
+import type {
+  CustomerReportRow,
+  DateRangePreset,
+  ReportListParams,
+} from "@/types/reports";
+import {
+  formatCurrency,
+  formatDate,
+  getDateRangeFromPreset,
+} from "@/utils/reportHelpers";
+import { Button, DataTable, Icon } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { ColumnDef } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/customers")({
   component: CustomersReportPage,
 });
-
-// ============================================================
-// Helpers
-// ============================================================
-
-const getDateRangeFromPreset = (
-  preset: DateRangePreset
-): { from: Date; to: Date } => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setMilliseconds(-1);
-
-  switch (preset) {
-    case "today":
-      return { from: today, to: tomorrow };
-    case "yesterday": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { from: yesterday, to: today };
-    }
-    case "this_week": {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      return { from: startOfWeek, to: tomorrow };
-    }
-    case "this_month": {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: startOfMonth, to: tomorrow };
-    }
-    case "custom":
-    default:
-      return { from: today, to: tomorrow };
-  }
-};
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-// ============================================================
-// Customers Summary Types
-// ============================================================
 
 interface CustomersSummaryData {
   totalCustomers: number;
@@ -85,113 +35,26 @@ interface CustomersSummaryData {
   averageCustomerSpend: number;
 }
 
-// ============================================================
-// Customers Summary Cards Component
-// ============================================================
-
-interface SummaryCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  subtitle?: string;
-}
-
-function SummaryCard({ title, value, icon, subtitle }: SummaryCardProps) {
-  return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="rounded-md bg-muted p-2">{icon}</div>
-      </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
-      {subtitle && (
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-interface CustomersSummaryCardsProps {
-  summary: CustomersSummaryData;
-  isLoading: boolean;
-}
-
-function CustomersSummaryCards({ summary, isLoading }: CustomersSummaryCardsProps) {
-  const iconClassName = "h-4 w-4 text-muted-foreground";
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-[120px] animate-pulse rounded-lg border bg-muted"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <SummaryCard
-        title="Total Customers"
-        value={summary.totalCustomers.toString()}
-        icon={<Users className={iconClassName} />}
-        subtitle="All customers for tenant"
-      />
-      <SummaryCard
-        title="Active Customers"
-        value={summary.activeCustomers.toString()}
-        icon={<UserCheck className={iconClassName} />}
-        subtitle="Customers with orders in range"
-      />
-      <SummaryCard
-        title="Top Customer"
-        value={summary.topCustomerName || "-"}
-        icon={<Trophy className={iconClassName} />}
-        subtitle="Highest revenue customer"
-      />
-      <SummaryCard
-        title="Avg. Customer Spend"
-        value={formatCurrency(summary.averageCustomerSpend)}
-        icon={<DollarSign className={iconClassName} />}
-        subtitle="Average per active customer"
-      />
-    </div>
-  );
-}
-
-// ============================================================
-// Customers Report Page Component
-// ============================================================
-
 function CustomersReportPage() {
-  // Date preset state
-  const [datePreset, setDatePreset] = useState<DateRangePreset>("today");
+  const {
+    datePreset,
+    setDatePreset,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    searchTerm,
+    setSearchTerm,
+    appliedFilters,
+    setAppliedFilters,
+    hasFetched,
+    setHasFetched,
+    isExporting,
+    setIsExporting,
+  } = useReportPageState();
 
-  // Filter state
-  const [filters, setFilters] = useState<ReportsFilterState>(() => ({
-    ...getDateRangeFromPreset("today"),
-  }));
-
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // Applied filters (only updated on Apply click)
-  const [appliedFilters, setAppliedFilters] = useState<ReportsFilterState>(
-    () => ({
-      ...getDateRangeFromPreset("today"),
-    })
-  );
-
-  // Track if we've fetched data (for auto-load on mount)
-  const [hasFetched, setHasFetched] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-
-  // Fetch branches for filter dropdown
   const { data: branches = [] } = useBranches();
 
   // Mapper function to transform CustomerReportRow to CustomerReportRowPdf
@@ -204,11 +67,18 @@ function CustomersReportPage() {
         ordersCount: row.ordersCount,
         totalSpent: row.totalSpent,
         outstandingDebt: row.outstandingDebt,
-        lastOrderDate: row.lastOrderDate ? formatDateTime(row.lastOrderDate) : "-",
+        lastOrderDate: row.lastOrderDate
+          ? formatDateTime(row.lastOrderDate)
+          : "-",
       };
     },
-    []
+    [],
   );
+
+  // Auto-load on first render
+  useEffect(() => {
+    setHasFetched(true);
+  }, [setHasFetched]);
 
   // Combined params for list query
   const listParams: ReportListParams = useMemo(
@@ -218,7 +88,7 @@ function CustomersReportPage() {
       page,
       pageSize,
     }),
-    [appliedFilters, searchTerm, page, pageSize]
+    [appliedFilters, searchTerm, page, pageSize],
   );
 
   // Fetch customers list (paginated for table)
@@ -239,11 +109,6 @@ function CustomersReportPage() {
     totalItems: 0,
     totalPages: 0,
   };
-
-  // Auto-load on first render
-  useEffect(() => {
-    setHasFetched(true);
-  }, []);
 
   // Calculate summary from full dataset
   const customersSummary = useMemo((): CustomersSummaryData => {
@@ -372,34 +237,21 @@ function CustomersReportPage() {
         accessorKey: "lastOrderDate",
         header: "Last Order",
         cell: ({ row }) =>
-          row.original.lastOrderDate ? formatDate(row.original.lastOrderDate) : "-",
+          row.original.lastOrderDate
+            ? formatDate(row.original.lastOrderDate)
+            : "-",
       },
     ],
-    []
+    [],
   );
 
   // Filter handlers
   const handleFiltersChange = useCallback(
-    (newFilters: Partial<ReportsFilterState>) => {
-      setFilters((prev) => ({ ...prev, ...newFilters }));
+    (updates: Partial<typeof filters>) => {
+      setFilters((prev) => ({ ...prev, ...updates }));
     },
-    []
+    [setFilters],
   );
-
-  const handleApply = useCallback(() => {
-    setAppliedFilters({ ...filters });
-    setPage(1);
-    setHasFetched(true);
-  }, [filters]);
-
-  const handleReset = useCallback(() => {
-    const resetFilters = { ...getDateRangeFromPreset("today") };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    setSearchTerm("");
-    setPage(1);
-    setHasFetched(true);
-  }, []);
 
   const handleDatePresetChange = useCallback(
     (preset: DateRangePreset) => {
@@ -409,23 +261,23 @@ function CustomersReportPage() {
         handleFiltersChange(range);
       }
     },
-    [handleFiltersChange]
+    [setDatePreset, handleFiltersChange],
   );
 
-  // Pagination handlers
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize);
+  const handleApply = useCallback(() => {
+    setAppliedFilters({ ...filters });
     setPage(1);
-  }, []);
+    setHasFetched(true);
+  }, [filters, setAppliedFilters, setPage, setHasFetched]);
 
-  const handleSearchChange = useCallback((term: string) => {
-    setSearchTerm(term);
+  const handleReset = useCallback(() => {
+    const resetFilters = { ...getDateRangeFromPreset("today") };
+    setFilters(resetFilters);
+    setAppliedFilters(resetFilters);
+    setSearchTerm("");
     setPage(1);
-  }, []);
+    setHasFetched(true);
+  }, [setFilters, setAppliedFilters, setSearchTerm, setPage, setHasFetched]);
 
   return (
     <div className="space-y-6">
@@ -442,7 +294,36 @@ function CustomersReportPage() {
       />
 
       {/* Customers Summary Section */}
-      <CustomersSummaryCards summary={customersSummary} isLoading={isSummaryLoading} />
+      <SummaryGrid
+        items={[
+          {
+            title: "Total Customers",
+            value: customersSummary.totalCustomers.toString(),
+            icon: "Users",
+            subtitle: "All customers for tenant",
+          },
+          {
+            title: "Active Customers",
+            value: customersSummary.activeCustomers.toString(),
+            icon: "UserCheck",
+            subtitle: "Customers with orders in range",
+          },
+          {
+            title: "Top Customer",
+            value: customersSummary.topCustomerName || "-",
+            icon: "Trophy",
+            subtitle: "Highest revenue customer",
+          },
+          {
+            title: "Avg. Customer Spend",
+            value: formatCurrency(customersSummary.averageCustomerSpend),
+            icon: "DollarSign",
+            subtitle: "Average per active customer",
+          },
+        ]}
+        isLoading={isSummaryLoading}
+        columns={"4"}
+      />
 
       {/* Customers Table Section */}
       <div className="space-y-4">
@@ -458,9 +339,10 @@ function CustomersReportPage() {
             onClick={handleExportPdf}
             disabled={!hasFetched || rows.length === 0 || isExporting}
             variant="outline"
+            isSubmitting={isExporting}
           >
-            <FileDown className="mr-2 h-4 w-4" />
-            {isExporting ? "Exporting..." : "Export PDF"}
+            <Icon name="FileDown" className="mr-2 h-4 w-4" />
+            Export PDF
           </Button>
         </div>
 
@@ -471,7 +353,10 @@ function CustomersReportPage() {
           onRefetch={() => refetch()}
           search={{
             term: searchTerm,
-            onTermChange: handleSearchChange,
+            onTermChange: (term) => {
+              setSearchTerm(term);
+              setPage(1);
+            },
             keys: ["name" as keyof CustomerReportRow],
           }}
           pagination={{
@@ -479,8 +364,11 @@ function CustomersReportPage() {
             page: page,
             pageSize: pageSize,
             totalPages: meta.totalPages,
-            onPageChange: handlePageChange,
-            onPageSizeChange: handlePageSizeChange,
+            onPageChange: setPage,
+            onPageSizeChange: (size) => {
+              setPageSize(size);
+              setPage(1);
+            },
           }}
         />
       </div>

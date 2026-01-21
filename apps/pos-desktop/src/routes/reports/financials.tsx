@@ -1,22 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Button } from "@repo/ui";
-import { DollarSign, TrendingUp, AlertCircle, Trophy, FileDown } from "lucide-react";
-import { ReportsFilterBar } from "@/components/reports";
+import { DataTable, Button, Icon } from "@repo/ui";
+import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
 import {
   useFinancialsReport,
   useProductsWithProfit,
   useCategoryRevenue,
 } from "@/hooks/useReports";
+import { useReportPageState } from "@/hooks/useReportPageState";
+import { getDateRangeFromPreset, formatCurrency } from "@/utils/reportHelpers";
 import { exportFinancialsReportPdf } from "@/pdf/utils/exportFinancialsReportPdf";
 import { formatDateTime } from "@/pdf/utils/formatters";
 import type {
-  ReportsFilterState,
-  DateRangePreset,
   ProductProfitRow,
   CategoryRevenueRow,
+  DateRangePreset,
 } from "@/types/reports";
 import type {
   ProductProfitRowPdf,
@@ -28,152 +28,23 @@ export const Route = createFileRoute("/reports/financials")({
   component: FinancialsReportPage,
 });
 
-// ============================================================
-// Helpers
-// ============================================================
-
-const getDateRangeFromPreset = (
-  preset: DateRangePreset
-): { from: Date; to: Date } => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setMilliseconds(-1);
-
-  switch (preset) {
-    case "today":
-      return { from: today, to: tomorrow };
-    case "yesterday": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { from: yesterday, to: today };
-    }
-    case "this_week": {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      return { from: startOfWeek, to: tomorrow };
-    }
-    case "this_month": {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: startOfMonth, to: tomorrow };
-    }
-    case "custom":
-    default:
-      return { from: today, to: tomorrow };
-  }
-};
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
-
-// ============================================================
-// Summary Cards Component
-// ============================================================
-
-interface SummaryCardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  subtitle?: string;
-}
-
-function SummaryCard({ title, value, icon, subtitle }: SummaryCardProps) {
-  return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="rounded-md bg-muted p-2">{icon}</div>
-      </div>
-      <p className="mt-2 text-2xl font-bold tracking-tight">{value}</p>
-      {subtitle && (
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-interface FinancialsSummaryCardsProps {
-  isLoading: boolean;
-  totalRevenue: number;
-  totalProfits: number;
-  totalDebts: number;
-  topProfitProductName: string | null;
-}
-
-function FinancialsSummaryCards({
-  isLoading,
-  totalRevenue,
-  totalProfits,
-  totalDebts,
-  topProfitProductName,
-}: FinancialsSummaryCardsProps) {
-  const iconClassName = "h-4 w-4 text-muted-foreground";
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-[120px] animate-pulse rounded-lg border bg-muted"
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <SummaryCard
-        title="Total Revenue"
-        value={formatCurrency(totalRevenue)}
-        icon={<DollarSign className={iconClassName} />}
-        subtitle="Revenue from completed orders"
-      />
-      <SummaryCard
-        title="Total Profits"
-        value={formatCurrency(totalProfits)}
-        icon={<TrendingUp className={iconClassName} />}
-        subtitle="Revenue minus cost of goods"
-      />
-      <SummaryCard
-        title="Total Debts"
-        value={formatCurrency(totalDebts)}
-        icon={<AlertCircle className={iconClassName} />}
-        subtitle="Pending & partially paid orders"
-      />
-      <SummaryCard
-        title="Top Profit Product"
-        value={topProfitProductName || "-"}
-        icon={<Trophy className={iconClassName} />}
-        subtitle="Highest profit-making product"
-      />
-    </div>
-  );
-}
-
-// ============================================================
-// Main Component
-// ============================================================
-
 function FinancialsReportPage() {
-  const [datePreset, setDatePreset] = useState<DateRangePreset>("today");
-  const [filters, setFilters] = useState<ReportsFilterState>(() => ({
-    ...getDateRangeFromPreset("today"),
-  }));
-
-  const [appliedFilters, setAppliedFilters] = useState<ReportsFilterState>(
-    () => ({
-      ...getDateRangeFromPreset("today"),
-    })
-  );
-
-  const [hasFetched, setHasFetched] = useState(false);
+  const {
+    datePreset,
+    setDatePreset,
+    filters,
+    setFilters,
+    page: _page,
+    setPage: _setPage,
+    pageSize: _pageSize,
+    setPageSize: _setPageSize,
+    searchTerm: _searchTerm,
+    setSearchTerm: _setSearchTerm,
+    appliedFilters,
+    setAppliedFilters,
+    hasFetched,
+    setHasFetched,
+  } = useReportPageState();
 
   const { data: branches = [] } = useBranches();
 
@@ -196,7 +67,7 @@ function FinancialsReportPage() {
   // Auto-load on first render
   useEffect(() => {
     setHasFetched(true);
-  }, []);
+  }, [setHasFetched]);
 
   const summary = useMemo(
     () => ({
@@ -205,7 +76,7 @@ function FinancialsReportPage() {
       totalDebts: financialsData?.totalDebts || 0,
       topProfitProductName: financialsData?.topProfitProductName || null,
     }),
-    [financialsData]
+    [financialsData],
   );
 
   // Get best sellers (top 5 by quantity)
@@ -250,7 +121,7 @@ function FinancialsReportPage() {
         cell: ({ row }) => `${row.original.margin.toFixed(2)}%`,
       },
     ],
-    []
+    [],
   );
 
   // Columns for Best Sellers
@@ -274,7 +145,7 @@ function FinancialsReportPage() {
         cell: ({ row }) => formatCurrency(row.original.revenue),
       },
     ],
-    []
+    [],
   );
 
   // Columns for Low Performance Products
@@ -300,7 +171,7 @@ function FinancialsReportPage() {
         cell: ({ row }) => formatCurrency(row.original.revenue),
       },
     ],
-    []
+    [],
   );
 
   // Columns for Category Revenue
@@ -328,27 +199,15 @@ function FinancialsReportPage() {
         ),
       },
     ],
-    []
+    [],
   );
 
   const handleFiltersChange = useCallback(
-    (newFilters: Partial<ReportsFilterState>) => {
-      setFilters((prev) => ({ ...prev, ...newFilters }));
+    (updates: Partial<typeof filters>) => {
+      setFilters((prev) => ({ ...prev, ...updates }));
     },
-    []
+    [setFilters],
   );
-
-  const handleApply = useCallback(() => {
-    setAppliedFilters({ ...filters });
-    setHasFetched(true);
-  }, [filters]);
-
-  const handleReset = useCallback(() => {
-    const resetFilters = { ...getDateRangeFromPreset("today") };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-    setHasFetched(true);
-  }, []);
 
   const handleDatePresetChange = useCallback(
     (preset: DateRangePreset) => {
@@ -358,14 +217,26 @@ function FinancialsReportPage() {
         handleFiltersChange(range);
       }
     },
-    [handleFiltersChange]
+    [setDatePreset, handleFiltersChange],
   );
+
+  const handleApply = useCallback(() => {
+    setAppliedFilters({ ...filters });
+    setHasFetched(true);
+  }, [filters, setAppliedFilters, setHasFetched]);
+
+  const handleReset = useCallback(() => {
+    const resetFilters = { ...getDateRangeFromPreset("today") };
+    setFilters(resetFilters);
+    setAppliedFilters(resetFilters);
+    setHasFetched(true);
+  }, [setFilters, setAppliedFilters, setHasFetched]);
 
   const handleExportPdf = useCallback(async () => {
     if (!financialsData) return;
 
     const selectedBranch = appliedFilters.branchId
-      ? branches.find(b => b.id === appliedFilters.branchId)
+      ? branches.find((b) => b.id === appliedFilters.branchId)
       : undefined;
 
     const dateRangeStr = `${formatDateTime(appliedFilters.from)} - ${formatDateTime(appliedFilters.to)}`;
@@ -377,22 +248,16 @@ function FinancialsReportPage() {
       topProfitProductName: financialsData.topProfitProductName,
     };
 
-    const profitProductsPdf: ProductProfitRowPdf[] = profitProducts.map(p => ({
-      productName: p.productName,
-      revenue: p.revenue,
-      profit: p.profit,
-      margin: p.margin,
-    }));
+    const profitProductsPdf: ProductProfitRowPdf[] = profitProducts.map(
+      (p) => ({
+        productName: p.productName,
+        revenue: p.revenue,
+        profit: p.profit,
+        margin: p.margin,
+      }),
+    );
 
-    const bestSellersPdf: ProductProfitRowPdf[] = bestSellers.map(p => ({
-      productName: p.productName,
-      revenue: p.revenue,
-      profit: p.profit,
-      margin: p.margin,
-      qtySold: p.qtySold,
-    }));
-
-    const lowPerformancePdf: ProductProfitRowPdf[] = lowPerformanceProducts.map(p => ({
+    const bestSellersPdf: ProductProfitRowPdf[] = bestSellers.map((p) => ({
       productName: p.productName,
       revenue: p.revenue,
       profit: p.profit,
@@ -400,7 +265,17 @@ function FinancialsReportPage() {
       qtySold: p.qtySold,
     }));
 
-    const categoriesPdf: CategoryRevenueRowPdf[] = categoryData.map(c => ({
+    const lowPerformancePdf: ProductProfitRowPdf[] = lowPerformanceProducts.map(
+      (p) => ({
+        productName: p.productName,
+        revenue: p.revenue,
+        profit: p.profit,
+        margin: p.margin,
+        qtySold: p.qtySold,
+      }),
+    );
+
+    const categoriesPdf: CategoryRevenueRowPdf[] = categoryData.map((c) => ({
       categoryName: c.categoryName,
       revenue: c.revenue,
       profit: c.profit,
@@ -416,7 +291,15 @@ function FinancialsReportPage() {
       lowPerformance: lowPerformancePdf,
       categories: categoriesPdf,
     });
-  }, [financialsData, appliedFilters, branches, profitProducts, bestSellers, lowPerformanceProducts, categoryData]);
+  }, [
+    financialsData,
+    appliedFilters,
+    branches,
+    profitProducts,
+    bestSellers,
+    lowPerformanceProducts,
+    categoryData,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -435,9 +318,35 @@ function FinancialsReportPage() {
       />
 
       {/* Summary Cards */}
-      <FinancialsSummaryCards
+      <SummaryGrid
+        items={[
+          {
+            title: "Total Revenue",
+            value: formatCurrency(financialsData?.totalRevenue || 0),
+            icon: "DollarSign",
+            subtitle: "Revenue from completed orders",
+          },
+          {
+            title: "Total Profits",
+            value: formatCurrency(financialsData?.totalProfits || 0),
+            icon: "TrendingUp",
+            subtitle: "Revenue minus cost of goods",
+          },
+          {
+            title: "Total Debts",
+            value: formatCurrency(financialsData?.totalDebts || 0),
+            icon: "CircleAlert",
+            subtitle: "Pending & partially paid orders",
+          },
+          {
+            title: "Top Profit Product",
+            value: financialsData?.topProfitProductName || "-",
+            icon: "Trophy",
+            subtitle: "Highest profit-making product",
+          },
+        ]}
         isLoading={isSummaryLoading}
-        {...summary}
+        columns={"4"}
       />
 
       {/* Export PDF Button */}
@@ -448,7 +357,7 @@ function FinancialsReportPage() {
           onClick={handleExportPdf}
           disabled={isSummaryLoading || !financialsData}
         >
-          <FileDown className="h-4 w-4 mr-2" />
+          <Icon name="FileDown" className="h-4 w-4 mr-2" />
           Export PDF
         </Button>
       </div>
@@ -467,7 +376,7 @@ function FinancialsReportPage() {
             columns={profitProductsColumns}
             data={profitProducts}
             isLoading={isProfitProductsLoading}
-            onRefetch={() => { }}
+            onRefetch={() => {}}
           />
         </div>
 
@@ -483,7 +392,7 @@ function FinancialsReportPage() {
             columns={bestSellersColumns}
             data={bestSellers}
             isLoading={isAllProductsLoading}
-            onRefetch={() => { }}
+            onRefetch={() => {}}
           />
         </div>
 
@@ -499,7 +408,7 @@ function FinancialsReportPage() {
             columns={lowPerformanceColumns}
             data={lowPerformanceProducts}
             isLoading={isAllProductsLoading}
-            onRefetch={() => { }}
+            onRefetch={() => {}}
           />
         </div>
 
@@ -515,7 +424,7 @@ function FinancialsReportPage() {
             columns={categoryColumns}
             data={categoryData}
             isLoading={isCategoryLoading}
-            onRefetch={() => { }}
+            onRefetch={() => {}}
           />
         </div>
       </div>

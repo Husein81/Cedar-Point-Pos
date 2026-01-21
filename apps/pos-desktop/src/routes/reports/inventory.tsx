@@ -1,19 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable, Badge, Button } from "@repo/ui";
 import { FileDown } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useReportPageState } from "@/hooks/useReportPageState";
 import { useInventoryMovementsReport } from "@/hooks/useReports";
 import { exportInventoryMovementsReportPdf } from "@/pdf/utils/exportInventoryMovementsReportPdf";
-import { formatDate as formatDatePdf, formatDateTime } from "@/pdf/utils/formatters";
-import type {
-  InventoryMovementRow,
-  ReportsFilterState,
-  ReportListParams,
-  DateRangePreset,
-} from "@/types/reports";
+import {
+  formatDate as formatDatePdf,
+  formatDateTime,
+} from "@/pdf/utils/formatters";
+import {
+  getDateRangeFromPreset,
+  formatDate,
+  getChangeTypeVariant,
+  formatChangeType,
+} from "@/utils/reportHelpers";
+import type { InventoryMovementRow, ReportListParams } from "@/types/reports";
 import type {
   InventoryMovementRowPdf,
   InventoryMovementsReportSummary,
@@ -23,82 +28,25 @@ export const Route = createFileRoute("/reports/inventory")({
   component: InventoryReportPage,
 });
 
-// TODO: This is a complete implementation following the Sales pattern
-
-const getDateRangeFromPreset = (
-  preset: DateRangePreset
-): { from: Date; to: Date } => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setMilliseconds(-1);
-
-  switch (preset) {
-    case "today":
-      return { from: today, to: tomorrow };
-    case "yesterday": {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return { from: yesterday, to: today };
-    }
-    case "this_week": {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      return { from: startOfWeek, to: tomorrow };
-    }
-    case "this_month": {
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: startOfMonth, to: tomorrow };
-    }
-    default:
-      return { from: today, to: tomorrow };
-  }
-};
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-const getChangeTypeVariant = (
-  type: string
-): "default" | "secondary" | "destructive" | "outline" => {
-  switch (type) {
-    case "SALE":
-    case "ORDER_DEDUCTION":
-    case "TRANSFER_OUT":
-      return "destructive";
-    case "REFUND":
-    case "TRANSFER_IN":
-      return "default";
-    case "SET_STOCK":
-    case "ADJUST_STOCK":
-      return "secondary";
-    default:
-      return "outline";
-  }
-};
-
-const formatChangeType = (type: string) =>
-  type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-
 function InventoryReportPage() {
-  const [datePreset, setDatePreset] = useState<DateRangePreset>("today");
-  const [filters, setFilters] = useState<ReportsFilterState>(() => ({
-    ...getDateRangeFromPreset("today"),
-  }));
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [appliedFilters, setAppliedFilters] =
-    useState<ReportsFilterState>(filters);
-  const [hasFetched, setHasFetched] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const {
+    datePreset,
+    setDatePreset,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    searchTerm,
+    setSearchTerm,
+    appliedFilters,
+    setAppliedFilters,
+    hasFetched,
+    setHasFetched,
+    isExporting,
+    setIsExporting,
+  } = useReportPageState("today");
 
   const { data: branches = [] } = useBranches();
 
@@ -116,7 +64,7 @@ function InventoryReportPage() {
         branch: row.branch.name,
       };
     },
-    []
+    [],
   );
 
   const listParams: ReportListParams = useMemo(
@@ -126,7 +74,7 @@ function InventoryReportPage() {
       page,
       pageSize,
     }),
-    [appliedFilters, searchTerm, page, pageSize]
+    [appliedFilters, searchTerm, page, pageSize],
   );
 
   const { data, isLoading, refetch } = useInventoryMovementsReport(listParams, {
@@ -134,29 +82,32 @@ function InventoryReportPage() {
   });
 
   const handleFiltersChange = useCallback(
-    (updates: Partial<ReportsFilterState>) => {
-      setFilters((prev: ReportsFilterState) => ({ ...prev, ...updates }));
+    (updates: Partial<typeof filters>) => {
+      setFilters((prev) => ({ ...prev, ...updates }));
     },
-    []
+    [setFilters],
   );
 
-  const handleDatePresetChange = useCallback((preset: DateRangePreset) => {
-    setDatePreset(preset);
-    if (preset !== "custom") {
-      const dateRange = getDateRangeFromPreset(preset);
-      setFilters((prev: ReportsFilterState) => ({
-        ...prev,
-        from: dateRange.from,
-        to: dateRange.to,
-      }));
-    }
-  }, []);
+  const handleDatePresetChange = useCallback(
+    (preset) => {
+      setDatePreset(preset);
+      if (preset !== "custom") {
+        const dateRange = getDateRangeFromPreset(preset);
+        setFilters((prev) => ({
+          ...prev,
+          from: dateRange.from,
+          to: dateRange.to,
+        }));
+      }
+    },
+    [setDatePreset, setFilters],
+  );
 
   const handleApply = useCallback(() => {
     setAppliedFilters(filters);
     setPage(1);
     setHasFetched(true);
-  }, [filters]);
+  }, [filters, setAppliedFilters, setPage, setHasFetched]);
 
   const handleReset = useCallback(() => {
     const defaultFilters = getDateRangeFromPreset("today");
@@ -166,19 +117,30 @@ function InventoryReportPage() {
     setPage(1);
     setSearchTerm("");
     setHasFetched(true);
-  }, []);
+  }, [
+    setDatePreset,
+    setFilters,
+    setAppliedFilters,
+    setPage,
+    setSearchTerm,
+    setHasFetched,
+  ]);
 
   const columns: ColumnDef<InventoryMovementRow>[] = useMemo(
     () => [
       {
         accessorKey: "createdAt",
         header: "Date",
-        cell: ({ row }) => <span className="text-sm">{formatDate(row.original.createdAt)}</span>,
+        cell: ({ row }) => (
+          <span className="text-sm">{formatDate(row.original.createdAt)}</span>
+        ),
       },
       {
         accessorKey: "product",
         header: "Product",
-        cell: ({ row }) => <span className="font-medium">{row.original.product.name}</span>,
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.product.name}</span>
+        ),
       },
       {
         accessorKey: "changeType",
@@ -206,8 +168,11 @@ function InventoryReportPage() {
           const adj = row.original.adjustment;
           const isPositive = adj > 0;
           return (
-            <span className={isPositive ? "text-green-600" : "text-destructive"}>
-              {isPositive ? "+" : ""}{adj.toFixed(2)}
+            <span
+              className={isPositive ? "text-green-600" : "text-destructive"}
+            >
+              {isPositive ? "+" : ""}
+              {adj.toFixed(2)}
             </span>
           );
         },
@@ -215,7 +180,10 @@ function InventoryReportPage() {
       {
         accessorKey: "reason",
         header: "Reason",
-        cell: ({ row }) => row.original.reason || <span className="text-muted-foreground">-</span>,
+        cell: ({ row }) =>
+          row.original.reason || (
+            <span className="text-muted-foreground">-</span>
+          ),
       },
       {
         accessorKey: "user",
@@ -228,11 +196,16 @@ function InventoryReportPage() {
         cell: ({ row }) => row.original.branch.name,
       },
     ],
-    []
+    [],
   );
 
   const rows = data?.data ?? [];
-  const meta = data?.meta ?? { page: 1, pageSize: 25, totalItems: 0, totalPages: 0 };
+  const meta = data?.meta ?? {
+    page: 1,
+    pageSize: 25,
+    totalItems: 0,
+    totalPages: 0,
+  };
 
   const handleExportPdf = useCallback(async () => {
     if (!hasFetched || rows.length === 0) return;
@@ -243,8 +216,14 @@ function InventoryReportPage() {
 
       const summary: InventoryMovementsReportSummary = {
         totalMovements: rows.length,
-        totalIncrease: rows.reduce((sum, r) => sum + (r.adjustment > 0 ? r.adjustment : 0), 0),
-        totalDecrease: rows.reduce((sum, r) => sum + (r.adjustment < 0 ? Math.abs(r.adjustment) : 0), 0),
+        totalIncrease: rows.reduce(
+          (sum, r) => sum + (r.adjustment > 0 ? r.adjustment : 0),
+          0,
+        ),
+        totalDecrease: rows.reduce(
+          (sum, r) => sum + (r.adjustment < 0 ? Math.abs(r.adjustment) : 0),
+          0,
+        ),
       };
 
       const tenantName = "Pointverse POS";
@@ -288,7 +267,9 @@ function InventoryReportPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold">Inventory Movements</h2>
-              <p className="text-sm text-muted-foreground">{meta.totalItems} movements found</p>
+              <p className="text-sm text-muted-foreground">
+                {meta.totalItems} movements found
+              </p>
             </div>
             <Button
               onClick={handleExportPdf}
@@ -306,7 +287,10 @@ function InventoryReportPage() {
             onRefetch={() => refetch()}
             search={{
               term: searchTerm,
-              onTermChange: (t) => { setSearchTerm(t); setPage(1); },
+              onTermChange: (t) => {
+                setSearchTerm(t);
+                setPage(1);
+              },
               keys: ["changeType" as keyof InventoryMovementRow],
             }}
             pagination={{
@@ -315,19 +299,36 @@ function InventoryReportPage() {
               pageSize,
               totalPages: meta.totalPages,
               onPageChange: setPage,
-              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+              onPageSizeChange: (s) => {
+                setPageSize(s);
+                setPage(1);
+              },
             }}
           />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="rounded-full bg-muted p-4 mb-4">
-            <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="w-8 h-8 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">Generate Inventory Report</h3>
-          <p className="text-sm text-muted-foreground max-w-sm">Configure filters above and click Apply to load inventory data.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            Generate Inventory Report
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Configure filters above and click Apply to load inventory data.
+          </p>
         </div>
       )}
     </div>

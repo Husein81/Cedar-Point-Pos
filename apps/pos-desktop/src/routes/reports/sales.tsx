@@ -24,7 +24,7 @@ import { Badge, Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { ColumnDef } from "@tanstack/react-table";
 import { FileDown } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/sales")({
   component: SalesReportPage,

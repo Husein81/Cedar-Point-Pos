@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable, Button, Icon } from "@repo/ui";
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
@@ -60,16 +60,6 @@ function FinancialsReportPage() {
   // Fetch category revenue
   const { data: categoryData = [], isLoading: isCategoryLoading } =
     useCategoryRevenue(appliedFilters);
-
-  const summary = useMemo(
-    () => ({
-      totalRevenue: financialsData?.totalRevenue || 0,
-      totalProfits: financialsData?.totalProfits || 0,
-      totalDebts: financialsData?.totalDebts || 0,
-      topProfitProductName: financialsData?.topProfitProductName || null,
-    }),
-    [financialsData],
-  );
 
   // Get best sellers (top 5 by quantity)
   const bestSellers = useMemo(() => {
@@ -214,13 +204,13 @@ function FinancialsReportPage() {
 
   const handleApply = () => {
     setAppliedFilters({ ...filters });
-   }
+  };
 
   const handleReset = () => {
     const resetFilters = { ...getDateRangeFromPreset("today") };
     setFilters(resetFilters);
-    setAppliedFilters(resetFilters)
-  }
+    setAppliedFilters(resetFilters);
+  };
 
   const handleExportPdf = async () => {
     if (!financialsData) return;

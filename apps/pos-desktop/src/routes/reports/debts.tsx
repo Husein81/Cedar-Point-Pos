@@ -21,7 +21,7 @@ import {
 import { Badge, Button, DataTable, Icon } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { ColumnDef } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/debts")({
   component: DebtsReportPage,

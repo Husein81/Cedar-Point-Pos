@@ -3,19 +3,31 @@ import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
 import { Avatar, Icon, Shad } from "@repo/ui";
 import Appearance from "./appearance";
+import { useNavigate } from "@tanstack/react-router";
 
 const NavUser = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const logoutMutation = useLogout();
 
   const handleLogout = async () => {
+    navigate({ to: "/auth" });
     await logoutMutation.mutateAsync();
   };
 
   return (
     <Shad.DropdownMenu>
       <Shad.DropdownMenuTrigger>
-        <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
+        <div className="flex items-center text-muted-foreground gap-2 cursor-pointer px-3 py-1 hover:bg-primary rounded-sm ">
+          <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
+          <div className="flex flex-col leading-tight items-start hover:text-white">
+            <span className="text-sm font-medium ">
+              {user?.name || "User menu"}
+            </span>
+            <span className="text-xs ">{user?.role || "No email"}</span>
+          </div>
+          <Icon name="ChevronsUpDown" className="w-4 h-4 " />
+        </div>
       </Shad.DropdownMenuTrigger>
 
       <Shad.DropdownMenuContent align="start" className="sm:max-w-lg">

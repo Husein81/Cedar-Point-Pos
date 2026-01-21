@@ -1,6 +1,5 @@
 {
   "name": "pos-desktop",
-  "private": true,
   "productName": "PointVerse POS",
   "version": "1.0.0",
   "description": "PointVerse is an offline-first POS system for retail and restaurants.",
@@ -22,6 +21,7 @@
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.90.1",
     "electron-squirrel-startup": "^1.0.1",
+    "lodash": "^4.17.21",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "recharts": "^3.6.0"
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
     "@electron-forge/maker-deb": "^7.10.2",
+    "@electron-forge/maker-dmg": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.10.2",
     "@electron-forge/maker-squirrel": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
@@ -39,6 +40,7 @@
     "@repo/typescript-config": "workspace:*",
     "@tanstack/react-router": "^1.143.3",
     "@tanstack/router-plugin": "^1.143.3",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^24.10.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",

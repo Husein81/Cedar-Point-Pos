@@ -1,8 +1,11 @@
 import Actions from "@/components/common/Actions";
 import { formatPrice } from "@/components/orders/config";
-import { Order } from "@repo/types";
+import { RefundForm } from "@/components/refunds";
+import { useModalStore } from "@/store/modalStore";
+import { Order, OrderStatus } from "@repo/types";
 import { Badge, Icon } from "@repo/ui";
 import { ColumnDef } from "@tanstack/react-table";
+import { useNavigate } from "@tanstack/react-router";
 
 const statusConfig = {
   DRAFT: { label: "Draft", color: "bg-gray-500" },
@@ -12,7 +15,7 @@ const statusConfig = {
   IN_PROGRESS: { label: "In Progress", color: "bg-indigo-500" },
   SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
   READY: { label: "Ready", color: "bg-green-500" },
-  PAID: { label: "Paid", color: "bg-teal-600" },
+  FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
   COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   CANCELLED: { label: "Cancelled", color: "bg-red-500" },
 };
@@ -62,7 +65,9 @@ export const invoiceColumns: ColumnDef<Order>[] = [
       const status = row.original.status;
       const config = statusConfig[status];
       return (
-        <Badge className={`${config.color} text-white`}>{config.label}</Badge>
+        <Badge className={`${config.color! ?? "bg-gray-500"} text-white`}>
+          {config.label}
+        </Badge>
       );
     },
   },
@@ -97,6 +102,32 @@ export const invoiceColumns: ColumnDef<Order>[] = [
     },
   },
   {
+    accessorKey: "vat",
+    header: "VAT",
+    cell: ({ row }) => {
+      const vat = Number(row.original.vat || 0);
+      return vat > 0 ? (
+        <div className="text-sm text-green-600">+${formatPrice(vat)}</div>
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
+    accessorKey: "shippingFee",
+    header: "Shipping",
+    cell: ({ row }) => {
+      const shippingFee = Number(row.original.shippingFee || 0);
+      return shippingFee > 0 ? (
+        <div className="text-sm text-green-600">
+          +${formatPrice(shippingFee)}
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground">-</div>
+      );
+    },
+  },
+  {
     accessorKey: "total",
     header: "Total",
     cell: ({ row }) => (
@@ -104,6 +135,18 @@ export const invoiceColumns: ColumnDef<Order>[] = [
         ${formatPrice(Number(row.original.total))}
       </div>
     ),
+  },
+  {
+    accessorKey: "currencyCode",
+    header: "Currency",
+    cell: ({ row }) => {
+      const currencyCode = row.original.currencyCode || "USD";
+      return (
+        <div className="text-sm font-mono text-muted-foreground">
+          {currencyCode}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "createdAt",
@@ -123,21 +166,41 @@ export const invoiceColumns: ColumnDef<Order>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <Actions
-        actions={[
-          {
-            title: "View Order",
-            icon: "Eye",
-            onClick: () => {},
-          },
-          {
-            title: "Print Invoice",
-            icon: "Printer",
-            onClick: () => {},
-          },
-        ]}
-      />
-    ),
+    cell: ({ row }) => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const navigate = useNavigate();
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { openModal } = useModalStore();
+
+      const order = row.original;
+      const canRefund = order.status === OrderStatus.COMPLETED;
+
+      const handleRefund = () => {
+        openModal("Create Refund", <RefundForm orderId={order.id} />);
+      };
+
+      const actions = [
+        {
+          title: "View Order",
+          icon: "Eye",
+          onClick: () => navigate({ to: `/invoices/${order.id}` }),
+        },
+        {
+          title: "Print Invoice",
+          icon: "Printer",
+          onClick: () => {},
+        },
+      ];
+
+      if (canRefund) {
+        actions.push({
+          title: "Refund",
+          icon: "RotateCcw",
+          onClick: handleRefund,
+        });
+      }
+
+      return <Actions actions={actions} />;
+    },
   },
 ];

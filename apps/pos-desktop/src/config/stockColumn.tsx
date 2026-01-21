@@ -96,7 +96,7 @@ export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
       const stock = Number(row.original.stock);
       const minStock = Number(row.original.minStock);
 
-      if (stock === 0) {
+      if (stock <= 0) {
         return <Badge variant="destructive">Out of Stock</Badge>;
       } else if (stock <= minStock) {
         return <Badge className="bg-orange-500">Low Stock</Badge>;

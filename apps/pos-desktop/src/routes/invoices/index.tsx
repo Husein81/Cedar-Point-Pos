@@ -27,6 +27,11 @@ function InvoicesPage() {
     Number(data?.pagination?.totalCount ?? 1) / pageSize
   );
 
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1); // Reset to first page when page size changes
+  };
+
   return (
     <div className="space-y-4 pt-4">
       <Heading
@@ -42,7 +47,6 @@ function InvoicesPage() {
           options={[
             // { label: "All Statuses", value: "" },
             { label: "Completed", value: "COMPLETED" },
-            { label: "Paid", value: "PAID" },
             { label: "Ready", value: "READY" },
             { label: "In Progress", value: "IN_PROGRESS" },
             { label: "Confirmed", value: "CONFIRMED" },
@@ -82,9 +86,9 @@ function InvoicesPage() {
           page,
           totalPages,
           pageSize,
-          rows: orders.length,
+          rows: data?.pagination?.totalCount || 0,
           onPageChange: setPage,
-          onPageSizeChange: setPageSize,
+          onPageSizeChange: handlePageSizeChange,
         }}
       />
     </div>

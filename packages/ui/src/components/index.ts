@@ -39,6 +39,11 @@ import {
   CarouselNext,
 } from "./carousel";
 import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./collapsible";
+import {
   Command,
   CommandDialog,
   CommandInput,
@@ -196,6 +201,8 @@ export { Separator } from "./separator";
 export { Skeleton } from "./skeleton";
 export { Switch } from "./switch";
 export { Textarea } from "./textarea";
+export { Toaster } from "./sonner";
+export { useSidebar } from "./sidebar";
 
 export const Shad = {
   Avatar,
@@ -234,6 +241,9 @@ export const Shad = {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
   Command,
   CommandDialog,
   CommandInput,

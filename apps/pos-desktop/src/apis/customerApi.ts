@@ -1,12 +1,12 @@
-import type { PaginationResponse, QueryParams } from "@repo/types";
-import { api } from "./api";
 import type {
-  CustomerSummary,
+  CreateCustomerDto,
   CustomerDetails,
   CustomerFullDetails,
   CustomerOrder,
-  CreateCustomerDto,
+  CustomerSummary,
 } from "@/dto/customer.dto";
+import type { PaginationResponse, QueryParams } from "@repo/types";
+import { api } from "./api";
 
 export const customerApi = {
   /**

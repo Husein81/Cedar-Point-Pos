@@ -1,27 +1,6 @@
 import type { Category, QueryParams } from "@repo/types";
 import { api } from "./api";
-
-export interface CreateCategoryDto {
-  name: string;
-  code?: string;
-  description?: string;
-}
-
-export interface UpdateCategoryDto {
-  name?: string;
-  code?: string;
-  description?: string;
-}
-
-export interface CategoryWithSubcategories extends Category {
-  subcategories?: Array<{
-    id: string;
-    categoryId: string;
-    name: string;
-    description?: string | null;
-    isDeleted: boolean;
-  }> | null;
-}
+import { CategoryWithSubcategories, CreateCategoryDto, UpdateCategoryDto } from "@/dto/category.dto";
 
 export const categoryApi = {
   getCategories: async (

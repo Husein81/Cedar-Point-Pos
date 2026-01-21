@@ -2,23 +2,39 @@ import { Product } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
 import { useOrderStore } from "@/store/orderStore";
+import { useBranchStore } from "@/store/branchStore";
 
 type Props = {
   product: Product;
 };
 
-// Format currency for Lebanese retail (LBP)
 const ProductCard = ({ product }: Props) => {
-  const { addItem } = useOrderStore();
-  const hasImage = !!product.imageUrl;
+  const { addItem, getActiveOrder } = useOrderStore();
+  const { branchId } = useBranchStore();
 
-  // Check if product has any stock
+  const { items } = getActiveOrder() || { items: [] };
+
+  const item = items.find((i) => i.productId === product.id);
+
+  // Get branch-specific stock (more accurate than summing all branches)
+  const branchInventory = product.inventory?.find(
+    (inv) => inv.branchId === branchId
+  );
+  const currentStock = branchInventory ? Number(branchInventory.stock) : 0;
+
+  // Fallback to total stock if no branch-specific inventory
   const totalStock =
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
-  const isOutOfStock = totalStock === 0;
+  const displayStock = branchInventory ? currentStock : totalStock;
+
+  const isOutOfStock = displayStock <= 0;
+
+  // Calculate resulting stock after adding one more (or current cart quantity + 1)
+  const cartQuantity = item?.quantity ?? 0;
+  const resultingStockIfAdded = displayStock - (cartQuantity + 1);
+  const isNegative = resultingStockIfAdded < 0 || isOutOfStock;
 
   const handleAddItem = () => {
-    if (isOutOfStock) return;
     addItem({
       productId: product.id,
       name: product.name,
@@ -32,60 +48,63 @@ const ProductCard = ({ product }: Props) => {
     <Shad.Card
       onClick={handleAddItem}
       className={cn(
-        "flex flex-col p-0 gap-0 h-full w-full overflow-hidden group/card",
-        isOutOfStock ? "cursor-not-allowed opacity-50" : "cursor-pointer",
-        "border-border/50",
-        !isOutOfStock && "hover:border-primary/30 hover:shadow-md",
-        "transition-all duration-200",
-        !isOutOfStock && "active:scale-[0.98]"
+        "relative overflow-hidden rounded-md border",
+        "h-37.5 w-full p-0",
+        "bg-background transition",
+        "cursor-pointer",
+        isOutOfStock
+          ? "opacity-60"
+          : "hover:ring-1 hover:ring-primary/40 active:scale-[0.98]",
+        isNegative && !isOutOfStock && "ring-1 ring-amber-400"
       )}
     >
-      {/* Image Container - edge-to-edge, premium look */}
-      <div className="relative w-full h-40 overflow-hidden bg-muted/20 shrink-0 border-b border-border/50">
-        {hasImage ? (
+      {/* Cart quantity badge */}
+      {item && (
+        <div
+          className={cn(
+            "absolute bottom-1 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
+           isNegative
+              ? "bg-amber-500/90 text-white"
+              : "bg-accent/40 text-primary"
+          )}
+        >
+          {`${item.quantity}`}
+        </div>
+      )}
+
+      {/* IMAGE (≈ 85–90%) */}
+      <div className="relative h-2/3 w-full bg-muted">
+        {product.imageUrl ? (
           <img
-            src={product.imageUrl!}
+            src={product.imageUrl}
             alt={product.name}
-            className={cn(
-              "w-full h-full object-cover object-center transition-transform duration-300",
-              !isOutOfStock && "group-hover/card:scale-105"
-            )}
+            className="w-full h-full object-cover"
             draggable={false}
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-muted/30 to-muted/60">
-            <Icon
-              name="Package"
-              className="w-10 h-10 text-muted-foreground/50"
-            />
+          <div className="w-full h-full flex items-center justify-center bg-muted/40">
+            <Icon name="Package" className="w-8 h-8 text-muted-foreground/60" />
           </div>
         )}
 
-        {/* Out of Stock Badge */}
+        {/* PRICE OVERLAY */}
+        <div className="absolute top-1 right-1 px-2 py-0.5 rounded-md bg-background/90 backdrop-blur text-xs font-bold text-primary shadow">
+          ${formatPrice(Number(product.price))}
+        </div>
+
+        {/* OUT OF STOCK OVERLAY */}
         {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <span className="text-white font-semibold text-sm px-3 py-1 bg-destructive rounded">
-              Out of Stock
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="px-3 py-1 text-xs font-semibold text-white bg-destructive rounded">
+              OUT OF STOCK
             </span>
           </div>
         )}
       </div>
-
-      {/* Content - clean hierarchy */}
-      <div className="flex flex-col p-3 gap-1.5 flex-1">
-        <p className="text-sm font-medium leading-tight line-clamp-2 h-10 cursor-default text-left">
+      <div className="h-[15%] px-2 flex items-center">
+        <p className="text-xs font-medium truncate leading-tight">
           {product.name}
-        </p>
-
-        <div className="flex items-baseline gap-1">
-          <span className="text-lg font-bold text-primary">
-            ${formatPrice(Number(product.price))}
-          </span>
-        </div>
-
-        <p className="text-xs text-muted-foreground/70 truncate font-mono h-4 text-left">
-          {product.barcode ?? ""}
         </p>
       </div>
     </Shad.Card>

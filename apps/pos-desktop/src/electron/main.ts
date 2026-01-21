@@ -34,6 +34,7 @@ const createWindow = () => {
     width: 1280,
     height: 800,
     frame: false,
+    icon: path.join(__dirname, "../../public/assets/icon.png"),
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
@@ -41,7 +42,7 @@ const createWindow = () => {
     },
   });
 
-  mainWindow.setMinimumSize(800, 600);
+  mainWindow.setMinimumSize(1000, 600);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -59,6 +60,7 @@ const createWindow = () => {
     mainWindow.webContents.closeDevTools();
   }
 };
+
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
@@ -68,3 +70,5 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
+
+app.setAppUserModelId("com.squirrel.husein.pointverse");

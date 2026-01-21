@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  categoryApi,
   CreateCategoryDto,
   UpdateCategoryDto,
   CategoryWithSubcategories,
-} from "../apis/categoryApi";
+} from "@/dto/category.dto";
 import type { QueryParams } from "@repo/types";
+import { categoryApi } from "@/apis/categoryApi";
+import { Category } from "@repo/types";
 
 const CATEGORY_QUERY_KEY = ["categories"];
 

@@ -9,36 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ReportsRouteRouteImport } from './routes/reports/route'
+import { Route as CurrenciesRouteImport } from './routes/currencies'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
-import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
-import { Route as ReportsProductsRouteImport } from './routes/reports/products'
-import { Route as ReportsPaymentsRouteImport } from './routes/reports/payments'
-import { Route as ReportsInventoryRouteImport } from './routes/reports/inventory'
-import { Route as ReportsFinancialsRouteImport } from './routes/reports/financials'
-import { Route as ReportsDebtsRouteImport } from './routes/reports/debts'
-import { Route as ReportsCustomersRouteImport } from './routes/reports/customers'
+import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
+import { Route as InvoicesOrderIdRouteImport } from './routes/invoices/$orderId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers/$customerId'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories/$categoryId'
 
-const TransfersRoute = TransfersRouteImport.update({
-  id: '/transfers',
-  path: '/transfers',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TablesRoute = TablesRouteImport.update({
   id: '/tables',
   path: '/tables',
@@ -47,6 +40,16 @@ const TablesRoute = TablesRouteImport.update({
 const StockRoute = StockRouteImport.update({
   id: '/stock',
   path: '/stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundsRoute = RefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipesRoute = RecipesRouteImport.update({
@@ -64,9 +67,14 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRouteRoute = ReportsRouteRouteImport.update({
-  id: '/reports',
-  path: '/reports',
+const CurrenciesRoute = CurrenciesRouteImport.update({
+  id: '/currencies',
+  path: '/currencies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -77,6 +85,11 @@ const IndexRoute = IndexRouteImport.update({
 const SuppliersIndexRoute = SuppliersIndexRouteImport.update({
   id: '/suppliers/',
   path: '/suppliers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsIndexRoute = ProductsIndexRouteImport.update({
@@ -104,44 +117,19 @@ const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
   path: '/categories/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsSalesRoute = ReportsSalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsProductsRoute = ReportsProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsPaymentsRoute = ReportsPaymentsRouteImport.update({
-  id: '/payments',
-  path: '/payments',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsInventoryRoute = ReportsInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsFinancialsRoute = ReportsFinancialsRouteImport.update({
-  id: '/financials',
-  path: '/financials',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsDebtsRoute = ReportsDebtsRouteImport.update({
-  id: '/debts',
-  path: '/debts',
-  getParentRoute: () => ReportsRouteRoute,
-} as any)
-const ReportsCustomersRoute = ReportsCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
-  getParentRoute: () => ReportsRouteRoute,
+const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
+  id: '/settings/currencies',
+  path: '/settings/currencies',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   id: '/products/$productId',
   path: '/products/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicesOrderIdRoute = InvoicesOrderIdRouteImport.update({
+  id: '/invoices/$orderId',
+  path: '/invoices/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomersCustomerIdRoute = CustomersCustomerIdRouteImport.update({
@@ -157,193 +145,179 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/reports': typeof ReportsRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
+  '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
-  '/reports/customers': typeof ReportsCustomersRoute
-  '/reports/debts': typeof ReportsDebtsRoute
-  '/reports/financials': typeof ReportsFinancialsRoute
-  '/reports/inventory': typeof ReportsInventoryRoute
-  '/reports/payments': typeof ReportsPaymentsRoute
-  '/reports/products': typeof ReportsProductsRoute
-  '/reports/sales': typeof ReportsSalesRoute
+  '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/reports': typeof ReportsRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
+  '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
-  '/reports/customers': typeof ReportsCustomersRoute
-  '/reports/debts': typeof ReportsDebtsRoute
-  '/reports/financials': typeof ReportsFinancialsRoute
-  '/reports/inventory': typeof ReportsInventoryRoute
-  '/reports/payments': typeof ReportsPaymentsRoute
-  '/reports/products': typeof ReportsProductsRoute
-  '/reports/sales': typeof ReportsSalesRoute
+  '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/reports': typeof ReportsRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
+  '/refunds': typeof RefundsRoute
+  '/reports': typeof ReportsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
-  '/transfers': typeof TransfersRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/customers/$customerId': typeof CustomersCustomerIdRoute
+  '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
-  '/reports/customers': typeof ReportsCustomersRoute
-  '/reports/debts': typeof ReportsDebtsRoute
-  '/reports/financials': typeof ReportsFinancialsRoute
-  '/reports/inventory': typeof ReportsInventoryRoute
-  '/reports/payments': typeof ReportsPaymentsRoute
-  '/reports/products': typeof ReportsProductsRoute
-  '/reports/sales': typeof ReportsSalesRoute
+  '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/reports'
+    | '/auth'
+    | '/currencies'
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
+    | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
-    | '/reports/customers'
-    | '/reports/debts'
-    | '/reports/financials'
-    | '/reports/inventory'
-    | '/reports/payments'
-    | '/reports/products'
-    | '/reports/sales'
+    | '/settings/currencies'
     | '/categories'
     | '/customers'
     | '/invoices'
     | '/orders'
     | '/products'
+    | '/settings'
     | '/suppliers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/reports'
+    | '/auth'
+    | '/currencies'
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
+    | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
-    | '/reports/customers'
-    | '/reports/debts'
-    | '/reports/financials'
-    | '/reports/inventory'
-    | '/reports/payments'
-    | '/reports/products'
-    | '/reports/sales'
+    | '/settings/currencies'
     | '/categories'
     | '/customers'
     | '/invoices'
     | '/orders'
     | '/products'
+    | '/settings'
     | '/suppliers'
   id:
     | '__root__'
     | '/'
-    | '/reports'
+    | '/auth'
+    | '/currencies'
     | '/dashboard'
     | '/payments'
     | '/recipes'
+    | '/refunds'
+    | '/reports'
     | '/stock'
     | '/tables'
-    | '/transfers'
     | '/categories/$categoryId'
     | '/customers/$customerId'
+    | '/invoices/$orderId'
     | '/products/$productId'
-    | '/reports/customers'
-    | '/reports/debts'
-    | '/reports/financials'
-    | '/reports/inventory'
-    | '/reports/payments'
-    | '/reports/products'
-    | '/reports/sales'
+    | '/settings/currencies'
     | '/categories/'
     | '/customers/'
     | '/invoices/'
     | '/orders/'
     | '/products/'
+    | '/settings/'
     | '/suppliers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ReportsRouteRoute: typeof ReportsRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  CurrenciesRoute: typeof CurrenciesRoute
   DashboardRoute: typeof DashboardRoute
   PaymentsRoute: typeof PaymentsRoute
   RecipesRoute: typeof RecipesRoute
+  RefundsRoute: typeof RefundsRoute
+  ReportsRoute: typeof ReportsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
-  TransfersRoute: typeof TransfersRoute
   CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
+  InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
+  SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/transfers': {
-      id: '/transfers'
-      path: '/transfers'
-      fullPath: '/transfers'
-      preLoaderRoute: typeof TransfersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tables': {
       id: '/tables'
       path: '/tables'
@@ -356,6 +330,20 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/stock'
       preLoaderRoute: typeof StockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refunds': {
+      id: '/refunds'
+      path: '/refunds'
+      fullPath: '/refunds'
+      preLoaderRoute: typeof RefundsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipes': {
@@ -379,11 +367,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteRouteImport
+    '/currencies': {
+      id: '/currencies'
+      path: '/currencies'
+      fullPath: '/currencies'
+      preLoaderRoute: typeof CurrenciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -398,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/suppliers'
       fullPath: '/suppliers'
       preLoaderRoute: typeof SuppliersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/': {
@@ -435,60 +437,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports/sales': {
-      id: '/reports/sales'
-      path: '/sales'
-      fullPath: '/reports/sales'
-      preLoaderRoute: typeof ReportsSalesRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/products': {
-      id: '/reports/products'
-      path: '/products'
-      fullPath: '/reports/products'
-      preLoaderRoute: typeof ReportsProductsRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/payments': {
-      id: '/reports/payments'
-      path: '/payments'
-      fullPath: '/reports/payments'
-      preLoaderRoute: typeof ReportsPaymentsRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/inventory': {
-      id: '/reports/inventory'
-      path: '/inventory'
-      fullPath: '/reports/inventory'
-      preLoaderRoute: typeof ReportsInventoryRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/financials': {
-      id: '/reports/financials'
-      path: '/financials'
-      fullPath: '/reports/financials'
-      preLoaderRoute: typeof ReportsFinancialsRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/debts': {
-      id: '/reports/debts'
-      path: '/debts'
-      fullPath: '/reports/debts'
-      preLoaderRoute: typeof ReportsDebtsRouteImport
-      parentRoute: typeof ReportsRouteRoute
-    }
-    '/reports/customers': {
-      id: '/reports/customers'
-      path: '/customers'
-      fullPath: '/reports/customers'
-      preLoaderRoute: typeof ReportsCustomersRouteImport
-      parentRoute: typeof ReportsRouteRoute
+    '/settings/currencies': {
+      id: '/settings/currencies'
+      path: '/settings/currencies'
+      fullPath: '/settings/currencies'
+      preLoaderRoute: typeof SettingsCurrenciesRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/products/$productId': {
       id: '/products/$productId'
       path: '/products/$productId'
       fullPath: '/products/$productId'
       preLoaderRoute: typeof ProductsProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices/$orderId': {
+      id: '/invoices/$orderId'
+      path: '/invoices/$orderId'
+      fullPath: '/invoices/$orderId'
+      preLoaderRoute: typeof InvoicesOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers/$customerId': {
@@ -534,21 +501,26 @@ const ReportsRouteRouteWithChildren = ReportsRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ReportsRouteRoute: ReportsRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  CurrenciesRoute: CurrenciesRoute,
   DashboardRoute: DashboardRoute,
   PaymentsRoute: PaymentsRoute,
   RecipesRoute: RecipesRoute,
+  RefundsRoute: RefundsRoute,
+  ReportsRoute: ReportsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
-  TransfersRoute: TransfersRoute,
   CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
+  InvoicesOrderIdRoute: InvoicesOrderIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
+  SettingsCurrenciesRoute: SettingsCurrenciesRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,
 }
 export const routeTree = rootRouteImport

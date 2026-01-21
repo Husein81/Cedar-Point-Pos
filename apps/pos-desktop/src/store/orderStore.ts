@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 // =====================
 // Types
 // =====================
-
 export type DiscountType = "PERCENTAGE" | "FIXED";
 
 export type OrderItem = {
@@ -16,6 +15,10 @@ export type OrderItem = {
   quantity: number;
   notes?: string;
   imageUrl?: string | null;
+  discount?: {
+    value: number;
+    type: "PERCENTAGE" | "FIXED";
+  };
 };
 
 export type OrderDiscount = {
@@ -30,6 +33,7 @@ export type Order = {
   items: OrderItem[];
   discount: OrderDiscount | null;
   shippingFee: number;
+  includeVAT: boolean;
   customerId: string | null;
   customerName: string | null;
   notes: string;
@@ -62,6 +66,7 @@ const createEmptyOrder = (): Order => ({
   type: undefined,
   discount: null,
   shippingFee: 0,
+  includeVAT: false,
   customerId: null,
   customerName: null,
   notes: "",
@@ -101,6 +106,11 @@ interface OrderStoreState {
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
   updateItemQuantity: (itemId: string, quantity: number) => void;
+  updateItemPrice: (itemId: string, price: number) => void;
+  updateItemDiscount: (
+    itemId: string,
+    discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+  ) => void;
   removeItem: (itemId: string) => void;
   clearOrder: () => void;
 
@@ -110,6 +120,10 @@ interface OrderStoreState {
   // Shipping fee actions
   setShippingFee: (fee: number) => void;
 
+  // VAT actions
+  toggleVAT: () => void;
+  setVAT: (includeVAT: boolean) => void;
+
   // Customer actions
   setCustomer: (customerId: string | null, customerName: string | null) => void;
 
@@ -118,7 +132,7 @@ interface OrderStoreState {
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
-  setOrderType: (type: string) => void;
+  setOrderType: (type?: string) => void;
   holdOrder: () => void;
   resumeOrder: () => void;
 
@@ -126,7 +140,9 @@ interface OrderStoreState {
   getActiveOrder: () => Order | null;
   getActiveTab: () => OrderTab | null;
   getOrderSubtotal: (tabId?: string) => number;
+  getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
+  getVATAmount: (tabId?: string) => number;
   getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
@@ -270,7 +286,7 @@ export const useOrderStore = create<OrderStoreState>()(
         if (!state.activeTabId) return;
 
         // Ensure quantity is at least 1
-        const validQuantity = Math.max(1, quantity);
+        const validQuantity = Math.max(0, quantity);
 
         set({
           tabs: state.tabs.map((tab) => {
@@ -284,6 +300,56 @@ export const useOrderStore = create<OrderStoreState>()(
                   item.id === itemId
                     ? { ...item, quantity: validQuantity }
                     : item
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemPrice: (itemId: string, price: number) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        // Ensure price is at least 0
+        const validPrice = Math.max(0, price);
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId ? { ...item, price: validPrice } : item
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemDiscount: (
+        itemId: string,
+        discount: { value: number; type: "PERCENTAGE" | "FIXED" }
+      ) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId ? { ...item, discount } : item
                 ),
                 modifiedAt: new Date(),
               },
@@ -381,6 +447,49 @@ export const useOrderStore = create<OrderStoreState>()(
       },
 
       // =====================
+      // VAT Actions
+      // =====================
+      toggleVAT: () => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                includeVAT: !tab.order.includeVAT,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      setVAT: (includeVAT: boolean) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                includeVAT,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      // =====================
       // Customer Actions
       // =====================
 
@@ -453,7 +562,7 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      setOrderType: (type: string) => {
+      setOrderType: (type?: string) => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -465,7 +574,7 @@ export const useOrderStore = create<OrderStoreState>()(
               ...tab,
               order: {
                 ...tab.order,
-                type: type as OrderType,
+                type: type ? (type as OrderType) : undefined,
                 modifiedAt: new Date(),
               },
             };
@@ -503,10 +612,45 @@ export const useOrderStore = create<OrderStoreState>()(
 
         if (!tab) return 0;
 
-        return tab.order.items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
+        // Calculate subtotal with item-level discounts applied
+        return tab.order.items.reduce((sum, item) => {
+          const lineTotal = item.price * item.quantity;
+
+          // Apply item-level discount if present
+          let itemDiscount = 0;
+          if (item.discount) {
+            if (item.discount.type === "PERCENTAGE") {
+              itemDiscount = lineTotal * (item.discount.value / 100);
+            } else {
+              // FIXED discount
+              itemDiscount = item.discount.value;
+            }
+          }
+
+          return sum + (lineTotal - itemDiscount);
+        }, 0);
+      },
+
+      // Get total of all item-level discounts
+      getItemDiscountsTotal: (tabId?: string) => {
+        const state = get();
+        const targetTabId = tabId ?? state.activeTabId;
+        const tab = state.tabs.find((t) => t.id === targetTabId);
+
+        if (!tab) return 0;
+
+        return tab.order.items.reduce((sum, item) => {
+          if (!item.discount) return sum;
+
+          const lineTotal = item.price * item.quantity;
+
+          if (item.discount.type === "PERCENTAGE") {
+            return sum + lineTotal * (item.discount.value / 100);
+          } else {
+            // FIXED discount
+            return sum + item.discount.value;
+          }
+        }, 0);
       },
 
       getDiscountAmount: (tabId?: string) => {
@@ -534,7 +678,30 @@ export const useOrderStore = create<OrderStoreState>()(
         const targetTabId = tabId ?? state.activeTabId;
         const tab = state.tabs.find((t) => t.id === targetTabId);
         const shippingFee = tab?.order.shippingFee ?? 0;
-        return Math.max(0, subtotal - discount + shippingFee);
+        const subtotalAfterDiscount = Math.max(
+          0,
+          subtotal - discount + shippingFee
+        );
+        const vatAmount = state.getVATAmount(tabId);
+        return subtotalAfterDiscount + vatAmount;
+      },
+
+      getVATAmount: (tabId?: string) => {
+        const state = get();
+        const targetTabId = tabId ?? state.activeTabId;
+        const tab = state.tabs.find((t) => t.id === targetTabId);
+        if (!tab?.order.includeVAT) return 0;
+
+        const subtotal = state.getOrderSubtotal(tabId);
+        const discount = state.getDiscountAmount(tabId);
+        const shippingFee = tab?.order.shippingFee ?? 0;
+        const subtotalAfterDiscountAndShipping = Math.max(
+          0,
+          subtotal - discount + shippingFee
+        );
+
+        // 11% VAT
+        return parseFloat((subtotalAfterDiscountAndShipping * 0.11).toFixed(2));
       },
 
       hasUnsavedChanges: (tabId: string) => {

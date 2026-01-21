@@ -1,11 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Order, OrderStatus, PaymentMethod } from "@repo/types";
+import { ordersApi } from "@/apis/ordersApi";
 import {
-  ordersApi,
-  type CreateOrderDto,
-  type OrderFilters,
-  type AddItemDto,
-} from "@/apis/ordersApi";
+  AddItemDto,
+  CreateOrderDto,
+  OrderFilters,
+  PaymentDto,
+} from "@/dto/order.dto";
+import type { Order, OrderStatus } from "@repo/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const ORDER_QUERY_KEY = ["orders"];
 
@@ -42,18 +43,9 @@ export const useCreateOrder = () => {
 export const useProcessPayment = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Order,
-    Error,
-    {
-      id: string;
-      amount: number;
-      method: PaymentMethod;
-      currencyCode?: string;
-      exchangeRate?: number;
-    }
-  >({
-    mutationFn: ({ id, ...payment }) => ordersApi.processPayment(id, payment),
+  return useMutation({
+    mutationFn: ({ id, payments }: { id: string; payments: PaymentDto[] }) =>
+      ordersApi.processPayment(id, { payments }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
@@ -131,6 +123,22 @@ export const useRemoveItemFromOrder = () => {
 
   return useMutation<Order, Error, { id: string; itemId: string }>({
     mutationFn: ({ id, itemId }) => ordersApi.removeItemFromOrder(id, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+    },
+  });
+};
+
+export const useUpdateItemDiscount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Order,
+    Error,
+    { id: string; itemId: string; value: number; type: "PERCENTAGE" | "FIXED" }
+  >({
+    mutationFn: ({ id, itemId, value, type }) =>
+      ordersApi.updateItemDiscount(id, itemId, { value, type }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
     },

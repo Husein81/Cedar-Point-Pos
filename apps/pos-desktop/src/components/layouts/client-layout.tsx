@@ -11,7 +11,7 @@ const ClientLayout = ({ children }: Props) => {
       <Sidebar />
       <Shad.SidebarInset className="flex-1 h-full overflow-hidden">
         <Shad.ScrollArea className="h-full">
-          <div className="px-6 py-8 container mx-auto">{children}</div>
+          <div className="px-6 py-8 mx-auto">{children}</div>
           <Shad.ScrollBar />
         </Shad.ScrollArea>
       </Shad.SidebarInset>

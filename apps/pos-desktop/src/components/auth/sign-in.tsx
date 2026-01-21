@@ -1,5 +1,5 @@
 import { useLogin } from "@/hooks/auth";
-import { Button, Input, Label } from "@repo/ui";
+import { Button, InputField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 import logo from "/assets/logo.png";
 
@@ -30,7 +30,7 @@ const SignIn = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col col-span-2 justify-center items-center px-6 md:px-10"
+      className="flex flex-col col-span-2 w-full justify-center items-center px-6"
     >
       <div className="w-full max-w-md">
         {/* Mobile brand */}
@@ -54,39 +54,25 @@ const SignIn = () => {
           {/* USERNAME INPUT */}
           <form.Field name="username">
             {(field) => (
-              <div>
-                <Label htmlFor={field.name} className="mb-2 block">
-                  Username
-                </Label>
-
-                <Input
-                  id="username"
-                  placeholder="e.g. cashier01"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  autoComplete="username"
-                  autoFocus
-                />
-              </div>
+              <InputField
+                label="Username"
+                id={field.name}
+                placeholder="Enter your username"
+                field={field}
+              />
             )}
           </form.Field>
 
           {/* PIN INPUT */}
           <form.Field name="password">
             {(field) => (
-              <div className="justify-center w-full">
-                <Label htmlFor={field.name} className="mb-2 block w-full">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
+              <InputField
+                label="Password"
+                id={field.name}
+                placeholder="Enter your password"
+                type="password"
+                field={field}
+              />
             )}
           </form.Field>
 
@@ -99,13 +85,14 @@ const SignIn = () => {
                 <Button
                   className="w-full"
                   disabled={!canSubmit || isSubmitting}
+                  isSubmitting={isSubmitting}
                   type="submit"
                 >
                   Verify & Continue
                 </Button>
 
                 <Button
-                  variant="ghost"
+                  variant="link"
                   className="text-sm text-muted-foreground"
                 >
                   Forgot Password?

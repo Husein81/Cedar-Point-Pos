@@ -5,16 +5,14 @@ import { useOrderStore } from "@/store/orderStore";
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
 import ProductCard from "./ProductCard";
+import { Subcategory } from "@repo/types";
 
-type Props = {
-  className?: string;
-};
-
-export const ProductGrid = ({ className }: Props) => {
+export const ProductGrid = () => {
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { addItem } = useOrderStore();
 
+  const [isAvailableOnly, setIsAvailableOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
@@ -77,9 +75,26 @@ export const ProductGrid = ({ className }: Props) => {
         return false;
       }
 
+      if (isAvailableOnly) {
+        const totalStock =
+          product.inventory?.reduce(
+            (sum, inv) => Number(sum) + Number(inv.stock),
+            0
+          ) ?? 0;
+        if (totalStock <= 0) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [products, selectedCategoryId, selectedSubcategoryId, searchQuery]);
+  }, [
+    products,
+    selectedCategoryId,
+    selectedSubcategoryId,
+    searchQuery,
+    isAvailableOnly,
+  ]);
 
   // Filter categories to only show those with products
   const activeCategories = useMemo(() => {
@@ -98,7 +113,7 @@ export const ProductGrid = ({ className }: Props) => {
   }, [categories, products]);
 
   // Get subcategories for the selected category
-  const activeSubcategories = useMemo(() => {
+  const activeSubcategories = useMemo((): Subcategory[] => {
     if (!selectedCategoryId || !categories || !products) return [];
 
     const selectedCategory = categories.find(
@@ -164,22 +179,31 @@ export const ProductGrid = ({ className }: Props) => {
   const isLoading = productsLoading || categoriesLoading;
 
   return (
-    <div className={cn("flex flex-col h-full gap-4", className)}>
+    <div className={cn("flex flex-col h-full gap-4")}>
       {/* Search Bar */}
-      <div className="relative">
-        <Icon
-          name="Search"
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
-        />
-        <Input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Search by name, barcode, or SKU..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          onKeyDown={handleSearchKeyDown}
-          className="pl-10 h-10"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Icon
+            name="Search"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+          />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search by name, barcode, or SKU..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onKeyDown={handleSearchKeyDown}
+            className="pl-10"
+          />
+        </div>
+        <Button
+          onClick={() => setIsAvailableOnly(!isAvailableOnly)}
+          variant={selectedCategoryId === null ? "default" : "outline"}
+          className="whitespace-nowrap"
+        >
+          Available Products
+        </Button>
       </div>
 
       <div className="relative">
@@ -196,7 +220,7 @@ export const ProductGrid = ({ className }: Props) => {
         >
           <Shad.CarouselContent className="mx-6">
             {/* All Products */}
-            <Shad.CarouselItem className="pl-2 basis-auto">
+            <Shad.CarouselItem className="pl-2 basis-auto flex items-center gap-2">
               <Button
                 onClick={() => handleCategoryClick(null)}
                 variant={selectedCategoryId === null ? "default" : "outline"}
@@ -298,11 +322,11 @@ export const ProductGrid = ({ className }: Props) => {
       )}
 
       {/* Product Grid */}
-      <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
+      <Shad.ScrollArea className="flex-1 min-h-0 p-3">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-lg" />
+              <Skeleton key={i} className="h-37.5 rounded-lg" />
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
@@ -310,7 +334,7 @@ export const ProductGrid = ({ className }: Props) => {
             <Empty title="No products found" icon="Search" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-4">
+          <div className="grid p-1 grid-cols-4 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-2">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

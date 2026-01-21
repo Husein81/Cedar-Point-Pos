@@ -119,7 +119,10 @@ export function DataTable<TData, TValue>({
                     <Icon
                       name="RefreshCw"
                       size={16}
-                      className={cn("mr-2", isLoading ? "animate-spin" : "")}
+                      className={cn(
+                        "mr-2",
+                        !!onRefetch || (isLoading && "animate-spin")
+                      )}
                     />
                     Refresh
                   </Button>

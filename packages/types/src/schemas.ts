@@ -24,15 +24,37 @@ export const TenantSchema = z.object({
 });
 export type Tenant = z.infer<typeof TenantSchema>;
 
-// Currency
+// Currency (Reference Table)
 export const CurrencySchema = z.object({
-  code: z.string().min(1), // e.g., USD
-  name: z.string(),
-  symbol: z.string().nullable().optional(),
-  exchangeRate: decimal.nullable().optional(),
-  isActive: z.boolean().default(true),
+  code: z.string().min(1), // ISO 4217 code: USD, EUR, LBP
+  name: z.string(), // Full name: "United States Dollar"
+  symbol: z.string().nullable().optional(), // Display symbol: "$", "€", "ل.ل"
+  decimalPlaces: z.number().int().default(2), // Number of decimal places
 });
 export type Currency = z.infer<typeof CurrencySchema>;
+
+// TenantCurrency (Tenant-Scoped Currency Config)
+export const TenantCurrencySchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  currencyCode: z.string(), // ISO 4217 code
+  exchangeRate: decimal, // Rate relative to base currency
+  isActive: z.boolean().default(true),
+  isDefault: z.boolean().default(false), // True for base currency
+  createdAt: isoDate,
+  updatedAt: isoDate,
+  currency: CurrencySchema.optional(), // Included when fetched with join
+});
+export type TenantCurrency = z.infer<typeof TenantCurrencySchema>;
+
+// Response type for getTenantCurrencies
+export const TenantCurrenciesResponseSchema = z.object({
+  baseCurrencyCode: z.string(),
+  currencies: z.array(TenantCurrencySchema),
+});
+export type TenantCurrenciesResponse = z.infer<
+  typeof TenantCurrenciesResponseSchema
+>;
 
 // User
 export const UserSchema = z.object({
@@ -299,7 +321,6 @@ export const OrderSchema = z.object({
   branchId: cuid,
   tableId: cuid.nullable().optional(),
   deviceId: cuid.nullable().optional(),
-
   customerId: cuid.nullable().optional(),
   customer: z
     .object({
@@ -311,15 +332,19 @@ export const OrderSchema = z.object({
     .nullable()
     .optional(),
   shiftId: cuid.nullable().optional(),
-
   orderNumber: z.string().nullable().optional(),
-
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
-
+  vat: decimal.nullable().optional(),
+  includeVat: z.boolean().default(false),
+  shippingFee: decimal.nullable().optional(),
   subtotal: decimal.default("0"),
   total: decimal.default("0"),
   discount: decimal.nullable().optional(),
+
+  // Currency snapshot (for reporting)
+  currencyCode: z.string().nullable().optional().default("USD"),
+  exchangeRate: decimal.nullable().optional(),
 
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),

@@ -1,16 +1,11 @@
-import { api } from "./api";
 import type {
-  DashboardSummary,
-  WeeklySalesData,
   CategoryData,
+  DashboardSummary,
   HourlyRevenueData,
   TopProductData,
+  WeeklySalesData,
 } from "../types/dashboard";
-
-/**
- * Dashboard API Client
- * Handles all dashboard-related API calls with proper error handling
- */
+import { api } from "./api";
 
 interface QueryParams {
   branchId?: string;

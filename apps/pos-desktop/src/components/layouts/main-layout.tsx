@@ -1,26 +1,34 @@
 import { useAuthStore } from "@/store/authStore";
-import AuthLayout from "./auth-layout";
-import ClientLayout from "./client-layout";
-import { useNavigate } from "@tanstack/react-router";
+import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { Header } from "../header";
+import ClientLayout from "./client-layout";
 
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
+const MainLayout = () => {
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate({
-        to: "/",
-      });
+    if (!isAuthenticated) {
+      navigate({ to: "/auth" });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated]);
 
-  if (isAuthenticated) {
-    return <ClientLayout>{children}</ClientLayout>;
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col">
+        <Header />
+        <Outlet />
+      </div>
+    );
   }
 
-  return <AuthLayout />;
+  return (
+    <ClientLayout>
+      <Header />
+      <Outlet />
+    </ClientLayout>
+  );
 };
 
 export default MainLayout;

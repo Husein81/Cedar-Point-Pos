@@ -11,16 +11,25 @@ import {
   Req,
   BadRequestException,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, SortOrder, UserRole } from '@repo/types';
+import {
+  OrderStatus,
+  OrderType,
+  SortOrder,
+  UserRole,
+  PaymentMethod,
+} from '@repo/types';
 import type { Request } from 'express';
 
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AssignTableDto } from './dto/assign-table.dto.js';
-import type { CreateOrderDto } from './dto/create-order.dto.js';
+import type {
+  BatchPaymentDto,
+  CreateOrderDto,
+} from './dto/create-order.dto.js';
 import type { UpdateQuantityDto } from './dto/update-quantity.dto.js';
+import type { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
 
 import { OrdersService } from './orders.service.js';
-import { PaymentMethod } from '../../generated/prisma/enums.js';
 
 @Controller('orders')
 export class OrdersController {
@@ -122,15 +131,6 @@ export class OrdersController {
   /* ----------------------------------------------------
      PAYMENTS
   ---------------------------------------------------- */
-
-  /**
-   * Process single payment for an order
-   *
-   * - Creates Payment record
-   * - Marks order as PAID if fully paid
-   * - Partial payments keep order in PENDING
-   * - Deducts inventory ONCE when fully paid
-   */
   @Post(':id/payment')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   processPayment(
@@ -138,8 +138,11 @@ export class OrdersController {
     @Param('id') id: string,
     @Body()
     body: {
-      amount: number;
-      method: PaymentMethod;
+      // Batch payments (new format)
+      payments?: BatchPaymentDto;
+      // Single payment (deprecated, for backwards compatibility)
+      amount?: number;
+      method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
     },
@@ -166,7 +169,6 @@ export class OrdersController {
     const user = req.user as { tenantId: string };
     return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
   }
-
   /**
    * Assign or change table (restaurant only)
    */
@@ -235,6 +237,27 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
     return this.ordersService.removeItemFromOrder(user.tenantId, id, itemId);
+  }
+
+  /**
+   * Update item discount
+   */
+  @Patch(':id/items/:itemId/discount')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  updateItemDiscount(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateItemDiscountDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.updateItemDiscount(
+      user.tenantId,
+      id,
+      itemId,
+      dto.value,
+      dto.type,
+    );
   }
 
   /* ----------------------------------------------------

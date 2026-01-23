@@ -184,15 +184,6 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   };
 
   // ===== LOADING STATE =====
-
-  if (isLoadingCurrencies && activeCurrencies.length === 0) {
-    return (
-      <div className="sm:max-w-lg p-4 text-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="sm:max-w-lg">
       {/* Header */}

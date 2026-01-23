@@ -1,5 +1,5 @@
-import { type RefundCartItem } from "@/store/refundStore";
-import { Button, Checkbox, cn, Icon, Input } from "@repo/ui";
+import type { RefundCartItem } from "@/store/refundStore";
+import { Button, Checkbox, cn, Icon, Input, Shad } from "@repo/ui";
 
 interface Props {
   item: RefundCartItem;
@@ -19,7 +19,7 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
         item.isSelected
           ? "border-destructive/40 bg-destructive/5"
           : "border-border",
-        isDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent"
+        isDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent",
       )}
     >
       <div className="flex items-start gap-3">
@@ -89,9 +89,9 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
           {item.refundableQuantity > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex items-center gap-1 rounded-lg border bg-background p-1"
+              className="mt-2 inline-flex items-center gap-1"
             >
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6"
@@ -126,7 +126,35 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
                 }
               >
                 <Icon name="Plus" className="h-3 w-3" />
-              </Button>
+              </Button> */}
+              <Shad.ToggleGroup variant="outline" type="single">
+                <Shad.ToggleGroupItem size="sm" value="value">
+                  <span className="w-12 text-start">{item.refundQuantity}</span>
+                </Shad.ToggleGroupItem>
+                <Shad.ToggleGroupItem
+                  size="sm"
+                  onClick={() =>
+                    onQuantityChange(Math.max(0, item.refundQuantity - 1))
+                  }
+                  value="Increment"
+                >
+                  <Icon name="Minus" className="h-3 w-3" />
+                </Shad.ToggleGroupItem>
+                <Shad.ToggleGroupItem
+                  value="Decrement"
+                  size="sm"
+                  onClick={() =>
+                    onQuantityChange(
+                      Math.min(
+                        item.refundQuantity + 1,
+                        item.refundableQuantity,
+                      ),
+                    )
+                  }
+                >
+                  <Icon name="Plus" className="h-3 w-3" />
+                </Shad.ToggleGroupItem>
+              </Shad.ToggleGroup>
             </div>
           )}
         </div>

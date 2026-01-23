@@ -15,12 +15,22 @@ import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AlertDialog from "../common/AlertDialog";
 import { KEYPAD_CONFIG, type KeypadContext } from "./config";
 import OrderActions from "./OrderActions";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
+
+type KeyPad = {
+  label: string;
+  icon?: string;
+  context?: KeypadContext | "NULL";
+  variant?: "destructive" | "outline" | "ghost";
+  onClick: () => void;
+};
+
+type DiscountMode = "FIXED" | "PERCENTAGE";
 
 export const InlineKeypad = () => {
   const { openModal, closeModal } = useModalStore();
@@ -53,13 +63,6 @@ export const InlineKeypad = () => {
     getVATAmount,
   } = useOrderStore();
 
-  const order = getActiveOrder();
-  const subtotal = getOrderSubtotal();
-  const discount = getDiscountAmount();
-  const shippingFee = order?.shippingFee ?? 0;
-  const vat = getVATAmount();
-  const total = subtotal - discount + shippingFee + vat;
-
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
 
@@ -68,14 +71,196 @@ export const InlineKeypad = () => {
   const updateOrderStatus = useUpdateOrderStatus();
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const config = KEYPAD_CONFIG[context ?? "QUANTITY"];
+  const paymentLockRef = useRef(false);
+
+  const safeContext = (context ?? "QUANTITY") as KeypadContext;
+  const config = KEYPAD_CONFIG[safeContext];
   const maxValue = maxValueOverride ?? config.maxValue;
+
+  const order = getActiveOrder();
+  const subtotal = getOrderSubtotal();
+  const discount = getDiscountAmount();
+  const shippingFee = order?.shippingFee ?? 0;
+  const vat = getVATAmount();
+  const total = subtotal - discount + shippingFee + vat;
 
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
   const [isProcessing, setIsProcessing] = useState(false);
+
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
+
+  /* ---------------------------------------------
+     Helpers
+  --------------------------------------------- */
+
+  const parse = useCallback(
+    (v: string) =>
+      config.decimals === 0 ? parseInt(v || "0", 10) : parseFloat(v || "0"),
+    [config.decimals],
+  );
+
+  const clamp = useCallback(
+    (n: number) => {
+      let v = Math.max(config.minValue, Math.min(maxValue, n));
+
+      if (config.decimals > 0) {
+        const m = Math.pow(10, config.decimals);
+        v = Math.round(v * m) / m;
+      } else {
+        v = Math.round(v);
+      }
+
+      return v;
+    },
+    [config.decimals, config.minValue, maxValue],
+  );
+
+  const validate = useCallback(() => {
+    const n = parse(value);
+    if (!config.allowZero && n === 0) return false;
+    if (n < config.minValue) return false;
+    if (n > maxValue) return false;
+    if (safeContext === "DISCOUNT_PERCENT" && n > 100) return false;
+    return true;
+  }, [config.allowZero, config.minValue, maxValue, parse, safeContext, value]);
+
+  const clearEntry = useCallback(() => {
+    setMode("IDLE");
+    setValue(String(config.allowZero ? 0 : config.minValue));
+
+    setIsDiffMode(false);
+    setDiffBaseValue(null);
+
+    switchContext(undefined);
+  }, [config.allowZero, config.minValue, switchContext]);
+
+  const resolveDiscountMode = useCallback(
+    (ctx: KeypadContext): DiscountMode => {
+      if (ctx === "DISCOUNT_FIXED") return "FIXED";
+      if (ctx === "DISCOUNT_PERCENT") return "PERCENTAGE";
+
+      // fallback when ctx === "DISCOUNT"
+      return (discountType as DiscountMode) || "PERCENTAGE";
+    },
+    [discountType],
+  );
+
+  const applyKeypadValue = useCallback(
+    async (numericValue: number) => {
+      // permission gate
+      if (config.requiresPermission && onPermissionRequired) {
+        const allowed = await onPermissionRequired(safeContext);
+        if (!allowed) {
+          clearEntry();
+          return;
+        }
+      }
+
+      // dispatch by context
+      if (safeContext === "QUANTITY") {
+        onConfirm?.(numericValue);
+        return;
+      }
+
+      if (safeContext === "PRICE_OVERRIDE") {
+        const finalPrice =
+          isDiffMode && diffBaseValue !== null
+            ? clamp(diffBaseValue + numericValue)
+            : numericValue;
+
+        onPriceChange?.(finalPrice);
+        return;
+      }
+
+      if (safeContext === "SHIPPING") {
+        setShippingFee(numericValue);
+        return;
+      }
+
+      if (
+        safeContext === "DISCOUNT" ||
+        safeContext === "DISCOUNT_FIXED" ||
+        safeContext === "DISCOUNT_PERCENT"
+      ) {
+        const type = resolveDiscountMode(safeContext);
+
+        // item-level discount
+        if (itemId && onDiscountChange) {
+          onDiscountChange(numericValue, type);
+          return;
+        }
+
+        // order-level discount
+        setDiscount({ value: numericValue, type });
+      }
+    },
+    [
+      clamp,
+      clearEntry,
+      config.requiresPermission,
+      diffBaseValue,
+      isDiffMode,
+      itemId,
+      onConfirm,
+      onDiscountChange,
+      onPermissionRequired,
+      onPriceChange,
+      resolveDiscountMode,
+      safeContext,
+      setDiscount,
+      setShippingFee,
+    ],
+  );
+
+  const buildOrderDto = useCallback((): CreateOrderDto | null => {
+    const active = getActiveOrder();
+    if (!active || !branchId || !user?.tenantId) return null;
+
+    const orderType =
+      user.tenant?.businessType === BusinessType.RESTAURANT
+        ? active.type
+        : OrderType.RETAIL;
+
+    if (!orderType) return null;
+
+    const dto: CreateOrderDto = {
+      branchId,
+      type: orderType,
+      customerId: active.customerId || undefined,
+      shippingFee: active.shippingFee,
+      includeVAT: active.includeVAT,
+      items: active.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        unitPrice: i.price,
+        discount: i.discount,
+        notes: i.notes,
+        modifiers: i.modifiers?.map((m) => m.modifierId),
+      })),
+      ...(discount > 0 && { discount }),
+    };
+
+    return dto;
+  }, [
+    branchId,
+    discount,
+    getActiveOrder,
+    user?.tenant?.businessType,
+    user?.tenantId,
+  ]);
+
+  const withPaymentLock = useCallback(async (fn: () => Promise<void>) => {
+    if (paymentLockRef.current) return;
+    paymentLockRef.current = true;
+    try {
+      await fn();
+    } finally {
+      paymentLockRef.current = false;
+    }
+  }, []);
+
   /* ---------------------------------------------
      Init / Context Reset
   --------------------------------------------- */
@@ -88,144 +273,100 @@ export const InlineKeypad = () => {
 
     setValue(formatted);
     setMode("REPLACE");
-  }, [currentValue, context, itemId]);
+  }, [
+    config.allowZero,
+    config.decimals,
+    config.minValue,
+    currentValue,
+    safeContext,
+    itemId,
+  ]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) inputRef.current.focus();
   }, [isOpen]);
 
-  /* ---------------------------------------------
-     Helpers
-  --------------------------------------------- */
-
-  const parse = (v: string) =>
-    config.decimals === 0 ? parseInt(v || "0", 10) : parseFloat(v || "0");
-
-  const clamp = (n: number) => {
-    let v = Math.max(config.minValue, Math.min(maxValue, n));
-    if (config.decimals > 0) {
-      const m = Math.pow(10, config.decimals);
-      v = Math.round(v * m) / m;
-    } else {
-      v = Math.round(v);
-    }
-    return v;
-  };
-
-  const validate = () => {
-    const n = parse(value);
-    if (!config.allowZero && n === 0) return false;
-    if (n < config.minValue) return false;
-    if (n > maxValue) return false;
-    if (context === "DISCOUNT_PERCENT" && n > 100) return false;
-    return true;
-  };
-
-  const clearEntry = () => {
-    setMode("IDLE");
-    setValue(String(config.allowZero ? 0 : config.minValue));
-
+  useEffect(() => {
     setIsDiffMode(false);
     setDiffBaseValue(null);
-    switchContext(undefined);
-  };
+  }, [safeContext, itemId]);
 
   /* ---------------------------------------------
-     LIVE UPDATE CORE
+     LIVE UPDATE (debounced)
   --------------------------------------------- */
+
   useEffect(() => {
     if (mode !== "APPEND") return;
     if (!validate()) return;
 
-    const timeout = setTimeout(async () => {
+    let cancelled = false;
+
+    const t = setTimeout(async () => {
       const numeric = clamp(parse(value));
+      if (cancelled) return;
 
-      if (config.requiresPermission && onPermissionRequired) {
-        const allowed = await onPermissionRequired(context);
-        if (!allowed) {
-          clearEntry();
-          return;
-        }
-      }
-
-      if (context === "QUANTITY") onConfirm?.(numeric);
-      if (context === "PRICE_OVERRIDE") {
-        const finalPrice =
-          isDiffMode && diffBaseValue !== null
-            ? clamp(diffBaseValue + numeric)
-            : numeric;
-
-        onPriceChange?.(finalPrice);
-      }
-      if (context === "SHIPPING") {
-        setShippingFee(numeric);
-      }
-      if (
-        context === "DISCOUNT" ||
-        context === "DISCOUNT_FIXED" ||
-        context === "DISCOUNT_PERCENT"
-      ) {
-        const type =
-          context === "DISCOUNT_FIXED"
-            ? "FIXED"
-            : context === "DISCOUNT_PERCENT"
-              ? "PERCENTAGE"
-              : discountType || "PERCENTAGE";
-
-        // For item discount (when itemId is present)
-        if (itemId && onDiscountChange) {
-          onDiscountChange(numeric, type);
-        }
-        // For order-level discount
-        else if (!itemId) {
-          setDiscount({
-            value: numeric,
-            type,
-          });
-        }
+      try {
+        await applyKeypadValue(numeric);
+      } catch (e) {
+        console.error("Keypad apply failed:", e);
       }
     }, 120);
 
-    return () => clearTimeout(timeout);
-  }, [value, context, mode, itemId]);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [applyKeypadValue, clamp, mode, parse, validate, value]);
 
-  useEffect(() => {
-    setIsDiffMode(false);
-    setDiffBaseValue(null);
-  }, [context, itemId]);
   /* ---------------------------------------------
-     Input Handlers (UNCHANGED UI)
+     Input Handlers (UI behavior preserved)
   --------------------------------------------- */
 
-  const handleDigit = (digit: number) => {
-    setValue((prev) => {
-      if (mode !== "APPEND") {
+  const handleDigit = useCallback(
+    (digit: number) => {
+      setValue((prev) => {
+        const next =
+          mode !== "APPEND"
+            ? String(digit)
+            : prev === "0"
+              ? String(digit)
+              : prev + digit;
+
+        // decimals limit
+        if (
+          config.decimals > 0 &&
+          next.includes(".") &&
+          next.split(".")[1]!.length > config.decimals
+        ) {
+          return prev;
+        }
+
         setMode("APPEND");
-        return String(digit);
-      }
-      if (
-        config.decimals > 0 &&
-        prev.includes(".") &&
-        prev.split(".")[1]!.length >= config.decimals
-      ) {
-        return prev;
-      }
+        return next;
+      });
+    },
+    [config.decimals, mode],
+  );
 
-      return prev === "0" ? String(digit) : prev + digit;
-    });
-  };
-
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     setValue((prev) => {
-      if (prev.length < 1) {
+      if (!prev.length) {
         setMode("IDLE");
-        return String(config.allowZero ? 1 : config.minValue);
+        return String(config.allowZero ? 0 : config.minValue);
       }
-      return prev.slice(0, -1);
-    });
-  };
 
-  const handleDecimal = () => {
+      const next = prev.slice(0, -1);
+      if (!next.length) {
+        setMode("IDLE");
+        return String(config.allowZero ? 0 : config.minValue);
+      }
+
+      setMode("APPEND");
+      return next;
+    });
+  }, [config.allowZero, config.minValue]);
+
+  const handleDecimal = useCallback(() => {
     if (config.decimals === 0) return;
 
     setValue((prev) => {
@@ -235,161 +376,233 @@ export const InlineKeypad = () => {
       }
       return prev.includes(".") ? prev : prev + ".";
     });
-  };
+  }, [config.decimals, mode]);
 
-  const handleContextSwitch = (next: KeypadContext) => {
-    if (next === context) {
-      clearEntry();
-      return;
-    }
-    setMode("REPLACE");
-    switchContext(next);
-  };
+  const handleContextSwitch = useCallback(
+    (next: KeypadContext) => {
+      if (next === safeContext) {
+        clearEntry();
+        return;
+      }
+      setMode("REPLACE");
+      switchContext(next);
+    },
+    [clearEntry, safeContext, switchContext],
+  );
 
-  const handleDifferent = () => {
-    if (context !== "PRICE_OVERRIDE") return;
+  const handleDifferent = useCallback(() => {
+    if (safeContext !== "PRICE_OVERRIDE") return;
 
-    const base = parse(currentValue.toString());
-
+    const base = parse(String(currentValue || 0));
     setIsDiffMode(true);
     setDiffBaseValue(base);
     setMode("REPLACE");
     setValue("0");
-  };
+  }, [currentValue, parse, safeContext]);
 
-  const handlePaymentConfirm = async (payments: PaymentEntry[]) => {
-    if (isProcessing || payments.length === 0) return;
+  /* ---------------------------------------------
+     Payment + Confirm Flows
+  --------------------------------------------- */
 
-    setIsProcessing(true);
+  const handlePaymentConfirm = useCallback(
+    async (payments: PaymentEntry[]) => {
+      await withPaymentLock(async () => {
+        if (isProcessing || payments.length === 0) return;
 
-    try {
-      const order = getActiveOrder();
-      if (!order || !branchId || !user?.tenantId || total <= 0) return;
+        setIsProcessing(true);
 
-      // POS-style UX: close input early
-      closeKeypad();
-      closeModal();
+        try {
+          const active = getActiveOrder();
+          if (!active || !branchId || !user?.tenantId || total <= 0) return;
 
-      if (activeTabId) {
-        closeTab(activeTabId);
-      }
+          // POS-style UX: close input early
+          closeKeypad();
+          closeModal();
+          if (activeTabId) closeTab(activeTabId);
 
-      if (
-        user.tenant?.businessType === BusinessType.RESTAURANT &&
-        !order.type
-      ) {
-        throw new Error("Order type is required");
-      }
+          if (
+            user.tenant?.businessType === BusinessType.RESTAURANT &&
+            !active.type
+          ) {
+            throw new Error("Order type is required");
+          }
 
-      const dto: CreateOrderDto = {
-        branchId,
-        type: order.type!,
-        customerId: order.customerId || undefined,
-        shippingFee: order.shippingFee,
-        includeVAT: order.includeVAT,
-        items: order.items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          unitPrice: i.price,
-          discount: i.discount,
-          notes: i.notes,
-          modifiers: i.modifiers?.map((m) => m.modifierId),
-        })),
-        ...(discount > 0 && { discount }),
-      };
+          const dto = buildOrderDto();
+          if (!dto) return;
 
-      const created = await createOrder.mutateAsync(dto);
+          const created = await createOrder.mutateAsync(dto);
 
-      const result = await processPayment.mutateAsync({
-        id: created.id,
-        payments: payments.map((p) => ({
-          amount: p.amount,
-          method: p.method,
-          currencyCode: p.currencyCode,
-          exchangeRate: p.exchangeRate,
-        })),
+          const result = await processPayment.mutateAsync({
+            id: created.id,
+            payments: payments.map((p) => ({
+              amount: p.amount,
+              method: p.method,
+              currencyCode: p.currencyCode,
+              exchangeRate: p.exchangeRate,
+            })),
+          });
+
+          if (!result) return;
+
+          setOrderStatus(result.status);
+
+          if (result.status === OrderStatus.COMPLETED) {
+            clearOrder();
+          }
+        } catch (error) {
+          console.error("Payment failed:", error);
+        } finally {
+          setIsProcessing(false);
+        }
       });
+    },
+    [
+      activeTabId,
+      branchId,
+      buildOrderDto,
+      clearOrder,
+      closeKeypad,
+      closeModal,
+      closeTab,
+      createOrder,
+      getActiveOrder,
+      isProcessing,
+      processPayment,
+      setOrderStatus,
+      total,
+      user?.tenant?.businessType,
+      user?.tenantId,
+      withPaymentLock,
+    ],
+  );
 
-      if (!result) return;
-
-      setOrderStatus(result.status);
-
-      if (result.status === OrderStatus.COMPLETED) {
-        clearOrder();
-      }
-    } catch (error) {
-      console.error("Payment failed:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePay = () => {
+  const handlePay = useCallback(() => {
     openModal(
       "Payment Form",
       <PaymentForm total={total} onConfirm={handlePaymentConfirm} />,
     );
-  };
+  }, [handlePaymentConfirm, openModal, total]);
 
-  const handleConfirmWithoutPayment = async () => {
-    if (isProcessing || !order?.items?.length || total <= 0) return;
+  const handleConfirmWithoutPayment = useCallback(async () => {
+    await withPaymentLock(async () => {
+      if (isProcessing || !order?.items?.length || total <= 0) return;
 
-    setIsProcessing(true);
+      setIsProcessing(true);
 
-    try {
-      const orderToSave = getActiveOrder();
-      if (!orderToSave || !branchId || !user?.tenantId) return;
-      clearOrder();
-      closeKeypad();
+      try {
+        const active = getActiveOrder();
+        if (!active || !branchId || !user?.tenantId) return;
 
-      if (activeTabId) {
-        closeTab(activeTabId);
+        // POS UX: clear local order immediately
+        clearOrder();
+        closeKeypad();
+        closeModal();
+        if (activeTabId) closeTab(activeTabId);
+
+        if (
+          user.tenant?.businessType === BusinessType.RESTAURANT &&
+          !active.type
+        ) {
+          throw new Error("Order type is required");
+        }
+
+        const dto = buildOrderDto();
+        if (!dto) return;
+
+        const created = await createOrder.mutateAsync(dto);
+
+        // For restaurant orders, transition to PENDING
+        await updateOrderStatus.mutateAsync({
+          id: created.id,
+          status: OrderStatus.PENDING,
+        });
+
+        setOrderStatus(OrderStatus.PENDING);
+      } catch (error) {
+        console.error("Order confirmation failed:", error);
+      } finally {
+        setIsProcessing(false);
       }
+    });
+  }, [
+    activeTabId,
+    branchId,
+    buildOrderDto,
+    clearOrder,
+    closeKeypad,
+    closeModal,
+    closeTab,
+    createOrder,
+    getActiveOrder,
+    isProcessing,
+    order?.items?.length,
+    setOrderStatus,
+    total,
+    updateOrderStatus,
+    user?.tenant?.businessType,
+    user?.tenantId,
+    withPaymentLock,
+  ]);
 
-      closeModal();
+  /* ---------------------------------------------
+     Render
+  --------------------------------------------- */
 
-      if (
-        user.tenant?.businessType === BusinessType.RESTAURANT &&
-        !order.type
-      ) {
-        throw new Error("Order type is required");
-      }
+  const keypad: KeyPad[] = useMemo(
+    () => [
+      { label: "1", context: "NULL", onClick: () => handleDigit(1) },
+      { label: "2", context: "NULL", onClick: () => handleDigit(2) },
+      { label: "3", context: "NULL", onClick: () => handleDigit(3) },
+      {
+        label: "QTY",
+        context: "QUANTITY",
+        onClick: () => handleContextSwitch("QUANTITY"),
+      },
 
-      const orderType =
-        user.tenant?.businessType === BusinessType.RESTAURANT
-          ? order.type!
-          : OrderType.RETAIL;
+      { label: "4", context: "NULL", onClick: () => handleDigit(4) },
+      { label: "5", context: "NULL", onClick: () => handleDigit(5) },
+      { label: "6", context: "NULL", onClick: () => handleDigit(6) },
+      {
+        label: "DISCOUNT_PERCENT",
+        context: "DISCOUNT_PERCENT",
+        icon: "Percent",
+        onClick: () => handleContextSwitch("DISCOUNT_PERCENT"),
+      },
 
-      const dto: CreateOrderDto = {
-        branchId,
-        type: orderType,
-        customerId: orderToSave.customerId || undefined,
-        shippingFee: orderToSave.shippingFee,
-        items: orderToSave.items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          unitPrice: i.price,
-          discount: i.discount,
-          notes: i.notes,
-          modifiers: i.modifiers?.map((m) => m.modifierId),
-        })),
-        ...(discount > 0 && { discount }),
-      };
+      { label: "7", context: "NULL", onClick: () => handleDigit(7) },
+      { label: "8", context: "NULL", onClick: () => handleDigit(8) },
+      { label: "9", context: "NULL", onClick: () => handleDigit(9) },
+      {
+        label: "PRICE_OVERRIDE",
+        context: "PRICE_OVERRIDE",
+        icon: "DollarSign",
+        onClick: () => handleContextSwitch("PRICE_OVERRIDE"),
+      },
 
-      const created = await createOrder.mutateAsync(dto);
-
-      // For restaurant orders, transition to PENDING
-      await updateOrderStatus.mutateAsync({
-        id: created.id,
-        status: OrderStatus.PENDING,
-      });
-      setOrderStatus(OrderStatus.PENDING);
-    } catch (error) {
-      console.error("Order confirmation failed:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+      {
+        label: "Diff",
+        icon: "Diff",
+        context: "NULL",
+        onClick: () => handleDifferent(),
+      },
+      { label: "0", context: "NULL", onClick: () => handleDigit(0) },
+      { label: ".", context: "NULL", onClick: handleDecimal },
+      {
+        label: "DEL",
+        icon: "Delete",
+        context: "NULL",
+        variant: "destructive",
+        onClick: handleBackspace,
+      },
+    ],
+    [
+      handleBackspace,
+      handleContextSwitch,
+      handleDecimal,
+      handleDifferent,
+      handleDigit,
+    ],
+  );
 
   if (!isOpen) return null;
 
@@ -402,105 +615,35 @@ export const InlineKeypad = () => {
         {/* Header */}
         <OrderActions />
 
-        <div className="flex-1 grid grid-cols-4 gap-1 bg-border p-px">
-          {[1, 2, 3].map((n) => (
+        <div className="flex-1 grid grid-cols-4 gap-0.5 bg-border p-px">
+          {keypad.map((key) => (
             <Button
-              key={n}
-              variant="ghost"
-              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
-              onClick={() => handleDigit(n)}
+              key={key.label}
+              variant={key.variant ?? "outline"}
+              onClick={key.onClick}
+              className={cn(
+                "h-10 2xl:h-12 text-lg",
+                key.context === safeContext && "bg-accent/20",
+              )}
             >
-              {n}
+              {key.icon ? (
+                <Icon
+                  name={key.icon}
+                  className={cn(
+                    "w-5 h-5 mb-1 text-muted-foreground hover:text-white",
+                    key.variant === "destructive" && "text-white",
+                  )}
+                />
+              ) : (
+                <span className="text-lg font-medium">{key.label}</span>
+              )}
             </Button>
           ))}
-          <Button
-            variant="ghost"
-            className={cn(
-              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
-              context === "QUANTITY" && "bg-accent/10",
-            )}
-            onClick={() => handleContextSwitch("QUANTITY")}
-          >
-            QTY
-          </Button>
-
-          {[4, 5, 6].map((n) => (
-            <Button
-              key={n}
-              variant="ghost"
-              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
-              onClick={() => handleDigit(n)}
-            >
-              {n}
-            </Button>
-          ))}
-          <Button
-            variant="ghost"
-            className={cn(
-              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
-              context === "DISCOUNT" && "bg-accent/10",
-            )}
-            onClick={() => handleContextSwitch("DISCOUNT")}
-            iconName="Percent"
-          />
-
-          {[7, 8, 9].map((n) => (
-            <Button
-              key={n}
-              variant="ghost"
-              className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
-              onClick={() => handleDigit(n)}
-            >
-              {n}
-            </Button>
-          ))}
-          <Button
-            variant="ghost"
-            className={cn(
-              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
-              context === "PRICE_OVERRIDE" && "bg-accent/10",
-            )}
-            onClick={() => handleContextSwitch("PRICE_OVERRIDE")}
-            iconName="DollarSign"
-          />
-
-          <Button
-            variant="ghost"
-            className={cn(
-              "h-10 2xl:h-12 rounded-xs bg-background text-lg",
-              context === "PRICE_OVERRIDE" && "bg-accent/10",
-            )}
-            onClick={() => handleDifferent()}
-            iconName="Diff"
-          />
-
-          <Button
-            variant="ghost"
-            className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
-            onClick={() => handleDigit(0)}
-          >
-            0
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-10 2xl:h-12 rounded-xs bg-background text-lg"
-            onClick={handleDecimal}
-            disabled={config.decimals === 0}
-          >
-            .
-          </Button>
-          <Button
-            variant="destructive"
-            className={"h-10 2xl:h-12 rounded-xs text-lg "}
-            onClick={handleBackspace}
-          >
-            <Icon name="Delete" className="w-5 h-5 text-white" />
-          </Button>
         </div>
-        <div className="flex items-center border-t border-border">
+
+        <div className="flex items-center border-t border-border p-1 gap-2">
           <Button
-            className="rounded-xs flex-1"
-            size={"default"}
+            className="flex-1"
             disabled={!order?.items?.length || total <= 0 || isProcessing}
             isSubmitting={isProcessing}
             onClick={handlePay}
@@ -508,6 +651,7 @@ export const InlineKeypad = () => {
             <Icon name="CreditCard" className="w-4 h-4 mr-2" />
             Payment
           </Button>
+
           <AlertDialog
             title="Confirm Order Without Payment"
             description="Are you sure you want to confirm this order without processing a payment? This action cannot be undone."
@@ -515,7 +659,7 @@ export const InlineKeypad = () => {
             iconButton="Check"
             buttonVariant="outline"
             label="Confirm Payment"
-            className="rounded-xs flex-1"
+            className="flex-1"
           />
         </div>
       </Shad.CollapsibleContent>

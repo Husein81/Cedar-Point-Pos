@@ -14,13 +14,13 @@ export const ReportCard = ({ title, description, icon, to }: Props) => {
     <Link
       to={to}
       className={cn(
-        "group rounded-md border border-border bg-background p-4",
+        "group rounded-lg border border-border bg-background p-4",
         "hover:bg-accent/40 hover:border-primary/40",
         "transition-all cursor-pointer",
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="rounded-md bg-muted p-2 group-hover:bg-primary/15">
+        <div className="rounded-lg bg-muted p-2 group-hover:bg-primary/15">
           <Icon
             name={icon}
             className="h-5 w-5 text-muted-foreground group-hover:text-primary"

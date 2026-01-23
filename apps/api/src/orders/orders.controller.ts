@@ -35,10 +35,6 @@ import { OrdersService } from './orders.service.js';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  /* ----------------------------------------------------
-     CREATE
-  ---------------------------------------------------- */
-
   /**
    * Create a new order (always starts as DRAFT)
    */

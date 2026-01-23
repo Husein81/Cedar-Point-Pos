@@ -12,9 +12,9 @@ export const SettingsSectionCard = ({ section, className }: Props) => {
     <Link to={section.href}>
       <Shad.Card
         className={cn(
-          "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
+          "cursor-pointer rounded-lg transition-all hover:shadow-md hover:border-primary/50",
           "group",
-          className
+          className,
         )}
       >
         <Shad.CardHeader className="flex flex-row items-start gap-4 space-y-0">

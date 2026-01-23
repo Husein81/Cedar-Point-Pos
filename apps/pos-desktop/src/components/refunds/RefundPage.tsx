@@ -11,18 +11,6 @@ import { RefundOrdersList } from "./RefundOrdersList";
 import { RefundCart } from "./RefundCart";
 import { RefundHeader } from "./RefundHeader";
 
-/**
- * RefundPage - Professional POS Refund Station
- *
- * Two-pane layout:
- * - Left: Orders list with search/filter
- * - Right: Refund cart with item-level controls
- *
- * Designed for:
- * - Speed (cashier efficiency)
- * - Safety (prevent over-refunding)
- * - Clarity (visual status indicators)
- */
 export const RefundPage = () => {
   const { branchId } = useBranchStore();
   const {
@@ -81,7 +69,7 @@ export const RefundPage = () => {
           totalAmount: h.totalAmount,
           reason: h.reason,
           itemCount: h.items.length,
-        }))
+        })),
       );
     }
   }, [refundHistory, setRefundHistory]);

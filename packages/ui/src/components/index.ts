@@ -182,6 +182,7 @@ import {
   TableRow,
 } from "./table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
+import { ToggleGroup, ToggleGroupItem } from "./toggle-group";
 import {
   Tooltip,
   TooltipContent,
@@ -366,6 +367,8 @@ export const Shad = {
   TabsList,
   TabsTrigger,
   TabsContent,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
   TooltipTrigger,
   TooltipContent,

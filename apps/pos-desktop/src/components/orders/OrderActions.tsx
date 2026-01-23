@@ -49,7 +49,7 @@ const OrderActions = () => {
           closeModal();
         }}
         size="lg"
-        className="flex-1 rounded-xs"
+        className="flex-1"
         iconName="RotateCw"
       >
         Refund
@@ -64,7 +64,7 @@ const OrderActions = () => {
         variant="ghost"
         size="sm"
         className={cn(
-          "flex items-center gap-1 rounded-xs px-3 font-semibold flex-1",
+          "flex items-center gap-1 px-3 font-semibold flex-1",
           order?.includeVAT
             ? "bg-primary/15 text-primary"
             : "text-muted-foreground hover:bg-accent/40",
@@ -82,7 +82,7 @@ const OrderActions = () => {
         size="sm"
         variant="ghost"
         className={cn(
-          "flex items-center gap-1 rounded-xs px-3 flex-1",
+          "flex items-center gap-1 px-3 flex-1",
           context === "DISCOUNT" && !itemId
             ? "bg-accent/15 text-primary"
             : "text-muted-foreground hover:bg-accent/40",
@@ -100,7 +100,7 @@ const OrderActions = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 rounded-xs text-primary hover:bg-accent/50"
+        className="h-8 w-8 text-primary hover:bg-accent/50"
         onClick={handleOpenModal}
       >
         <Icon name="EllipsisVertical" className="h-4 w-4" />

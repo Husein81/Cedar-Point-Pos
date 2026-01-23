@@ -87,7 +87,7 @@ const AlertDialog = ({
               {label}
             </SButton>
           )}
-          {icon && <Icon name={icon ?? config.icon} className="h-4 w-4" />}
+          {icon && <Icon name={icon} className="h-4 w-4" />}
         </div>
       </Shad.AlertDialogTrigger>
 
@@ -100,7 +100,7 @@ const AlertDialog = ({
                 "flex h-10 w-10 items-center justify-center rounded-full",
                 variant === "delete" && "bg-red-100 text-red-600",
                 variant === "warning" && "bg-yellow-100 text-yellow-600",
-                variant === "default" && "bg-muted text-foreground"
+                variant === "default" && "bg-muted text-foreground",
               )}
             >
               <Icon name={config.icon} className="h-5 w-5" />

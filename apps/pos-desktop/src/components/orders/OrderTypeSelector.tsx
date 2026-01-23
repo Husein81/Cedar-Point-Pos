@@ -40,14 +40,14 @@ export const OrderTypeSelector = () => {
       ];
 
   return (
-    <div className="flex gap-1 border-b bg-muted p-1 rounded-xs">
+    <div className="flex gap-1 border-b bg-muted p-1">
       {orderTypes.map(({ type, label }) => (
         <Button
           key={type}
           size="sm"
           variant="ghost"
           className={cn(
-            "flex-1 rounded-xs",
+            "flex-1",
             currentType === type && "bg-primary/15 text-primary",
           )}
           onClick={() => selectType(type)}

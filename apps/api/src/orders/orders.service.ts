@@ -95,7 +95,13 @@ export class OrdersService {
         where: { id: tenantId },
         select: { businessType: true },
       }),
-      this.prisma.order.count({ where: { branchId } }),
+      this.prisma.order.count({
+        where: {
+          tenantId,
+          branchId,
+          createdAt: { gte: new Date(new Date().getFullYear(), 0, 1) },
+        },
+      }),
     ]);
 
     if (!tenant) throw new NotFoundException('Tenant not found');
@@ -112,7 +118,7 @@ export class OrdersService {
       throw new BadRequestException('Invalid order type for restaurant');
     }
 
-    const orderNumber = `${branchId.slice(-4)}-${String(orderCount + 1).padStart(5, '0')}`;
+    const orderNumber = `${new Date().getFullYear()}-${String(orderCount + 1).padStart(5, '0')}`;
 
     let subtotal = 0;
     const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];

@@ -277,6 +277,16 @@ export class OrdersService {
         ...(customerId && { customerId }),
         items: { create: orderItems },
       },
+      include: {
+        items: {
+          include: {
+            product: true,
+            modifiers: {
+              include: { modifier: true },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -289,7 +299,12 @@ export class OrdersService {
       where: { id: orderId, tenantId },
       include: {
         items: {
-          include: { product: true },
+          include: {
+            product: true,
+            modifiers: {
+              include: { modifier: true },
+            },
+          },
         },
         payments: true,
       },
@@ -323,7 +338,12 @@ export class OrdersService {
         orderBy: { createdAt: 'desc' },
         include: {
           items: {
-            include: { product: true },
+            include: {
+              product: true,
+              modifiers: {
+                include: { modifier: true },
+              },
+            },
           },
           payments: true,
           customer: true,
@@ -465,6 +485,9 @@ export class OrdersService {
             payments: {
               select: { amount: true }, // amount is in BASE currency
             },
+            tenant: {
+              select: { businessType: true },
+            },
           },
         });
 
@@ -552,21 +575,32 @@ export class OrdersService {
         ============================================ */
 
         if (isFullyPaid) {
+          // For restaurant orders, send to kitchen instead of marking completed
+          const isRestaurant =
+            order.tenant?.businessType === BusinessType.RESTAURANT;
+          const newStatus = isRestaurant
+            ? OrderStatus.SENT_TO_KITCHEN
+            : OrderStatus.COMPLETED;
+
           await tx.order.update({
             where: { id: orderId },
             data: {
-              status: OrderStatus.COMPLETED,
-              completedAt: new Date(),
+              status: newStatus,
+              ...(newStatus === OrderStatus.COMPLETED && {
+                completedAt: new Date(),
+              }),
             },
           });
 
-          // ✅ Deduct inventory ONCE
-          await this.inventoryDeductionService.deductStockForOrder(
-            tenantId,
-            orderId,
-            order.branchId,
-            userId,
-          );
+          // ✅ Deduct inventory ONCE (only for non-restaurant or if completed)
+          if (!isRestaurant) {
+            await this.inventoryDeductionService.deductStockForOrder(
+              tenantId,
+              orderId,
+              order.branchId,
+              userId,
+            );
+          }
         } else if (order.status === OrderStatus.DRAFT) {
           await tx.order.update({
             where: { id: orderId },
@@ -597,9 +631,17 @@ export class OrdersService {
               currency: order.currencyCode,
             };
 
+        const isRestaurant =
+          order.tenant?.businessType === BusinessType.RESTAURANT;
+        const finalStatus = isFullyPaid
+          ? isRestaurant
+            ? OrderStatus.SENT_TO_KITCHEN
+            : OrderStatus.COMPLETED
+          : OrderStatus.PENDING;
+
         return {
           orderId,
-          status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+          status: finalStatus,
           totalDue,
           paid: this.money(Math.min(newTotalPaid, totalDue)),
           remaining: this.money(Math.max(0, totalDue - newTotalPaid)),

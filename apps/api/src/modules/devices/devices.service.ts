@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { generateToken } from '../utils/generateToken.js';
+import { generateToken } from '../../utils/generateToken.js';
 
 @Injectable()
 export class DevicesService {

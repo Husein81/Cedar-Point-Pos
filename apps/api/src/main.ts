@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { AppModule } from './app.module.js';
-import { ZodValidationPipe } from './common/pipes/zod.pipe.js';
+import { ZodValidationPipe } from './modules/common/pipes/zod.pipe.js';
 
 async function bootstrap() {
   try {

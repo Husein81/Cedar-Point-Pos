@@ -42,9 +42,7 @@ export function DatePicker({
         >
           <Calendar
             mode="single"
-            numberOfMonths={1}
             selected={date}
-            disabled={{ before: new Date() }}
             captionLayout="dropdown"
             onSelect={(date?: Date) => {
               onDateChange?.(date);

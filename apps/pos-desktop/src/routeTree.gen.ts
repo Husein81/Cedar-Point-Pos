@@ -14,6 +14,7 @@ import { Route as StockRouteImport } from './routes/stock'
 import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CurrenciesRouteImport } from './routes/currencies'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -63,6 +64,11 @@ const RecipesRoute = RecipesRouteImport.update({
 const PaymentsRoute = PaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
+  '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
+  '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
+  '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
   '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/currencies'
     | '/dashboard'
+    | '/kitchen'
     | '/payments'
     | '/recipes'
     | '/refunds'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/currencies'
     | '/dashboard'
+    | '/kitchen'
     | '/payments'
     | '/recipes'
     | '/refunds'
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/currencies'
     | '/dashboard'
+    | '/kitchen'
     | '/payments'
     | '/recipes'
     | '/refunds'
@@ -393,6 +405,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CurrenciesRoute: typeof CurrenciesRoute
   DashboardRoute: typeof DashboardRoute
+  KitchenRoute: typeof KitchenRoute
   PaymentsRoute: typeof PaymentsRoute
   RecipesRoute: typeof RecipesRoute
   RefundsRoute: typeof RefundsRoute
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/payments'
       preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CurrenciesRoute: CurrenciesRoute,
   DashboardRoute: DashboardRoute,
+  KitchenRoute: KitchenRoute,
   PaymentsRoute: PaymentsRoute,
   RecipesRoute: RecipesRoute,
   RefundsRoute: RefundsRoute,

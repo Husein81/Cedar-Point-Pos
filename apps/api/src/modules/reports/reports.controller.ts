@@ -16,7 +16,7 @@ import {
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) { }
+  constructor(private readonly reportsService: ReportsService) {}
 
   private parseQuery(query: Record<string, unknown>): ReportQueryDto {
     const result = reportQuerySchema.safeParse(query);
@@ -230,7 +230,10 @@ export class ReportsController {
   ) {
     const user = req.user as { tenantId: string };
     const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getProductsWithProfit(user.tenantId, parsedQuery);
+    return this.reportsService.getProductsWithProfit(
+      user.tenantId,
+      parsedQuery,
+    );
   }
 
   /**
@@ -260,7 +263,10 @@ export class ReportsController {
   ) {
     const user = req.user as { tenantId: string };
     const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getTopSellingProducts(user.tenantId, parsedQuery);
+    return this.reportsService.getTopSellingProducts(
+      user.tenantId,
+      parsedQuery,
+    );
   }
 
   /**
@@ -275,7 +281,10 @@ export class ReportsController {
   ) {
     const user = req.user as { tenantId: string };
     const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getMostOrderedProducts(user.tenantId, parsedQuery);
+    return this.reportsService.getMostOrderedProducts(
+      user.tenantId,
+      parsedQuery,
+    );
   }
 
   /**

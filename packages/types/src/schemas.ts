@@ -249,6 +249,13 @@ export type TransferItem = z.infer<typeof TransferItemSchema>;
 export const RefundItemSchema = z.object({
   id: cuid.optional(),
   refundId: cuid.optional(),
+  refund: z.object({
+    id: cuid,
+    orderId: cuid,
+    totalAmount: decimal,
+    reason: z.string().nullable().optional(),
+    refundedAt: isoDate,
+  }),
   orderItemId: cuid,
   quantity: decimal,
   unitPrice: decimal,
@@ -333,6 +340,7 @@ export const OrderItemSchema = z.object({
       }),
     )
     .optional(), // OrderItemTicket[]
+  refundItems: z.array(RefundItemSchema).optional(), // RefundItem[]
 });
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 
@@ -356,6 +364,7 @@ export const OrderSchema = z.object({
     .nullable()
     .optional(),
   shiftId: cuid.nullable().optional(),
+  refunds: z.array(RefundSchema).optional(),
   orderNumber: z.string().nullable().optional(),
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),

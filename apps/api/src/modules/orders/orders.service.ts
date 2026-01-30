@@ -304,8 +304,10 @@ export class OrdersService {
             modifiers: {
               include: { modifier: true },
             },
+            refundItems: true,
           },
         },
+        refunds: true,
         payments: true,
       },
     });

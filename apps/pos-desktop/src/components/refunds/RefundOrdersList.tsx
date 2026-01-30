@@ -1,71 +1,30 @@
-import { Button, cn, Icon, Shad } from "@repo/ui";
 import { useRefundStore } from "@/store/refundStore";
-import { OrderStatus } from "@repo/types";
-import { formatDistanceToNow, format } from "date-fns";
+import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
+import { format, formatDistanceToNow } from "date-fns";
+import { formatPaymentMethod, getStatusBadge } from "./config";
 
-interface RefundOrdersListProps {
-  onOrderSelect: (orderId: string) => void;
-  selectedOrderId: string | null;
-}
-
-/**
- * Left panel - scrollable list of refundable orders
- */
-export const RefundOrdersList = ({
-  onOrderSelect,
-  selectedOrderId,
-}: RefundOrdersListProps) => {
+export const RefundOrdersList = () => {
   const {
     orders,
     ordersLoading,
     ordersError,
     ordersTotalCount,
     ordersCurrentPage,
+    selectedOrderId,
     ordersPageSize,
     setOrdersPage,
+    selectOrder,
   } = useRefundStore();
 
+  const onOrderSelect = (orderId: string) => {
+    if (orderId === selectedOrderId) {
+      selectOrder(null);
+      return;
+    }
+    selectOrder(orderId);
+  };
+
   const totalPages = Math.ceil(ordersTotalCount / ordersPageSize);
-
-  const getStatusBadge = (status: OrderStatus, hasRefunds: boolean) => {
-    // ✅ First check if order is fully refunded (highest priority)
-    if (status === OrderStatus.FULLY_REFUNDED) {
-      return (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
-          Fully Refunded
-        </span>
-      );
-    }
-
-    // Then check if partially refunded
-    if (hasRefunds) {
-      return (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
-          Partially Refunded
-        </span>
-      );
-    }
-
-    switch (status) {
-      case OrderStatus.COMPLETED:
-        return (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-            Completed
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-            {status}
-          </span>
-        );
-    }
-  };
-
-  const formatPaymentMethod = (method: string | null) => {
-    if (!method) return "N/A";
-    return method.charAt(0) + method.slice(1).toLowerCase();
-  };
 
   if (ordersLoading && orders.length === 0) {
     return (
@@ -147,7 +106,7 @@ export const RefundOrdersList = ({
                 "hover:bg-accent hover:border-accent-foreground/20 hover:text-white",
                 selectedOrderId === order.id
                   ? "bg-primary/10 border-primary ring-1 ring-primary"
-                  : "bg-background border-transparent"
+                  : "bg-background border-transparent",
               )}
             >
               {/* Top Row: Order # + Status */}
@@ -156,7 +115,9 @@ export const RefundOrdersList = ({
                   #{order.orderNumber || order.id.slice(-8)}
                 </span>
                 {/* TODO */}
-                {getStatusBadge(order.status as OrderStatus, false)}
+                <Badge className={`${getStatusBadge(order.status).className}`}>
+                  {getStatusBadge(order.status).label}
+                </Badge>
               </div>
 
               {/* Middle Row: Total + Payment */}

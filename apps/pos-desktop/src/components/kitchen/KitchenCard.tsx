@@ -1,14 +1,9 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, Icon, Separator, Shad } from "@repo/ui";
+import { Badge, Button, Icon } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
-import {
-  getActionButtonStatus,
-  getOrderTypeHeaderColor,
-  getStatusColor,
-  getStatusIcon,
-} from "./config";
-import { Activity, useCallback } from "react";
+import { useCallback } from "react";
+import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
 
 type Props = {
   order: Order;
@@ -31,95 +26,179 @@ const KitchenCard = ({ order }: Props) => {
     }
   }, [order.id, order.status, handleStatusChange]);
 
+  // Calculate refund info
+  const isFullyRefunded = order.status === "FULLY_REFUNDED";
+
+  // Helper to check if an item has been refunded
+  const getItemRefundInfo = (itemId: string) => {
+    const item = order.items?.find((i) => i.id === itemId);
+    if (!item || !item.refundItems || item.refundItems.length === 0) {
+      return null;
+    }
+
+    const totalRefunded = item.refundItems.reduce(
+      (sum, refund) => sum + Number(refund.quantity),
+      0,
+    );
+    const isFullyRefunded = totalRefunded >= Number(item.quantity);
+    const isPartiallyRefunded = totalRefunded > 0 && !isFullyRefunded;
+
+    return {
+      totalRefunded,
+      isFullyRefunded,
+      isPartiallyRefunded,
+      latestReason: item.refundItems[0]?.refund?.reason || null,
+    };
+  };
+
   return (
-    <Shad.Card
-      key={order.id}
-      className="overflow-hidden h-fit hover:shadow-lg transition-shadow"
+    <div
+      className={`bg-white rounded-lg shadow-md overflow-hidden h-fit transition-shadow hover:shadow-lg ${
+        isFullyRefunded ? "opacity-70" : ""
+      }`}
     >
-      <div className="flex flex-col flex-1 px-4 space-y-4">
-        {/* Order Header */}
-        <div
-          className={`rounded-lg p-3 border ${getOrderTypeHeaderColor(order.type)}`}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl">{order.type.replace(/_/g, " ")}</h2>
-              {/* TODO: Add table number when table is available */}
-              <Activity mode={order.table ? "visible" : "hidden"}>
-                <p className="text-sm text-muted-foreground">
-                  {order.table?.name}
-                </p>
-              </Activity>
-            </div>
-            <div className="flex flex-col items-end space-y-1">
-              <Badge
-                className={`${getStatusColor(order.status)} border flex items-center gap-1`}
-              >
-                <Icon name={getStatusIcon(order.status)} className="w-4 h-4" />
-                {order.status.replace(/_/g, " ")}
-              </Badge>{" "}
-              <h3 className="font-semibold">
-                Order #{order.orderNumber || order.id.slice(0, 8)}
-              </h3>
-            </div>
-          </div>
-
-          {/* Time */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Icon name="Clock" className="w-4 h-4" />
-            {formatDistanceToNow(new Date(order.createdAt), {
-              addSuffix: true,
-            })}
-          </div>
+      {/* Colored Header */}
+      <div
+        className={`px-4 py-2 flex items-center justify-between ${getOrderTypeHeaderColor(order.type)}`}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-white font-bold text-lg">
+            #
+            {order.table?.tableNumber ||
+              order.orderNumber ||
+              order.id.slice(0, 4)}
+          </span>
+          <Icon name="Circle" className="w-1 h-1 text-white fill-white" />
+          <span className="text-white text-sm">
+            {order.table?.name || order.type.replace(/_/g, " ")}
+          </span>
         </div>
+        <span className="text-white text-sm font-medium">
+          {formatDistanceToNow(new Date(order.createdAt), {
+            addSuffix: false,
+          })}
+        </span>
+      </div>
 
-        <Separator />
+      {/* Order Content */}
+      <div className="p-4 space-y-3 min-h-50 relative">
+        {/* Refunded Stamp */}
+        {isFullyRefunded && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="border-4 border-red-500 text-red-500 font-bold text-4xl px-8 py-4 rotate-[-15deg] opacity-80">
+              REFUNDED
+            </div>
+          </div>
+        )}
 
-        {/* Order Items */}
-        <div className="flex-1 space-y-1">
-          <Activity mode={order.items?.length === 0 ? "hidden" : "visible"}>
-            {order.items?.map((item) => (
+        {/* Items List */}
+        <div className="space-y-2">
+          {order.items?.map((item) => {
+            const refundInfo = getItemRefundInfo(item.id);
+            return (
               <div key={item.id} className="space-y-1">
-                <div className="flex justify- items-start">
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`font-semibold min-w-6 ${
+                      refundInfo?.isFullyRefunded
+                        ? "text-red-500 line-through"
+                        : refundInfo?.isPartiallyRefunded
+                          ? "text-amber-600"
+                          : "text-gray-900"
+                    }`}
+                  >
+                    {refundInfo?.isPartiallyRefunded
+                      ? Number(item.quantity) - refundInfo.totalRefunded
+                      : item.quantity}
+                  </span>
                   <div className="flex-1">
-                    <p className="font-medium">
-                      {item.quantity} {item.product?.name}
+                    <p
+                      className={`font-medium ${
+                        refundInfo?.isFullyRefunded
+                          ? "text-red-500 line-through"
+                          : refundInfo?.isPartiallyRefunded
+                            ? "text-amber-600"
+                            : "text-gray-900"
+                      }`}
+                    >
+                      {item.product?.name}
                     </p>
-                    {item.notes && (
-                      <p className="text-sm text-muted-foreground italic">
-                        Note: {item.notes}
-                      </p>
-                    )}
+
+                    {/* Modifiers */}
                     {item.modifiers && item.modifiers.length > 0 && (
-                      <div className="text-xs text-muted-foreground ml-4">
+                      <div className="mt-1 ml-2 space-y-0.5">
                         {item.modifiers.map((mod) => (
-                          <div key={mod.id}>+ {mod.modifier?.name}</div>
+                          <p
+                            key={mod.id}
+                            className="text-xs text-gray-500 italic"
+                          >
+                            {mod.modifier?.name}
+                          </p>
                         ))}
                       </div>
+                    )}
+
+                    {/* Notes */}
+                    {item.notes && (
+                      <p className="text-xs text-gray-500 italic mt-1 ml-2">
+                        {item.notes}
+                      </p>
+                    )}
+
+                    {/* Refund Badge */}
+                    {refundInfo?.isFullyRefunded && (
+                      <Badge className="mt-1 bg-red-100 text-red-700 border-red-300 text-xs">
+                        REFUNDED
+                      </Badge>
+                    )}
+                    {refundInfo?.isPartiallyRefunded && (
+                      <Badge className="mt-1 bg-amber-100 text-amber-700 border-amber-300 text-xs">
+                        {refundInfo.totalRefunded} REFUNDED
+                      </Badge>
+                    )}
+
+                    {/* Refund Reason */}
+                    {refundInfo?.latestReason && (
+                      <p className="text-xs text-red-600 italic mt-1 ml-2">
+                        {refundInfo.latestReason}
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
-            ))}
-            <Separator />
-          </Activity>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Action Buttons */}
+      {/* Footer Button */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 uppercase font-medium">
+          <Icon name="Utensils" className="w-3 h-3" />
+          <span>
+            {order.type === "DINE_IN"
+              ? "DINE IN"
+              : order.type === "DELIVERY"
+                ? "DELIVERY"
+                : order.type === "TAKEAWAY"
+                  ? "TO GO"
+                  : order.type.replace(/_/g, " ")}
+          </span>
+        </div>
         <Button
           onClick={onActionButtonClick}
           className="w-full"
-          variant="default"
           disabled={
             getActionButtonStatus(order.status).nextStatus === null ||
-            updateStatusMutation.isPending
+            updateStatusMutation.isPending ||
+            isFullyRefunded
           }
           isSubmitting={updateStatusMutation.isPending}
         >
           {getActionButtonStatus(order.status).buttonLabel}
         </Button>
       </div>
-    </Shad.Card>
+    </div>
   );
 };
 export default KitchenCard;

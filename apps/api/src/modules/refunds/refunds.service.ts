@@ -3,10 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateRefundDto } from './dto/create-refund.dto.js';
+import { OrderStatus } from '@repo/types';
 
 interface RefundableOrdersParams {
   page?: number;
@@ -37,9 +38,11 @@ export class RefundsService {
     // Build where clause for refundable orders
     const where: Prisma.OrderWhereInput = {
       tenantId,
-      status: {
-        in: [OrderStatus.COMPLETED],
-      },
+      ...(params.status && {
+        status: {
+          in: [params.status as OrderStatus].filter(Boolean),
+        },
+      }),
       ...(params.branchId && { branchId: params.branchId }),
       ...(params.search && {
         OR: [
@@ -106,7 +109,9 @@ export class RefundsService {
   async getOrderRefundHistory(tenantId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
-      select: { id: true },
+      include: {
+        items: true,
+      },
     });
 
     if (!order) {
@@ -134,6 +139,7 @@ export class RefundsService {
       refundedAt: refund.refundedAt.toISOString(),
       totalAmount: Number(refund.totalAmount),
       reason: refund.reason,
+      isPartialRefund: refund.refundItems.length < order.items.length,
       items: refund.refundItems.map((item) => ({
         productName: String(item.orderItem?.product?.name || item.productName),
         quantity: Number(item.quantity),
@@ -243,11 +249,11 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    if (!['COMPLETED'].includes(order.status)) {
-      throw new BadRequestException(
-        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
-      );
-    }
+    // if (!['COMPLETED'].includes(order.status)) {
+    //   throw new BadRequestException(
+    //     `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
+    //   );
+    // }
 
     if (!order.branchId) {
       throw new BadRequestException('Order must have a branch assigned');
@@ -291,7 +297,9 @@ export class RefundsService {
 
       if (requestedQty.greaterThan(refundableQty)) {
         throw new BadRequestException(
-          `Refund quantity exceeds available amount for "${orderItem.product?.name}". Available: ${refundableQty.toString()}, Requested: ${requestedQty.toString()}`,
+          `Cannot refund ${requestedQty.toString()} of "${orderItem.product?.name}". ` +
+            `Only ${refundableQty.toString()} available for refund ` +
+            `(${item.quantity > 0 ? alreadyRefunded.toString() + ' already refunded' : 'not yet refunded'})`,
         );
       }
 
@@ -351,20 +359,29 @@ export class RefundsService {
               include: { refundItems: true },
             });
 
-            // ✅ Performance: Check if order is now fully refunded
-            // Only runs if refund was created successfully
+            // ✅ Performance: Check refund status and update order accordingly
             const isFullyRefunded = await this.isOrderFullyRefunded(
               tx,
               orderId,
             );
 
-            // ✅ Clean Code: Update order status if fully refunded
-            // This happens within the same transaction for consistency
+            // ✅ Clean Code: Update order status based on refund completeness
+            // PARTIALLY_REFUNDED: Some items or quantities refunded
+            // FULLY_REFUNDED: All items and quantities completely refunded
             if (isFullyRefunded) {
               await tx.order.update({
                 where: { id: orderId },
                 data: { status: OrderStatus.FULLY_REFUNDED },
               });
+            } else {
+              // Check if this is the first refund or additional partial refund
+              const hasAnyRefunds = refund.refundItems.length > 0;
+              if (hasAnyRefunds && order.status === OrderStatus.COMPLETED) {
+                await tx.order.update({
+                  where: { id: orderId },
+                  data: { status: OrderStatus.PARTIALLY_REFUNDED },
+                });
+              }
             }
 
             return refund;

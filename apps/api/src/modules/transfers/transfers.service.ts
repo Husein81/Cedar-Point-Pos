@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 import { CreateTransferDto } from './dto/create-transfer.dto.js';
 import { UpdateTransferDto } from './dto/update-transfer.dto.js';
-import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class TransfersService {
@@ -128,7 +127,7 @@ export class TransfersService {
           items: {
             create: items.map((item) => ({
               productId: item.productId,
-              quantity: new Prisma.Decimal(item.quantity),
+              quantity: item.quantity,
             })),
           },
         },
@@ -413,7 +412,7 @@ export class TransfersService {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.TransferWhereInput = {
+    const where = {
       tenantId,
       ...(status && { status }),
       ...(fromBranchId && { fromBranchId }),

@@ -1,8 +1,16 @@
 import { useState } from "react";
 
-export const usePaginationState = () => {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+type Props = {
+  initialPage?: number;
+  initialPageSize?: number;
+};
+
+export const usePaginationState = ({
+  initialPage = 1,
+  initialPageSize = 10,
+}: Props) => {
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
   const [searchQuery, setSearchQuery] = useState("");
 
   const onPageSizeChange = (newSize: number) => {

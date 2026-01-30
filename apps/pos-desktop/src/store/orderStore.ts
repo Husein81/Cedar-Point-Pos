@@ -249,7 +249,9 @@ export const useOrderStore = create<OrderStoreState>()(
 
       addItem: (item: Omit<OrderItem, "id">) => {
         const state = get();
-        if (!state.activeTabId) return;
+        if (!state.activeTabId) {
+          return;
+        }
 
         set({
           tabs: state.tabs.map((tab) => {

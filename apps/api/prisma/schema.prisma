@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -479,6 +479,7 @@ enum UserRole {
   ADMIN
   MANAGER
   CASHIER
+  KITCHEN
 }
 
 enum BusinessType {
@@ -516,6 +517,7 @@ enum OrderStatus {
   READY
   PAID
   COMPLETED
+  PARTIALLY_REFUNDED
   FULLY_REFUNDED
   CANCELLED
 }

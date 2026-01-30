@@ -2,27 +2,28 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
-import { AuthModule } from './auth/auth.module.js';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
-import { BranchesModule } from './branches/branches.module.js';
-import { CategoryModule } from './category/category.module.js';
-import { RolesGuard } from './common/guards/roles.guard.js';
-import { CurrenciesModule } from './currencies/currencies.module.js';
-import { CustomersModule } from './customers/customers.module.js';
-import { DevicesModule } from './devices/devices.module.js';
-import { InventoryModule } from './inventory/inventory.module.js';
-import { ModifierGroupsModule } from './modifier-groups/modifier-groups.module.js';
-import { OrdersModule } from './orders/orders.module.js';
-import { ProductsModule } from './products/products.module.js';
-import { RecipesModule } from './recipes/recipes.module.js';
-import { RefundsModule } from './refunds/refunds.module.js';
-import { TablesModule } from './tables/tables.module.js';
-import { TenantModule } from './tenant/tenant.module.js';
-import { TransfersModule } from './transfers/transfers.module.js';
-import { UsersModule } from './users/users.module.js';
-import { SystemAdminModule } from './system-admin/system-admin.module.js';
-import { PrismaModule } from './prisma/prisma.module.js';
-import { ReportsModule } from './reports/reports.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
+import { BranchesModule } from './modules/branches/branches.module.js';
+import { CategoryModule } from './modules/category/category.module.js';
+import { RolesGuard } from './modules/common/guards/roles.guard.js';
+import { CurrenciesModule } from './modules/currencies/currencies.module.js';
+import { CustomersModule } from './modules/customers/customers.module.js';
+import { DevicesModule } from './modules/devices/devices.module.js';
+import { InventoryModule } from './modules/inventory/inventory.module.js';
+import { ModifierGroupsModule } from './modules/modifier-groups/modifier-groups.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
+import { RecipesModule } from './modules/recipes/recipes.module.js';
+import { RefundsModule } from './modules/refunds/refunds.module.js';
+import { TablesModule } from './modules/tables/tables.module.js';
+import { TenantModule } from './modules/tenant/tenant.module.js';
+import { KitchenModule } from './modules/kitchen/kitchen.module.js';
+import { TransfersModule } from './modules/transfers/transfers.module.js';
+import { UsersModule } from './modules/users/users.module.js';
+import { SystemAdminModule } from './modules/system-admin/system-admin.module.js';
+import { PrismaModule } from './modules/prisma/prisma.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ReportsModule } from './reports/reports.module.js';
     RecipesModule,
     TablesModule,
     TenantModule,
+    KitchenModule,
     UsersModule,
     TransfersModule,
     OrdersModule,

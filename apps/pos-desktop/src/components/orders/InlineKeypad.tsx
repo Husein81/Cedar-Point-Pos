@@ -74,7 +74,7 @@ export const InlineKeypad = () => {
   const paymentLockRef = useRef(false);
 
   const safeContext = (context ?? "QUANTITY") as KeypadContext;
-  const config = KEYPAD_CONFIG[safeContext];
+  const config = KEYPAD_CONFIG[safeContext!];
   const maxValue = maxValueOverride ?? config.maxValue;
 
   const order = getActiveOrder();
@@ -218,12 +218,15 @@ export const InlineKeypad = () => {
     const active = getActiveOrder();
     if (!active || !branchId || !user?.tenantId) return null;
 
-    const orderType =
-      user.tenant?.businessType === BusinessType.RESTAURANT
-        ? active.type
-        : OrderType.RETAIL;
-
-    if (!orderType) return null;
+    // Determine order type
+    let orderType: OrderType;
+    if (user.tenant?.businessType === BusinessType.RESTAURANT) {
+      // For restaurants, use the active order type or default to DINE_IN
+      orderType = active.type || OrderType.DINE_IN;
+    } else {
+      // For retail, always use RETAIL type
+      orderType = OrderType.RETAIL;
+    }
 
     const dto: CreateOrderDto = {
       branchId,
@@ -415,10 +418,12 @@ export const InlineKeypad = () => {
           const active = getActiveOrder();
           if (!active || !branchId || !user?.tenantId || total <= 0) return;
 
+          // Get the active tab ID before closing anything
+          const tabToClose = activeTabId;
+
           // POS-style UX: close input early
           closeKeypad();
           closeModal();
-          if (activeTabId) closeTab(activeTabId);
 
           if (
             user.tenant?.businessType === BusinessType.RESTAURANT &&
@@ -445,6 +450,9 @@ export const InlineKeypad = () => {
           if (!result) return;
 
           setOrderStatus(result.status);
+
+          // Close the tab AFTER order is created and payment is processed
+          if (tabToClose) closeTab(tabToClose);
 
           if (result.status === OrderStatus.COMPLETED) {
             clearOrder();

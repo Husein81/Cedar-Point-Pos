@@ -46,6 +46,7 @@ export const OrderStatus = {
   PAID: "PAID", // Payment received, inventory deducted
   PARTIALLY_PAID: "PARTIALLY_PAID", // Partial payment received
   COMPLETED: "COMPLETED", // Order fully completed
+  PARTIALLY_REFUNDED: "PARTIALLY_REFUNDED", // Order partially refunded
   FULLY_REFUNDED: "FULLY_REFUNDED", // Order fully refunded
   CANCELLED: "CANCELLED",
 } as const;
@@ -71,6 +72,7 @@ export const UserRole = {
   ADMIN: "ADMIN",
   MANAGER: "MANAGER",
   CASHIER: "CASHIER",
+  KITCHEN: "KITCHEN",
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 

@@ -98,8 +98,15 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RESTAURANT"],
       },
       {
-        label: "Recipes",
+        label: "Kitchen",
         icon: "ChefHat",
+        href: "/kitchen",
+        tooltip: "Kitchen Orders",
+        showFor: ["RESTAURANT"],
+      },
+      {
+        label: "Recipes",
+        icon: "CookingPot",
         href: "/recipes",
         tooltip: "Recipes",
         showFor: ["RESTAURANT"],

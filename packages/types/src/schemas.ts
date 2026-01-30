@@ -160,7 +160,7 @@ export const ProductSchema = z.object({
         tenantId: cuid,
         stock: decimal.default("0"),
         minStock: decimal.default("0"),
-      })
+      }),
     )
     .optional(),
   recipesUsedIn: z.array(RecipeSchema).optional(), // For ingredients
@@ -310,6 +310,29 @@ export const OrderItemSchema = z.object({
   total: decimal,
   notes: z.string().nullable().optional(),
   product: ProductSchema.optional(), // For combo products
+  modifiers: z
+    .array(
+      z.object({
+        id: cuid,
+        orderItemId: cuid,
+        modifierId: cuid,
+        modifier: ModifierSchema.optional(), // For modifier details
+        price: decimal,
+      }),
+    )
+    .optional(), // OrderItemModifier[]
+  tickets: z
+    .array(
+      z.object({
+        id: cuid,
+        orderItemId: cuid,
+        station: z.string().nullable().optional(),
+        status: z.enum(OrderStatus).default("SENT_TO_KITCHEN"),
+        sentAt: isoDate,
+        bumpedAt: isoDate.nullable().optional(),
+      }),
+    )
+    .optional(), // OrderItemTicket[]
 });
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 
@@ -320,6 +343,7 @@ export const OrderSchema = z.object({
   userId: cuid.nullable().optional(),
   branchId: cuid,
   tableId: cuid.nullable().optional(),
+  table: TableSchema.optional(),
   deviceId: cuid.nullable().optional(),
   customerId: cuid.nullable().optional(),
   customer: z
@@ -345,7 +369,6 @@ export const OrderSchema = z.object({
   // Currency snapshot (for reporting)
   currencyCode: z.string().nullable().optional().default("USD"),
   exchangeRate: decimal.nullable().optional(),
-
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
   items: z.array(OrderItemSchema).optional(), // OrderItem[]

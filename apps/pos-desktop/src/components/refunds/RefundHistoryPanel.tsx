@@ -54,9 +54,16 @@ export const RefundHistoryPanel = () => {
           >
             {/* Top row */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Icon name="Clock" className="w-3.5 h-3.5" />
-                {format(new Date(refund.refundedAt), "MMM d, yyyy • h:mm a")}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Icon name="Clock" className="w-3.5 h-3.5" />
+                  {format(new Date(refund.refundedAt), "MMM d, yyyy • h:mm a")}
+                </div>
+                {refund.isPartialRefund && (
+                  <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 border border-amber-500/30">
+                    Partial
+                  </span>
+                )}
               </div>
 
               <div className="text-sm font-bold text-indigo-600">

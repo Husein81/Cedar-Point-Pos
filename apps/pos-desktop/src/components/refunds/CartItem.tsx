@@ -1,5 +1,5 @@
 import type { RefundCartItem } from "@/store/refundStore";
-import { Button, Checkbox, cn, Icon, Input, Shad } from "@repo/ui";
+import { Button, Checkbox, cn, Icon, Input } from "@repo/ui";
 
 interface Props {
   item: RefundCartItem;
@@ -85,64 +85,44 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
             </span>
           </div>
 
-          {/* Qty control */}
+          {/* Qty control - Partial Refund Support */}
           {item.refundableQuantity > 0 && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex items-center gap-1"
+              className="mt-2 flex items-center gap-2"
             >
-              {/* <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6"
-                onClick={() =>
-                  onQuantityChange(Math.max(0, item.refundQuantity - 1))
-                }
-              >
-                <Icon name="Minus" className="h-3 w-3" />
-              </Button>
-
-              <Input
-                type="number"
-                min={0}
-                max={item.refundableQuantity}
-                value={item.refundQuantity}
-                onChange={(e) => {
-                  const val = Number(e.target.value) || 0;
-                  onQuantityChange(Math.min(val, item.refundableQuantity));
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="h-6 w-12 text-center p-0 font-semibold tabular-nums"
-              />
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6"
-                onClick={() =>
-                  onQuantityChange(
-                    Math.min(item.refundQuantity + 1, item.refundableQuantity)
-                  )
-                }
-              >
-                <Icon name="Plus" className="h-3 w-3" />
-              </Button> */}
-              <Shad.ToggleGroup variant="outline" type="single">
-                <Shad.ToggleGroupItem size="sm" value="value">
-                  <span className="w-12 text-start">{item.refundQuantity}</span>
-                </Shad.ToggleGroupItem>
-                <Shad.ToggleGroupItem
+              <div className="inline-flex items-center gap-1 rounded-lg border bg-background">
+                <Button
+                  variant="ghost"
                   size="sm"
+                  className="h-7 w-7 hover:bg-destructive/10"
+                  disabled={item.refundQuantity <= 0}
                   onClick={() =>
                     onQuantityChange(Math.max(0, item.refundQuantity - 1))
                   }
-                  value="Increment"
                 >
                   <Icon name="Minus" className="h-3 w-3" />
-                </Shad.ToggleGroupItem>
-                <Shad.ToggleGroupItem
-                  value="Decrement"
+                </Button>
+
+                <Input
+                  type="number"
+                  min={0}
+                  max={item.refundableQuantity}
+                  value={item.refundQuantity || ""}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 0;
+                    onQuantityChange(Math.min(val, item.refundableQuantity));
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-7 w-14 text-center p-0 font-semibold tabular-nums border-0 focus-visible:ring-0"
+                  placeholder="0"
+                />
+
+                <Button
+                  variant="ghost"
                   size="sm"
+                  className="h-7 w-7 hover:bg-destructive/10"
+                  disabled={item.refundQuantity >= item.refundableQuantity}
                   onClick={() =>
                     onQuantityChange(
                       Math.min(
@@ -153,8 +133,22 @@ export const CartItem = ({ item, onToggle, onQuantityChange }: Props) => {
                   }
                 >
                   <Icon name="Plus" className="h-3 w-3" />
-                </Shad.ToggleGroupItem>
-              </Shad.ToggleGroup>
+                </Button>
+              </div>
+
+              {item.refundQuantity > 0 &&
+                item.refundQuantity < item.refundableQuantity && (
+                  <span className="text-[11px] text-amber-600 font-medium">
+                    Partial
+                  </span>
+                )}
+
+              {item.refundQuantity === item.refundableQuantity &&
+                item.refundQuantity > 0 && (
+                  <span className="text-[11px] text-destructive font-medium">
+                    Full
+                  </span>
+                )}
             </div>
           )}
         </div>

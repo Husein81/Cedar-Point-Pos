@@ -22,7 +22,13 @@ export class KitchenService {
       tenantId,
       ...(branchId && { branchId }),
       status: {
-        in: ['CONFIRMED', 'IN_PROGRESS', 'SENT_TO_KITCHEN', 'READY'],
+        in: [
+          'CONFIRMED',
+          'IN_PROGRESS',
+          'SENT_TO_KITCHEN',
+          'READY',
+          'FULLY_REFUNDED',
+        ],
       },
     };
     // Get orders that are in kitchen-relevant statuses
@@ -51,12 +57,43 @@ export class KitchenService {
                   },
                 },
               },
+              refundItems: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  refund: {
+                    select: {
+                      id: true,
+                      refundedAt: true,
+                      reason: true,
+                    },
+                  },
+                },
+              },
               tickets: {
                 orderBy: {
                   sentAt: 'desc',
                 },
                 take: 1,
               },
+            },
+          },
+          refunds: {
+            select: {
+              id: true,
+              refundedAt: true,
+              totalAmount: true,
+              reason: true,
+              refundItems: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  orderItemId: true,
+                },
+              },
+            },
+            orderBy: {
+              refundedAt: 'desc',
             },
           },
           table: {
@@ -123,11 +160,42 @@ export class KitchenService {
                 },
               },
             },
+            refundItems: {
+              select: {
+                id: true,
+                quantity: true,
+                refund: {
+                  select: {
+                    id: true,
+                    refundedAt: true,
+                    reason: true,
+                  },
+                },
+              },
+            },
             tickets: {
               orderBy: {
                 sentAt: 'desc',
               },
             },
+          },
+        },
+        refunds: {
+          select: {
+            id: true,
+            refundedAt: true,
+            totalAmount: true,
+            reason: true,
+            refundItems: {
+              select: {
+                id: true,
+                quantity: true,
+                orderItemId: true,
+              },
+            },
+          },
+          orderBy: {
+            refundedAt: 'desc',
           },
         },
         table: {

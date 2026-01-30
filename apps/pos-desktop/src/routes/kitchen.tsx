@@ -1,8 +1,9 @@
 import { SkeletonCard } from "@/components/common/SkeletonCard";
+import GridPagination from "@/components/grid-pagination";
 import Heading from "@/components/heading";
 import { KitchenCard } from "@/components/kitchen";
 import { useGetKitchenOrders } from "@/hooks/useKitchen";
-import { useAuthStore } from "@/store/authStore";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useBranchStore } from "@/store/branchStore";
 import { Empty } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,22 +13,35 @@ export const Route = createFileRoute("/kitchen")({
 });
 
 function KitchenPage() {
-  const { user } = useAuthStore();
   const { branchId } = useBranchStore();
+  const { page, setPage } = usePaginationState({
+    initialPage: 1,
+  });
 
-  //   Only allow KITCHEN role users
-  //   if (user?.role !== "KITCHEN") {
-  //     return <Navigate to="/dashboard" />;
-  //   }
+  const { data, isLoading } = useGetKitchenOrders({
+    branchId: branchId!,
+    page: String(page),
+    limit: "12",
+  });
 
-  const { data: orders = [], isLoading } = useGetKitchenOrders(branchId!);
+  const orders = data?.data ?? [];
 
   return (
     <div className="p-6 space-y-6">
-      <Heading
-        title="Kitchen Orders"
-        subtitle={`${orders.length} Active Orders`}
-      />
+      <div className="flex items-center w-full justify-between">
+        <Heading
+          title="Kitchen Orders"
+          subtitle={`${orders.length} Active Orders`}
+        />
+
+        <div className="">
+          <GridPagination
+            page={page}
+            totalPages={data?.pagination.totalPages || 0}
+            onPageChange={setPage}
+          />
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -42,7 +56,7 @@ function KitchenPage() {
           icon={"ChefHat"}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {orders.map((order) => (
             <KitchenCard key={order.id} order={order} />
           ))}

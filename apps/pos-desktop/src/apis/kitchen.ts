@@ -1,9 +1,19 @@
-import type { Order } from "@repo/types";
+import type { Order, PaginationResponse } from "@repo/types";
 import { api } from "./api";
 
+type Params = {
+  branchId?: string;
+  page?: string;
+  limit?: string;
+};
+
 export const kitchenApi = {
-  getOrders: async (branchId?: string): Promise<Order[]> => {
-    const params = branchId ? { branchId } : {};
+  getOrders: async ({
+    branchId,
+    page,
+    limit,
+  }: Params): Promise<PaginationResponse<Order>> => {
+    const params = branchId ? { branchId, page, limit } : { page, limit };
     const response = await api.get("/kitchen/orders", { params });
     return response.data;
   },

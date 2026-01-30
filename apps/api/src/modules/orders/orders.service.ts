@@ -156,7 +156,7 @@ export class OrdersService {
         Prisma.ProductGetPayload<{
           select: { id: true; price: true };
         }>[],
-        Prisma.ModifierGetPayload<{}>[],
+        Prisma.ModifierGetPayload<object>[],
       ];
 
       const productMap = new Map(products.map((p) => [p.id, p]));

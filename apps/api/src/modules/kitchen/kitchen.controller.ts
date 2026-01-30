@@ -34,12 +34,17 @@ export class KitchenController {
   getKitchenOrders(
     @Req() req: AuthRequest,
     @Query('branchId') branchId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     const tenantId = req.user.tenantId;
     if (!tenantId) {
       throw new Error('User must belong to a tenant');
     }
-    return this.kitchenService.getKitchenOrders(tenantId, branchId);
+    return this.kitchenService.getKitchenOrders(tenantId, branchId, {
+      page,
+      limit,
+    });
   }
 
   @Get('orders/:id')

@@ -1,7 +1,8 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
-import { OrderStatus } from '@repo/types';
+import { OrderStatus, QueryParams } from '@repo/types';
+import { Prisma } from '../../generated/prisma/browser.js';
 
 @Injectable()
 export class KitchenService {
@@ -10,70 +11,89 @@ export class KitchenService {
     private readonly inventoryDeductionService: InventoryDeductionService,
   ) {}
 
-  async getKitchenOrders(tenantId: string, branchId?: string) {
-    // Get orders that are in kitchen-relevant statuses
-    const orders = await this.prisma.order.findMany({
-      where: {
-        tenantId,
-        ...(branchId && { branchId }),
-        status: {
-          in: ['CONFIRMED', 'IN_PROGRESS', 'SENT_TO_KITCHEN', 'READY'],
-        },
+  async getKitchenOrders(
+    tenantId: string,
+    branchId?: string,
+    params?: QueryParams,
+  ) {
+    const { page, limit } = params || {};
+    const skip = (Number(page) - 1) * Number(limit);
+    const where: Prisma.OrderWhereInput = {
+      tenantId,
+      ...(branchId && { branchId }),
+      status: {
+        in: ['CONFIRMED', 'IN_PROGRESS', 'SENT_TO_KITCHEN', 'READY'],
       },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                imageUrl: true,
+    };
+    // Get orders that are in kitchen-relevant statuses
+    const [totalCount, data] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        skip,
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                },
               },
-            },
-            modifiers: {
-              include: {
-                modifier: {
-                  select: {
-                    id: true,
-                    name: true,
+              modifiers: {
+                include: {
+                  modifier: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
                   },
                 },
               },
-            },
-            tickets: {
-              orderBy: {
-                sentAt: 'desc',
+              tickets: {
+                orderBy: {
+                  sentAt: 'desc',
+                },
+                take: 1,
               },
-              take: 1,
+            },
+          },
+          table: {
+            select: {
+              id: true,
+              name: true,
+              tableNumber: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
-        table: {
-          select: {
-            id: true,
-            name: true,
-            tableNumber: true,
-          },
+        orderBy: {
+          createdAt: 'asc',
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+      }),
+    ]);
 
-    return orders;
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / Number(limit ?? 10)),
+      },
+    };
   }
 
   async getOrderById(orderId: string, tenantId: string) {

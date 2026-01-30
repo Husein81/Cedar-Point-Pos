@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { OrderStatus, OrderType } from "@repo/types";
 
 export const getStatusColor = (status: OrderStatus): string => {
   switch (status) {
@@ -27,6 +27,20 @@ export const getStatusIcon = (status: OrderStatus): string => {
       return "CircleCheck";
     default:
       return "Clock";
+  }
+};
+
+export const getOrderTypeHeaderColor = (type: OrderType) => {
+  switch (type) {
+    case OrderType.DINE_IN:
+      return "bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200";
+
+    case OrderType.DELIVERY:
+      return "bg-purple-100 border-purple-300 text-purple-900 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-200";
+
+    case OrderType.TAKEAWAY:
+    default:
+      return "bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200";
   }
 };
 

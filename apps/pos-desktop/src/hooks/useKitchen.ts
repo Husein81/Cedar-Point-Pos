@@ -1,16 +1,24 @@
 import { kitchenApi } from "@/apis/kitchen";
+import { queryClient } from "@/components/providers";
 import { OrderStatus } from "@repo/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-export const useGetKitchenOrders = (branchId?: string) =>
+export const useGetKitchenOrders = ({
+  branchId,
+  page,
+  limit,
+}: {
+  branchId?: string;
+  page?: string;
+  limit?: string;
+}) =>
   useQuery({
-    queryKey: ["kitchen-orders", branchId],
-    queryFn: () => kitchenApi.getOrders(branchId || undefined),
-    refetchInterval: 10000, // Refresh every 10 seconds
+    queryKey: ["kitchen-orders", branchId, page, limit],
+    queryFn: () => kitchenApi.getOrders({ branchId, page, limit }),
+    refetchInterval: 10000,
   });
 
 export const useUpdateKitchenStatus = () => {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       orderId,
@@ -19,8 +27,10 @@ export const useUpdateKitchenStatus = () => {
       orderId: string;
       status: OrderStatus;
     }) => kitchenApi.updateOrderStatus(orderId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ["kitchen-orders", data.branchId],
+      });
     },
   });
 };

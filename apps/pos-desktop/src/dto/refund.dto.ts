@@ -1,16 +1,135 @@
 import { OrderStatus } from "@repo/types";
 
-// DTO Types
+// =====================
+// Refund Payment Methods
+// =====================
+
+export type RefundPaymentMethod =
+  | "CASH"
+  | "CARD"
+  | "ORIGINAL_METHOD"
+  | "STORE_CREDIT";
+
+// =====================
+// Warning System Types
+// =====================
+
+export type RefundWarningSeverity = "INFO" | "WARNING" | "MANAGER_REQUIRED";
+
+export type RefundWarningCode =
+  | "ORDER_OLD"
+  | "HIGH_VALUE"
+  | "MULTIPLE_REFUNDS"
+  | "MANUAL_REFUND"
+  | "OVER_REFUND"
+  | "DIFFERENT_BRANCH"
+  | "PRODUCT_NOT_FOUND";
+
+export interface RefundWarning {
+  code: RefundWarningCode;
+  message: string;
+  severity: RefundWarningSeverity;
+}
+
+export interface ValidateRefundResponse {
+  valid: boolean;
+  warnings: RefundWarning[];
+  requiresManagerOverride: boolean;
+  estimatedTotal: number;
+}
+
+// =====================
+// Order-Linked Item DTO
+// =====================
+
 export interface CreateRefundItemDto {
   orderItemId: string;
   quantity: number;
 }
 
-export interface CreateRefundDto {
-  orderId: string;
-  reason?: string;
-  items: CreateRefundItemDto[];
+// =====================
+// Manual Item DTO
+// =====================
+
+export interface ManualRefundItemDto {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
 }
+
+// =====================
+// Create Refund DTO (unified)
+// =====================
+
+export interface CreateRefundDto {
+  // Order-linked refund (existing flow)
+  orderId?: string;
+  items?: CreateRefundItemDto[];
+
+  // Manual refund (new flow)
+  manualRefund?: boolean;
+  manualItems?: ManualRefundItemDto[];
+
+  // Shared
+  reason?: string;
+  branchId?: string;
+  restockInventory?: boolean;
+
+  // Edge case handling
+  paymentMethod?: RefundPaymentMethod;
+  isDamaged?: boolean;
+  managerOverride?: boolean;
+  managerOverrideReason?: string;
+  acknowledgedWarnings?: string[];
+}
+
+// =====================
+// Validate Refund DTO
+// =====================
+
+export interface ValidateRefundDto {
+  orderId?: string;
+  items?: CreateRefundItemDto[];
+  manualRefund?: boolean;
+  manualItems?: ManualRefundItemDto[];
+  branchId?: string;
+}
+
+// =====================
+// Barcode Lookup Types
+// =====================
+
+export interface LookupRefundableItem {
+  orderItemId: string;
+  orderId: string;
+  orderNumber: string | null;
+  orderDate: string | null;
+  branchId: string | null;
+  customerName: string | null;
+  quantity: number;
+  refundedQuantity: number;
+  refundableQuantity: number;
+  unitPrice: number;
+}
+
+export interface LookupRefundableResult {
+  found: boolean;
+  product: {
+    id: string;
+    name: string;
+    sku: string | null;
+    barcode: string | null;
+    imageUrl: string | null;
+    price: number;
+  } | null;
+  refundableItems: LookupRefundableItem[];
+  canManualRefund: boolean;
+  message: string;
+}
+
+// =====================
+// Existing Types (unchanged)
+// =====================
 
 export interface RefundableItem {
   orderItemId: string;

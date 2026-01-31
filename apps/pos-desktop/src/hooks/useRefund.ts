@@ -4,9 +4,32 @@ import type {
   CreateRefundDto,
   RefundFilters,
   RefundableOrdersFilters,
+  ValidateRefundDto,
 } from "@/dto/refund.dto";
 
 const REFUND_QUERY_KEY = ["refunds"];
+
+/**
+ * Scanner-first: Lookup refundable items by barcode/SKU
+ */
+export const useLookupRefundable = (barcode: string) => {
+  return useQuery({
+    queryKey: [...REFUND_QUERY_KEY, "lookup", barcode],
+    queryFn: () => refundsApi.lookupByBarcode(barcode),
+    enabled: !!barcode && barcode.length >= 3,
+    staleTime: 1000 * 60 * 5, // Cache for 5 min
+    retry: false, // Don't retry on 404 (product not found)
+  });
+};
+
+/**
+ * Validate refund before submitting (get warnings)
+ */
+export const useValidateRefund = () => {
+  return useMutation({
+    mutationFn: (data: ValidateRefundDto) => refundsApi.validateRefund(data),
+  });
+};
 
 export const useRefundableInfo = (orderId: string) => {
   return useQuery({
@@ -53,6 +76,11 @@ export const useCreateRefund = () => {
     mutationFn: (data: CreateRefundDto) => refundsApi.createRefund(data),
     // ✅ OPTIMIZED: Optimistic update for instant UI feedback
     onMutate: async (variables) => {
+      // Only do optimistic update for order-linked refunds
+      if (!variables.orderId || variables.manualRefund) {
+        return {};
+      }
+
       // Cancel outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({
         queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
@@ -72,7 +100,7 @@ export const useCreateRefund = () => {
           if (!old) return old;
 
           const updatedItems = old.items.map((item: any) => {
-            const refundItem = variables.items.find(
+            const refundItem = variables.items?.find(
               (i) => i.orderItemId === item.orderItemId
             );
             if (!refundItem) return item;
@@ -105,9 +133,9 @@ export const useCreateRefund = () => {
 
       return { previousData };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, variables, context) => {
       // Rollback on error
-      if (context?.previousData) {
+      if (context?.previousData && variables.orderId) {
         queryClient.setQueryData(
           [...REFUND_QUERY_KEY, "refundable", variables.orderId],
           context.previousData
@@ -116,14 +144,20 @@ export const useCreateRefund = () => {
     },
     onSuccess: (_, variables) => {
       // ✅ OPTIMIZED: Targeted invalidations instead of blanket refetch
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "history", variables.orderId],
-      });
+      if (variables.orderId) {
+        queryClient.invalidateQueries({
+          queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [...REFUND_QUERY_KEY, "history", variables.orderId],
+        });
+      }
       queryClient.invalidateQueries({
         queryKey: [...REFUND_QUERY_KEY, "orders"],
+      });
+      // Invalidate lookup cache (refund may affect future lookups)
+      queryClient.invalidateQueries({
+        queryKey: [...REFUND_QUERY_KEY, "lookup"],
       });
       // Invalidate inventory (refund restores stock)
       queryClient.invalidateQueries({ queryKey: ["stock"] });

@@ -2,12 +2,36 @@ import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { CreateRefundDto } from './dto/create-refund.dto.js';
+import type {
+  CreateRefundDto,
+  ValidateRefundDto,
+} from './dto/create-refund.dto.js';
 import { RefundsService } from './refunds.service.js';
 
 @Controller('refunds')
 export class RefundsController {
   constructor(private readonly refundsService: RefundsService) {}
+
+  /**
+   * Lookup refundable items by barcode/SKU (Scanner-first flow)
+   * Returns product info + recent order items containing this product
+   */
+  @Get('lookup')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  lookupRefundableByBarcode(
+    @Req() req: Request,
+    @Query('barcode') barcode: string,
+    @Query('branchId') branchId?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.refundsService.lookupRefundableByBarcode(
+      user.tenantId,
+      barcode,
+      branchId,
+      limit ? parseInt(limit, 10) : 10,
+    );
+  }
 
   /**
    * Get orders eligible for refund
@@ -61,14 +85,33 @@ export class RefundsController {
     return this.refundsService.getOrderRefundHistory(user.tenantId, orderId);
   }
 
+  /**
+   * Validate a refund request before submitting
+   * Returns warnings that may require acknowledgment or manager override
+   */
+  @Post('validate')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  validateRefund(
+    @Req() req: Request,
+    @Body() validateRefundDto: ValidateRefundDto,
+  ) {
+    const user = req.user as { tenantId: string; role: string };
+    return this.refundsService.validateRefund(
+      user.tenantId,
+      user.role,
+      validateRefundDto,
+    );
+  }
+
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   createRefund(@Req() req: Request, @Body() createRefundDto: CreateRefundDto) {
-    const user = req.user as { id: string; tenantId: string };
+    const user = req.user as { id: string; tenantId: string; role: string };
     return this.refundsService.createRefund(
       user.tenantId,
       user.id,
       createRefundDto,
+      user.role,
     );
   }
 

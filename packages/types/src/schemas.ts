@@ -9,6 +9,7 @@ import {
   PaymentMethod,
   ShiftStatus,
   SortOrder,
+  TableStatus,
   TransferStatus,
   UserRole,
 } from "./enums";
@@ -266,16 +267,34 @@ export const RefundSchema = z.object({
 });
 export type Refund = z.infer<typeof RefundSchema>;
 
+// Floor
+export const FloorSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  name: z.string(),
+  order: z.number().int().default(0),
+  isDeleted: z.boolean().default(false),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type Floor = z.infer<typeof FloorSchema>;
+
 // Table
 export const TableSchema = z.object({
   id: cuid,
   tableNumber: z.number().int(),
   tenantId: cuid,
   branchId: cuid,
+  floorId: cuid.nullable().optional(),
   name: z.string(),
   capacity: z.number().int().positive().default(4),
+  status: z.enum(TableStatus).default("AVAILABLE"),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
+  createdAt: isoDate.optional(),
+  updatedAt: isoDate.optional(),
+  floor: FloorSchema.nullable().optional(), // Included when fetched with join
 });
 export type Table = z.infer<typeof TableSchema>;
 

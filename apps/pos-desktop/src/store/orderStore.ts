@@ -43,6 +43,8 @@ export type Order = {
   includeVAT: boolean;
   customerId: string | null;
   customerName: string | null;
+  tableId: string | null;
+  tableName: string | null;
   notes: string;
   createdAt: Date;
   modifiedAt: Date;
@@ -76,6 +78,8 @@ const createEmptyOrder = (): Order => ({
   includeVAT: false,
   customerId: null,
   customerName: null,
+  tableId: null,
+  tableName: null,
   notes: "",
   createdAt: new Date(),
   modifiedAt: new Date(),
@@ -106,6 +110,7 @@ interface OrderStoreState {
 
   // Tab actions
   createTab: () => string | null;
+  createTabWithTable: (tableId: string, tableName: string) => string | null;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   renameTab: (tabId: string, newLabel: string) => void;
@@ -134,6 +139,9 @@ interface OrderStoreState {
 
   // Customer actions
   setCustomer: (customerId: string | null, customerName: string | null) => void;
+
+  // Table actions
+  setTable: (tableId: string | null, tableName: string | null) => void;
 
   // Order notes
   setOrderNotes: (notes: string) => void;
@@ -180,6 +188,69 @@ export const useOrderStore = create<OrderStoreState>()(
         }
         const newTabNumber = state.tabs.length + 1;
         const newTab = createNewTab(newTabNumber);
+        const updatedTabs = renumberTabs([...state.tabs, newTab]);
+
+        set({
+          tabs: updatedTabs,
+          activeTabId: newTab.id,
+        });
+
+        return newTab.id;
+      },
+
+      createTabWithTable: (tableId: string, tableName: string) => {
+        const state = get();
+
+        // First, check if there's already a tab with this table
+        const existingTab = state.tabs.find(
+          (t) => t.order.tableId === tableId
+        );
+        if (existingTab) {
+          set({ activeTabId: existingTab.id });
+          return existingTab.id;
+        }
+
+        // Check if the current active tab is empty and can be reused
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        if (
+          activeTab &&
+          activeTab.order.items.length === 0 &&
+          !activeTab.order.tableId
+        ) {
+          // Reuse the empty tab
+          set({
+            tabs: state.tabs.map((t) =>
+              t.id === activeTab.id
+                ? {
+                  ...t,
+                  order: {
+                    ...t.order,
+                    tableId,
+                    tableName,
+                    modifiedAt: new Date(),
+                  },
+                }
+                : t
+            ),
+          });
+          return activeTab.id;
+        }
+
+        // Create a new tab if we have room
+        if (state.tabs.length >= state.maxTabs) {
+          return null;
+        }
+
+        const newTabNumber = state.tabs.length + 1;
+        const newTab: OrderTab = {
+          id: generateTabId(),
+          label: `Order ${newTabNumber}`,
+          order: {
+            ...createEmptyOrder(),
+            tableId,
+            tableName,
+          },
+        };
         const updatedTabs = renumberTabs([...state.tabs, newTab]);
 
         set({
@@ -455,6 +526,8 @@ export const useOrderStore = create<OrderStoreState>()(
                 discount: null,
                 customerId: null,
                 customerName: null,
+                tableId: null,
+                tableName: null,
                 notes: "",
                 modifiedAt: new Date(),
               },
@@ -576,6 +649,31 @@ export const useOrderStore = create<OrderStoreState>()(
       },
 
       // =====================
+      // Table Actions
+      // =====================
+
+      setTable: (tableId: string | null, tableName: string | null) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                tableId,
+                tableName,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      // =====================
       // Order Notes
       // =====================
 
@@ -664,6 +762,26 @@ export const useOrderStore = create<OrderStoreState>()(
       getActiveTab: () => {
         const state = get();
         return state.tabs.find((t) => t.id === state.activeTabId) ?? null;
+      },
+
+      /**
+       * Optimized selector to get only tableId from active order
+       * Prevents unnecessary re-renders when other order properties change
+       */
+      getActiveTableId: () => {
+        const state = get();
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        return activeTab?.order.tableId ?? null;
+      },
+
+      /**
+       * Optimized selector to get only tableName from active order
+       * Prevents unnecessary re-renders when other order properties change
+       */
+      getActiveTableName: () => {
+        const state = get();
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        return activeTab?.order.tableName ?? null;
       },
 
       getOrderSubtotal: (tabId?: string) => {

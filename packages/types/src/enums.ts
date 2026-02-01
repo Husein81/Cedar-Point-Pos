@@ -90,3 +90,10 @@ export const ShiftStatus = {
   CLOSED: "CLOSED",
 } as const;
 export type ShiftStatus = (typeof ShiftStatus)[keyof typeof ShiftStatus];
+
+export const TableStatus = {
+  AVAILABLE: "AVAILABLE", // Table is free and ready for guests
+  OCCUPIED: "OCCUPIED", // Table has active guests/order
+  RESERVED: "RESERVED", // Table is reserved for upcoming guests
+} as const;
+export type TableStatus = (typeof TableStatus)[keyof typeof TableStatus];

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -24,11 +25,26 @@ import { UsersModule } from './modules/users/users.module.js';
 import { SystemAdminModule } from './modules/system-admin/system-admin.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { FloorsModule } from './modules/floors/floors.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    EventEmitterModule.forRoot({
+      // Use wildcards to enable event namespacing
+      wildcard: false,
+      // Set this to `true` to use wildcards
+      delimiter: '.',
+      // Set this to `true` to emit the newListener event
+      newListener: false,
+      // Set this to `true` to emit the removeListener event
+      removeListener: false,
+      // The verbosity level for console logs
+      verbosity: false,
+      // Ignore errors during event handling
+      ignoreErrors: false,
     }),
     PrismaModule,
     AuthModule,
@@ -37,6 +53,7 @@ import { ReportsModule } from './modules/reports/reports.module.js';
     CurrenciesModule,
     CustomersModule,
     DevicesModule,
+    FloorsModule,
     InventoryModule,
     ProductsModule,
     RecipesModule,
@@ -63,4 +80,4 @@ import { ReportsModule } from './modules/reports/reports.module.js';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

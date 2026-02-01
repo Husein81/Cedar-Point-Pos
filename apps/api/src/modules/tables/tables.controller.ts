@@ -1,56 +1,145 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import {
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Param,
+  Body,
+  BadRequestException,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { TablesService } from './tables.service.js';
-import { Prisma } from '../../generated/prisma/client.js';
+import {
+  createTableDto,
+  updateTableDto,
+  updateTableStatusDto,
+} from './dto/tables.dto.js';
 
 @Controller('tables')
 export class TablesController {
-  constructor(private readonly tablesService: TablesService) {}
+  constructor(private readonly tablesService: TablesService) { }
 
-  @Get('/branch/:id')
-  getTablesByBranch(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Branch ID is required');
-    }
-    return this.tablesService.getTablesByBranch(id);
+  /**
+   * Get all tables for a branch
+   */
+  @Get('/branch/:branchId')
+  getTablesByBranch(
+    @Param('branchId', ParseUUIDPipe) branchId: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.getTablesByBranch(branchId, tenantId);
   }
 
+  /**
+   * Get all tables for a floor
+   */
+  @Get('/floor/:floorId')
+  getTablesByFloor(
+    @Param('floorId', ParseUUIDPipe) floorId: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.getTablesByFloor(floorId, tenantId);
+  }
+
+  /**
+   * Get table statistics for a branch
+   */
+  @Get('/branch/:branchId/stats')
+  getTableStats(
+    @Param('branchId', ParseUUIDPipe) branchId: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.getTableStats(branchId, tenantId);
+  }
+
+  /**
+   * Get a specific table by ID
+   */
   @Get('/:id')
-  getTableById(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Table ID is required');
-    }
-    return this.tablesService.getTableById(id);
+  getTableById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.getTableById(id, tenantId);
   }
 
+  /**
+   * Create a new table (Admin/Manager only)
+   */
   @Roles('ADMIN', 'MANAGER')
   @Post()
-  createTable(@Req() req: Request) {
-    const body = req.body as Prisma.TableCreateInput;
-    return this.tablesService.createTable(body);
+  createTable(
+    @Body() body: any,
+    @CurrentTenant() tenantId: string,
+  ) {
+    const parseResult = createTableDto.safeParse(body);
+
+    if (!parseResult.success) {
+      throw new BadRequestException(
+        parseResult.error.issues.map((i) => i.message).join(', '),
+      );
+    }
+
+    return this.tablesService.createTable(parseResult.data, tenantId);
   }
 
+  /**
+   * Update a table (Admin/Manager only)
+   */
   @Roles('ADMIN', 'MANAGER')
   @Put('/:id')
-  updateTable(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Table ID is required');
+  updateTable(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @CurrentTenant() tenantId: string,
+  ) {
+    const parseResult = updateTableDto.safeParse(body);
+    if (!parseResult.success) {
+      throw new BadRequestException(
+        parseResult.error.issues.map((i) => i.message).join(', '),
+      );
     }
-    const body = req.body as Prisma.TableUpdateInput;
-    return this.tablesService.updateTable(id, body);
+
+    return this.tablesService.updateTable(id, parseResult.data, tenantId);
   }
 
+  /**
+   * Update table status (AVAILABLE, OCCUPIED, RESERVED)
+   * Any authenticated user can change status (for POS operations)
+   */
+  @Patch('/:id/status')
+  updateTableStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: any,
+    @CurrentTenant() tenantId: string,
+  ) {
+    const parseResult = updateTableStatusDto.safeParse(body);
+    if (!parseResult.success) {
+      throw new BadRequestException(
+        parseResult.error.issues.map((i) => i.message).join(', '),
+      );
+    }
+
+    return this.tablesService.updateTableStatus(
+      id,
+      parseResult.data,
+      tenantId,
+    );
+  }
+
+  /**
+   * Soft delete a table (Admin/Manager only)
+   */
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
-  deleteTable(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Table ID is required');
-    }
-    return this.tablesService.deleteTable(id);
+  deleteTable(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.deleteTable(id, tenantId);
   }
 }

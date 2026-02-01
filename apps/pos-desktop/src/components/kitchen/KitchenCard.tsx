@@ -1,6 +1,6 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, Icon } from "@repo/ui";
+import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback } from "react";
 import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
@@ -92,7 +92,7 @@ const KitchenCard = ({ order }: Props) => {
         )}
 
         {/* Items List */}
-        <div className="space-y-2">
+        <Shad.ScrollArea className="min-h-0 space-y-2">
           {order.items?.map((item) => {
             const refundInfo = getItemRefundInfo(item.id);
             return (
@@ -168,7 +168,7 @@ const KitchenCard = ({ order }: Props) => {
               </div>
             );
           })}
-        </div>
+        </Shad.ScrollArea>
       </div>
 
       {/* Footer Button */}

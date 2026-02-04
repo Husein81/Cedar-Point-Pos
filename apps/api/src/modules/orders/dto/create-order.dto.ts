@@ -27,6 +27,7 @@ export const createOrderDto = z.object({
   discount: z.number().min(0).optional(), // Discount amount (must be >= 0)
   shippingFee: z.number().min(0).optional(), // Shipping fee (must be >= 0)
   includeVAT: z.boolean().optional(), // Whether to include 11% VAT
+  guestCount: z.number().int().min(1).optional(), // Number of guests for capacity check
 });
 export type CreateOrderDto = z.infer<typeof createOrderDto>;
 

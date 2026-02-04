@@ -7,6 +7,7 @@ import { BusinessType, OrderStatus, OrderType, QueryParams } from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TableStatusService } from '../tables/table-status.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
 
@@ -28,7 +29,8 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryDeductionService: InventoryDeductionService,
-  ) {}
+    private readonly tableStatusService: TableStatusService,
+  ) { }
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
@@ -87,6 +89,7 @@ export class OrdersService {
       discount,
       shippingFee,
       includeVAT,
+      guestCount,
     } = dto;
 
     // Fetch tenant info and branch order count in parallel
@@ -145,19 +148,19 @@ export class OrdersService {
         }),
         allModifierIds.length > 0
           ? this.prisma.modifier.findMany({
-              where: {
-                id: { in: allModifierIds },
-                tenantId,
-                isDeleted: false,
-              },
-            })
+            where: {
+              id: { in: allModifierIds },
+              tenantId,
+              isDeleted: false,
+            },
+          })
           : [],
       ])) as [
-        Prisma.ProductGetPayload<{
-          select: { id: true; price: true };
-        }>[],
-        Prisma.ModifierGetPayload<object>[],
-      ];
+          Prisma.ProductGetPayload<{
+            select: { id: true; price: true };
+          }>[],
+          Prisma.ModifierGetPayload<object>[],
+        ];
 
       const productMap = new Map(products.map((p) => [p.id, p]));
       const modifierMap = new Map(modifiers.map((m) => [m.id, m]));
@@ -214,9 +217,9 @@ export class OrdersService {
         const discountValue =
           discount && typeof discount === 'object'
             ? {
-                type: (discount as Record<string, unknown>).type as string,
-                value: (discount as Record<string, unknown>).value as number,
-              }
+              type: (discount as Record<string, unknown>).type as string,
+              value: (discount as Record<string, unknown>).value as number,
+            }
             : undefined;
 
         orderItems.push({
@@ -259,34 +262,50 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
-    return this.prisma.order.create({
-      data: {
-        tenantId,
-        branchId,
-        userId,
-        type: orderType,
-        status: OrderStatus.DRAFT,
-        orderNumber,
-        subtotal,
-        total,
-        discount: discount ?? 0,
-        shippingFee: shippingFee ?? 0,
-        includeVAT: includeVAT ?? false,
-        vat: vatAmount,
-        ...(tableId && { tableId }),
-        ...(customerId && { customerId }),
-        items: { create: orderItems },
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-            modifiers: {
-              include: { modifier: true },
+    // Use transaction to create order and update table status atomically
+    return this.prisma.$transaction(async (tx) => {
+      // Create the order
+      const order = await tx.order.create({
+        data: {
+          tenantId,
+          branchId,
+          userId,
+          type: orderType,
+          status: OrderStatus.DRAFT,
+          orderNumber,
+          subtotal,
+          total,
+          discount: discount ?? 0,
+          shippingFee: shippingFee ?? 0,
+          includeVAT: includeVAT ?? false,
+          vat: vatAmount,
+          ...(tableId && { tableId }),
+          ...(customerId && { customerId }),
+          items: { create: orderItems },
+        }, include: {
+          items: {
+            include: {
+              product: true,
+              modifiers: {
+                include: { modifier: true },
+              },
             },
           },
         },
-      },
+      });
+
+      // Auto-update table status to OCCUPIED if tableId provided
+      if (tableId) {
+        // Validate table and update status if needed
+        await this.tableStatusService.markTableOccupiedIfNeeded(
+          tableId,
+          tenantId,
+          tx,
+          guestCount,
+        );
+      }
+
+      return order;
     });
   }
 
@@ -372,43 +391,64 @@ export class OrdersService {
     nextStatus: OrderStatus,
     userId: string,
   ) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, tenantId },
-      select: {
-        status: true,
-        branchId: true,
-        tenant: { select: { businessType: true } },
-      },
-    });
-    if (!order) throw new NotFoundException('Order not found');
+    return this.prisma.$transaction(async (tx) => {
+      // Get order with table info
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: {
+          status: true,
+          tableId: true,
+          branchId: true,
+          tenant: { select: { businessType: true } },
+        },
+      });
 
-    this.validateTransition(
-      order.tenant.businessType,
-      order.status,
-      nextStatus,
-    );
+      if (!order) throw new NotFoundException('Order not found');
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: nextStatus,
-        ...(nextStatus === OrderStatus.COMPLETED && {
-          completedAt: new Date(),
-        }),
-      },
-    });
-
-    // 2️⃣ Deduct stock AFTER status becomes COMPLETED
-    if (nextStatus === OrderStatus.COMPLETED) {
-      await this.inventoryDeductionService.deductStockForOrder(
-        tenantId,
-        orderId,
-        order.branchId,
-        userId,
+      this.validateTransition(
+        order.tenant.businessType,
+        order.status,
+        nextStatus,
       );
-    }
 
-    return updated;
+      // Update order status
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: nextStatus,
+          ...(nextStatus === OrderStatus.COMPLETED && {
+            completedAt: new Date(),
+          }),
+        },
+      });
+
+      // Auto-update table status when order completed/cancelled
+      if (
+        order.tableId &&
+        (nextStatus === OrderStatus.COMPLETED ||
+          nextStatus === OrderStatus.CANCELLED)
+      ) {
+        // Mark table as AVAILABLE if no other active orders exist
+        await this.tableStatusService.markTableAvailableIfPossible(
+          order.tableId,
+          orderId,
+          tenantId,
+          tx,
+        );
+      }
+
+      // Deduct stock after status becomes COMPLETED
+      if (nextStatus === OrderStatus.COMPLETED) {
+        await this.inventoryDeductionService.deductStockForOrder(
+          tenantId,
+          orderId,
+          order.branchId,
+          userId,
+        );
+      }
+
+      return updated;
+    });
   }
 
   /* ----
@@ -513,7 +553,7 @@ export class OrdersService {
           payments.reduce((sum, payment) => {
             const exchangeRate =
               payment.currencyCode &&
-              payment.currencyCode !== order.currencyCode
+                payment.currencyCode !== order.currencyCode
                 ? payment.exchangeRate || 1
                 : 1;
 
@@ -550,7 +590,7 @@ export class OrdersService {
           payments.map((payment) => {
             const exchangeRate =
               payment.currencyCode &&
-              payment.currencyCode !== order.currencyCode
+                payment.currencyCode !== order.currencyCode
                 ? payment.exchangeRate || 1
                 : 1;
 
@@ -575,6 +615,12 @@ export class OrdersService {
         ============================================ */
 
         if (isFullyPaid) {
+          // Get table info before updating order
+          const orderWithTable = await tx.order.findFirst({
+            where: { id: orderId },
+            select: { tableId: true },
+          });
+
           // For restaurant orders, send to kitchen instead of marking completed
           const isRestaurant =
             order.tenant?.businessType === BusinessType.RESTAURANT;
@@ -591,6 +637,16 @@ export class OrdersService {
               }),
             },
           });
+
+          // ✅ Update table status if order was associated with a table
+          if (orderWithTable?.tableId) {
+            await this.tableStatusService.markTableAvailableIfPossible(
+              orderWithTable.tableId,
+              orderId,
+              tenantId,
+              tx,
+            );
+          }
 
           // ✅ Deduct inventory ONCE (only for non-restaurant or if completed)
           if (!isRestaurant) {
@@ -621,15 +677,15 @@ export class OrdersService {
 
         const changeInfo = firstCashPayment
           ? {
-              amount: this.money(
-                changeBase / (firstCashPayment.exchangeRate || 1),
-              ),
-              currency: firstCashPayment.currencyCode || order.currencyCode,
-            }
+            amount: this.money(
+              changeBase / (firstCashPayment.exchangeRate || 1),
+            ),
+            currency: firstCashPayment.currencyCode || order.currencyCode,
+          }
           : {
-              amount: this.money(0),
-              currency: order.currencyCode,
-            };
+            amount: this.money(0),
+            currency: order.currencyCode,
+          };
 
         const isRestaurant =
           order.tenant?.businessType === BusinessType.RESTAURANT;
@@ -751,6 +807,12 @@ export class OrdersService {
       -------------------------------------------- */
 
         if (isFullyPaid) {
+          // Get table info before updating order
+          const orderWithTable = await tx.order.findFirst({
+            where: { id: orderId },
+            select: { tableId: true },
+          });
+
           await tx.order.update({
             where: { id: orderId },
             data: {
@@ -758,6 +820,16 @@ export class OrdersService {
               completedAt: new Date(),
             },
           });
+
+          // ✅ Update table status if order was associated with a table
+          if (orderWithTable?.tableId) {
+            await this.tableStatusService.markTableAvailableIfPossible(
+              orderWithTable.tableId,
+              orderId,
+              tenantId,
+              tx,
+            );
+          }
 
           // ✅ Deduct inventory ONCE
           await this.inventoryDeductionService.deductStockForOrder(

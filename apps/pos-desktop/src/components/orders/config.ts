@@ -1,3 +1,5 @@
+import { TableStatus } from "@repo/types";
+
 export type KeypadContext =
   | "QUANTITY"
   | "PRICE_OVERRIDE"
@@ -103,6 +105,39 @@ export const KEYPAD_CONFIG: Record<
     requiresPermission: false,
   },
 };
+
+export type StatusFilter = "ALL" | TableStatus;
+
+export const STATUS_CONFIG: Record<
+  TableStatus,
+  { label: string; color: string; bgClass: string; icon: string }
+> = {
+  AVAILABLE: {
+    label: "Available",
+    color: "text-emerald-500",
+    bgClass: "bg-emerald-500/10 border-emerald-500/50 hover:border-emerald-400",
+    icon: "CircleCheck",
+  },
+  OCCUPIED: {
+    label: "Occupied",
+    color: "text-red-500",
+    bgClass: "bg-red-500/10 border-red-500/50 hover:border-red-400",
+    icon: "Users",
+  },
+  RESERVED: {
+    label: "Reserved",
+    color: "text-amber-500",
+    bgClass: "bg-amber-500/10 border-amber-500/50 hover:border-amber-400",
+    icon: "Clock",
+  },
+};
+
+export const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "AVAILABLE", label: "Available" },
+  { value: "OCCUPIED", label: "Occupied" },
+  { value: "RESERVED", label: "Reserved" },
+];
 
 export const formatPrice = (price: number | null | undefined): string => {
   if (price === null || price === undefined) return "N/A";

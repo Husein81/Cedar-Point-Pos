@@ -155,7 +155,6 @@ export const RefundOrdersList = ({
                 <span className="font-semibold text-sm">
                   #{order.orderNumber || order.id.slice(-8)}
                 </span>
-                {/* TODO */}
                 {getStatusBadge(order.status as OrderStatus, false)}
               </div>
 

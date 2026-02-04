@@ -20,7 +20,7 @@ function RouteComponent() {
     setSearchQuery,
     onPageSizeChange,
     setPage,
-  } = usePaginationState();
+  } = usePaginationState({});
 
   const { data, isLoading, refetch } = useProductsPaginated({
     page: String(page),

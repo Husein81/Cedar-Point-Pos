@@ -25,7 +25,7 @@ function Select({
   options,
   value,
   onChange,
-  placeholder = "select.placeholder",
+  placeholder = "Select an option",
   label,
   className,
   side,

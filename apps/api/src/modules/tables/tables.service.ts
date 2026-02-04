@@ -18,7 +18,7 @@ export class TablesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tableStatusService: TableStatusService,
-  ) { }
+  ) {}
 
   /**
    * Centralized error handler to eliminate code duplication
@@ -235,7 +235,10 @@ export class TablesService {
         }
 
         // If updating table number, check for duplicates
-        if (data.tableNumber && data.tableNumber !== existingTable.tableNumber) {
+        if (
+          data.tableNumber &&
+          data.tableNumber !== existingTable.tableNumber
+        ) {
           const duplicateTable = await tx.table.findFirst({
             where: {
               branchId: existingTable.branchId,
@@ -303,10 +306,6 @@ export class TablesService {
     }
   }
 
-  /**
-   * Soft delete a table (sets isDeleted to true)
-   * Uses transaction and validates no active orders exist
-   */
   async deleteTable(id: string, tenantId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {

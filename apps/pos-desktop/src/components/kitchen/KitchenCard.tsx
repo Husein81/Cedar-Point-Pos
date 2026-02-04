@@ -44,7 +44,6 @@ const KitchenCard = ({ order }: Props) => {
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-xl">{order.type.replace(/_/g, " ")}</h2>
-              {/* TODO: Add table number when table is available */}
               <Activity mode={order.table ? "visible" : "hidden"}>
                 <p className="text-sm text-muted-foreground">
                   {order.table?.name}

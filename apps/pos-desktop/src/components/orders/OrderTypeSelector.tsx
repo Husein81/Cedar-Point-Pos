@@ -11,7 +11,13 @@ export const OrderTypeSelector = () => {
   const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
   const order = getActiveOrder();
 
-  const currentType = order?.type;
+  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
+
+  const currentType = order?.type
+    ? order.type
+    : isRestaurant
+      ? "DINE_IN"
+      : "RETAIL";
 
   const selectType = (type: OrderType) => {
     setOrderType(type);
@@ -25,8 +31,6 @@ export const OrderTypeSelector = () => {
       switchContext("SHIPPING");
     }
   };
-
-  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
 
   const orderTypes = isRestaurant
     ? [

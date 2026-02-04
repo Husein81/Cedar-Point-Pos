@@ -1,5 +1,5 @@
-import { useOrderStore } from "@/store/orderStore";
 import { Icon, SButton, Shad, cn } from "@repo/ui";
+import React from "react";
 
 type AlertVariant = "default" | "warning" | "delete";
 
@@ -10,6 +10,7 @@ type Props = {
   icon?: string;
   className?: string;
   iconButton?: string;
+  disabled?: boolean;
   size?:
     | "default"
     | "sm"
@@ -24,7 +25,7 @@ type Props = {
   section?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  onConfirm?: () => void;
+  onConfirm?: (a: unknown) => void;
 };
 
 const variantConfig: Record<
@@ -60,6 +61,7 @@ const AlertDialog = ({
   iconButton,
   className,
   section,
+  disabled,
   size = "default",
   variant = "default",
   buttonVariant = "default",
@@ -68,27 +70,24 @@ const AlertDialog = ({
   onConfirm,
 }: Props) => {
   const config = variantConfig[variant];
-  const { getActiveOrder } = useOrderStore();
-  const order = getActiveOrder();
-  const hasItems = order?.items && order.items.length > 0;
 
   return (
     <Shad.AlertDialog>
       <Shad.AlertDialogTrigger asChild>
-        <div>
+        <SButton
+          size={size}
+          variant={buttonVariant}
+          disabled={disabled}
+          className={cn("flex items-center gap-2 w-full", className)}
+        >
           {(iconButton || label) && (
-            <SButton
-              size={size}
-              disabled={!hasItems}
-              variant={buttonVariant ?? config.buttonVariant}
-              className={cn("flex items-center gap-2 w-full", className)}
-            >
+            <>
               <Icon name={iconButton ?? config.icon} className="h-4 w-4" />
-              {label}
-            </SButton>
+              {label && label}
+            </>
           )}
           {icon && <Icon name={icon} className="h-4 w-4" />}
-        </div>
+        </SButton>
       </Shad.AlertDialogTrigger>
 
       <Shad.AlertDialogContent className="max-w-md">

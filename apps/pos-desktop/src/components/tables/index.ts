@@ -5,5 +5,5 @@ export { TableForm } from "./TableForm";
 export { FloorForm } from "./FloorForm";
 export { TableStatusBadge } from "./TableStatusBadge";
 export { TableFilters } from "./TableFilters";
-export { TablesPageHeader } from "./TablesPageHeader";
 export { TablesStatsCards } from "./TablesStatsCards";
+export { TablesPage } from "./TablesPage";

@@ -1,135 +1,122 @@
-import { useState, useEffect } from "react";
-import { Button, Icon, Input, Label } from "@repo/ui";
+"use client";
+import { useForm } from "@tanstack/react-form";
+import { Button, InputField, Icon } from "@repo/ui";
 import type {
-    CreateFloorDto,
-    UpdateFloorDto,
-    FloorWithTableCount,
+  CreateFloorDto,
+  UpdateFloorDto,
+  FloorWithTableCount,
 } from "@/dto/tables.dto";
 import { useBranchStore } from "@/store/branchStore";
+import { useModalStore } from "@/store/modalStore";
+import { useCreateFloor, useUpdateFloor } from "@/hooks/useFloor";
 
 interface FloorFormProps {
-    floor?: FloorWithTableCount | null;
-    onSubmit: (data: CreateFloorDto | UpdateFloorDto) => void;
-    onCancel: () => void;
-    onDelete?: () => void;
-    isSubmitting?: boolean;
+  floor?: FloorWithTableCount;
 }
 
-export function FloorForm({
-    floor,
-    onSubmit,
-    onCancel,
-    onDelete,
-    isSubmitting,
-}: FloorFormProps) {
-    const { branchId } = useBranchStore();
+export function FloorForm({ floor }: FloorFormProps) {
+  const { closeModal } = useModalStore();
+  const { branchId } = useBranchStore();
 
-    const [formData, setFormData] = useState({
-        name: floor?.name || "",
-        order: floor?.order?.toString() || "0",
-    });
+  const createFloorMutation = useCreateFloor();
+  const updateFloorMutation = useUpdateFloor();
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
+  const handleFloorSubmit = (data: CreateFloorDto | UpdateFloorDto) => {
+    if (floor) {
+      updateFloorMutation.mutate({
+        id: floor.id,
+        data: data as UpdateFloorDto,
+      });
+    } else {
+      createFloorMutation.mutate(data as CreateFloorDto);
+    }
+  };
 
-    useEffect(() => {
-        if (floor) {
-            setFormData({
-                name: floor.name || "",
-                order: floor.order?.toString() || "0",
-            });
-        }
-    }, [floor]);
+  const isSubmitting =
+    createFloorMutation.isPending || updateFloorMutation.isPending;
 
-    const validate = () => {
-        const newErrors: Record<string, string> = {};
+  const form = useForm({
+    defaultValues: {
+      name: floor?.name || "",
+      order: floor?.order?.toString() || "0",
+    },
+    onSubmit: async ({ value }) => {
+      const data = floor
+        ? ({
+            name: value.name.trim(),
+            order: parseInt(value.order) || 0,
+          } as UpdateFloorDto)
+        : ({
+            name: value.name.trim(),
+            order: parseInt(value.order) || 0,
+            branchId: branchId!,
+          } as CreateFloorDto);
 
-        if (!formData.name.trim()) {
-            newErrors.name = "Floor name is required";
-        }
+      handleFloorSubmit(data);
+    },
+  });
 
-        if (formData.order && parseInt(formData.order) < 0) {
-            newErrors.order = "Order must be a non-negative number";
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
+  return (
+    <form
+      onSubmit={(e) => {
         e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="space-y-4"
+    >
+      <form.Field
+        name="name"
+        children={(field) => (
+          <InputField
+            label="Floor Name"
+            field={field}
+            placeholder="e.g., Ground Floor, Terrace, VIP Section"
+            required
+          />
+        )}
+      />
 
-        if (!validate()) return;
+      <form.Field
+        name="order"
+        children={(field) => (
+          <InputField
+            label="Display Order"
+            field={field}
+            type="number"
+            min="0"
+            placeholder="e.g., 0"
+            subLabel="Lower numbers appear first in the floor tabs"
+          />
+        )}
+      />
 
-        const data = floor
-            ? ({
-                name: formData.name.trim(),
-                order: parseInt(formData.order) || 0,
-            } as UpdateFloorDto)
-            : ({
-                name: formData.name.trim(),
-                order: parseInt(formData.order) || 0,
-                branchId: branchId!,
-            } as CreateFloorDto);
-
-        onSubmit(data);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="floorName">Floor Name *</Label>
-                <Input
-                    id="floorName"
-                    placeholder="e.g., Ground Floor, Terrace, VIP Section"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={errors.name ? "border-red-500" : ""}
-                />
-                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="order">Display Order</Label>
-                <Input
-                    id="order"
-                    type="number"
-                    min="0"
-                    placeholder="e.g., 0"
-                    value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-                    className={errors.order ? "border-red-500" : ""}
-                />
-                <p className="text-xs text-muted-foreground">
-                    Lower numbers appear first in the floor tabs
-                </p>
-                {errors.order && <p className="text-sm text-red-500">{errors.order}</p>}
-            </div>
-
-            <div className="flex justify-between gap-2 pt-4">
-                <div>                    {floor && onDelete && (
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={onDelete}
-                        disabled={isSubmitting}
-                    >
-                        <Icon name="Trash2" className="mr-2 h-4 w-4" />
-                        Delete Floor
-                    </Button>
-                )}
-                </div>
-                <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && (
-                            <Icon name="LoaderCircle" className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        {floor ? "Update Floor" : "Create Floor"}
-                    </Button>
-                </div>
-            </div>
-        </form>
-    );
+      <div className="flex justify-between gap-2 pt-4">
+        {/* <div>
+          {floor && onDelete && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+              disabled={isSubmitting}
+            >
+              <Icon name="Trash2" className="mr-2 h-4 w-4" />
+              Delete Floor
+            </Button>
+          )}
+        </div> */}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={closeModal}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && (
+              <Icon name="LoaderCircle" className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {floor ? "Update Floor" : "Create Floor"}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
 }

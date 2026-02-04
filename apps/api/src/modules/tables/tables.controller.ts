@@ -8,7 +8,6 @@ import {
   Param,
   Body,
   BadRequestException,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
@@ -21,14 +20,14 @@ import {
 
 @Controller('tables')
 export class TablesController {
-  constructor(private readonly tablesService: TablesService) { }
+  constructor(private readonly tablesService: TablesService) {}
 
   /**
    * Get all tables for a branch
    */
   @Get('/branch/:branchId')
   getTablesByBranch(
-    @Param('branchId', ParseUUIDPipe) branchId: string,
+    @Param('branchId') branchId: string,
     @CurrentTenant() tenantId: string,
   ) {
     return this.tablesService.getTablesByBranch(branchId, tenantId);
@@ -39,7 +38,7 @@ export class TablesController {
    */
   @Get('/floor/:floorId')
   getTablesByFloor(
-    @Param('floorId', ParseUUIDPipe) floorId: string,
+    @Param('floorId') floorId: string,
     @CurrentTenant() tenantId: string,
   ) {
     return this.tablesService.getTablesByFloor(floorId, tenantId);
@@ -50,7 +49,7 @@ export class TablesController {
    */
   @Get('/branch/:branchId/stats')
   getTableStats(
-    @Param('branchId', ParseUUIDPipe) branchId: string,
+    @Param('branchId') branchId: string,
     @CurrentTenant() tenantId: string,
   ) {
     return this.tablesService.getTableStats(branchId, tenantId);
@@ -60,10 +59,7 @@ export class TablesController {
    * Get a specific table by ID
    */
   @Get('/:id')
-  getTableById(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentTenant() tenantId: string,
-  ) {
+  getTableById(@Param('id') id: string, @CurrentTenant() tenantId: string) {
     return this.tablesService.getTableById(id, tenantId);
   }
 
@@ -72,10 +68,7 @@ export class TablesController {
    */
   @Roles('ADMIN', 'MANAGER')
   @Post()
-  createTable(
-    @Body() body: any,
-    @CurrentTenant() tenantId: string,
-  ) {
+  createTable(@Body() body: any, @CurrentTenant() tenantId: string) {
     const parseResult = createTableDto.safeParse(body);
 
     if (!parseResult.success) {
@@ -93,7 +86,7 @@ export class TablesController {
   @Roles('ADMIN', 'MANAGER')
   @Put('/:id')
   updateTable(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() body: any,
     @CurrentTenant() tenantId: string,
   ) {
@@ -113,7 +106,7 @@ export class TablesController {
    */
   @Patch('/:id/status')
   updateTableStatus(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() body: any,
     @CurrentTenant() tenantId: string,
   ) {
@@ -124,11 +117,7 @@ export class TablesController {
       );
     }
 
-    return this.tablesService.updateTableStatus(
-      id,
-      parseResult.data,
-      tenantId,
-    );
+    return this.tablesService.updateTableStatus(id, parseResult.data, tenantId);
   }
 
   /**
@@ -136,10 +125,7 @@ export class TablesController {
    */
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
-  deleteTable(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentTenant() tenantId: string,
-  ) {
+  deleteTable(@Param('id') id: string, @CurrentTenant() tenantId: string) {
     return this.tablesService.deleteTable(id, tenantId);
   }
 }

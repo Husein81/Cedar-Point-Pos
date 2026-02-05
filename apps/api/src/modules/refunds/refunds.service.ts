@@ -205,8 +205,9 @@ export class RefundsService {
       0,
     );
 
-    // Check if order can be refunded (COMPLETED)
-    const canRefund = order.status === 'COMPLETED';
+    // Check if order can be refunded (COMPLETED or PARTIALLY_REFUNDED)
+    const canRefund =
+      order.status === 'COMPLETED' || order.status === 'PARTIALLY_REFUNDED';
 
     // Check if fully refunded
     const isFullyRefunded = itemsWithRefundInfo.every(
@@ -359,15 +360,23 @@ export class RefundsService {
               include: { refundItems: true },
             });
 
-            // ✅ Performance: Check refund status and update order accordingly
-            const isFullyRefunded = await this.isOrderFullyRefunded(
-              tx,
-              orderId,
+            // ✅ Performance: Check if order is now fully refunded
+            // Uses data already available (no extra DB queries)
+            const requestedMap = new Map(
+              items.map((i) => [i.orderItemId, new Prisma.Decimal(i.quantity)]),
             );
+            const isFullyRefunded = order.items.every((item) => {
+              const alreadyRefunded =
+                refundedMapTx.get(item.id) ?? new Prisma.Decimal(0);
+              const nowRefunding =
+                requestedMap.get(item.id) ?? new Prisma.Decimal(0);
+              const totalRefunded = alreadyRefunded.plus(nowRefunding);
+              return totalRefunded.greaterThanOrEqualTo(
+                new Prisma.Decimal(item.quantity),
+              );
+            });
 
-            // ✅ Clean Code: Update order status based on refund completeness
-            // PARTIALLY_REFUNDED: Some items or quantities refunded
-            // FULLY_REFUNDED: All items and quantities completely refunded
+            // Update order status based on refund state
             if (isFullyRefunded) {
               await tx.order.update({
                 where: { id: orderId },
@@ -394,10 +403,23 @@ export class RefundsService {
 
         return createdRefund;
       } catch (error) {
+        if (
+          error instanceof BadRequestException ||
+          error instanceof NotFoundException
+        ) {
+          throw error;
+        }
+
         console.error(
           `Refund transaction attempt ${attempt + 1} failed:`,
           error,
         );
+
+        if (attempt === maxRetries - 1) {
+          throw new Error(
+            `Transaction failed after ${maxRetries} retries: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+        }
       }
     }
 

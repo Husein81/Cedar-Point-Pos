@@ -15,6 +15,7 @@ const statusConfig = {
   IN_PROGRESS: { label: "In Progress", color: "bg-indigo-500" },
   SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
   READY: { label: "Ready", color: "bg-green-500" },
+  PARTIALLY_REFUNDED: { label: "Partial Refund", color: "bg-amber-500" },
   FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
   COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   CANCELLED: { label: "Cancelled", color: "bg-red-500" },
@@ -74,11 +75,60 @@ export const invoiceColumns: ColumnDef<Order>[] = [
   {
     accessorKey: "items",
     header: "Items",
-    cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground">
-        {row.original.items?.length || 0} items
-      </div>
-    ),
+    cell: ({ row }) => {
+      const order = row.original;
+      const items = order.items || [];
+      const hasRefunds = order.refunds && order.refunds.length > 0;
+      const isFullyRefunded = order.status === "FULLY_REFUNDED";
+      const isPartiallyRefunded = order.status === "PARTIALLY_REFUNDED";
+
+      // Calculate net item count (original qty - refunded qty)
+      const totalOriginalQty = items.reduce(
+        (sum, item) => sum + Number(item.quantity),
+        0,
+      );
+      const totalRefundedQty = items.reduce((sum, item) => {
+        const refundedQty = (item.refundItems || []).reduce(
+          (rSum: number, r: { quantity: string | number }) =>
+            rSum + Number(r.quantity),
+          0,
+        );
+        return sum + refundedQty;
+      }, 0);
+      const netQty = totalOriginalQty - totalRefundedQty;
+
+      if (isFullyRefunded) {
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-red-500 line-through">
+              {items.length} items
+            </span>
+            <Badge className="bg-red-100 text-red-700 border-red-300 text-xs">
+              REFUNDED
+            </Badge>
+          </div>
+        );
+      }
+
+      if (isPartiallyRefunded && totalRefundedQty > 0) {
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-amber-600">
+              {Math.round(netQty)} items
+            </span>
+            <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
+              {Math.round(totalRefundedQty)} refunded
+            </Badge>
+          </div>
+        );
+      }
+
+      return (
+        <div className="text-sm text-muted-foreground">
+          {items.length} items
+        </div>
+      );
+    },
   },
   {
     accessorKey: "subtotal",
@@ -130,11 +180,51 @@ export const invoiceColumns: ColumnDef<Order>[] = [
   {
     accessorKey: "total",
     header: "Total",
-    cell: ({ row }) => (
-      <div className="font-semibold text-base">
-        ${formatPrice(Number(row.original.total))}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const order = row.original;
+      const originalTotal = Number(order.total);
+      const hasRefunds = order.refunds && order.refunds.length > 0;
+      const isFullyRefunded = order.status === "FULLY_REFUNDED";
+      const isPartiallyRefunded = order.status === "PARTIALLY_REFUNDED";
+
+      // Calculate net total = original - sum(refund amounts)
+      const totalRefunded = (order.refunds || []).reduce(
+        (sum: number, r: { totalAmount: string | number }) =>
+          sum + Number(r.totalAmount),
+        0,
+      );
+      const netTotal = originalTotal - totalRefunded;
+
+      if (isFullyRefunded) {
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm text-red-500 line-through">
+              ${formatPrice(originalTotal)}
+            </span>
+            <span className="font-semibold text-base text-red-600">$0.00</span>
+          </div>
+        );
+      }
+
+      if (isPartiallyRefunded && totalRefunded > 0) {
+        return (
+          <div className="flex flex-col">
+            <span className="text-xs text-muted-foreground line-through">
+              ${formatPrice(originalTotal)}
+            </span>
+            <span className="font-semibold text-base text-amber-600">
+              ${formatPrice(netTotal)}
+            </span>
+          </div>
+        );
+      }
+
+      return (
+        <div className="font-semibold text-base">
+          ${formatPrice(originalTotal)}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "currencyCode",
@@ -173,7 +263,9 @@ export const invoiceColumns: ColumnDef<Order>[] = [
       const { openModal } = useModalStore();
 
       const order = row.original;
-      const canRefund = order.status === OrderStatus.COMPLETED;
+      const canRefund =
+        order.status === OrderStatus.COMPLETED ||
+        order.status === OrderStatus.PARTIALLY_REFUNDED;
 
       const handleRefund = () => {
         openModal("Create Refund", <RefundForm orderId={order.id} />);

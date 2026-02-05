@@ -18,6 +18,11 @@ export const statusConfig: Record<
     color: "bg-emerald-600",
     icon: "CheckCheck",
   },
+  PARTIALLY_REFUNDED: {
+    label: "Partially Refunded",
+    color: "bg-amber-600",
+    icon: "RotateCcw",
+  },
   FULLY_REFUNDED: {
     label: "Fully Refunded",
     color: "bg-purple-600",

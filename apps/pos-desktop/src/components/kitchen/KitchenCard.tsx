@@ -1,6 +1,6 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, Icon } from "@repo/ui";
+import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback } from "react";
 import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
@@ -52,40 +52,47 @@ const KitchenCard = ({ order }: Props) => {
   };
 
   return (
-    <Shad.Card
-      key={order.id}
-      className="overflow-hidden h-fit hover:shadow-lg transition-shadow"
+    <div
+      className={`bg-white rounded-lg shadow-md overflow-hidden h-fit transition-shadow hover:shadow-lg ${
+        isFullyRefunded ? "opacity-70" : ""
+      }`}
     >
-      <div className="flex flex-col flex-1 px-4 space-y-4">
-        {/* Order Header */}
-        <div
-          className={`rounded-lg p-3 border ${getOrderTypeHeaderColor(order.type)}`}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl">{order.type.replace(/_/g, " ")}</h2>
-              <Activity mode={order.table ? "visible" : "hidden"}>
-                <p className="text-sm text-muted-foreground">
-                  {order.table?.name}
-                </p>
-              </Activity>
-            </div>
-            <div className="flex flex-col items-end space-y-1">
-              <Badge
-                className={`${getStatusColor(order.status)} border flex items-center gap-1`}
-              >
-                <Icon name={getStatusIcon(order.status)} className="w-4 h-4" />
-                {order.status.replace(/_/g, " ")}
-              </Badge>{" "}
-              <h3 className="font-semibold">
-                Order #{order.orderNumber || order.id.slice(0, 8)}
-              </h3>
+      {/* Colored Header */}
+      <div
+        className={`px-4 py-2 flex items-center justify-between ${getOrderTypeHeaderColor(order.type)}`}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-white font-bold text-lg">
+            #
+            {order.table?.tableNumber ||
+              order.orderNumber ||
+              order.id.slice(0, 4)}
+          </span>
+          <Icon name="Circle" className="w-1 h-1 text-white fill-white" />
+          <span className="text-white text-sm">
+            {order.table?.name || order.type.replace(/_/g, " ")}
+          </span>
+        </div>
+        <span className="text-white text-sm font-medium">
+          {formatDistanceToNow(new Date(order.createdAt), {
+            addSuffix: false,
+          })}
+        </span>
+      </div>
+
+      {/* Order Content */}
+      <div className="p-4 space-y-3 min-h-50 relative">
+        {/* Refunded Stamp */}
+        {isFullyRefunded && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="border-4 border-red-500 text-red-500 font-bold text-4xl px-8 py-4 rotate-[-15deg] opacity-80">
+              REFUNDED
             </div>
           </div>
         )}
 
         {/* Items List */}
-        <div className="space-y-2">
+        <Shad.ScrollArea className="min-h-0 space-y-2">
           {order.items?.map((item) => {
             const refundInfo = getItemRefundInfo(item.id);
             return (
@@ -161,7 +168,7 @@ const KitchenCard = ({ order }: Props) => {
               </div>
             );
           })}
-        </div>
+        </Shad.ScrollArea>
       </div>
 
       {/* Footer Button */}

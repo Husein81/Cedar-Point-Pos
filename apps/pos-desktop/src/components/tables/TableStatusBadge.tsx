@@ -23,7 +23,7 @@ const statusConfig: Record<
     RESERVED: {
         label: "Reserved",
         className:
-            "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+            "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
     },
 };
 
@@ -34,7 +34,7 @@ export function TableStatusBadge({ status, className }: TableStatusBadgeProps) {
         <Badge
             variant="outline"
             className={cn(
-                "font-medium text-xs px-2 py-0.5",
+                "font-semibold text-base px-4 py-1.5",
                 config.className,
                 className
             )}

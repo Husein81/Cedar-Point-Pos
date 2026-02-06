@@ -36,12 +36,9 @@ export const getStatsCards = (
 ];
 
 export const statusColors: Record<TableStatus, string> = {
-  AVAILABLE:
-    "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30",
-  OCCUPIED:
-    "border-red-500 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30",
-  RESERVED:
-    "border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30",
+  AVAILABLE: "border-border bg-card",
+  OCCUPIED: "border-border bg-card",
+  RESERVED: "border-border bg-card",
 };
 
 export const statusIcons: Record<TableStatus, string> = {

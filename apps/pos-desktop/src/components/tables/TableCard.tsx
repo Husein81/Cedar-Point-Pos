@@ -5,7 +5,7 @@ import React, { useCallback, useState } from "react";
 import { TableStatusBadge } from "./TableStatusBadge";
 import type { TableWithFloor } from "@/dto/tables.dto";
 import { useDeleteTable, useUpdateTableStatus } from "@/hooks/useTable";
-import { STATUS_OPTIONS, statusColors, statusIcons } from "./config";
+import { STATUS_OPTIONS, statusColors } from "./config";
 import { useModalStore } from "@/store/modalStore";
 import { TableForm } from "./TableForm";
 import { AlertDialog } from "../common";
@@ -76,18 +76,18 @@ export function TableCard({ table }: TableCardProps) {
       {/* Hover Action Buttons */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-5 right-2 z-10 flex gap-1  transition-opacity duration-200"
+        className="absolute top-[1.35rem] right-4 z-10 flex gap-2 items-center transition-opacity duration-200"
       >
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 bg-background/80 backdrop-blur-sm  shadow-sm"
+          className="h-10 w-10 bg-background/80 backdrop-blur-sm shadow-sm"
           onClick={() => {
             handleEditTable(table);
           }}
           aria-label="Edit table"
         >
-          <Icon name="Pencil" className="h-3.5 w-3.5" />
+          <Icon name="Pencil" className="h-4.5 w-4.5" />
         </Button>
         <AlertDialog
           iconButton="Trash2"
@@ -95,26 +95,16 @@ export function TableCard({ table }: TableCardProps) {
           buttonVariant="destructive"
           title={`Delete Table "${table.name}"?`}
           description={`This will remove table "${table.name}" from your restaurant layout. This action cannot be undone.`}
-          className="size-7"
+          className="h-10 w-10"
           onConfirm={() => {
             deleteTableMutation.mutate(table.id);
           }}
         />
       </div>
 
-      <Shad.CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
+      <Shad.CardHeader className="pb-3 pt-5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon
-              name={statusIcons[status]}
-              className={cn(
-                "h-5 w-5",
-                status === "AVAILABLE" &&
-                  "text-emerald-600 dark:text-emerald-400",
-                status === "OCCUPIED" && "text-red-600 dark:text-red-400",
-                status === "RESERVED" && "text-amber-600 dark:text-amber-400",
-              )}
-            />
 
             {/* Status Dropdown for manual editing */}
             <Shad.DropdownMenu
@@ -160,9 +150,9 @@ export function TableCard({ table }: TableCardProps) {
         </div>
       </Shad.CardHeader>
 
-      <Shad.CardContent className="pt-0">
-        <div className="text-center py-2">
-          <h3 className="text-2xl font-bold text-foreground">
+      <Shad.CardContent className="pt-0 pb-5">
+        <div className="text-center py-4">
+          <h3 className="text-4xl font-bold text-foreground">
             {table.tableNumber}
           </h3>
           <p className="text-sm text-muted-foreground font-medium">
@@ -170,7 +160,7 @@ export function TableCard({ table }: TableCardProps) {
           </p>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
           <div className="flex items-center gap-1">
             <Icon name="Users" className="h-4 w-4" />
             <span>{table.capacity} guests</span>

@@ -5,6 +5,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { useModalStore } from "@/store/modalStore";
 import { TableSelectorModal } from "./TableSelectorModal";
 import type { TableWithFloor } from "@/dto/tables.dto";
+import { ordersApi } from "@/apis/ordersApi";
 
 // ============================================================================
 // TableSelector Component
@@ -12,21 +13,39 @@ import type { TableWithFloor } from "@/dto/tables.dto";
 
 export function TableSelector() {
     const { openModal } = useModalStore();
-    const { getActiveOrder, setTable, createTabWithTable } = useOrderStore();
+    const { getActiveOrder, setTable, loadExistingOrder } = useOrderStore();
     const order = getActiveOrder();
 
     // Read tableId from URL search params
     const searchParams = useSearch({ from: "/orders/" });
 
+    // Helper to select a table and load its active order if one exists
+    const selectTableWithActiveOrderCheck = useCallback(async (tableId: string, tableName: string) => {
+        // Set the table first (instant UI feedback)
+        setTable(tableId, tableName);
+        
+        try {
+            // Check if the table has an existing active order
+            const activeOrder = await ordersApi.getActiveOrderByTableId(tableId);
+            
+            if (activeOrder) {
+                // Table has an active order - load it into the current tab
+                console.log("Found active order for table:", activeOrder.id);
+                loadExistingOrder(activeOrder as any);
+            }
+        } catch (error) {
+            // If fetch fails, table is already set, just log the error
+            console.error("Failed to fetch active order for table:", error);
+        }
+    }, [setTable, loadExistingOrder]);
+
     // Initialize table from URL params when navigating from tables page
-    // This effect runs once with the initial searchParams values
     useEffect(() => {
         const tableId = searchParams?.tableId;
         const tableName = searchParams?.tableName;
 
         if (tableId && tableName) {
-            // Create a new tab with this table (or reuse existing)
-            createTabWithTable(tableId, tableName);
+            selectTableWithActiveOrderCheck(tableId, tableName);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Run once on mount with initial values
@@ -45,8 +64,10 @@ export function TableSelector() {
         const displayName = table.floor
             ? `${table.floor.name} - ${table.name}`
             : table.name;
-        setTable(table.id, displayName);
-    }, [setTable]);
+        
+        // Use the helper to check for existing order
+        selectTableWithActiveOrderCheck(table.id, displayName);
+    }, [setTable, selectTableWithActiveOrderCheck]);
 
     const handleOpenModal = useCallback(() => {
         openModal(

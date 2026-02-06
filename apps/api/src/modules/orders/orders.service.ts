@@ -1023,6 +1023,45 @@ export class OrdersService {
       },
     });
   }
+
+  /**
+   * Find the active (unpaid) order for a specific table
+   * Returns null if no active order exists
+   */
+  async findActiveOrderByTableId(tenantId: string, tableId: string) {
+    // Active order statuses (same as TableStatusService.ACTIVE_ORDER_STATUSES)
+    const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
+      OrderStatus.DRAFT,
+      OrderStatus.PENDING,
+      OrderStatus.CONFIRMED,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.SENT_TO_KITCHEN,
+      OrderStatus.READY,
+    ];
+
+    return this.prisma.order.findFirst({
+      where: {
+        tenantId,
+        tableId,
+        status: { in: ACTIVE_ORDER_STATUSES },
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            modifiers: {
+              include: { modifier: true },
+            },
+          },
+        },
+        table: true,
+        customer: true,
+        payments: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   /* ----------------------------------------------------
      TOTALS
   ---------------------------------------------------- */

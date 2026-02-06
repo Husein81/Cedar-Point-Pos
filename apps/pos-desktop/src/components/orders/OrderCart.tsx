@@ -138,7 +138,7 @@ export const OrderCart = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <TableSelector />
+            {isRestaurant && <TableSelector />}
             {items.length > 0 && (
               <Button
                 variant="ghost"

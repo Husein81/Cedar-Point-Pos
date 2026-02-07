@@ -440,6 +440,41 @@ export const CustomerSchema = z.object({
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 
+// Supplier
+export const SupplierSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  name: z.string(),
+  companyName: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  currentBalance: z.number().default(0),
+  notes: z.string().nullable().optional(),
+  isActive: z.boolean().default(true),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type Supplier = z.infer<typeof SupplierSchema>;
+
+// PurchaseOrder
+export const PurchaseOrderSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  supplierId: cuid,
+  orderNumber: z.string().nullable().optional(),
+  totalAmount: z.number().default(0),
+  status: z.enum(["PENDING", "ORDERED", "RECEIVED", "CANCELLED"]).default("PENDING"),
+  notes: z.string().nullable().optional(),
+  orderedAt: isoDate,
+  receivedAt: isoDate.nullable().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
+
 // Shift
 export const ShiftSchema = z.object({
   id: cuid,

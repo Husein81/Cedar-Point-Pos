@@ -1,6 +1,6 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, Icon, Shad } from "@repo/ui";
+import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback } from "react";
 import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
@@ -53,13 +53,17 @@ const KitchenCard = ({ order }: Props) => {
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-md overflow-hidden h-fit transition-shadow hover:shadow-lg ${
-        isFullyRefunded ? "opacity-70" : ""
-      }`}
+      className={cn(
+        "bg-card rounded-lg shadow-md overflow-hidden h-fit transition-shadow hover:shadow-lg ",
+        isFullyRefunded && "opacity-70",
+      )}
     >
       {/* Colored Header */}
       <div
-        className={`px-4 py-2 flex items-center justify-between ${getOrderTypeHeaderColor(order.type)}`}
+        className={cn(
+          "px-4 py-2 flex items-center justify-between",
+          getOrderTypeHeaderColor(order.type),
+        )}
       >
         <div className="flex items-center gap-2">
           <span className="text-white font-bold text-lg">
@@ -99,13 +103,14 @@ const KitchenCard = ({ order }: Props) => {
               <div key={item.id} className="space-y-1">
                 <div className="flex items-start gap-2">
                   <span
-                    className={`font-semibold min-w-6 ${
+                    className={cn(
+                      "font-semibold min-w-6",
                       refundInfo?.isFullyRefunded
                         ? "text-red-500 line-through"
                         : refundInfo?.isPartiallyRefunded
                           ? "text-amber-600"
-                          : "text-gray-900"
-                    }`}
+                          : "text-gray-900",
+                    )}
                   >
                     {refundInfo?.isPartiallyRefunded
                       ? Number(item.quantity) - refundInfo.totalRefunded
@@ -113,13 +118,14 @@ const KitchenCard = ({ order }: Props) => {
                   </span>
                   <div className="flex-1">
                     <p
-                      className={`font-medium ${
+                      className={cn(
+                        "font-medium",
                         refundInfo?.isFullyRefunded
                           ? "text-red-500 line-through"
                           : refundInfo?.isPartiallyRefunded
                             ? "text-amber-600"
-                            : "text-gray-900"
-                      }`}
+                            : "text-gray-900",
+                      )}
                     >
                       {item.product?.name}
                     </p>

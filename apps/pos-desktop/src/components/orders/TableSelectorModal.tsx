@@ -1,8 +1,9 @@
 import type { TableWithFloor } from "@/dto/tables.dto";
+import { useFloorsByBranch } from "@/hooks/useFloor";
 import { useTablesByBranch } from "@/hooks/useTable";
 import { useModalStore } from "@/store/modalStore";
 import { Badge, Button, Icon, Input, Shad, cn } from "@repo/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FILTER_OPTIONS, STATUS_CONFIG, StatusFilter } from "./config";
 
 type TableSelectorModalProps = {
@@ -15,10 +16,16 @@ export function TableSelectorModal({
   currentTableId,
 }: TableSelectorModalProps) {
   const { closeModal } = useModalStore();
-  const { data: tables, isLoading, error } = useTablesByBranch();
+  const {
+    data: tables,
+    isLoading: isLoadingTables,
+    error,
+  } = useTablesByBranch();
+  const { data: floors, isLoading: isLoadingFloors } = useFloorsByBranch();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [selectedFloorId, setSelectedFloorId] = useState<string>("ALL");
 
   const filteredTables = useMemo(() => {
     if (!tables) return [];
@@ -32,9 +39,14 @@ export function TableSelectorModal({
       const matchesStatus =
         statusFilter === "ALL" || table.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesFloor =
+        selectedFloorId === "ALL" || table.floorId === selectedFloorId;
+
+      return matchesSearch && matchesStatus && matchesFloor;
     });
-  }, [tables, searchQuery, statusFilter]);
+  }, [tables, searchQuery, statusFilter, selectedFloorId]);
+
+  const isLoading = isLoadingTables || isLoadingFloors;
 
   const tablesByFloor = useMemo(() => {
     const grouped: Record<string, TableWithFloor[]> = {};
@@ -54,26 +66,15 @@ export function TableSelectorModal({
     return sortedKeys.map((floor) => ({ floor, tables: grouped[floor] || [] }));
   }, [filteredTables]);
 
-  // ========================================================================
-  // Handlers
-  // ========================================================================
+  const handleSelect = (table: TableWithFloor) => {
+    onTableSelect(table);
+    closeModal();
+  };
 
-  const handleSelect = useCallback(
-    (table: TableWithFloor) => {
-      onTableSelect(table);
-      closeModal();
-    },
-    [onTableSelect, closeModal],
-  );
-
-  const handleClearSelection = useCallback(() => {
+  const handleClearSelection = () => {
     onTableSelect({ id: "", name: "" } as TableWithFloor);
     closeModal();
-  }, [onTableSelect, closeModal]);
-
-  // ========================================================================
-  // Render
-  // ========================================================================
+  };
 
   return (
     <div className="px-2">
@@ -104,6 +105,29 @@ export function TableSelectorModal({
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
         />
+      </div>
+
+      {/* Floors */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        <Button
+          variant={selectedFloorId === "ALL" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setSelectedFloorId("ALL")}
+          className="h-8"
+        >
+          All Floors
+        </Button>
+        {floors?.map((floor) => (
+          <Button
+            key={floor.id}
+            variant={selectedFloorId === floor.id ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedFloorId(floor.id)}
+            className="h-8"
+          >
+            {floor.name}
+          </Button>
+        ))}
       </div>
 
       {/* Filters */}

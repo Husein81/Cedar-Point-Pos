@@ -484,12 +484,12 @@ export const InlineKeypad = () => {
     ],
   );
 
-  const handlePay = useCallback(() => {
+  const handlePay = () => {
     openModal(
       "Payment Form",
       <PaymentForm total={total} onConfirm={handlePaymentConfirm} />,
     );
-  }, [handlePaymentConfirm, openModal, total]);
+  };
 
   const handleConfirmWithoutPayment = useCallback(async () => {
     await withPaymentLock(async () => {

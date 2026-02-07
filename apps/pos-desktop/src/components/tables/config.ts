@@ -56,3 +56,24 @@ export const STATUS_OPTIONS: {
   { value: "OCCUPIED", label: "Occupied", icon: "Users" },
   { value: "RESERVED", label: "Reserved", icon: "Clock" },
 ];
+
+export const TABLE_STATUS_CONFIG: Record<
+  TableStatus,
+  { label: string; className: string }
+> = {
+  AVAILABLE: {
+    label: "Available",
+    className:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  },
+  OCCUPIED: {
+    label: "Occupied",
+    className:
+      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+  },
+  RESERVED: {
+    label: "Reserved",
+    className:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+  },
+};

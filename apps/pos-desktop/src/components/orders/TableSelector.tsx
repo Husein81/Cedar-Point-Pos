@@ -13,7 +13,7 @@ import { ordersApi } from "@/apis/ordersApi";
 
 export function TableSelector() {
     const { openModal } = useModalStore();
-    const { getActiveOrder, setTable, loadExistingOrder } = useOrderStore();
+    const { getActiveOrder, getOrderByTableId, setTable, loadExistingOrder } = useOrderStore();
     const order = getActiveOrder();
 
     // Read tableId from URL search params
@@ -24,20 +24,44 @@ export function TableSelector() {
         // Set the table first (instant UI feedback)
         setTable(tableId, tableName);
         
+        // FIRST: Check if another tab in the same session has this table
+        const localOrder = getOrderByTableId(tableId);
+        if (localOrder && localOrder.items.length > 0) {
+            console.log("Found local order for table in another tab");
+            loadExistingOrder({
+                ...localOrder,
+                items: localOrder.items.map(item => ({
+                    id: item.id,
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    product: { id: item.productId, name: item.name, imageUrl: item.imageUrl },
+                    notes: item.notes,
+                    discount: item.discount,
+                    modifiers: item.modifiers?.map(m => ({
+                        modifierId: m.modifierId,
+                        price: m.price,
+                        modifier: { id: m.modifierId, name: m.name }
+                    }))
+                })),
+                table: { name: localOrder.tableName },
+                customer: localOrder.customerName ? { name: localOrder.customerName } : null
+            } as any);
+            return;
+        }
+        
+        // SECOND: Check backend for orders from other sessions/cashiers
         try {
-            // Check if the table has an existing active order
             const activeOrder = await ordersApi.getActiveOrderByTableId(tableId);
             
             if (activeOrder) {
-                // Table has an active order - load it into the current tab
-                console.log("Found active order for table:", activeOrder.id);
+                console.log("Found active order for table from backend:", activeOrder.id);
                 loadExistingOrder(activeOrder as any);
             }
         } catch (error) {
-            // If fetch fails, table is already set, just log the error
             console.error("Failed to fetch active order for table:", error);
         }
-    }, [setTable, loadExistingOrder]);
+    }, [setTable, loadExistingOrder, getOrderByTableId]);
 
     // Initialize table from URL params when navigating from tables page
     useEffect(() => {

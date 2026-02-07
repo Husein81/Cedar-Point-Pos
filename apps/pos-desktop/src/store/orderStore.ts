@@ -193,6 +193,7 @@ interface OrderStoreState {
   // Computed helpers
   getActiveOrder: () => Order | null;
   getActiveTab: () => OrderTab | null;
+  getOrderByTableId: (tableId: string) => Order | null;
   getOrderSubtotal: (tabId?: string) => number;
   getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
@@ -697,34 +698,10 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         if (!state.activeTabId) return;
 
-        // If selecting a table, check if another tab already has this table
-        // and copy its order (so tabs with the same table share the same order)
-        let orderToCopy: Order | null = null;
-        if (tableId) {
-          const existingTab = state.tabs.find(
-            (tab) => tab.id !== state.activeTabId && tab.order.tableId === tableId
-          );
-          if (existingTab) {
-            orderToCopy = existingTab.order;
-          }
-        }
-
         set({
           tabs: state.tabs.map((tab) => {
             if (tab.id !== state.activeTabId) return tab;
 
-            // If we found another tab with this table, copy its order
-            if (orderToCopy) {
-              return {
-                ...tab,
-                order: {
-                  ...orderToCopy,
-                  modifiedAt: new Date(),
-                },
-              };
-            }
-
-            // Otherwise just update the table reference
             return {
               ...tab,
               order: {
@@ -827,6 +804,12 @@ export const useOrderStore = create<OrderStoreState>()(
       getActiveTab: () => {
         const state = get();
         return state.tabs.find((t) => t.id === state.activeTabId) ?? null;
+      },
+
+      getOrderByTableId: (tableId: string) => {
+        const state = get();
+        const tab = state.tabs.find((t) => t.order.tableId === tableId);
+        return tab?.order ?? null;
       },
 
       /**

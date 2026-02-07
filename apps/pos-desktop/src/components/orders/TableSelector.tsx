@@ -7,24 +7,21 @@ import { TableSelectorModal } from "./TableSelectorModal";
 import type { TableWithFloor } from "@/dto/tables.dto";
 import { ordersApi } from "@/apis/ordersApi";
 
-// ============================================================================
-// TableSelector Component
-// ============================================================================
+
 
 export function TableSelector() {
     const { openModal } = useModalStore();
     const { getActiveOrder, getOrderByTableId, setTable, loadExistingOrder } = useOrderStore();
     const order = getActiveOrder();
 
-  // Read tableId from URL search params
+
   const searchParams = useSearch({ from: "/orders/" });
 
-    // Helper to select a table and load its active order if one exists
-    const selectTableWithActiveOrderCheck = useCallback(async (tableId: string, tableName: string) => {
-        // Set the table first (instant UI feedback)
+    
+    const selectTableWithActiveOrderCheck = async (tableId: string, tableName: string) => {
         setTable(tableId, tableName);
         
-        // FIRST: Check if another tab in the same session has this table
+        
         const localOrder = getOrderByTableId(tableId);
         if (localOrder && localOrder.items.length > 0) {
             console.log("Found local order for table in another tab");
@@ -50,7 +47,7 @@ export function TableSelector() {
             return;
         }
         
-        // SECOND: Check backend for orders from other sessions/cashiers
+
         try {
             const activeOrder = await ordersApi.getActiveOrderByTableId(tableId);
             
@@ -61,9 +58,9 @@ export function TableSelector() {
         } catch (error) {
             console.error("Failed to fetch active order for table:", error);
         }
-    }, [setTable, loadExistingOrder, getOrderByTableId]);
+    };
 
-  // Initialize table from URL params when navigating from tables page
+  
   useEffect(() => {
       const tableId = searchParams?.tableId;
       const tableName = searchParams?.tableName;
@@ -71,11 +68,11 @@ export function TableSelector() {
       if (tableId && tableName) {
           selectTableWithActiveOrderCheck(tableId, tableName);
       }
-      
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
   const handleTableSelect = (table: TableWithFloor) => {
-    // Handle clear action (empty id signals clear)
+    
     if (!table.id) {
       setTable(null, null);
       return;
@@ -84,7 +81,9 @@ export function TableSelector() {
     const displayName = table.floor
       ? `${table.floor.name} - ${table.name}`
       : table.name;
-    setTable(table.id, displayName);
+    
+    
+    selectTableWithActiveOrderCheck(table.id, displayName);
   };
 
   const handleOpenModal = () => {

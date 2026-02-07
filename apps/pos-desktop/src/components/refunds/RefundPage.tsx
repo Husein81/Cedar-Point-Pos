@@ -22,7 +22,6 @@ export const RefundPage = () => {
     filterDateTo,
     filterStatus,
     selectedOrderId,
-    selectOrder,
     setSelectedOrderDetails,
     initializeRefundCart,
     setRefundHistory,
@@ -37,7 +36,7 @@ export const RefundPage = () => {
     search: searchQuery || undefined,
     dateFrom: filterDateFrom || undefined,
     dateTo: filterDateTo || undefined,
-    status: filterStatus || undefined,
+    status: undefined,
   });
 
   const { data: refundableInfo } = useRefundableInfo(selectedOrderId || "");
@@ -68,6 +67,7 @@ export const RefundPage = () => {
           refundedAt: h.refundedAt,
           totalAmount: h.totalAmount,
           reason: h.reason,
+          isPartialRefund: h.isPartialRefund,
           itemCount: h.items.length,
         })),
       );
@@ -80,12 +80,6 @@ export const RefundPage = () => {
       resetStore();
     };
   }, [resetStore]);
-
-  // Handle order selection
-  const handleOrderSelect = (orderId: string) => {
-    if (orderId === selectedOrderId) return;
-    selectOrder(orderId);
-  };
 
   // Refresh after refund
   const handleRefundComplete = () => {
@@ -103,10 +97,7 @@ export const RefundPage = () => {
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left Panel - Orders List */}
         <div className="w-105 border-r flex flex-col bg-muted/30">
-          <RefundOrdersList
-            onOrderSelect={handleOrderSelect}
-            selectedOrderId={selectedOrderId}
-          />
+          <RefundOrdersList />
         </div>
 
         {/* Right Panel - Refund Cart */}

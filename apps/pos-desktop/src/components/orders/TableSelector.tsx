@@ -18,13 +18,28 @@ export function TableSelector() {
   const searchParams = useSearch({ from: "/orders/" });
 
     
+    // Helper to select a table and load its active order if one exists
     const selectTableWithActiveOrderCheck = async (tableId: string, tableName: string) => {
+        // Set the table first (instant UI feedback)
         setTable(tableId, tableName);
         
+        // FIRST: Check backend for existing orders (including DRAFT)
+        try {
+            const backendOrder = await ordersApi.getActiveOrderByTableId(tableId);
+            
+            if (backendOrder) {
+                console.log("Found backend order:", backendOrder.id, backendOrder.status);
+                loadExistingOrder(backendOrder as any);
+                return;
+            }
+        } catch (error) {
+            console.error("Failed to fetch active order from backend:", error);
+        }
         
+        // SECOND: Fall back to local tabs (for unsaved orders in same session)
         const localOrder = getOrderByTableId(tableId);
         if (localOrder && localOrder.items.length > 0) {
-            console.log("Found local order for table in another tab");
+            console.log("Found local order in another tab");
             loadExistingOrder({
                 ...localOrder,
                 items: localOrder.items.map(item => ({
@@ -44,19 +59,6 @@ export function TableSelector() {
                 table: { name: localOrder.tableName },
                 customer: localOrder.customerName ? { name: localOrder.customerName } : null
             } as any);
-            return;
-        }
-        
-
-        try {
-            const activeOrder = await ordersApi.getActiveOrderByTableId(tableId);
-            
-            if (activeOrder) {
-                console.log("Found active order for table from backend:", activeOrder.id);
-                loadExistingOrder(activeOrder as any);
-            }
-        } catch (error) {
-            console.error("Failed to fetch active order for table:", error);
         }
     };
 

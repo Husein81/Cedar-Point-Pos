@@ -435,10 +435,16 @@ export const InlineKeypad = () => {
           const dto = buildOrderDto();
           if (!dto) return;
 
-          const created = await createOrder.mutateAsync(dto);
+          // Check if order already exists in backend (from auto-save)
+          let orderId = active.id;
+          if (!orderId) {
+            // Create new order only if doesn't exist
+            const created = await createOrder.mutateAsync(dto);
+            orderId = created.id;
+          }
 
           const result = await processPayment.mutateAsync({
-            id: created.id,
+            id: orderId,
             payments: payments.map((p) => ({
               amount: p.amount,
               method: p.method,
@@ -517,11 +523,17 @@ export const InlineKeypad = () => {
         const dto = buildOrderDto();
         if (!dto) return;
 
-        const created = await createOrder.mutateAsync(dto);
+        // Check if order already exists in backend (from auto-save)
+        let orderId = active.id;
+        if (!orderId) {
+          // Create new order only if doesn't exist
+          const created = await createOrder.mutateAsync(dto);
+          orderId = created.id;
+        }
 
         // For restaurant orders, transition to PENDING
         await updateOrderStatus.mutateAsync({
-          id: created.id,
+          id: orderId,
           status: OrderStatus.PENDING,
         });
 

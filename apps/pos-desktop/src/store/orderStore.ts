@@ -1,6 +1,7 @@
 import { OrderStatus, OrderType } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { ordersApi } from "@/apis/ordersApi";
 
 // =====================
 // Types
@@ -204,6 +205,9 @@ interface OrderStoreState {
 
   // Loading existing orders from backend
   loadExistingOrder: (backendOrder: BackendOrder) => void;
+
+  // Auto-save draft orders to backend
+  saveDraftOrder: () => Promise<void>;
 
   // Utility
   reset: () => void;
@@ -431,6 +435,14 @@ export const useOrderStore = create<OrderStoreState>()(
             };
           }),
         });
+
+        // Auto-save draft order if this is the first item and table is assigned
+        const updatedState = get();
+        const activeTab = updatedState.tabs.find((t) => t.id === updatedState.activeTabId);
+        if (activeTab && activeTab.order.tableId && activeTab.order.items.length === 1) {
+          // Async call - don't block
+          get().saveDraftOrder();
+        }
       },
 
       updateItemQuantity: (itemId: string, quantity: number) => {
@@ -713,6 +725,16 @@ export const useOrderStore = create<OrderStoreState>()(
             };
           }),
         });
+
+        // Auto-save draft order if table is assigned and items exist
+        if (tableId) {
+          const updatedState = get();
+          const activeTab = updatedState.tabs.find((t) => t.id === updatedState.activeTabId);
+          if (activeTab && activeTab.order.items.length > 0) {
+            // Async call - don't block
+            get().saveDraftOrder();
+          }
+        }
       },
 
       // =====================
@@ -1008,6 +1030,88 @@ export const useOrderStore = create<OrderStoreState>()(
             tab.id === state.activeTabId ? { ...tab, order } : tab
           ),
         });
+      },
+
+      saveDraftOrder: async () => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        if (!activeTab) return;
+
+        const order = activeTab.order;
+
+        // Don't save if order already has backend ID, has no items, or has no table assigned
+        if (order.id || !order.items.length || !order.tableId) return;
+
+        try {
+          // Get tenantId and branchId from their respective stores
+          const { user } = await import("@/store/authStore").then((m) =>
+            m.useAuthStore.getState()
+          );
+          const { branchId } = await import("@/store/branchStore").then((m) =>
+            m.useBranchStore.getState()
+          );
+
+          if (!user?.tenantId || !branchId) {
+            console.warn("Cannot save draft order: missing tenantId or branchId");
+            return;
+          }
+
+          // Determine order type
+          const { BusinessType } = await import("@repo/types");
+          let orderType: OrderType;
+          if (user.tenant?.businessType === BusinessType.RESTAURANT) {
+            orderType = order.type || OrderType.DINE_IN;
+          } else {
+            orderType = OrderType.RETAIL;
+          }
+
+          // Build CreateOrderDto
+          const dto = {
+            branchId,
+            type: orderType,
+            tableId: order.tableId,
+            customerId: order.customerId || undefined,
+            shippingFee: order.shippingFee,
+            includeVAT: order.includeVAT,
+            items: order.items.map((i) => ({
+              productId: i.productId,
+              quantity: i.quantity,
+              unitPrice: i.price,
+              discount: i.discount,
+              notes: i.notes,
+              modifiers: i.modifiers?.map((m) => m.modifierId),
+            })),
+            ...(order.discount && order.discount.value > 0
+              ? { discount: order.discount.value }
+              : {}),
+            notes: order.notes || undefined,
+          };
+
+          // Create draft order on backend
+          const created = await ordersApi.createOrder(dto);
+
+          // Update local state with backend order ID
+          set({
+            tabs: state.tabs.map((tab) =>
+              tab.id === state.activeTabId
+                ? {
+                    ...tab,
+                    order: {
+                      ...tab.order,
+                      id: created.id,
+                      status: created.status,
+                    },
+                  }
+                : tab
+            ),
+          });
+
+          console.log("Draft order saved to backend:", created.id);
+        } catch (error) {
+          console.error("Failed to save draft order:", error);
+        }
       },
     }),
     {

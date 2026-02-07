@@ -72,6 +72,7 @@ export interface RefundHistory {
   refundedAt: string;
   totalAmount: number;
   reason: string | null;
+  isPartialRefund?: boolean;
   items: Array<{
     productName: string;
     quantity: number;

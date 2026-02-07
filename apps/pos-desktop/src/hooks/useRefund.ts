@@ -73,7 +73,7 @@ export const useCreateRefund = () => {
 
           const updatedItems = old.items.map((item: any) => {
             const refundItem = variables.items.find(
-              (i) => i.orderItemId === item.orderItemId
+              (i) => i.orderItemId === item.orderItemId,
             );
             if (!refundItem) return item;
 
@@ -87,11 +87,11 @@ export const useCreateRefund = () => {
           const totalRefundable = updatedItems.reduce(
             (sum: number, item: any) =>
               sum + item.refundableQuantity * item.unitPrice,
-            0
+            0,
           );
 
           const isFullyRefunded = updatedItems.every(
-            (item: any) => item.refundableQuantity <= 0
+            (item: any) => item.refundableQuantity <= 0,
           );
 
           return {
@@ -100,7 +100,7 @@ export const useCreateRefund = () => {
             totalRefundable,
             isFullyRefunded,
           };
-        }
+        },
       );
 
       return { previousData };
@@ -110,7 +110,7 @@ export const useCreateRefund = () => {
       if (context?.previousData) {
         queryClient.setQueryData(
           [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-          context.previousData
+          context.previousData,
         );
       }
     },
@@ -127,6 +127,12 @@ export const useCreateRefund = () => {
       });
       // Invalidate inventory (refund restores stock)
       queryClient.invalidateQueries({ queryKey: ["stock"] });
+      // Invalidate order queries so status badge updates
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // Invalidate order-specific refund list
+      queryClient.invalidateQueries({
+        queryKey: [...REFUND_QUERY_KEY, "order", variables.orderId],
+      });
     },
   });
 };

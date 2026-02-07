@@ -47,6 +47,24 @@ export const RefundConfirmModal = ({
 
         {/* Refund Summary */}
         <div className="my-4 p-4 bg-muted rounded-lg space-y-3">
+          {/* Refund Type Badge */}
+          <div className="flex items-center gap-2">
+            {isFullRefund ? (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-destructive/20 text-destructive border border-destructive/30">
+                <Icon name="RotateCcw" className="w-3 h-3" />
+                Full Refund
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-amber-500/20 text-amber-700 border border-amber-500/30">
+                <Icon name="RotateCcw" className="w-3 h-3" />
+                Partial Refund
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {items.length} item{items.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
           {/* Items being refunded */}
           <div>
             <span className="text-xs font-medium text-muted-foreground uppercase">
@@ -58,9 +76,20 @@ export const RefundConfirmModal = ({
                   key={item.orderItemId}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="truncate flex-1">
-                    {item.productName} × {item.refundQuantity}
-                  </span>
+                  <div className="truncate flex-1">
+                    <span>{item.productName}</span>
+                    {item.refundQuantity < item.originalQuantity && (
+                      <span className="ml-1 text-xs text-amber-600">
+                        (partial: {item.refundQuantity} of{" "}
+                        {item.originalQuantity})
+                      </span>
+                    )}
+                    {item.refundQuantity === item.originalQuantity && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        × {item.refundQuantity}
+                      </span>
+                    )}
+                  </div>
                   <span className="font-medium ml-2">
                     ${item.lineTotal.toFixed(2)}
                   </span>

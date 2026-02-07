@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { Button, Icon } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
@@ -16,8 +16,8 @@ export function TableSelector() {
     const { getActiveOrder, getOrderByTableId, setTable, loadExistingOrder } = useOrderStore();
     const order = getActiveOrder();
 
-    // Read tableId from URL search params
-    const searchParams = useSearch({ from: "/orders/" });
+  // Read tableId from URL search params
+  const searchParams = useSearch({ from: "/orders/" });
 
     // Helper to select a table and load its active order if one exists
     const selectTableWithActiveOrderCheck = useCallback(async (tableId: string, tableName: string) => {
@@ -63,62 +63,52 @@ export function TableSelector() {
         }
     }, [setTable, loadExistingOrder, getOrderByTableId]);
 
-    // Initialize table from URL params when navigating from tables page
-    useEffect(() => {
-        const tableId = searchParams?.tableId;
-        const tableName = searchParams?.tableName;
+  // Initialize table from URL params when navigating from tables page
+  useEffect(() => {
+      const tableId = searchParams?.tableId;
+      const tableName = searchParams?.tableName;
 
-        if (tableId && tableName) {
-            selectTableWithActiveOrderCheck(tableId, tableName);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run once on mount with initial values
+      if (tableId && tableName) {
+          selectTableWithActiveOrderCheck(tableId, tableName);
+      }
+      
+  }, []); 
 
-    // ========================================================================
-    // Handlers
-    // ========================================================================
+  const handleTableSelect = (table: TableWithFloor) => {
+    // Handle clear action (empty id signals clear)
+    if (!table.id) {
+      setTable(null, null);
+      return;
+    }
 
-    const handleTableSelect = useCallback((table: TableWithFloor) => {
-        // Handle clear action (empty id signals clear)
-        if (!table.id) {
-            setTable(null, null);
-            return;
-        }
+    const displayName = table.floor
+      ? `${table.floor.name} - ${table.name}`
+      : table.name;
+    setTable(table.id, displayName);
+  };
 
-        const displayName = table.floor
-            ? `${table.floor.name} - ${table.name}`
-            : table.name;
-        
-        // Use the helper to check for existing order
-        selectTableWithActiveOrderCheck(table.id, displayName);
-    }, [setTable, selectTableWithActiveOrderCheck]);
-
-    const handleOpenModal = useCallback(() => {
-        openModal(
-            "Table Selection",
-            <TableSelectorModal
-                onTableSelect={handleTableSelect}
-                currentTableId={order?.tableId}
-            />
-        );
-    }, [openModal, handleTableSelect, order?.tableId]);
-
-    // ========================================================================
-    // Render
-    // ========================================================================
-
-    return (
-        <Button
-            variant={order?.tableId ? "default" : "outline"}
-            size="sm"
-            onClick={handleOpenModal}
-            className="h-7 text-xs gap-1.5"
-        >
-            <Icon name="Utensils" className="h-3.5 w-3.5" />
-            <span className="max-w-24 truncate">
-                {order?.tableName || "Select Table"}
-            </span>
-            <Icon name="ChevronRight" className="h-3 w-3 ml-0.5" />
-        </Button>
+  const handleOpenModal = () => {
+    openModal(
+      "Table Selection",
+      <TableSelectorModal
+        onTableSelect={handleTableSelect}
+        currentTableId={order?.tableId}
+      />,
     );
+  };
+
+  return (
+    <Button
+      variant={order?.tableId ? "default" : "outline"}
+      size="sm"
+      onClick={handleOpenModal}
+      className="h-7 text-xs gap-1.5"
+    >
+      <Icon name="Utensils" className="h-3.5 w-3.5" />
+      <span className="max-w-24 truncate">
+        {order?.tableName || "Select Table"}
+      </span>
+      <Icon name="ChevronRight" className="h-3 w-3 ml-0.5" />
+    </Button>
+  );
 }

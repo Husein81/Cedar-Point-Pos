@@ -219,14 +219,25 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
           />
         </div>
 
-        {/* Totals */}
+        {/* Totals with Partial/Full Refund Indicator */}
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-1">
             <div>
-              <p className="text-xs text-muted-foreground">Refund amount</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">Refund amount</p>
+                {!isFullRefund() ? (
+                  <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 border border-amber-500/30">
+                    Partial
+                  </span>
+                ) : (
+                  <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30">
+                    Full
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {selectedItems.length} item
-                {selectedItems.length !== 1 ? "s" : ""}
+                {selectedItems.length} of {refundCartItems.length} item
+                {refundCartItems.length !== 1 ? "s" : ""}
               </p>
             </div>
 
@@ -234,6 +245,25 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
               ${refundTotal.toFixed(2)}
             </p>
           </div>
+
+          {!isFullRefund() && selectedOrderDetails && (
+            <div className="mt-2 pt-2 border-t border-destructive/10">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-muted-foreground">Order total:</span>
+                <span className="font-medium">
+                  ${selectedOrderDetails.orderTotal.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-[11px] mt-0.5">
+                <span className="text-muted-foreground">
+                  Remaining after refund:
+                </span>
+                <span className="font-semibold text-amber-700">
+                  ${(selectedOrderDetails.orderTotal - refundTotal).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error */}

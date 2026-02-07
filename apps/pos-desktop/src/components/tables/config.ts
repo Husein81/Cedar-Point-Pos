@@ -36,12 +36,9 @@ export const getStatsCards = (
 ];
 
 export const statusColors: Record<TableStatus, string> = {
-  AVAILABLE:
-    "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/30",
-  OCCUPIED:
-    "border-red-500 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/30",
-  RESERVED:
-    "border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30",
+  AVAILABLE: "border-border bg-card",
+  OCCUPIED: "border-border bg-card",
+  RESERVED: "border-border bg-card",
 };
 
 export const statusIcons: Record<TableStatus, string> = {
@@ -59,3 +56,24 @@ export const STATUS_OPTIONS: {
   { value: "OCCUPIED", label: "Occupied", icon: "Users" },
   { value: "RESERVED", label: "Reserved", icon: "Clock" },
 ];
+
+export const TABLE_STATUS_CONFIG: Record<
+  TableStatus,
+  { label: string; className: string }
+> = {
+  AVAILABLE: {
+    label: "Available",
+    className:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  },
+  OCCUPIED: {
+    label: "Occupied",
+    className:
+      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+  },
+  RESERVED: {
+    label: "Reserved",
+    className:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+  },
+};

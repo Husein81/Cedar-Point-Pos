@@ -1,8 +1,9 @@
 import Heading from "@/components/heading";
-import { invoiceColumns } from "@/config/invoiceColumn";
+import { getInvoiceColumns } from "@/config/invoiceColumn";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrders } from "@/hooks/useOrder";
 import { Button, DataTable, Icon, Select } from "@repo/ui";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function InvoicesPage() {
   const [page, setPage] = useState(1);
@@ -16,6 +17,15 @@ export function InvoicesPage() {
     search: searchQuery,
     ...(statusFilter && { status: statusFilter as any }),
   });
+
+  const { data: currencyData } = useTenantCurrencies();
+  const baseCurrencyCode = currencyData?.baseCurrencyCode || "USD";
+  const tenantCurrencies = currencyData?.currencies || [];
+
+  const columns = useMemo(
+    () => getInvoiceColumns(tenantCurrencies, baseCurrencyCode),
+    [tenantCurrencies, baseCurrencyCode],
+  );
 
   const orders = data?.data ?? [];
   const totalPages = Math.ceil(
@@ -70,7 +80,7 @@ export function InvoicesPage() {
       </div>
 
       <DataTable
-        columns={invoiceColumns}
+        columns={columns}
         data={orders}
         isLoading={isLoading}
         onRefetch={refetch}

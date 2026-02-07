@@ -49,6 +49,8 @@ export function InvoicesPage() {
             { label: "Pending", value: "PENDING" },
             { label: "On Hold", value: "ON_HOLD" },
             { label: "Draft", value: "DRAFT" },
+            { label: "Partial Refund", value: "PARTIALLY_REFUNDED" },
+            { label: "Fully Refunded", value: "FULLY_REFUNDED" },
             { label: "Cancelled", value: "CANCELLED" },
           ]}
         />

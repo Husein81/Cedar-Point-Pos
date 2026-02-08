@@ -4,12 +4,26 @@ import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
 import { Button, cn } from "@repo/ui";
+import { useSearch } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 export const OrderTypeSelector = () => {
   const { user } = useAuthStore();
   const { switchContext } = useKeypadStore();
   const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
   const order = getActiveOrder();
+  const search = useSearch({ from: "/orders/" });
+
+  useEffect(() => {
+    // If order type is set in URL (e.g. from tables page), use it
+    if (search.orderType) {
+      const typeFromUrl = search.orderType.toUpperCase() as OrderType;
+      setOrderType(typeFromUrl);
+      if (typeFromUrl === OrderType.DELIVERY) {
+        switchContext("SHIPPING");
+      }
+    }
+  }, [search.orderType, setOrderType, switchContext]);
 
   const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
 

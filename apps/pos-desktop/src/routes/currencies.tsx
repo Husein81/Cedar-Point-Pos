@@ -32,7 +32,7 @@ function RouteComponent() {
   const handleAddCurrency = () => {
     openModal(
       "Add Currency",
-      <CurrencyForm existingCurrencyCodes={existingCurrencyCodes} />
+      <CurrencyForm existingCurrencyCodes={existingCurrencyCodes} />,
     );
   };
 
@@ -43,7 +43,7 @@ function RouteComponent() {
     return currencies.filter(
       (c) =>
         c.currencyCode.toLowerCase().includes(query) ||
-        c.currency?.name?.toLowerCase().includes(query)
+        c.currency?.name?.toLowerCase().includes(query),
     );
   }, [currencies, searchQuery]);
 

@@ -183,24 +183,7 @@ export const useUpdateTableStatus = () => {
             return { previousTables };
         },
 
-        onError: (error, variables, context) => {
-            // Rollback on error
-            if (context?.previousTables) {
-                queryClient.setQueryData(
-                    tableKeys.byBranch(branchId!),
-                    context.previousTables
-                );
-            }
-            const message = error.message || "Failed to update table status";
-            toast.error(message);
-        },
-
-        onSuccess: (data, variables) => {
-            toast.success(`Table status updated to ${variables.status.toLowerCase()}`);
-        },
-
-        onSettled: () => {
-            // Refetch to ensure sync
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: tableKeys.byBranch(branchId!) });
             queryClient.invalidateQueries({ queryKey: tableKeys.stats(branchId!) });
         },

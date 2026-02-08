@@ -12,7 +12,10 @@ export function TablesStatsCards({ stats }: Props) {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* Total Tables Card */}
       {statsCards.map((stat) => (
-        <Shad.Card className="bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <Shad.Card
+          key={stat.title}
+          className="bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
+        >
           <Shad.CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>

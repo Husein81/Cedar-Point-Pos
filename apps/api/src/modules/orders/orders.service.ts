@@ -30,7 +30,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly tableStatusService: TableStatusService,
-  ) { }
+  ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
@@ -148,19 +148,19 @@ export class OrdersService {
         }),
         allModifierIds.length > 0
           ? this.prisma.modifier.findMany({
-            where: {
-              id: { in: allModifierIds },
-              tenantId,
-              isDeleted: false,
-            },
-          })
+              where: {
+                id: { in: allModifierIds },
+                tenantId,
+                isDeleted: false,
+              },
+            })
           : [],
       ])) as [
-          Prisma.ProductGetPayload<{
-            select: { id: true; price: true };
-          }>[],
-          Prisma.ModifierGetPayload<object>[],
-        ];
+        Prisma.ProductGetPayload<{
+          select: { id: true; price: true };
+        }>[],
+        Prisma.ModifierGetPayload<object>[],
+      ];
 
       const productMap = new Map(products.map((p) => [p.id, p]));
       const modifierMap = new Map(modifiers.map((m) => [m.id, m]));
@@ -217,9 +217,9 @@ export class OrdersService {
         const discountValue =
           discount && typeof discount === 'object'
             ? {
-              type: (discount as Record<string, unknown>).type as string,
-              value: (discount as Record<string, unknown>).value as number,
-            }
+                type: (discount as Record<string, unknown>).type as string,
+                value: (discount as Record<string, unknown>).value as number,
+              }
             : undefined;
 
         orderItems.push({
@@ -282,7 +282,8 @@ export class OrdersService {
           ...(tableId && { tableId }),
           ...(customerId && { customerId }),
           items: { create: orderItems },
-        }, include: {
+        },
+        include: {
           items: {
             include: {
               product: true,
@@ -395,7 +396,8 @@ export class OrdersService {
     nextStatus: OrderStatus,
     userId: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    // Phase 1: Atomic status update + table status
+    const updated = await this.prisma.$transaction(async (tx) => {
       // Get order with table info
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
@@ -416,7 +418,7 @@ export class OrdersService {
       );
 
       // Update order status
-      const updated = await tx.order.update({
+      const result = await tx.order.update({
         where: { id: orderId },
         data: {
           status: nextStatus,
@@ -441,21 +443,26 @@ export class OrdersService {
         );
       }
 
-      // Deduct stock after status becomes COMPLETED
-      if (nextStatus === OrderStatus.COMPLETED) {
-        await this.inventoryDeductionService.deductStockForOrder(
-          tenantId,
-          orderId,
-          order.branchId,
-          userId,
-        );
-      }
-
-      return updated;
+      return { ...result, _branchId: order.branchId };
     });
-  }
 
-  /* ----
+    // Phase 2: Post-commit inventory deduction (separate connection)
+    // Must run OUTSIDE the transaction to avoid deadlocks —
+    // deductStockForOrder uses this.prisma (main connection) and opens
+    // its own nested $transaction internally.
+    if (nextStatus === OrderStatus.COMPLETED) {
+      await this.inventoryDeductionService.deductStockForOrder(
+        tenantId,
+        orderId,
+        updated._branchId,
+        userId,
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _branchId, ...result } = updated;
+    return result;
+  }
 
   /**
    * Process batch or single payment for an order
@@ -516,201 +523,229 @@ export class OrdersService {
       );
     }
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const order = await tx.order.findFirst({
-          where: { id: orderId, tenantId },
-          select: {
-            id: true,
-            status: true,
-            total: true, // ✅ already includes VAT + shipping
-            branchId: true,
-            currencyCode: true,
-            payments: {
-              select: { amount: true }, // amount is in BASE currency
+    // ── Phase 1: Atomic payment + status update ──────────────────────────
+    // Run payment records + order status inside ONE transaction.
+    // Inventory deduction is intentionally OUTSIDE to avoid deadlocks:
+    // deductStockForOrder uses its own PrismaService connection and opens
+    // its own $transaction — if called inside this tx it deadlocks because
+    // the Serializable lock on Order blocks the outside read.
+
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: {
+          id: true,
+          status: true,
+          total: true, // ✅ already includes VAT + shipping
+          branchId: true,
+          currencyCode: true,
+          payments: {
+            select: { amount: true }, // amount is in BASE currency
+          },
+          tenant: {
+            select: { businessType: true },
+          },
+        },
+      });
+
+      if (!order) throw new NotFoundException('Order not found');
+
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new BadRequestException('Cannot pay a cancelled order');
+      }
+
+      /* ============================================
+         BATCH CALCULATION IN BASE CURRENCY
+      ============================================ */
+
+      const totalDue = this.money(Number(order.total));
+
+      // Already paid (all in base currency)
+      const alreadyPaid = this.money(
+        order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+      );
+
+      // Convert all payments to base currency and sum them
+      const batchTotalBase = this.money(
+        payments.reduce((sum, payment) => {
+          const exchangeRate =
+            payment.currencyCode && payment.currencyCode !== order.currencyCode
+              ? payment.exchangeRate || 1
+              : 1;
+
+          if (!exchangeRate || exchangeRate <= 0) {
+            throw new BadRequestException('Invalid exchange rate');
+          }
+
+          const paymentInBase = payment.amount * exchangeRate;
+          return sum + paymentInBase;
+        }, 0),
+      );
+
+      // New total paid (in base currency)
+      const newTotalPaid = this.money(alreadyPaid + batchTotalBase);
+
+      // Check if any card payment exceeds remaining (card cannot overpay)
+      const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+      const hasCardPayment = payments.some(
+        (p) => p.method !== PaymentMethod.CASH,
+      );
+
+      if (hasCardPayment && batchTotalBase > remaining) {
+        throw new BadRequestException(
+          `Payment exceeds remaining balance. Remaining: ${remaining}`,
+        );
+      }
+
+      const isFullyPaid = newTotalPaid >= totalDue;
+
+      /* ============================================
+         CREATE PAYMENT RECORDS FOR ALL PAYMENTS
+      ============================================ */
+
+      await Promise.all(
+        payments.map((payment) => {
+          const exchangeRate =
+            payment.currencyCode && payment.currencyCode !== order.currencyCode
+              ? payment.exchangeRate || 1
+              : 1;
+
+          const paymentInBase = this.money(payment.amount * exchangeRate);
+
+          return tx.payment.create({
+            data: {
+              orderId,
+              method: payment.method,
+              amount: new Prisma.Decimal(paymentInBase), // Store BASE currency
+              currencyCode: payment.currencyCode,
+              exchangeRate: exchangeRate
+                ? new Prisma.Decimal(exchangeRate)
+                : undefined,
             },
-            tenant: {
-              select: { businessType: true },
-            },
+          });
+        }),
+      );
+
+      /* ============================================
+         UPDATE ORDER STATUS
+      ============================================ */
+
+      const isRestaurant =
+        order.tenant?.businessType === BusinessType.RESTAURANT;
+
+      let shouldDeductInventory = false;
+
+      if (isFullyPaid) {
+        // Get table info before updating order
+        const orderWithTable = await tx.order.findFirst({
+          where: { id: orderId },
+          select: { tableId: true },
+        });
+
+        // For restaurant orders, send to kitchen instead of marking completed
+        const newStatus = isRestaurant
+          ? OrderStatus.SENT_TO_KITCHEN
+          : OrderStatus.COMPLETED;
+
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: newStatus,
+            ...(newStatus === OrderStatus.COMPLETED && {
+              completedAt: new Date(),
+            }),
           },
         });
 
-        if (!order) throw new NotFoundException('Order not found');
-
-        if (order.status === OrderStatus.CANCELLED) {
-          throw new BadRequestException('Cannot pay a cancelled order');
-        }
-
-        /* ============================================
-           BATCH CALCULATION IN BASE CURRENCY
-        ============================================ */
-
-        const totalDue = this.money(Number(order.total));
-
-        // Already paid (all in base currency)
-        const alreadyPaid = this.money(
-          order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
-        );
-
-        // Convert all payments to base currency and sum them
-        const batchTotalBase = this.money(
-          payments.reduce((sum, payment) => {
-            const exchangeRate =
-              payment.currencyCode &&
-                payment.currencyCode !== order.currencyCode
-                ? payment.exchangeRate || 1
-                : 1;
-
-            if (!exchangeRate || exchangeRate <= 0) {
-              throw new BadRequestException('Invalid exchange rate');
-            }
-
-            const paymentInBase = payment.amount * exchangeRate;
-            return sum + paymentInBase;
-          }, 0),
-        );
-
-        // New total paid (in base currency)
-        const newTotalPaid = this.money(alreadyPaid + batchTotalBase);
-
-        // Check if any card payment exceeds remaining (card cannot overpay)
-        const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
-        const hasCardPayment = payments.some(
-          (p) => p.method !== PaymentMethod.CASH,
-        );
-
-        if (hasCardPayment && batchTotalBase > remaining) {
-          throw new BadRequestException(
-            `Payment exceeds remaining balance. Remaining: ${remaining}`,
+        // ✅ Update table status if order was associated with a table
+        if (orderWithTable?.tableId) {
+          await this.tableStatusService.markTableAvailableIfPossible(
+            orderWithTable.tableId,
+            orderId,
+            tenantId,
+            tx,
           );
         }
 
-        const isFullyPaid = newTotalPaid >= totalDue;
-        /* ============================================
-           CREATE PAYMENT RECORDS FOR ALL PAYMENTS
-        ============================================ */
-
-        await Promise.all(
-          payments.map((payment) => {
-            const exchangeRate =
-              payment.currencyCode &&
-                payment.currencyCode !== order.currencyCode
-                ? payment.exchangeRate || 1
-                : 1;
-
-            const paymentInBase = this.money(payment.amount * exchangeRate);
-
-            return tx.payment.create({
-              data: {
-                orderId,
-                method: payment.method,
-                amount: new Prisma.Decimal(paymentInBase), // Store BASE currency
-                currencyCode: payment.currencyCode,
-                exchangeRate: exchangeRate
-                  ? new Prisma.Decimal(exchangeRate)
-                  : undefined,
-              },
-            });
-          }),
-        );
-
-        /* ============================================
-           UPDATE ORDER STATUS
-        ============================================ */
-
-        if (isFullyPaid) {
-          // Get table info before updating order
-          const orderWithTable = await tx.order.findFirst({
-            where: { id: orderId },
-            select: { tableId: true },
-          });
-
-          // For restaurant orders, send to kitchen instead of marking completed
-          const isRestaurant =
-            order.tenant?.businessType === BusinessType.RESTAURANT;
-          const newStatus = isRestaurant
-            ? OrderStatus.SENT_TO_KITCHEN
-            : OrderStatus.COMPLETED;
-
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              status: newStatus,
-              ...(newStatus === OrderStatus.COMPLETED && {
-                completedAt: new Date(),
-              }),
-            },
-          });
-
-          // ✅ Update table status if order was associated with a table
-          if (orderWithTable?.tableId) {
-            await this.tableStatusService.markTableAvailableIfPossible(
-              orderWithTable.tableId,
-              orderId,
-              tenantId,
-              tx,
-            );
-          }
-
-          // ✅ Deduct inventory ONCE (only for non-restaurant or if completed)
-          if (!isRestaurant) {
-            await this.inventoryDeductionService.deductStockForOrder(
-              tenantId,
-              orderId,
-              order.branchId,
-              userId,
-            );
-          }
-        } else if (order.status === OrderStatus.DRAFT) {
-          await tx.order.update({
-            where: { id: orderId },
-            data: { status: OrderStatus.PENDING },
-          });
+        // Flag for post-commit inventory deduction (non-restaurant only)
+        if (!isRestaurant) {
+          shouldDeductInventory = true;
         }
+      } else if (order.status === OrderStatus.DRAFT) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.PENDING },
+        });
+      }
 
-        /* ============================================
-           CALCULATE CHANGE (CASH ONLY)
-        ============================================ */
+      /* ============================================
+         CALCULATE CHANGE (CASH ONLY)
+      ============================================ */
 
-        const changeBase = Math.max(0, newTotalPaid - totalDue);
+      const changeBase = Math.max(0, newTotalPaid - totalDue);
 
-        // For cash payments, return change in the first cash payment's currency
-        const firstCashPayment = payments.find(
-          (p) => p.method === PaymentMethod.CASH,
-        );
+      // For cash payments, return change in the first cash payment's currency
+      const firstCashPayment = payments.find(
+        (p) => p.method === PaymentMethod.CASH,
+      );
 
-        const changeInfo = firstCashPayment
-          ? {
+      const changeInfo = firstCashPayment
+        ? {
             amount: this.money(
               changeBase / (firstCashPayment.exchangeRate || 1),
             ),
             currency: firstCashPayment.currencyCode || order.currencyCode,
           }
-          : {
+        : {
             amount: this.money(0),
             currency: order.currencyCode,
           };
 
-        const isRestaurant =
-          order.tenant?.businessType === BusinessType.RESTAURANT;
-        const finalStatus = isFullyPaid
-          ? isRestaurant
-            ? OrderStatus.SENT_TO_KITCHEN
-            : OrderStatus.COMPLETED
-          : OrderStatus.PENDING;
+      const finalStatus = isFullyPaid
+        ? isRestaurant
+          ? OrderStatus.SENT_TO_KITCHEN
+          : OrderStatus.COMPLETED
+        : OrderStatus.PENDING;
 
-        return {
+      return {
+        orderId,
+        status: finalStatus,
+        totalDue,
+        paid: this.money(Math.min(newTotalPaid, totalDue)),
+        remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
+        change: changeInfo,
+        paymentCount: payments.length,
+        // Internal flags — stripped before returning to client
+        _shouldDeductInventory: shouldDeductInventory,
+        _branchId: order.branchId,
+      };
+    });
+
+    // ── Phase 2: Post-commit inventory deduction ─────────────────────────
+    // Runs AFTER the transaction commits, on its own connection.
+    // If this fails, payment is still recorded — inventory can be reconciled.
+    if (txResult._shouldDeductInventory) {
+      try {
+        await this.inventoryDeductionService.deductStockForOrder(
+          tenantId,
           orderId,
-          status: finalStatus,
-          totalDue,
-          paid: this.money(Math.min(newTotalPaid, totalDue)),
-          remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
-          change: changeInfo,
-          paymentCount: payments.length,
-        };
-      },
-      { isolationLevel: 'Serializable' },
-    );
+          txResult._branchId,
+          userId,
+        );
+      } catch (err) {
+        // Log but don't fail the payment — order + payment are committed.
+        // Inventory can be reconciled separately.
+        console.error(
+          `[processPayment] Inventory deduction failed for order ${orderId}:`,
+          err,
+        );
+      }
+    }
+
+    // Strip internal flags before returning
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _shouldDeductInventory, _branchId, ...result } = txResult;
+    return result;
   }
 
   /**
@@ -729,153 +764,171 @@ export class OrdersService {
       throw new BadRequestException('Payment amount must be greater than 0');
     }
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const order = await tx.order.findFirst({
-          where: { id: orderId, tenantId },
-          select: {
-            id: true,
-            status: true,
-            total: true, // ✅ already includes VAT + shipping
-            branchId: true,
-            currencyCode: true,
-            payments: {
-              select: { amount: true }, // amount is BASE currency
-            },
+    // Phase 1: Atomic payment + status update
+    const txResult = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: {
+          id: true,
+          status: true,
+          total: true, // ✅ already includes VAT + shipping
+          branchId: true,
+          currencyCode: true,
+          payments: {
+            select: { amount: true }, // amount is BASE currency
           },
-        });
+        },
+      });
 
-        if (!order) throw new NotFoundException('Order not found');
+      if (!order) throw new NotFoundException('Order not found');
 
-        if (order.status === OrderStatus.CANCELLED) {
-          throw new BadRequestException('Cannot pay a cancelled order');
-        }
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new BadRequestException('Cannot pay a cancelled order');
+      }
 
-        /* --------------------------------------------
-         BASE CURRENCY CALCULATIONS ONLY
-      -------------------------------------------- */
+      /* --------------------------------------------
+       BASE CURRENCY CALCULATIONS ONLY
+    -------------------------------------------- */
 
-        const totalDue = this.money(Number(order.total));
+      const totalDue = this.money(Number(order.total));
 
-        const alreadyPaid = this.money(
-          order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+      const alreadyPaid = this.money(
+        order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+      );
+
+      const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+
+      /* --------------------------------------------
+       Convert incoming payment to BASE currency
+    -------------------------------------------- */
+
+      const exchangeRate =
+        payment.currencyCode && payment.currencyCode !== order.currencyCode
+          ? payment.exchangeRate
+          : 1;
+
+      if (!exchangeRate || exchangeRate <= 0) {
+        throw new BadRequestException('Invalid exchange rate');
+      }
+
+      const paymentBase = this.money(payment.amount * exchangeRate);
+
+      /* --------------------------------------------
+       CARD RULE: cannot exceed remaining
+    -------------------------------------------- */
+
+      if (payment.method !== PaymentMethod.CASH && paymentBase > remaining) {
+        throw new BadRequestException(
+          `Payment exceeds remaining balance. Remaining: ${remaining}`,
         );
+      }
 
-        const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+      /* --------------------------------------------
+       Create payment record (BASE currency stored)
+    -------------------------------------------- */
 
-        /* --------------------------------------------
-         Convert incoming payment to BASE currency
-      -------------------------------------------- */
+      await tx.payment.create({
+        data: {
+          orderId,
+          method: payment.method,
+          amount: paymentBase, // ✅ BASE currency
+          currencyCode: payment.currencyCode,
+          exchangeRate: payment.exchangeRate,
+        },
+      });
 
-        const exchangeRate =
-          payment.currencyCode && payment.currencyCode !== order.currencyCode
-            ? payment.exchangeRate
-            : 1;
+      const newPaidBase = this.money(alreadyPaid + paymentBase);
 
-        if (!exchangeRate || exchangeRate <= 0) {
-          throw new BadRequestException('Invalid exchange rate');
-        }
+      const isFullyPaid = newPaidBase >= totalDue;
 
-        const paymentBase = this.money(payment.amount * exchangeRate);
+      /* --------------------------------------------
+       Order state
+    -------------------------------------------- */
 
-        /* --------------------------------------------
-         CARD RULE: cannot exceed remaining
-      -------------------------------------------- */
+      let shouldDeductInventory = false;
 
-        if (payment.method !== PaymentMethod.CASH && paymentBase > remaining) {
-          throw new BadRequestException(
-            `Payment exceeds remaining balance. Remaining: ${remaining}`,
-          );
-        }
+      if (isFullyPaid) {
+        // Get table info before updating order
+        const orderWithTable = await tx.order.findFirst({
+          where: { id: orderId },
+          select: { tableId: true },
+        });
 
-        /* --------------------------------------------
-         Create payment record (BASE currency stored)
-      -------------------------------------------- */
-
-        await tx.payment.create({
+        await tx.order.update({
+          where: { id: orderId },
           data: {
-            orderId,
-            method: payment.method,
-            amount: paymentBase, // ✅ BASE currency
-            currencyCode: payment.currencyCode,
-            exchangeRate: payment.exchangeRate,
+            status: OrderStatus.COMPLETED,
+            completedAt: new Date(),
           },
         });
 
-        const newPaidBase = this.money(alreadyPaid + paymentBase);
-
-        const isFullyPaid = newPaidBase >= totalDue;
-
-        /* --------------------------------------------
-         Order state + inventory
-      -------------------------------------------- */
-
-        if (isFullyPaid) {
-          // Get table info before updating order
-          const orderWithTable = await tx.order.findFirst({
-            where: { id: orderId },
-            select: { tableId: true },
-          });
-
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              status: OrderStatus.COMPLETED,
-              completedAt: new Date(),
-            },
-          });
-
-          // ✅ Update table status if order was associated with a table
-          if (orderWithTable?.tableId) {
-            await this.tableStatusService.markTableAvailableIfPossible(
-              orderWithTable.tableId,
-              orderId,
-              tenantId,
-              tx,
-            );
-          }
-
-          // ✅ Deduct inventory ONCE
-          await this.inventoryDeductionService.deductStockForOrder(
-            tenantId,
+        // ✅ Update table status if order was associated with a table
+        if (orderWithTable?.tableId) {
+          await this.tableStatusService.markTableAvailableIfPossible(
+            orderWithTable.tableId,
             orderId,
-            order.branchId,
-            userId,
+            tenantId,
+            tx,
           );
-        } else if (order.status === OrderStatus.DRAFT) {
-          await tx.order.update({
-            where: { id: orderId },
-            data: { status: OrderStatus.PENDING },
-          });
         }
 
-        /* --------------------------------------------
-         CASH CHANGE (returned in ORIGINAL currency)
-      -------------------------------------------- */
+        shouldDeductInventory = true;
+      } else if (order.status === OrderStatus.DRAFT) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.PENDING },
+        });
+      }
 
-        const changeBase = Math.max(0, newPaidBase - totalDue);
+      /* --------------------------------------------
+       CASH CHANGE (returned in ORIGINAL currency)
+    -------------------------------------------- */
 
-        const changeOriginal =
-          payment.method === PaymentMethod.CASH
-            ? this.money(changeBase / exchangeRate)
-            : 0;
+      const changeBase = Math.max(0, newPaidBase - totalDue);
 
-        return {
+      const changeOriginal =
+        payment.method === PaymentMethod.CASH
+          ? this.money(changeBase / exchangeRate)
+          : 0;
+
+      return {
+        orderId,
+        status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+
+        totalDue,
+        paid: this.money(Math.min(newPaidBase, totalDue)),
+        remaining: this.money(Math.max(0, totalDue - newPaidBase)),
+
+        change: {
+          amount: changeOriginal,
+          currency: payment.currencyCode ?? order.currencyCode,
+        },
+
+        _shouldDeductInventory: shouldDeductInventory,
+        _branchId: order.branchId,
+      };
+    });
+
+    // Phase 2: Post-commit inventory deduction
+    if (txResult._shouldDeductInventory) {
+      try {
+        await this.inventoryDeductionService.deductStockForOrder(
+          tenantId,
           orderId,
-          status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+          txResult._branchId,
+          userId,
+        );
+      } catch (err) {
+        console.error(
+          `[processPayment_LEGACY] Inventory deduction failed for order ${orderId}:`,
+          err,
+        );
+      }
+    }
 
-          totalDue,
-          paid: this.money(Math.min(newPaidBase, totalDue)),
-          remaining: this.money(Math.max(0, totalDue - newPaidBase)),
-
-          change: {
-            amount: changeOriginal,
-            currency: payment.currencyCode ?? order.currencyCode,
-          },
-        };
-      },
-      { isolationLevel: 'Serializable' },
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _shouldDeductInventory, _branchId, ...result } = txResult;
+    return result;
   }
 
   /* ----------------------------------------------------

@@ -333,8 +333,16 @@ export const OrderItemSchema = z.object({
   productId: cuid,
   quantity: decimal.default("1"),
   unitPrice: decimal,
+  subtotal: decimal.optional(),
   total: decimal,
   notes: z.string().nullable().optional(),
+  discount: z
+    .object({
+      type: z.enum(["PERCENTAGE", "FIXED"]),
+      value: z.number(),
+    })
+    .nullable()
+    .optional(),
   product: ProductSchema.optional(), // For combo products
   modifiers: z
     .array(
@@ -388,7 +396,7 @@ export const OrderSchema = z.object({
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
   vat: decimal.nullable().optional(),
-  includeVat: z.boolean().default(false),
+  includeVAT: z.boolean().default(false),
   shippingFee: decimal.nullable().optional(),
   subtotal: decimal.default("0"),
   total: decimal.default("0"),

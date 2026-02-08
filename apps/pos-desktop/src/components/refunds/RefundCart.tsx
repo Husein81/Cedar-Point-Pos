@@ -1,5 +1,5 @@
 import { useRefundStore } from "@/store/refundStore";
-import { Button, Empty, Icon, Separator, Shad, Textarea } from "@repo/ui";
+import { Button, Empty, Icon, Shad, Textarea } from "@repo/ui";
 import { useState } from "react";
 import { CartItem } from "./CartItem";
 import { RefundConfirmModal } from "./RefundConfirmModal";
@@ -33,7 +33,6 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // ✅ OPTIMIZED: Use React Query mutation with optimistic updates
   const createRefundMutation = useCreateRefund();
 
   const selectedItems = getSelectedItems();
@@ -59,7 +58,6 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
     }
   };
 
-  // ✅ OPTIMIZED: Derive processing state from mutation
   const processStatus = createRefundMutation.isPending
     ? "processing"
     : createRefundMutation.isSuccess
@@ -77,10 +75,10 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
     return (
       <div className="flex-1 grid place-items-center bg-muted/10">
         <div className="max-w-sm text-center space-y-3">
-          <div className="mx-auto h-16 w-16 rounded-2xl bg-muted/40 grid place-items-center">
+          <div className="mx-auto h-14 w-14 rounded-xl bg-muted/40 grid place-items-center">
             <Icon
               name="ReceiptText"
-              className="h-8 w-8 text-muted-foreground"
+              className="h-6 w-6 text-muted-foreground"
             />
           </div>
           <div className="space-y-1">
@@ -97,9 +95,13 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
   if (selectedOrderError) {
     return (
       <div className="flex-1 grid place-items-center p-6">
-        <div className="max-w-sm text-center space-y-2 text-destructive">
-          <Icon name="CircleAlert" className="h-7 w-7 mx-auto" />
-          <p className="text-sm font-medium">{selectedOrderError}</p>
+        <div className="max-w-sm text-center space-y-3">
+          <div className="mx-auto h-12 w-12 rounded-xl bg-destructive/10 grid place-items-center">
+            <Icon name="CircleAlert" className="h-5 w-5 text-destructive" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">
+            {selectedOrderError}
+          </p>
         </div>
       </div>
     );
@@ -115,8 +117,8 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
 
         <div className="flex-1 grid place-items-center bg-muted/10">
           <div className="max-w-sm text-center space-y-3">
-            <div className="mx-auto h-16 w-16 rounded-2xl bg-green-500/10 grid place-items-center">
-              <Icon name="CircleCheck" className="h-8 w-8 text-green-600" />
+            <div className="mx-auto h-14 w-14 rounded-xl bg-green-500/10 grid place-items-center">
+              <Icon name="CircleCheck" className="h-6 w-6 text-green-600" />
             </div>
             <div className="space-y-1">
               <p className="text-base font-semibold text-green-700">
@@ -142,31 +144,26 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
       )}
 
       {/* Toolbar */}
-      <div className="px-4 py-2 border-b bg-background/80 backdrop-blur shrink-0">
+      <div className="px-5 py-3 border-b border-border/40 bg-background/80 backdrop-blur shrink-0">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={selectAllItems}
             disabled={!hasRefundableItems()}
-            className="h-9"
           >
+            <Icon name="SquareCheck" className="w-3.5 h-3.5" />
             Select all
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={deselectAllItems}
-            className="h-9"
-          >
+          <Button variant="outline" size="sm" onClick={deselectAllItems}>
+            <Icon name="X" className="w-3.5 h-3.5" />
             Clear
           </Button>
 
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Selected</span>
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
-              {selectedItems.length}/{refundCartItems.length}
+            <span className="text-xs text-muted-foreground">
+              {selectedItems.length} of {refundCartItems.length} selected
             </span>
           </div>
         </div>
@@ -175,27 +172,31 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
       {/* Items + History */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <Shad.ScrollArea className="h-full">
-          <div className="p-4 space-y-2">
+          <div className="py-1">
             {refundCartItems.length === 0 ? (
-              <Empty
-                title="No refundable items"
-                description="All items in this order have been refunded."
-              />
-            ) : (
-              refundCartItems.map((item) => (
-                <CartItem
-                  key={item.orderItemId}
-                  item={item}
-                  onToggle={() => toggleItemSelection(item.orderItemId)}
-                  onQuantityChange={(qty) =>
-                    setRefundQuantity(item.orderItemId, qty)
-                  }
+              <div className="p-6">
+                <Empty
+                  title="No refundable items"
+                  description="All items in this order have been refunded."
                 />
-              ))
+              </div>
+            ) : (
+              <div className="divide-y divide-border/30">
+                {refundCartItems.map((item) => (
+                  <CartItem
+                    key={item.orderItemId}
+                    item={item}
+                    onToggle={() => toggleItemSelection(item.orderItemId)}
+                    onQuantityChange={(qty) =>
+                      setRefundQuantity(item.orderItemId, qty)
+                    }
+                  />
+                ))}
+              </div>
             )}
 
             {refundHistory.length > 0 && (
-              <div className="pt-2">
+              <div className="px-5 pt-4 pb-2">
                 <RefundHistoryPanel />
               </div>
             )}
@@ -203,12 +204,11 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
         </Shad.ScrollArea>
       </div>
 
-      <Separator className="shrink-0" />
-
       {/* Bottom Summary */}
-      <div className="shrink-0 border-t bg-background px-4 py-4 space-y-3">
-        <div className="grid gap-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="shrink-0 border-t border-border/60 bg-background px-5 py-5 space-y-4">
+        {/* Reason */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Reason (optional)
           </label>
           <Textarea
@@ -219,57 +219,61 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
           />
         </div>
 
-        {/* Totals with Partial/Full Refund Indicator */}
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-          <div className="flex items-center justify-between mb-1">
-            <div>
+        {/* Refund Total Card */}
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">Refund amount</p>
-                {!isFullRefund() ? (
-                  <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 border border-amber-500/30">
-                    Partial
-                  </span>
-                ) : (
-                  <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30">
-                    Full
-                  </span>
-                )}
+                <p className="text-sm font-semibold">Refund Total</p>
+                {selectedItems.length > 0 &&
+                  (!isFullRefund() ? (
+                    <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/25">
+                      Partial
+                    </span>
+                  ) : (
+                    <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-md bg-destructive/15 text-destructive border border-destructive/25">
+                      Full
+                    </span>
+                  ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {selectedItems.length} of {refundCartItems.length} item
-                {refundCartItems.length !== 1 ? "s" : ""}
+              <p className="text-xs text-muted-foreground">
+                {selectedItems.length} item
+                {selectedItems.length !== 1 ? "s" : ""}
               </p>
             </div>
 
-            <p className="text-3xl font-bold text-destructive tabular-nums">
+            <p className="text-2xl font-bold text-destructive tabular-nums">
               ${refundTotal.toFixed(2)}
             </p>
           </div>
 
-          {!isFullRefund() && selectedOrderDetails && (
-            <div className="mt-2 pt-2 border-t border-destructive/10">
-              <div className="flex justify-between text-[11px]">
-                <span className="text-muted-foreground">Order total:</span>
-                <span className="font-medium">
-                  ${selectedOrderDetails.orderTotal.toFixed(2)}
-                </span>
+          {!isFullRefund() &&
+            selectedOrderDetails &&
+            selectedItems.length > 0 && (
+              <div className="pt-2 border-t border-destructive/10 space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Order total</span>
+                  <span className="font-medium tabular-nums">
+                    ${selectedOrderDetails.orderTotal.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    Remaining after refund
+                  </span>
+                  <span className="font-semibold text-amber-700 tabular-nums">
+                    $
+                    {(selectedOrderDetails.orderTotal - refundTotal).toFixed(2)}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between text-[11px] mt-0.5">
-                <span className="text-muted-foreground">
-                  Remaining after refund:
-                </span>
-                <span className="font-semibold text-amber-700">
-                  ${(selectedOrderDetails.orderTotal - refundTotal).toFixed(2)}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* Error */}
         {processError && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-            <div className="flex gap-2">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="flex gap-2 items-start">
               <Icon name="CircleAlert" className="w-4 h-4 mt-0.5 shrink-0" />
               <span className="font-medium">{processError}</span>
             </div>
@@ -279,11 +283,11 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
         <Button
           size="lg"
           variant="destructive"
-          className="w-full h-12 text-base font-semibold"
+          className="w-full h-11 text-sm font-semibold"
           disabled={!canProcessRefund()}
           onClick={() => setShowConfirmModal(true)}
         >
-          <Icon name="RotateCcw" className="w-5 h-5 mr-2" />
+          <Icon name="RotateCcw" className="w-4 h-4" />
           {isFullRefund() ? "Process Full Refund" : "Process Partial Refund"}
         </Button>
       </div>

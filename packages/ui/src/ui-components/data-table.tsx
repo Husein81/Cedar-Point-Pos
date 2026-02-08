@@ -59,7 +59,7 @@ export function DataTable<TData, TValue>({
       search.keys.some((key) => {
         const value = row[key];
         return typeof value === "string" && value.toLowerCase().includes(query);
-      })
+      }),
     );
   }, [data, search, appliedTerm]);
 
@@ -82,70 +82,78 @@ export function DataTable<TData, TValue>({
     pagination?.onPageChange(1);
   };
 
+  const isInitialLoad =
+    isLoading && (!data || data.length === 0) && (!search || !appliedTerm);
+
   return (
-    <div className="space-y-2">
-      <div className="relative h-8">
-        {/* 🔍 Search + Actions bar */}
-        {(search || actions || onRefetch) && (
-          <div className="flex items-center justify-between gap-2">
-            {/* Left: Search */}
-            {search && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+    <div className="space-y-4">
+      {/* Toolbar */}
+      {!isInitialLoad && (search || actions || onRefetch) && (
+        <div className="flex items-center justify-between gap-3">
+          {/* Left: Search */}
+          {search && (
+            <div className="flex items-center gap-1.5">
+              <div className="relative">
+                <Icon
+                  name="Search"
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                />
                 <Input
                   placeholder="Search..."
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") applySearch();
                   }}
-                  className="max-w-sm"
+                  className="pl-9 w-70"
                 />
-
-                <Button iconName="Search" onClick={applySearch}>
-                  Search
-                </Button>
               </div>
-            )}
-
-            {/* Right: Actions */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              <div className="flex items-center gap-2">
-                {onRefetch && (
-                  <Button
-                    variant="outline"
-                    onClick={onRefetch}
-                    disabled={isLoading}
-                  >
-                    <Icon
-                      name="RefreshCw"
-                      size={16}
-                      className={cn(
-                        "mr-2",
-                        !!onRefetch || (isLoading && "animate-spin")
-                      )}
-                    />
-                    Refresh
-                  </Button>
-                )}
-
-                {actions}
-              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={applySearch}
+                className="shrink-0"
+              >
+                Search
+              </Button>
             </div>
+          )}
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 ml-auto">
+            {onRefetch && (
+              <Button
+                variant="outline"
+                onClick={onRefetch}
+                disabled={isLoading}
+              >
+                <Icon
+                  name="RefreshCw"
+                  size={16}
+                  className={cn("mr-2", isLoading && "animate-spin")}
+                />
+                Refresh
+              </Button>
+            )}
+            {actions}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Table */}
       {isLoading ? (
-        <TableSkeleton />
+        <TableSkeleton withToolbar={isInitialLoad} />
       ) : (
-        <div className="overflow-hidden rounded-md border">
+        <div className="overflow-hidden rounded-xl border border-border/40 shadow-sm">
           <Shad.Table>
-            <Shad.TableHeader>
+            <Shad.TableHeader className="bg-muted/30">
               {table.getHeaderGroups().map((headerGroup) => (
                 <Shad.TableRow
                   key={headerGroup.id}
-                  className="bg-primary/55 hover:bg-primary/65"
+                  className="hover:bg-transparent border-b border-border/60"
                 >
                   {headerGroup.headers.map((header) => (
                     <Shad.TableHead key={header.id}>
@@ -153,7 +161,7 @@ export function DataTable<TData, TValue>({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </Shad.TableHead>
                   ))}
@@ -173,7 +181,7 @@ export function DataTable<TData, TValue>({
                       <Shad.TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </Shad.TableCell>
                     ))}

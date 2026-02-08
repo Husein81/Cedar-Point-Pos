@@ -42,7 +42,6 @@ import { UsersModule } from './modules/users/users.module.js';
     FloorsModule,
     InventoryModule,
     ProductsModule,
-    RecipesModule,
     PurchaseOrdersModule,
     SuppliersModule,
     TablesModule,

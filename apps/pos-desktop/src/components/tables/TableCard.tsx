@@ -1,14 +1,13 @@
-import { TableStatus } from "@repo/types";
-import { Button, Shad, Icon, cn } from "@repo/ui";
-import { useNavigate } from "@tanstack/react-router";
-import React, { useCallback, useState } from "react";
-import { TableStatusBadge } from "./TableStatusBadge";
 import type { TableWithFloor } from "@/dto/tables.dto";
 import { useDeleteTable, useUpdateTableStatus } from "@/hooks/useTable";
-import { STATUS_OPTIONS, statusColors } from "./config";
 import { useModalStore } from "@/store/modalStore";
-import { TableForm } from "./TableForm";
+import { TableStatus } from "@repo/types";
+import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
+import React, { useCallback, useState } from "react";
 import { AlertDialog } from "../common";
+import { STATUS_OPTIONS, statusColors, TABLE_STATUS_CONFIG } from "./config";
+import { TableForm } from "./TableForm";
 
 interface TableCardProps {
   table: TableWithFloor;
@@ -63,6 +62,8 @@ export function TableCard({ table }: TableCardProps) {
     [updateStatusMutation, table.id, status],
   );
 
+  const config = TABLE_STATUS_CONFIG[status] || TABLE_STATUS_CONFIG.AVAILABLE;
+
   return (
     <Shad.Card
       className={cn(
@@ -76,7 +77,7 @@ export function TableCard({ table }: TableCardProps) {
       {/* Hover Action Buttons */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-[1.35rem] right-4 z-10 flex gap-2 items-center transition-opacity duration-200"
+        className="absolute top-9 right-4 z-10 flex gap-2 items-center transition-opacity duration-200"
       >
         <Button
           variant="ghost"
@@ -105,7 +106,6 @@ export function TableCard({ table }: TableCardProps) {
       <Shad.CardHeader className="pb-3 pt-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-
             {/* Status Dropdown for manual editing */}
             <Shad.DropdownMenu
               open={isStatusDropdownOpen}
@@ -117,7 +117,15 @@ export function TableCard({ table }: TableCardProps) {
                   className="cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <TableStatusBadge status={status} />
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "font-semibold text-sm px-4 py-1",
+                      config.className,
+                    )}
+                  >
+                    {config.label}
+                  </Badge>
                 </div>
               </Shad.DropdownMenuTrigger>
               <Shad.DropdownMenuContent

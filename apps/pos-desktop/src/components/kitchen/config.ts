@@ -33,14 +33,13 @@ export const getStatusIcon = (status: OrderStatus): string => {
 export const getOrderTypeHeaderColor = (type: OrderType) => {
   switch (type) {
     case OrderType.DINE_IN:
-      return "bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200";
+      return "bg-blue-500";
 
     case OrderType.DELIVERY:
-      return "bg-purple-100 border-purple-300 text-purple-900 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-200";
+      return "bg-purple-500";
 
-    case OrderType.TAKEAWAY:
     default:
-      return "bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200";
+      return "bg-amber-500";
   }
 };
 
@@ -72,6 +71,11 @@ export const getActionButtonStatus = (
       return {
         nextStatus: OrderStatus.COMPLETED,
         buttonLabel: "Complete Order",
+      };
+    case OrderStatus.FULLY_REFUNDED:
+      return {
+        nextStatus: null,
+        buttonLabel: "Order Fully Refunded",
       };
     default:
       return {

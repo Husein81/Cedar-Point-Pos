@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { OrderItem, OrderStatus } from '@repo/types';
+import { OrderItem } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { InventoryTransactionService } from './inventory-transaction.service.js';
 import type {
@@ -64,10 +64,30 @@ export class InventoryDeductionService {
       `📦 Starting inventory deduction for order ${orderId} (${order.items.length} items)`,
     );
 
-    if (order.status === OrderStatus.COMPLETED) {
-      throw new BadRequestException(
-        'Order already completed - stock already deducted',
+    // Idempotency guard: check if we already deducted for this order
+    // by looking for existing inventory history entries referencing it.
+    // This replaces the old status-based guard which deadlocked when
+    // called from inside a transaction that had already set COMPLETED.
+    const existingDeduction = await this.prisma.inventoryHistory.findFirst({
+      where: {
+        tenantId,
+        branchId,
+        changeType: 'SALE',
+        referenceId: orderId,
+        referenceType: 'ORDER',
+      },
+      select: { id: true },
+    });
+
+    if (existingDeduction) {
+      this.logger.warn(
+        `⚠️ Inventory already deducted for order ${orderId} — skipping`,
       );
+      return {
+        success: true,
+        deductionsApplied: 0,
+        stockWarnings: [],
+      };
     }
 
     // Calculate all stock deductions needed (pass full items with product data)

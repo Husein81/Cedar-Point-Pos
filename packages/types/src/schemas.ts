@@ -250,6 +250,13 @@ export type TransferItem = z.infer<typeof TransferItemSchema>;
 export const RefundItemSchema = z.object({
   id: cuid.optional(),
   refundId: cuid.optional(),
+  refund: z.object({
+    id: cuid,
+    orderId: cuid,
+    totalAmount: decimal,
+    reason: z.string().nullable().optional(),
+    refundedAt: isoDate,
+  }),
   orderItemId: cuid,
   quantity: decimal,
   unitPrice: decimal,
@@ -326,8 +333,16 @@ export const OrderItemSchema = z.object({
   productId: cuid,
   quantity: decimal.default("1"),
   unitPrice: decimal,
+  subtotal: decimal.optional(),
   total: decimal,
   notes: z.string().nullable().optional(),
+  discount: z
+    .object({
+      type: z.enum(["PERCENTAGE", "FIXED"]),
+      value: z.number(),
+    })
+    .nullable()
+    .optional(),
   product: ProductSchema.optional(), // For combo products
   modifiers: z
     .array(
@@ -352,6 +367,7 @@ export const OrderItemSchema = z.object({
       }),
     )
     .optional(), // OrderItemTicket[]
+  refundItems: z.array(RefundItemSchema).optional(), // RefundItem[]
 });
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 
@@ -375,11 +391,12 @@ export const OrderSchema = z.object({
     .nullable()
     .optional(),
   shiftId: cuid.nullable().optional(),
+  refunds: z.array(RefundSchema).optional(),
   orderNumber: z.string().nullable().optional(),
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
   vat: decimal.nullable().optional(),
-  includeVat: z.boolean().default(false),
+  includeVAT: z.boolean().default(false),
   shippingFee: decimal.nullable().optional(),
   subtotal: decimal.default("0"),
   total: decimal.default("0"),

@@ -43,6 +43,15 @@ const NavUser = () => {
         <Shad.DropdownMenuItem
           onSelect={(e) => {
             e.preventDefault();
+            navigate({ to: "/settings" });
+          }}
+        >
+          <Icon name="User" className="mr-2" />
+          <span>Profile</span>
+        </Shad.DropdownMenuItem>
+        <Shad.DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
           }}
         >
           <Appearance />

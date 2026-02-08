@@ -36,7 +36,7 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
         onClick={(e) => e.stopPropagation()}
       >
         <Shad.SidebarContent>
-          <Shad.ScrollArea className="min-h-0">
+          <Shad.ScrollArea className="flex-1 min-h-0 flex flex-col gap-4">
             {/* POS */}
             <div className="flex-1">
               {sidebarSections.map((section) => (
@@ -66,12 +66,14 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
                     <Shad.CollapsibleContent>
                       <Shad.SidebarMenu className="space-y-1">
                         {section.items
-                          .filter((item) =>
-                            item.showFor.includes(
-                              (user?.tenant?.businessType as BusinessType) ??
-                                "RETAIL",
-                            ),
-                          )
+                          .filter((item) => {
+                            return (
+                              item.showFor.includes(
+                                (user?.tenant?.businessType as BusinessType) ??
+                                  "RETAIL",
+                              ) && item.roles?.includes(user?.role || "CASHIER")
+                            );
+                          })
                           .map((item) => (
                             <Shad.SidebarMenuItem key={item.label}>
                               <Link to={item.href || "/"}>
@@ -103,32 +105,32 @@ const Sidebar = ({ ...props }: React.ComponentProps<typeof Shad.Sidebar>) => {
             </div>
 
             {/* Settings */}
-            <Shad.SidebarGroup>
-              <Shad.SidebarMenu>
-                <Shad.SidebarMenuItem>
-                  <Link to="/settings">
-                    <Shad.SidebarMenuButton
-                      onClick={() => {
-                        if (isMobile) setOpen(false);
-                      }}
-                      className={cn(
-                        "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200",
-                        {
-                          "bg-primary text-gray-200":
-                            pathname === "/settings" ||
-                            pathname.startsWith("/settings/"),
-                        },
-                      )}
-                      tooltip="Settings"
-                    >
-                      <Icon name="Settings" className="w-4 h-4" />
-                      <span>Settings</span>
-                    </Shad.SidebarMenuButton>
-                  </Link>
-                </Shad.SidebarMenuItem>
-              </Shad.SidebarMenu>
-            </Shad.SidebarGroup>
           </Shad.ScrollArea>
+          <Shad.SidebarGroup>
+            <Shad.SidebarMenu>
+              <Shad.SidebarMenuItem>
+                <Link to="/settings">
+                  <Shad.SidebarMenuButton
+                    onClick={() => {
+                      if (isMobile) setOpen(false);
+                    }}
+                    className={cn(
+                      "hover:text-gray-200 hover:bg-primary active:bg-accent/60 active:text-gray-200",
+                      {
+                        "bg-primary text-gray-200":
+                          pathname === "/settings" ||
+                          pathname.startsWith("/settings/"),
+                      },
+                    )}
+                    tooltip="Settings"
+                  >
+                    <Icon name="Settings" className="w-4 h-4" />
+                    <span>Settings</span>
+                  </Shad.SidebarMenuButton>
+                </Link>
+              </Shad.SidebarMenuItem>
+            </Shad.SidebarMenu>
+          </Shad.SidebarGroup>
         </Shad.SidebarContent>
 
         <Shad.SidebarFooter className="border-t mb-14 mt-2">

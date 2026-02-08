@@ -176,6 +176,7 @@ model Product {
   recipesUsedIn    Recipe[]           @relation("SellableRecipe")
   RefundItem       RefundItem[]
   transferItems    TransferItem[]
+  purchaseOrderItems PurchaseOrderItem[]
 }
 
 model Offer {
@@ -530,9 +531,26 @@ model PurchaseOrder {
   tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branch      Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
   supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items       PurchaseOrderItem[]
 
   @@index([tenantId, supplierId])
   @@index([tenantId, branchId])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Decimal       @db.Decimal(10, 4)
+  unitCost        Decimal       @db.Decimal(10, 2)
+  totalCost       Decimal       @db.Decimal(10, 2)
+  notes           String?
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseOrderId, productId])
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model Shift {

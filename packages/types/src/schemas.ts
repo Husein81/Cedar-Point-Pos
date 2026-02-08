@@ -7,6 +7,7 @@ import {
   OrderStatus,
   OrderType,
   PaymentMethod,
+  PurchaseOrderStatus,
   ShiftStatus,
   SortOrder,
   TableStatus,
@@ -472,8 +473,28 @@ export const PurchaseOrderSchema = z.object({
   receivedAt: isoDate.nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
+  items: z.array(z.lazy(() => PurchaseOrderItemSchema)).optional(),
 });
 export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
+
+// PurchaseOrderItem
+export const PurchaseOrderItemSchema = z.object({
+  id: cuid,
+  purchaseOrderId: cuid,
+  productId: cuid,
+  quantity: decimal,
+  unitCost: decimal,
+  totalCost: decimal,
+  notes: z.string().nullable().optional(),
+  product: ProductSchema.pick({
+    id: true,
+    name: true,
+    sku: true,
+    barcode: true,
+  }).optional(),
+});
+export type PurchaseOrderItem = z.infer<typeof PurchaseOrderItemSchema>;
+
 
 // Shift
 export const ShiftSchema = z.object({

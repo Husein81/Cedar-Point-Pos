@@ -20,6 +20,7 @@ import { ProductsModule } from './modules/products/products.module.js';
 import { RecipesModule } from './modules/recipes/recipes.module.js';
 import { RefundsModule } from './modules/refunds/refunds.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { SystemAdminModule } from './modules/system-admin/system-admin.module.js';
 import { TablesModule } from './modules/tables/tables.module.js';
@@ -43,6 +44,7 @@ import { UsersModule } from './modules/users/users.module.js';
     InventoryModule,
     ProductsModule,
     RecipesModule,
+    PurchaseOrdersModule,
     SuppliersModule,
     TablesModule,
     TenantModule,

@@ -244,6 +244,18 @@ export class SuppliersService {
         skip,
         take: limit,
         include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  barcode: true,
+                },
+              },
+            },
+          },
           branch: {
             select: {
               id: true,

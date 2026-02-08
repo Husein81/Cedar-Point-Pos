@@ -117,24 +117,6 @@ export const SubcategorySchema = z.object({
 });
 export type Subcategory = z.infer<typeof SubcategorySchema>;
 
-// Recipe
-export const RecipeSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  productId: cuid,
-  ingredientId: cuid,
-  ingredient: z
-    .object({
-      id: cuid,
-      name: z.string(),
-      sku: z.string().nullable().optional(),
-      unit: z.string().nullable().optional(),
-    })
-    .optional(), // For ingredient details
-  quantity: decimal,
-});
-export type Recipe = z.infer<typeof RecipeSchema>;
-
 // Product
 export const ProductSchema = z.object({
   id: cuid,
@@ -151,7 +133,6 @@ export const ProductSchema = z.object({
   subcategoryId: cuid.nullable().optional(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
-  isIngredient: z.boolean().default(false),
   isModifiable: z.boolean().default(false),
   createdAt: isoDate,
   inventory: z
@@ -164,7 +145,6 @@ export const ProductSchema = z.object({
       }),
     )
     .optional(),
-  recipesUsedIn: z.array(RecipeSchema).optional(), // For ingredients
 });
 export type Product = z.infer<typeof ProductSchema>;
 
@@ -483,7 +463,9 @@ export const PurchaseOrderSchema = z.object({
   supplierId: cuid,
   orderNumber: z.string().nullable().optional(),
   totalAmount: z.number().default(0),
-  status: z.enum(["PENDING", "ORDERED", "RECEIVED", "CANCELLED"]).default("PENDING"),
+  status: z
+    .enum(["PENDING", "ORDERED", "RECEIVED", "CANCELLED"])
+    .default("PENDING"),
   notes: z.string().nullable().optional(),
   orderedAt: isoDate,
   receivedAt: isoDate.nullable().optional(),

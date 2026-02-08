@@ -678,7 +678,7 @@ export const InlineKeypad = () => {
             onConfirm={handleConfirmWithoutPayment}
             iconButton="Check"
             buttonVariant="outline"
-            label="Confirm Payment"
+            label="Confirm Only"
             className="flex-1"
           />
         </div>

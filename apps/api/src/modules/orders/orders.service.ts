@@ -30,7 +30,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly tableStatusService: TableStatusService,
-  ) { }
+  ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
@@ -148,19 +148,19 @@ export class OrdersService {
         }),
         allModifierIds.length > 0
           ? this.prisma.modifier.findMany({
-            where: {
-              id: { in: allModifierIds },
-              tenantId,
-              isDeleted: false,
-            },
-          })
+              where: {
+                id: { in: allModifierIds },
+                tenantId,
+                isDeleted: false,
+              },
+            })
           : [],
       ])) as [
-          Prisma.ProductGetPayload<{
-            select: { id: true; price: true };
-          }>[],
-          Prisma.ModifierGetPayload<object>[],
-        ];
+        Prisma.ProductGetPayload<{
+          select: { id: true; price: true };
+        }>[],
+        Prisma.ModifierGetPayload<object>[],
+      ];
 
       const productMap = new Map(products.map((p) => [p.id, p]));
       const modifierMap = new Map(modifiers.map((m) => [m.id, m]));
@@ -217,9 +217,9 @@ export class OrdersService {
         const discountValue =
           discount && typeof discount === 'object'
             ? {
-              type: (discount as Record<string, unknown>).type as string,
-              value: (discount as Record<string, unknown>).value as number,
-            }
+                type: (discount as Record<string, unknown>).type as string,
+                value: (discount as Record<string, unknown>).value as number,
+              }
             : undefined;
 
         orderItems.push({
@@ -282,7 +282,8 @@ export class OrdersService {
           ...(tableId && { tableId }),
           ...(customerId && { customerId }),
           items: { create: orderItems },
-        }, include: {
+        },
+        include: {
           items: {
             include: {
               product: true,
@@ -557,7 +558,7 @@ export class OrdersService {
           payments.reduce((sum, payment) => {
             const exchangeRate =
               payment.currencyCode &&
-                payment.currencyCode !== order.currencyCode
+              payment.currencyCode !== order.currencyCode
                 ? payment.exchangeRate || 1
                 : 1;
 
@@ -594,7 +595,7 @@ export class OrdersService {
           payments.map((payment) => {
             const exchangeRate =
               payment.currencyCode &&
-                payment.currencyCode !== order.currencyCode
+              payment.currencyCode !== order.currencyCode
                 ? payment.exchangeRate || 1
                 : 1;
 
@@ -681,15 +682,15 @@ export class OrdersService {
 
         const changeInfo = firstCashPayment
           ? {
-            amount: this.money(
-              changeBase / (firstCashPayment.exchangeRate || 1),
-            ),
-            currency: firstCashPayment.currencyCode || order.currencyCode,
-          }
+              amount: this.money(
+                changeBase / (firstCashPayment.exchangeRate || 1),
+              ),
+              currency: firstCashPayment.currencyCode || order.currencyCode,
+            }
           : {
-            amount: this.money(0),
-            currency: order.currencyCode,
-          };
+              amount: this.money(0),
+              currency: order.currencyCode,
+            };
 
         const isRestaurant =
           order.tenant?.businessType === BusinessType.RESTAURANT;
@@ -1043,7 +1044,7 @@ export class OrdersService {
       OrderStatus.READY,
     ];
 
-    return this.prisma.order.findFirst({
+    return await this.prisma.order.findFirst({
       where: {
         tenantId,
         tableId,

@@ -191,7 +191,7 @@ export function TablesPage() {
               className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
             >
               {isDeletePending && (
-                <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                <Icon name="LoaderCircle" className="mr-2 h-4 w-4 animate-spin" />
               )}
               Delete
             </Shad.AlertDialogAction>

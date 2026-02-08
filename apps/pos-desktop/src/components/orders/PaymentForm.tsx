@@ -40,8 +40,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
 
   // Fetch active currencies for payment
-  const { data: activeCurrencies = [], isLoading: isLoadingCurrencies } =
-    useActiveTenantCurrencies();
+  const { data: activeCurrencies = [] } = useActiveTenantCurrencies();
 
   // ===== CURRENCY HELPERS =====
 
@@ -185,7 +184,7 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
 
   // ===== LOADING STATE =====
   return (
-    <div className="sm:max-w-lg">
+    <div className="">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">

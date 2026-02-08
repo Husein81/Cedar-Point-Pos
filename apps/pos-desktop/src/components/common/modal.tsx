@@ -7,10 +7,7 @@ export const Modal = () => {
 
   return (
     <Shad.Dialog open={isOpen} onOpenChange={closeModal}>
-      <Shad.DialogContent
-        aria-description={modalTitle}
-        className="max-w-7xl w-full"
-      >
+      <Shad.DialogContent aria-description={modalTitle} className="min-w-250">
         <Shad.DialogHeader className="px-4">
           <Shad.DialogTitle>{modalTitle}</Shad.DialogTitle>
           <Shad.DialogDescription>{modalDescription}</Shad.DialogDescription>

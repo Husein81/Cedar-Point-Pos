@@ -148,7 +148,7 @@ export function TableSelectorModal({
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Icon
-            name="Loader2"
+            name="LoaderCircle"
             className="w-6 h-6 animate-spin text-muted-foreground"
           />
         </div>

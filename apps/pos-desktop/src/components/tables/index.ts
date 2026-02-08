@@ -3,7 +3,6 @@ export { TableGrid } from "./TableGrid";
 export { FloorTabs } from "./FloorTabs";
 export { TableForm } from "./TableForm";
 export { FloorForm } from "./FloorForm";
-export { TableStatusBadge } from "./TableStatusBadge";
 export { TableFilters } from "./TableFilters";
 export { TablesStatsCards } from "./TablesStatsCards";
 export { TablesPage } from "./TablesPage";

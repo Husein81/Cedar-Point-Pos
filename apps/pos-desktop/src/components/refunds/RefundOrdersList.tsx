@@ -114,7 +114,6 @@ export const RefundOrdersList = () => {
                 <span className="font-semibold text-sm">
                   #{order.orderNumber || order.id.slice(-8)}
                 </span>
-                {/* TODO */}
                 <Badge className={`${getStatusBadge(order.status).className}`}>
                   {getStatusBadge(order.status).label}
                 </Badge>

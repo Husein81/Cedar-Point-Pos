@@ -1,4 +1,4 @@
-import type { BusinessType } from "@repo/types";
+import type { BusinessType, UserRole } from "@repo/types";
 
 export type SidebarItem = {
   label: string;
@@ -6,6 +6,7 @@ export type SidebarItem = {
   tooltip?: string;
   href: string;
   showFor: BusinessType[];
+  roles?: UserRole[];
 };
 
 type SidebarSection = {
@@ -23,6 +24,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/",
         tooltip: "Home",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Dashboard",
@@ -30,6 +32,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/dashboard",
         tooltip: "Dashboard",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
       },
       {
         label: "Orders",
@@ -37,6 +40,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/orders",
         tooltip: "Orders",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Tables",
@@ -44,6 +48,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/tables",
         tooltip: "Tables",
         showFor: ["RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
     ],
   },
@@ -56,6 +61,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/suppliers",
         tooltip: "Suppliers",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Customers",
@@ -63,6 +69,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/customers",
         tooltip: "Customers",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
     ],
   },
@@ -75,6 +82,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/categories",
         tooltip: "Categories",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Products",
@@ -82,6 +90,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/products",
         tooltip: "Products",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Stock",
@@ -89,6 +98,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/stock",
         tooltip: "Stock",
         showFor: ["RETAIL"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Modifiers",
@@ -96,6 +106,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/modifiers",
         tooltip: "Manage Modifiers",
         showFor: ["RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Kitchen",
@@ -103,6 +114,15 @@ export const sidebarSections: SidebarSection[] = [
         href: "/kitchen",
         tooltip: "Kitchen Orders",
         showFor: ["RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "KITCHEN"],
+      },
+      {
+        label: "Transfers",
+        icon: "ArrowLeftRight",
+        href: "/transfers",
+        tooltip: "Transfers",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
     ],
   },
@@ -115,6 +135,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/invoices",
         tooltip: "Invoices",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Payments",
@@ -122,14 +143,15 @@ export const sidebarSections: SidebarSection[] = [
         href: "/payments",
         tooltip: "Payments",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Refunds",
         icon: "RotateCcw",
         href: "/refunds",
         tooltip: "Refund Station",
-
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
         label: "Reports",
@@ -137,6 +159,7 @@ export const sidebarSections: SidebarSection[] = [
         href: "/reports",
         tooltip: "Reports",
         showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
       },
     ],
   },

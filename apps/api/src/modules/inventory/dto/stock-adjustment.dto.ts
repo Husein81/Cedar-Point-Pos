@@ -45,8 +45,6 @@ export interface StockValidationResult {
   insufficientStock: Array<{
     productId: string;
     productName: string;
-    ingredientId?: string;
-    ingredientName?: string;
     required: number;
     available: number;
   }>;
@@ -56,8 +54,6 @@ export interface StockValidationResult {
 export interface StockWarningInfo {
   productId: string;
   productName: string;
-  ingredientId?: string;
-  ingredientName?: string;
   quantityDeducted: number;
   stockBefore: number;
   stockAfter: number;

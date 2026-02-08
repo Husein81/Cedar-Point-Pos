@@ -17,7 +17,6 @@ import { ModifierGroupsModule } from './modules/modifier-groups/modifier-groups.
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
-import { RecipesModule } from './modules/recipes/recipes.module.js';
 import { RefundsModule } from './modules/refunds/refunds.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module.js';

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Button, Icon, Separator, Shad, Badge, Textarea } from "@repo/ui";
+import { Button, Icon, Shad, Badge, Textarea } from "@repo/ui";
 import { cn } from "@repo/ui";
 import { useRefundableInfo, useCreateRefund } from "@/hooks/useRefund";
 import { useModalStore } from "@/store/modalStore";
@@ -16,11 +16,11 @@ type Props = {
 };
 
 const REFUND_REASONS = [
-  { value: "DAMAGED", label: "Damaged item" },
-  { value: "WRONG_ITEM", label: "Wrong item delivered" },
-  { value: "CUSTOMER_REQUEST", label: "Customer changed mind" },
-  { value: "QUALITY_ISSUE", label: "Quality issue" },
-  { value: "OTHER", label: "Other" },
+  { value: "DAMAGED", label: "Damaged item", icon: "PackageX" },
+  { value: "WRONG_ITEM", label: "Wrong item", icon: "ArrowLeftRight" },
+  { value: "CUSTOMER_REQUEST", label: "Changed mind", icon: "UserX" },
+  { value: "QUALITY_ISSUE", label: "Quality issue", icon: "ShieldAlert" },
+  { value: "OTHER", label: "Other", icon: "MessageSquare" },
 ];
 
 export const RefundForm = ({ orderId, onSuccess }: Props) => {
@@ -42,7 +42,7 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
     let total = 0;
     selectedItems.forEach((selection) => {
       const item = refundableInfo.items.find(
-        (i) => i.orderItemId === selection.orderItemId
+        (i) => i.orderItemId === selection.orderItemId,
       );
       if (item) {
         total += selection.quantity * item.unitPrice;
@@ -55,7 +55,7 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
 
   const handleQuantityChange = (orderItemId: string, quantity: number) => {
     const item = refundableInfo?.items.find(
-      (i) => i.orderItemId === orderItemId
+      (i) => i.orderItemId === orderItemId,
     );
     if (!item) return;
 
@@ -112,37 +112,39 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex items-center justify-center py-12">
         <Icon
           name="LoaderCircle"
-          className="w-6 h-6 animate-spin text-primary"
+          className="w-5 h-5 animate-spin text-muted-foreground"
         />
-        <span className="ml-2 text-muted-foreground">Loading...</span>
+        <span className="ml-2.5 text-sm text-muted-foreground">
+          Loading order details…
+        </span>
       </div>
     );
   }
 
   if (!refundableInfo) {
     return (
-      <div className="text-center py-8">
-        <Icon
-          name="CircleAlert"
-          className="w-8 h-8 text-destructive mx-auto mb-2"
-        />
-        <p className="text-destructive">Failed to load order information</p>
+      <div className="text-center py-12 space-y-3">
+        <div className="mx-auto h-12 w-12 rounded-xl bg-destructive/10 grid place-items-center">
+          <Icon name="CircleAlert" className="w-5 h-5 text-destructive" />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Failed to load order information
+        </p>
       </div>
     );
   }
 
   if (!refundableInfo.canRefund) {
     return (
-      <div className="text-center py-8">
-        <Icon
-          name="Ban"
-          className="w-8 h-8 text-muted-foreground mx-auto mb-2"
-        />
-        <p className="text-muted-foreground">
-          This order cannot be refunded. Only completed orders can be refunded.
+      <div className="text-center py-12 space-y-3">
+        <div className="mx-auto h-12 w-12 rounded-xl bg-muted/40 grid place-items-center">
+          <Icon name="Ban" className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Only completed orders can be refunded.
         </p>
       </div>
     );
@@ -150,92 +152,100 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
 
   if (refundableInfo.isFullyRefunded) {
     return (
-      <div className="text-center py-8">
-        <Icon
-          name="CircleCheck"
-          className="w-8 h-8 text-green-500 mx-auto mb-2"
-        />
-        <p className="text-muted-foreground">
+      <div className="text-center py-12 space-y-3">
+        <div className="mx-auto h-12 w-12 rounded-xl bg-green-500/10 grid place-items-center">
+          <Icon name="CircleCheck" className="w-5 h-5 text-green-600" />
+        </div>
+        <p className="text-sm text-muted-foreground">
           This order has been fully refunded.
         </p>
       </div>
     );
   }
 
-  // Confirmation step
+  // ── Confirmation Step ──
   if (step === "confirm") {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/10">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10">
             <Icon name="TriangleAlert" className="w-5 h-5 text-amber-500" />
           </div>
-          <Shad.DialogTitle>Confirm Refund</Shad.DialogTitle>
+          <div>
+            <Shad.DialogTitle className="text-base">
+              Confirm Refund
+            </Shad.DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              This action cannot be undone
+            </p>
+          </div>
         </div>
 
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-          <p className="text-sm text-muted-foreground">
-            You are about to refund the following items. This action cannot be
-            undone.
-          </p>
-        </div>
+        {/* Items Summary */}
+        <div className="rounded-xl border border-border/60 overflow-hidden">
+          <div className="divide-y divide-border/40">
+            {Array.from(selectedItems.values()).map((selection) => {
+              const item = refundableInfo.items.find(
+                (i) => i.orderItemId === selection.orderItemId,
+              );
+              if (!item) return null;
 
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {Array.from(selectedItems.values()).map((selection) => {
-            const item = refundableInfo.items.find(
-              (i) => i.orderItemId === selection.orderItemId
-            );
-            if (!item) return null;
-
-            return (
-              <div
-                key={selection.orderItemId}
-                className="flex justify-between items-center py-2 px-3 bg-muted/50 rounded-md"
-              >
-                <div>
-                  <p className="font-medium text-sm">{item.productName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selection.quantity} × ${formatPrice(item.unitPrice)}
-                  </p>
+              return (
+                <div
+                  key={selection.orderItemId}
+                  className="flex justify-between items-center px-4 py-3"
+                >
+                  <div className="space-y-0.5">
+                    <p className="font-medium text-sm">{item.productName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selection.quantity} × ${formatPrice(item.unitPrice)}
+                    </p>
+                  </div>
+                  <span className="font-semibold text-sm tabular-nums">
+                    ${formatPrice(selection.quantity * item.unitPrice)}
+                  </span>
                 </div>
-                <span className="font-semibold">
-                  ${formatPrice(selection.quantity * item.unitPrice)}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
+        {/* Reason */}
         {reason && (
-          <div className="py-2">
-            <p className="text-xs text-muted-foreground">Reason</p>
-            <p className="text-sm font-medium">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Reason
+            </p>
+            <p className="text-sm">
               {REFUND_REASONS.find((r) => r.value === reason)?.label || reason}
               {notes && `: ${notes}`}
             </p>
           </div>
         )}
 
-        <Separator />
-
-        <div className="flex justify-between items-center py-2">
-          <span className="text-lg font-semibold">Total Refund</span>
-          <span className="text-2xl font-bold text-destructive">
-            ${formatPrice(refundTotal)}
-          </span>
+        {/* Total */}
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold">Refund Total</span>
+            <span className="text-xl font-bold text-destructive tabular-nums">
+              ${formatPrice(refundTotal)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 h-10"
             onClick={() => setStep("select")}
           >
             Back
           </Button>
           <Button
             variant="destructive"
-            className="flex-1"
+            className="flex-1 h-10"
             onClick={handleSubmit}
             isSubmitting={createRefundMutation.isPending}
           >
@@ -247,34 +257,51 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
     );
   }
 
-  // Selection step
+  // ── Selection Step ──
+  const refundableItems = refundableInfo.items.filter(
+    (i) => i.refundableQuantity > 0,
+  );
+  const fullyRefundedItems = refundableInfo.items.filter(
+    (i) => i.refundableQuantity <= 0,
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
           <Icon name="RotateCcw" className="w-5 h-5 text-primary" />
         </div>
-        <div>
-          <Shad.DialogTitle>Create Refund</Shad.DialogTitle>
-          <p className="text-sm text-muted-foreground">
+        <div className="flex-1">
+          <Shad.DialogTitle className="text-base">
+            Create Refund
+          </Shad.DialogTitle>
+          <p className="text-xs text-muted-foreground">
             Order #{refundableInfo.orderNumber || orderId.slice(0, 8)}
           </p>
         </div>
       </div>
 
-      {/* Order Total Info */}
-      <div className="flex justify-between items-center py-2 px-3 bg-muted/30 rounded-lg">
-        <span className="text-sm text-muted-foreground">Order Total</span>
-        <span className="font-semibold">
-          ${formatPrice(refundableInfo.orderTotal)}
-        </span>
+      {/* ── Order Context ── */}
+      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/40">
+        <div className="space-y-0.5">
+          <p className="text-xs text-muted-foreground">Order Total</p>
+          <p className="text-sm font-semibold tabular-nums">
+            ${formatPrice(refundableInfo.orderTotal)}
+          </p>
+        </div>
+        <div className="text-right space-y-0.5">
+          <p className="text-xs text-muted-foreground">Items</p>
+          <p className="text-sm font-semibold tabular-nums">
+            {refundableInfo.items.length}
+          </p>
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-2">
+      {/* ── Quick Actions ── */}
+      <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={handleSelectAll}>
-          <Icon name="SquareCheck" className="w-4 h-4" />
+          <Icon name="SquareCheck" className="w-3.5 h-3.5" />
           Select All
         </Button>
         <Button
@@ -283,165 +310,209 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
           onClick={handleClearSelection}
           disabled={selectedItems.size === 0}
         >
-          <Icon name="X" className="w-4 h-4" />
+          <Icon name="X" className="w-3.5 h-3.5" />
           Clear
         </Button>
+        {selectedItems.size > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {selectedItems.size} selected
+          </span>
+        )}
       </div>
 
-      <Separator />
+      {/* ── Items List ── */}
+      <div className="space-y-5">
+        {/* Refundable Items */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+            Select items to refund
+          </p>
+          <div className="rounded-xl border border-border/60 overflow-hidden divide-y divide-border/30">
+            {refundableItems.map((item) => {
+              const selection = selectedItems.get(item.orderItemId);
+              const isSelected = !!selection;
+              const selectedQty = selection?.quantity || 0;
 
-      {/* Items List */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        <p className="text-sm font-medium text-muted-foreground">
-          Select items to refund
-        </p>
-        {refundableInfo.items.map((item) => {
-          const selection = selectedItems.get(item.orderItemId);
-          const isSelected = !!selection;
-          const selectedQty = selection?.quantity || 0;
-
-          return (
-            <div
-              key={item.orderItemId}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border transition-colors",
-                isSelected
-                  ? "border-primary bg-primary/5"
-                  : "border-border bg-background hover:bg-muted/50",
-                item.refundableQuantity <= 0 && "opacity-50"
-              )}
-            >
-              {/* Product Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm truncate">
-                    {item.productName}
-                  </p>
-                  {item.refundedQuantity > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {item.refundedQuantity} refunded
-                    </Badge>
+              return (
+                <div
+                  key={item.orderItemId}
+                  className={cn(
+                    "px-4 py-4 transition-colors",
+                    isSelected ? "bg-primary/5" : "hover:bg-muted/30",
                   )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  ${formatPrice(item.unitPrice)} × {item.quantity} ordered
-                </p>
-                {item.refundableQuantity > 0 && (
-                  <p className="text-xs text-green-600">
-                    {item.refundableQuantity} available to refund
-                  </p>
-                )}
-              </div>
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Product Info */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm truncate">
+                          {item.productName}
+                        </p>
+                        {item.refundedQuantity > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-amber-500/30"
+                          >
+                            {item.refundedQuantity} refunded
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>
+                          ${formatPrice(item.unitPrice)} × {item.quantity}
+                        </span>
+                        <span className="text-primary/80">
+                          {item.refundableQuantity} refundable
+                        </span>
+                      </div>
+                    </div>
 
-              {/* Quantity Controls */}
-              {item.refundableQuantity > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      handleQuantityChange(item.orderItemId, selectedQty - 1)
-                    }
-                    disabled={selectedQty <= 0}
-                  >
-                    <Icon name="Minus" className="w-3 h-3" />
-                  </Button>
-                  <span className="w-8 text-center font-mono font-semibold">
-                    {selectedQty}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      handleQuantityChange(item.orderItemId, selectedQty + 1)
-                    }
-                    disabled={selectedQty >= item.refundableQuantity}
-                  >
-                    <Icon name="Plus" className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <Badge variant="outline" className="text-xs">
-                  Fully Refunded
-                </Badge>
-              )}
+                    {/* Quantity Controls */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="inline-flex items-center rounded-lg border border-border/60 bg-background">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-l-lg"
+                          onClick={() =>
+                            handleQuantityChange(
+                              item.orderItemId,
+                              selectedQty - 1,
+                            )
+                          }
+                          disabled={selectedQty <= 0}
+                        >
+                          <Icon name="Minus" className="w-3 h-3" />
+                        </Button>
+                        <span className="w-9 text-center font-semibold text-sm tabular-nums border-x border-border/40">
+                          {selectedQty}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-r-lg"
+                          onClick={() =>
+                            handleQuantityChange(
+                              item.orderItemId,
+                              selectedQty + 1,
+                            )
+                          }
+                          disabled={selectedQty >= item.refundableQuantity}
+                        >
+                          <Icon name="Plus" className="w-3 h-3" />
+                        </Button>
+                      </div>
 
-              {/* Item Subtotal */}
-              {isSelected && (
-                <div className="text-right">
-                  <p className="font-semibold text-destructive">
-                    -${formatPrice(selectedQty * item.unitPrice)}
-                  </p>
+                      {/* Item Subtotal */}
+                      <span className="text-sm font-semibold text-destructive tabular-nums w-20 text-right">
+                        -${formatPrice(selectedQty * item.unitPrice)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Fully Refunded Items */}
+        {fullyRefundedItems.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+              Fully refunded
+            </p>
+            <div className="rounded-xl border border-border/30 overflow-hidden divide-y divide-border/20">
+              {fullyRefundedItems.map((item) => (
+                <div
+                  key={item.orderItemId}
+                  className="px-4 py-3 flex items-center justify-between opacity-50"
+                >
+                  <div className="space-y-0.5">
+                    <p className="text-sm">{item.productName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ${formatPrice(item.unitPrice)} × {item.quantity}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-2 py-0.5 bg-muted/50 text-muted-foreground border-border/40"
+                  >
+                    Fully Refunded
+                  </Badge>
+                </div>
+              ))}
             </div>
-          );
-        })}
+          </div>
+        )}
       </div>
 
-      <Separator />
-
-      {/* Refund Reason */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-muted-foreground">
-          Refund Reason
-        </label>
-        <div className="grid grid-cols-2 gap-2">
+      {/* ── Refund Reason ── */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
+          Reason
+        </p>
+        <div className="flex flex-wrap gap-2">
           {REFUND_REASONS.map((r) => (
             <Button
               key={r.value}
               variant={reason === r.value ? "default" : "outline"}
               size="sm"
-              className="justify-start"
               onClick={() => setReason(r.value)}
             >
+              <Icon name={r.icon} className="w-3.5 h-3.5" />
               {r.label}
             </Button>
           ))}
         </div>
       </div>
 
-      {/* Notes */}
+      {/* ── Notes ── */}
       {reason === "OTHER" && (
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
             Additional Notes
-          </label>
+          </p>
           <Textarea
-            placeholder="Enter additional details..."
+            placeholder="Describe the reason…"
             value={notes}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setNotes(e.target.value)
             }
             rows={2}
+            className="resize-none"
           />
         </div>
       )}
 
-      <Separator />
-
-      {/* Refund Summary */}
-      <div className="flex justify-between items-center py-2">
-        <span className="text-lg font-semibold">Refund Total</span>
-        <span
-          className={cn(
-            "text-2xl font-bold",
-            refundTotal > 0 ? "text-destructive" : "text-muted-foreground"
-          )}
-        >
-          ${formatPrice(refundTotal)}
-        </span>
+      {/* ── Refund Total ── */}
+      <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+        <div className="flex justify-between items-center">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">Refund Total</p>
+            {hasSelection && (
+              <p className="text-xs text-muted-foreground">
+                {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+          <span
+            className={cn(
+              "text-xl font-bold tabular-nums",
+              refundTotal > 0 ? "text-destructive" : "text-muted-foreground",
+            )}
+          >
+            ${formatPrice(refundTotal)}
+          </span>
+        </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={closeModal}>
+      {/* ── Actions ── */}
+      <div className="flex gap-3 pt-1">
+        <Button variant="outline" className="flex-1 h-10" onClick={closeModal}>
           Cancel
         </Button>
         <Button
-          className="flex-1"
+          className="flex-1 h-10"
           onClick={() => setStep("confirm")}
           disabled={!hasSelection}
         >

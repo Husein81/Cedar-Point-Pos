@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as RefundsRouteImport } from './routes/refunds'
-import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -54,11 +53,6 @@ const StockRoute = StockRouteImport.update({
 const RefundsRoute = RefundsRouteImport.update({
   id: '/refunds',
   path: '/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecipesRoute = RecipesRouteImport.update({
-  id: '/recipes',
-  path: '/recipes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -205,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -238,7 +231,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -272,7 +264,6 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -307,7 +298,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -340,7 +330,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -373,7 +362,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -407,7 +395,6 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   KitchenRoute: typeof KitchenRoute
   PaymentsRoute: typeof PaymentsRoute
-  RecipesRoute: typeof RecipesRoute
   RefundsRoute: typeof RefundsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
@@ -447,13 +434,6 @@ declare module '@tanstack/react-router' {
       path: '/refunds'
       fullPath: '/refunds'
       preLoaderRoute: typeof RefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recipes': {
-      id: '/recipes'
-      path: '/recipes'
-      fullPath: '/recipes'
-      preLoaderRoute: typeof RecipesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -680,7 +660,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   KitchenRoute: KitchenRoute,
   PaymentsRoute: PaymentsRoute,
-  RecipesRoute: RecipesRoute,
   RefundsRoute: RefundsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,

@@ -49,6 +49,7 @@ export interface RefundHistoryItem {
   refundedAt: string;
   totalAmount: number;
   reason: string | null;
+  isPartialRefund?: boolean;
   itemCount: number;
 }
 
@@ -170,7 +171,7 @@ const initialState: RefundStoreState = {
   ordersError: null,
   ordersTotalCount: 0,
   ordersCurrentPage: 1,
-  ordersPageSize: 20,
+  ordersPageSize: 12,
 
   // Search & Filter
   searchQuery: "",
@@ -279,7 +280,7 @@ export const useRefundStore = create<RefundStore>()(
             // Clamp quantity to valid range
             const validQty = Math.max(
               0,
-              Math.min(quantity, item.refundableQuantity)
+              Math.min(quantity, item.refundableQuantity),
             );
             return {
               ...item,
@@ -369,7 +370,7 @@ export const useRefundStore = create<RefundStore>()(
       getSelectedItems: () => {
         const { refundCartItems } = get();
         return refundCartItems.filter(
-          (item) => item.isSelected && item.refundQuantity > 0
+          (item) => item.isSelected && item.refundQuantity > 0,
         );
       },
 
@@ -381,7 +382,7 @@ export const useRefundStore = create<RefundStore>()(
       canProcessRefund: () => {
         const { refundCartItems, isRefundLocked, processStatus } = get();
         const hasSelectedItems = refundCartItems.some(
-          (item) => item.isSelected && item.refundQuantity > 0
+          (item) => item.isSelected && item.refundQuantity > 0,
         );
         return (
           hasSelectedItems && !isRefundLocked && processStatus !== "processing"
@@ -398,13 +399,13 @@ export const useRefundStore = create<RefundStore>()(
         return refundCartItems.every(
           (item) =>
             item.refundableQuantity === 0 ||
-            item.refundQuantity === item.refundableQuantity
+            item.refundQuantity === item.refundableQuantity,
         );
       },
 
       // Reset
       resetStore: () => set(initialState),
     }),
-    { name: "refund-store" }
-  )
+    { name: "refund-store" },
+  ),
 );

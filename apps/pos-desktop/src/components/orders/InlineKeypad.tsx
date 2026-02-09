@@ -84,6 +84,9 @@ export const InlineKeypad = () => {
   const vat = getVATAmount();
   const total = subtotal - discount + shippingFee + vat;
 
+  const deliveryNeedsCustomer =
+    order?.type === OrderType.DELIVERY && !order?.customerId;
+
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -412,10 +415,12 @@ export const InlineKeypad = () => {
       await withPaymentLock(async () => {
         if (isProcessing || payments.length === 0) return;
 
+        const active = getActiveOrder();
+        if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
+
         setIsProcessing(true);
 
         try {
-          const active = getActiveOrder();
           if (!active || !branchId || !user?.tenantId || total <= 0) return;
 
           // Get the active tab ID before closing anything
@@ -494,6 +499,7 @@ export const InlineKeypad = () => {
   const handleConfirmWithoutPayment = useCallback(async () => {
     await withPaymentLock(async () => {
       if (isProcessing || !order?.items?.length || total <= 0) return;
+      if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
 
       setIsProcessing(true);
 
@@ -556,6 +562,160 @@ export const InlineKeypad = () => {
      Render
   --------------------------------------------- */
 
+  const isDiscountContext =
+    safeContext === "DISCOUNT" ||
+    safeContext === "DISCOUNT_PERCENT" ||
+    safeContext === "DISCOUNT_FIXED";
+
+  const contextLabel = useMemo(() => {
+    if (safeContext === "QUANTITY")
+      return { text: "Editing Quantity", icon: "Hash" };
+    if (safeContext === "PRICE_OVERRIDE")
+      return { text: "Custom Price ($)", icon: "DollarSign" };
+    if (
+      safeContext === "DISCOUNT_PERCENT" ||
+      (isDiscountContext && resolveDiscountMode(safeContext) === "PERCENTAGE")
+    )
+      return {
+        text: itemId ? "Line Discount (%)" : "Order Discount (%)",
+        icon: "Percent",
+      };
+    if (
+      safeContext === "DISCOUNT_FIXED" ||
+      (isDiscountContext && resolveDiscountMode(safeContext) === "FIXED")
+    )
+      return {
+        text: itemId ? "Line Discount ($)" : "Order Discount ($)",
+        icon: "DollarSign",
+      };
+    if (safeContext === "SHIPPING")
+      return { text: "Shipping Fee ($)", icon: "Truck" };
+    return null;
+  }, [safeContext, isDiscountContext, resolveDiscountMode, itemId]);
+
+  const openDiscountForItem = useCallback(
+    (discountContext: KeypadContext) => {
+      // Item must already be selected via keypad (itemId set)
+      if (!itemId) return;
+
+      const item = order?.items.find((i) => i.id === itemId);
+      if (!item) return;
+
+      closeModal();
+      handleContextSwitch(discountContext as Exclude<KeypadContext, undefined>);
+    },
+    [itemId, order?.items, closeModal, handleContextSwitch],
+  );
+
+  const openDiscountForOrder = useCallback(
+    (discountContext: "DISCOUNT_PERCENT" | "DISCOUNT_FIXED") => {
+      const currentDiscount = order?.discount;
+      const discountValue = currentDiscount?.value ?? 0;
+      const discountTypeValue =
+        discountContext === "DISCOUNT_PERCENT" ? "PERCENTAGE" : "FIXED";
+
+      closeModal();
+      closeKeypad();
+
+      const openKp = useKeypadStore.getState().openKeypad;
+      openKp({
+        context: discountContext,
+        currentValue: discountValue,
+        discountType: discountTypeValue,
+        onConfirm: () => {},
+        onDiscountChange: (value, type) => {
+          setDiscount({ value, type });
+        },
+        maxValueOverride:
+          discountContext === "DISCOUNT_FIXED" ? subtotal : undefined,
+      });
+    },
+    [order?.discount, closeModal, closeKeypad, setDiscount, subtotal],
+  );
+
+  const handleDiscountIntent = useCallback(() => {
+    // If already in a discount context, toggle it off
+    if (isDiscountContext) {
+      clearEntry();
+      return;
+    }
+
+    const hasSelectedItem = !!itemId;
+
+    openModal(
+      "Apply Discount",
+      <div className="max-w-sm mx-auto grid grid-cols-2 gap-2">
+        {/* Line Discounts */}
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-14 flex-col gap-1"
+          disabled={!hasSelectedItem}
+          onClick={() => openDiscountForItem("DISCOUNT_PERCENT")}
+        >
+          <Icon name="Percent" className="w-5 h-5" />
+          <span className="text-xs font-medium">% Line Discount</span>
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-14 flex-col gap-1"
+          disabled={!hasSelectedItem}
+          onClick={() => openDiscountForItem("DISCOUNT_FIXED")}
+        >
+          <Icon name="DollarSign" className="w-5 h-5" />
+          <span className="text-xs font-medium">$ Line Discount</span>
+        </Button>
+
+        {/* Total Discounts */}
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-14 flex-col gap-1"
+          onClick={() => openDiscountForOrder("DISCOUNT_PERCENT")}
+        >
+          <Icon name="Percent" className="w-5 h-5" />
+          <span className="text-xs font-medium">% Total Discount</span>
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="h-14 flex-col gap-1"
+          onClick={() => openDiscountForOrder("DISCOUNT_FIXED")}
+        >
+          <Icon name="DollarSign" className="w-5 h-5" />
+          <span className="text-xs font-medium">$ Total Discount</span>
+        </Button>
+
+        {!hasSelectedItem && (
+          <p className="col-span-2 text-xs text-muted-foreground text-center mt-1">
+            Select a cart item first to apply a line discount.
+          </p>
+        )}
+      </div>,
+      "Choose discount type and scope.",
+    );
+  }, [
+    isDiscountContext,
+    clearEntry,
+    itemId,
+    openModal,
+    openDiscountForItem,
+    openDiscountForOrder,
+  ]);
+
+  const handleDollarButton = useCallback(() => {
+    if (isDiscountContext) {
+      handleContextSwitch("DISCOUNT_FIXED");
+    } else {
+      handleContextSwitch("PRICE_OVERRIDE");
+    }
+  }, [isDiscountContext, handleContextSwitch]);
+
+  const dollarContext: KeypadContext | "NULL" = isDiscountContext
+    ? "DISCOUNT_FIXED"
+    : "PRICE_OVERRIDE";
+
   const keypad: KeyPad[] = useMemo(
     () => [
       { label: "1", context: "NULL", onClick: () => handleDigit(1) },
@@ -574,17 +734,17 @@ export const InlineKeypad = () => {
         label: "DISCOUNT_PERCENT",
         context: "DISCOUNT_PERCENT",
         icon: "Percent",
-        onClick: () => handleContextSwitch("DISCOUNT_PERCENT"),
+        onClick: handleDiscountIntent,
       },
 
       { label: "7", context: "NULL", onClick: () => handleDigit(7) },
       { label: "8", context: "NULL", onClick: () => handleDigit(8) },
       { label: "9", context: "NULL", onClick: () => handleDigit(9) },
       {
-        label: "PRICE_OVERRIDE",
-        context: "PRICE_OVERRIDE",
+        label: isDiscountContext ? "DISCOUNT_FIXED" : "PRICE_OVERRIDE",
+        context: dollarContext,
         icon: "DollarSign",
-        onClick: () => handleContextSwitch("PRICE_OVERRIDE"),
+        onClick: handleDollarButton,
       },
 
       {
@@ -609,6 +769,10 @@ export const InlineKeypad = () => {
       handleDecimal,
       handleDifferent,
       handleDigit,
+      handleDiscountIntent,
+      handleDollarButton,
+      isDiscountContext,
+      dollarContext,
     ],
   );
 
@@ -623,6 +787,22 @@ export const InlineKeypad = () => {
         {/* Header */}
         <OrderActions />
 
+        {/* Context indicator */}
+        {contextLabel && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/50 border-b border-border">
+            <Icon
+              name={contextLabel.icon}
+              className="h-3.5 w-3.5 text-primary"
+            />
+            <span className="text-xs font-semibold text-primary">
+              {contextLabel.text}
+            </span>
+            <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+              {value}
+            </span>
+          </div>
+        )}
+
         <div className="flex-1 grid grid-cols-4 gap-0.5 bg-border p-px">
           {keypad.map((key) => (
             <Button
@@ -631,7 +811,9 @@ export const InlineKeypad = () => {
               onClick={key.onClick}
               className={cn(
                 "h-10 2xl:h-12 text-lg",
-                key.context === safeContext && "bg-accent/20",
+                key.context !== "NULL" &&
+                  key.context === safeContext &&
+                  "bg-primary/15 text-primary ring-1 ring-primary/30",
               )}
             >
               {key.icon ? (
@@ -640,6 +822,9 @@ export const InlineKeypad = () => {
                   className={cn(
                     "w-5 h-5 mb-1 text-muted-foreground hover:text-white",
                     key.variant === "destructive" && "text-white",
+                    key.context !== "NULL" &&
+                      key.context === safeContext &&
+                      "text-primary",
                   )}
                 />
               ) : (
@@ -649,14 +834,20 @@ export const InlineKeypad = () => {
           ))}
         </div>
 
-        <div className="flex items-center border-t border-border p-1 gap-2">
+        <div className="flex items-center border-t border-border p-2 gap-2">
           <Button
-            className="flex-1"
-            disabled={!order?.items?.length || total <= 0 || isProcessing}
+            size="lg"
+            className="flex-1 h-12 text-sm font-semibold"
+            disabled={
+              !order?.items?.length ||
+              total <= 0 ||
+              isProcessing ||
+              deliveryNeedsCustomer
+            }
             isSubmitting={isProcessing}
             onClick={handlePay}
           >
-            <Icon name="CreditCard" className="w-4 h-4 mr-2" />
+            <Icon name="CreditCard" className="w-5 h-5 mr-2" />
             Payment
           </Button>
 
@@ -666,8 +857,15 @@ export const InlineKeypad = () => {
             onConfirm={handleConfirmWithoutPayment}
             iconButton="Check"
             buttonVariant="outline"
-            label="Confirm Payment"
-            className="flex-1"
+            label="Confirm"
+            size="lg"
+            className="flex-1 h-12 text-sm font-semibold"
+            disabled={
+              !order?.items?.length ||
+              total <= 0 ||
+              isProcessing ||
+              deliveryNeedsCustomer
+            }
           />
         </div>
       </Shad.CollapsibleContent>

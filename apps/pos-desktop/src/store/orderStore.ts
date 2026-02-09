@@ -124,6 +124,7 @@ interface OrderStoreState {
     discount: { value: number; type: "PERCENTAGE" | "FIXED" },
   ) => void;
   updateItemModifiers: (itemId: string, modifiers: OrderItemModifier[]) => void; // New
+  updateItemNotes: (itemId: string, notes: string) => void;
   removeItem: (itemId: string) => void;
   clearOrder: () => void;
 
@@ -202,9 +203,7 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
 
         // First, check if there's already a tab with this table
-        const existingTab = state.tabs.find(
-          (t) => t.order.tableId === tableId
-        );
+        const existingTab = state.tabs.find((t) => t.order.tableId === tableId);
         if (existingTab) {
           set({ activeTabId: existingTab.id });
           return existingTab.id;
@@ -222,15 +221,15 @@ export const useOrderStore = create<OrderStoreState>()(
             tabs: state.tabs.map((t) =>
               t.id === activeTab.id
                 ? {
-                  ...t,
-                  order: {
-                    ...t.order,
-                    tableId,
-                    tableName,
-                    modifiedAt: new Date(),
-                  },
-                }
-                : t
+                    ...t,
+                    order: {
+                      ...t.order,
+                      tableId,
+                      tableName,
+                      modifiedAt: new Date(),
+                    },
+                  }
+                : t,
             ),
           });
           return activeTab.id;
@@ -482,6 +481,30 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 items: tab.order.items.map((item) =>
                   item.id === itemId ? { ...item, modifiers } : item,
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      updateItemNotes: (itemId: string, notes: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId
+                    ? { ...item, notes: notes || undefined }
+                    : item,
                 ),
                 modifiedAt: new Date(),
               },

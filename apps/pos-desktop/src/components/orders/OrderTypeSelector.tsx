@@ -1,64 +1,37 @@
 // OrderTypeSelector.tsx
-import { useAuthStore } from "@/store/authStore";
-import { useKeypadStore } from "@/store/keypadStore";
+import { useEffect, useRef } from "react";
 import { useOrderStore } from "@/store/orderStore";
+import { useModalStore } from "@/store/modalStore";
 import { OrderType } from "@repo/types";
-import { Button, cn } from "@repo/ui";
+import { CustomerSearchList } from "./CustomerSearchList";
 
-export const OrderTypeSelector = () => {
-  const { user } = useAuthStore();
-  const { switchContext } = useKeypadStore();
-  const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
+export const useDeliveryCustomerEnforcement = () => {
+  const { getActiveOrder } = useOrderStore();
+  const { openModal } = useModalStore();
   const order = getActiveOrder();
+  const prevTypeRef = useRef(order?.type);
 
-  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
+  const isDelivery = order?.type === OrderType.DELIVERY;
+  const hasCustomer = !!order?.customerId;
 
-  const currentType = order?.type
-    ? order.type
-    : isRestaurant
-      ? "DINE_IN"
-      : "RETAIL";
+  useEffect(() => {
+    const wasDelivery = prevTypeRef.current === OrderType.DELIVERY;
+    prevTypeRef.current = order?.type;
 
-  const selectType = (type: OrderType) => {
-    setOrderType(type);
-
-    // Auto-handle shipping
-    if (type !== OrderType.DELIVERY) {
-      setShippingFee(0);
+    if (isDelivery && !hasCustomer && !wasDelivery) {
+      openModal(
+        "Customer Required",
+        <div className="max-w-sm mx-auto">
+          <CustomerSearchList />
+        </div>,
+        "Delivery orders require a customer. Search or add one below.",
+      );
     }
+  }, [isDelivery, hasCustomer, openModal, order?.type]);
 
-    if (type === OrderType.DELIVERY) {
-      switchContext("SHIPPING");
-    }
+  return {
+    isDelivery,
+    hasCustomer,
+    deliveryNeedsCustomer: isDelivery && !hasCustomer,
   };
-
-  const orderTypes = isRestaurant
-    ? [
-        { type: OrderType.DINE_IN, label: "Dine-In" },
-        { type: OrderType.TAKEAWAY, label: "Takeaway" },
-        { type: OrderType.DELIVERY, label: "Delivery" },
-      ]
-    : [
-        { type: OrderType.RETAIL, label: "Pickup" },
-        { type: OrderType.DELIVERY, label: "Delivery" },
-      ];
-
-  return (
-    <div className="flex gap-1 border-b bg-muted p-1">
-      {orderTypes.map(({ type, label }) => (
-        <Button
-          key={type}
-          size="sm"
-          variant="ghost"
-          className={cn(
-            "flex-1",
-            currentType === type && "bg-primary/15 text-primary",
-          )}
-          onClick={() => selectType(type)}
-        >
-          {label}
-        </Button>
-      ))}
-    </div>
-  );
 };

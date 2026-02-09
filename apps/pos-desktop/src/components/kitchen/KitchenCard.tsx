@@ -3,7 +3,11 @@ import { Order, OrderStatus } from "@repo/types";
 import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback } from "react";
-import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
+import {
+  getActionButtonStatus,
+  getOrderTypeHeaderColor,
+  getTimeColor,
+} from "./config";
 
 type Props = {
   order: Order;
@@ -51,10 +55,15 @@ const KitchenCard = ({ order }: Props) => {
     };
   };
 
+  // Get button status info
+  const { nextStatus, buttonLabel } = getActionButtonStatus(order.status);
+
   return (
     <div
       className={cn(
-        "bg-card rounded-lg shadow-md overflow-hidden h-fit transition-shadow hover:shadow-lg ",
+        "bg-card rounded-lg shadow-md overflow-hidden h-fit",
+        "border-2 border-transparent hover:border-primary",
+        "transition-all duration-200",
         isFullyRefunded && "opacity-70",
       )}
     >
@@ -77,7 +86,7 @@ const KitchenCard = ({ order }: Props) => {
             {order.table?.name || order.type.replace(/_/g, " ")}
           </span>
         </div>
-        <span className="text-white text-sm font-medium">
+        <span className={cn("text-sm", getTimeColor(order.createdAt))}>
           {formatDistanceToNow(new Date(order.createdAt), {
             addSuffix: false,
           })}
@@ -96,35 +105,35 @@ const KitchenCard = ({ order }: Props) => {
         )}
 
         {/* Items List */}
-        <Shad.ScrollArea className="min-h-0 space-y-2">
+        <Shad.ScrollArea className="max-h-48 space-y-2 [&>div>div]:pr-3">
           {order.items?.map((item) => {
             const refundInfo = getItemRefundInfo(item.id);
             return (
               <div key={item.id} className="space-y-1">
                 <div className="flex items-start gap-2">
-                  <span
+                  {/* Quantity Badge */}
+                  <Badge
+                    variant="outline"
                     className={cn(
-                      "font-semibold min-w-6",
+                      "font-bold text-base min-w-8 justify-center h-7 shrink-0",
                       refundInfo?.isFullyRefunded
-                        ? "text-red-500 line-through"
+                        ? "bg-red-500/20 text-red-400 line-through border-red-500/50"
                         : refundInfo?.isPartiallyRefunded
-                          ? "text-amber-600"
-                          : "text-gray-900",
+                          ? "bg-amber-500/20 text-amber-400 border-amber-500/50"
+                          : "bg-primary/20 text-primary border-primary/50",
                     )}
                   >
                     {refundInfo?.isPartiallyRefunded
                       ? Number(item.quantity) - refundInfo.totalRefunded
                       : item.quantity}
-                  </span>
+                  </Badge>
                   <div className="flex-1">
                     <p
                       className={cn(
-                        "font-medium",
-                        refundInfo?.isFullyRefunded
-                          ? "text-red-500 line-through"
-                          : refundInfo?.isPartiallyRefunded
-                            ? "text-amber-600"
-                            : "text-gray-900",
+                        "font-medium text-foreground",
+                        refundInfo?.isFullyRefunded &&
+                          "text-red-400 line-through",
+                        refundInfo?.isPartiallyRefunded && "text-amber-400",
                       )}
                     >
                       {item.product?.name}
@@ -132,22 +141,23 @@ const KitchenCard = ({ order }: Props) => {
 
                     {/* Modifiers */}
                     {item.modifiers && item.modifiers.length > 0 && (
-                      <div className="mt-1 ml-2 space-y-0.5">
+                      <div className="mt-1 ml-1 flex flex-wrap gap-1">
                         {item.modifiers.map((mod) => (
-                          <p
+                          <Badge
                             key={mod.id}
-                            className="text-xs text-gray-500 italic"
+                            variant="secondary"
+                            className="text-xs font-normal py-0 h-5"
                           >
-                            {mod.modifier?.name}
-                          </p>
+                            + {mod.modifier?.name}
+                          </Badge>
                         ))}
                       </div>
                     )}
 
                     {/* Notes */}
                     {item.notes && (
-                      <p className="text-xs text-gray-500 italic mt-1 ml-2">
-                        {item.notes}
+                      <p className="text-xs text-gray-500 italic mt-1 ml-1">
+                        "{item.notes}"
                       </p>
                     )}
 
@@ -165,7 +175,7 @@ const KitchenCard = ({ order }: Props) => {
 
                     {/* Refund Reason */}
                     {refundInfo?.latestReason && (
-                      <p className="text-xs text-red-600 italic mt-1 ml-2">
+                      <p className="text-xs text-red-600 italic mt-1 ml-1">
                         {refundInfo.latestReason}
                       </p>
                     )}
@@ -193,18 +203,23 @@ const KitchenCard = ({ order }: Props) => {
         </div>
         <Button
           onClick={onActionButtonClick}
-          className="w-full"
+          className={cn(
+            "w-full",
+            nextStatus === OrderStatus.READY && "bg-green-600 hover:bg-green-700",
+            nextStatus === OrderStatus.COMPLETED && "bg-emerald-600 hover:bg-emerald-700",
+          )}
           disabled={
-            getActionButtonStatus(order.status).nextStatus === null ||
+            nextStatus === null ||
             updateStatusMutation.isPending ||
             isFullyRefunded
           }
           isSubmitting={updateStatusMutation.isPending}
         >
-          {getActionButtonStatus(order.status).buttonLabel}
+          {buttonLabel}
         </Button>
       </div>
     </div>
   );
 };
 export default KitchenCard;
+

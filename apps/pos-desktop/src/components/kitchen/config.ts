@@ -1,4 +1,23 @@
 import { OrderStatus, OrderType } from "@repo/types";
+import { differenceInMinutes } from "date-fns";
+
+// Time thresholds for order urgency (in minutes)
+export const ORDER_AGE_URGENT_MINUTES = 15;
+export const ORDER_AGE_WARNING_MINUTES = 10;
+
+/**
+ * Get the color class for the order time display based on how old the order is.
+ * - Red: Orders older than 15 minutes (urgent)
+ * - Amber: Orders older than 10 minutes (warning)
+ * - White: Fresh orders
+ */
+export const getTimeColor = (createdAt: string | Date): string => {
+  const orderAge = differenceInMinutes(new Date(), new Date(createdAt));
+  if (orderAge > ORDER_AGE_URGENT_MINUTES) return "text-red-400 font-bold";
+  if (orderAge > ORDER_AGE_WARNING_MINUTES)
+    return "text-amber-300 font-semibold";
+  return "text-white";
+};
 
 export const getStatusColor = (status: OrderStatus): string => {
   switch (status) {
@@ -84,3 +103,4 @@ export const getActionButtonStatus = (
       };
   }
 };
+

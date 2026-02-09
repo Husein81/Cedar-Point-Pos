@@ -19,7 +19,7 @@ export function OrderPage() {
         <Separator orientation="vertical" className="hidden md:block" />
 
         {/* Right: Cart Panel - fixed width, contains inline keypad */}
-        <div className="w-full md:w-110 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
+        <div className="w-full md:w-120 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
           <OrderCart />
         </div>
       </div>

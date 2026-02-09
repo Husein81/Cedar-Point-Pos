@@ -6,7 +6,7 @@ import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { OrderItem, useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
-import { Product } from "@repo/types";
+import { OrderType, Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
 import { InlineKeypad } from "./InlineKeypad";
 import { CartItem } from "./CartItem";
@@ -14,7 +14,7 @@ import { CustomerSelector } from "./CustomerSelector";
 import { ModifierModal } from "./ModifierModal";
 import { TableSelector } from "./TableSelector";
 import OrderSummary from "./OrderSummary";
-import { OrderTypeSelector } from "./OrderTypeSelector";
+import { useDeliveryCustomerEnforcement } from "./OrderTypeSelector";
 import { useAuthStore } from "@/store/authStore";
 
 export const OrderCart = () => {
@@ -34,12 +34,15 @@ export const OrderCart = () => {
 
   const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
 
+  useDeliveryCustomerEnforcement();
+
   const { hasAnyWarning } = useCartStockWarnings();
   const { data: products } = useProducts();
   const { mutate: updateTableStatus } = useUpdateTableStatus();
 
   const order = getActiveOrder();
   const items = order?.items || [];
+  const isDelivery = order?.type === OrderType.DELIVERY;
 
   // Track previous items count to detect when first item is added
   const prevItemsCount = useRef(0);
@@ -56,7 +59,6 @@ export const OrderCart = () => {
 
     prevItemsCount.current = currentCount;
   }, [items.length, order?.tableId, updateTableStatus]);
-
 
   // Calculate raw subtotal (before any discounts)
   const handleQuantityChange = (id: string, quantity: number) => {
@@ -138,7 +140,7 @@ export const OrderCart = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {isRestaurant && <TableSelector />}
+            {isRestaurant && !isDelivery && <TableSelector />}
             {items.length > 0 && (
               <Button
                 variant="ghost"
@@ -158,9 +160,6 @@ export const OrderCart = () => {
         <CustomerSelector />
       </div>
 
-      {/* Order Type Selector */}
-      {isRestaurant && <OrderTypeSelector />}
-
       {/* Stock Warning Banner */}
       {hasAnyWarning && items.length >= 0 && (
         <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
@@ -172,8 +171,7 @@ export const OrderCart = () => {
             Some items will exceed available stock
           </p>
         </div>
-      )
-      }
+      )}
 
       {/* Items List - Scrollable */}
       {items.length === 0 ? (
@@ -209,6 +207,6 @@ export const OrderCart = () => {
 
       {/* Inline Keypad - Collapsible */}
       <InlineKeypad />
-    </div >
+    </div>
   );
 };

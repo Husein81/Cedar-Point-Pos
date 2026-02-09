@@ -7,6 +7,8 @@ type State = {
   user: Omit<User, "password"> | null;
   token: string | null;
   isAuthenticated: boolean;
+  isHighLevelUser?: boolean;
+  isStaff?: boolean;
 };
 
 type Actions = {
@@ -24,22 +26,42 @@ export const useAuthStore = create<State & Actions>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      isHighLevelUser: false,
+      isStaff: false,
       setUser: (user: Omit<User, "password">, token: string) => {
         // Store token separately for API interceptor
         localStorage.setItem(TOKEN_KEY, token);
-        set(() => ({ user, token, isAuthenticated: true }));
+        set(() => ({
+          user,
+          token,
+          isAuthenticated: true,
+          isHighLevelUser: user.role === "ADMIN" || user.role === "MANAGER",
+          isStaff: user.role === "CASHIER" || user.role === "KITCHEN",
+        }));
       },
       clearUser: () => {
         localStorage.removeItem(TOKEN_KEY);
         useBranchStore.getState().clearBranchId();
-        set(() => ({ user: null, token: null, isAuthenticated: false }));
+        set(() => ({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isHighLevelUser: false,
+          isStaff: false,
+        }));
       },
       logout: () => {
         // Clear user data and localStorage
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
-        set(() => ({ user: null, token: null, isAuthenticated: false }));
+        set(() => ({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isHighLevelUser: false,
+          isStaff: false,
+        }));
         // Redirect to auth page
         window.location.href = "/auth";
       },
@@ -51,7 +73,9 @@ export const useAuthStore = create<State & Actions>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        isHighLevelUser: state.isHighLevelUser,
+        isStaff: state.isStaff,
       }),
-    }
-  )
+    },
+  ),
 );

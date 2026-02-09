@@ -42,14 +42,6 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
-      {
-        label: "Tables",
-        icon: "Grid2x2",
-        href: "/tables",
-        tooltip: "Tables",
-        showFor: ["RESTAURANT"],
-        roles: ["ADMIN", "MANAGER", "CASHIER"],
-      },
     ],
   },
   {

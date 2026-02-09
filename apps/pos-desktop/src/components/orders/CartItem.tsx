@@ -17,6 +17,7 @@ type Item = {
   };
   imageUrl?: string | null;
   modifiers?: OrderItemModifier[];
+  sentToKitchen?: boolean;
 };
 
 type Props = {
@@ -142,9 +143,17 @@ export const CartItem = ({
       {/* Item Details */}
       <div className="flex-1 min-w-0">
         {/* Item Name */}
-        <p className="text-xs font-medium text-foreground line-clamp-1">
-          {item.name}
-        </p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs font-medium text-foreground line-clamp-1">
+            {item.name}
+          </p>
+          {item.sentToKitchen && (
+            <Icon
+              name="ChefHat"
+              className="h-3 w-3 text-emerald-500 shrink-0"
+            />
+          )}
+        </div>
 
         {/* Note Indicator */}
         {item.notes && (

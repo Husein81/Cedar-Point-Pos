@@ -26,6 +26,7 @@ export type OrderItem = {
     value: number;
     type: "PERCENTAGE" | "FIXED";
   };
+  sentToKitchen?: boolean;
 };
 
 export type OrderDiscount = {
@@ -43,6 +44,7 @@ export type Order = {
   includeVAT: boolean;
   customerId: string | null;
   customerName: string | null;
+  customerAddress: string | null;
   tableId: string | null;
   tableName: string | null;
   notes: string;
@@ -78,6 +80,7 @@ const createEmptyOrder = (): Order => ({
   includeVAT: false,
   customerId: null,
   customerName: null,
+  customerAddress: null,
   tableId: null,
   tableName: null,
   notes: "",
@@ -139,13 +142,21 @@ interface OrderStoreState {
   setVAT: (includeVAT: boolean) => void;
 
   // Customer actions
-  setCustomer: (customerId: string | null, customerName: string | null) => void;
+  setCustomer: (
+    customerId: string | null,
+    customerName: string | null,
+    customerAddress?: string | null,
+  ) => void;
 
   // Table actions
   setTable: (tableId: string | null, tableName: string | null) => void;
 
   // Order notes
   setOrderNotes: (notes: string) => void;
+
+  // Kitchen
+  markItemsSentToKitchen: () => void;
+  getUnsentItems: () => OrderItem[];
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
@@ -650,7 +661,11 @@ export const useOrderStore = create<OrderStoreState>()(
       // Customer Actions
       // =====================
 
-      setCustomer: (customerId: string | null, customerName: string | null) => {
+      setCustomer: (
+        customerId: string | null,
+        customerName: string | null,
+        customerAddress?: string | null,
+      ) => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -664,6 +679,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 customerId,
                 customerName,
+                customerAddress: customerAddress ?? null,
                 modifiedAt: new Date(),
               },
             };
@@ -723,6 +739,36 @@ export const useOrderStore = create<OrderStoreState>()(
       // =====================
       // Order Status & Type
       // =====================
+
+      markItemsSentToKitchen: () => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) => ({
+                  ...item,
+                  sentToKitchen: true,
+                })),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      getUnsentItems: () => {
+        const state = get();
+        const order = state.tabs.find((t) => t.id === state.activeTabId)?.order;
+        if (!order) return [];
+        return order.items.filter((i) => !i.sentToKitchen);
+      },
 
       setOrderStatus: (status: OrderStatus) => {
         const state = get();

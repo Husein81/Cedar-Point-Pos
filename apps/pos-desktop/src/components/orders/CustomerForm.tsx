@@ -1,14 +1,18 @@
 import type { CustomerSummary } from "@/dto/customer.dto";
 import { useCreateCustomer } from "@/hooks/useCustomer";
 import { useModalStore } from "@/store/modalStore";
-import { Button, Icon, InputField, Shad } from "@repo/ui";
+import { Button, Icon, InputField, Shad, TextareaField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
 type Props = {
   onCustomerCreated: (customer: CustomerSummary) => void;
+  requireAddress?: boolean;
 };
 
-export const CustomerForm = ({ onCustomerCreated }: Props) => {
+export const CustomerForm = ({
+  onCustomerCreated,
+  requireAddress = false,
+}: Props) => {
   const { closeModal } = useModalStore();
 
   const createCustomer = useCreateCustomer();
@@ -18,6 +22,7 @@ export const CustomerForm = ({ onCustomerCreated }: Props) => {
       name: "",
       phone: "",
       email: "",
+      address: "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -25,6 +30,7 @@ export const CustomerForm = ({ onCustomerCreated }: Props) => {
           name: value.name.trim(),
           phone: value.phone.trim(),
           email: value.email.trim() || null,
+          address: value.address.trim() || null,
         });
         onCustomerCreated(customer);
         closeModal();
@@ -86,6 +92,26 @@ export const CustomerForm = ({ onCustomerCreated }: Props) => {
             placeholder="Enter email address"
             field={field}
             type="email"
+          />
+        )}
+      </form.Field>
+
+      <form.Field
+        name="address"
+        validators={{
+          onChange: ({ value }) =>
+            requireAddress && !value.trim()
+              ? "Address is required for delivery orders"
+              : undefined,
+        }}
+      >
+        {(field) => (
+          <TextareaField
+            label={requireAddress ? "Address" : "Address (optional)"}
+            placeholder="Enter delivery address..."
+            field={field}
+            required={requireAddress}
+            className="h-20 resize-none text-sm"
           />
         )}
       </form.Field>

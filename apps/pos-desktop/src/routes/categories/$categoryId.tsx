@@ -25,7 +25,7 @@ function RouteComponent() {
   const handleCreateSubcategory = () => {
     openModal(
       "Create Subcategory",
-      <SubcategoryForm categoryId={categoryId} />
+      <SubcategoryForm categoryId={categoryId} />,
     );
   };
 

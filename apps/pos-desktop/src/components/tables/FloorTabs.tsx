@@ -4,6 +4,8 @@ import { useModalStore } from "@/store/modalStore";
 import { FloorForm } from "./FloorForm";
 import { useDeleteFloor } from "@/hooks/useFloor";
 import { AlertDialog } from "../common";
+import { Activity } from "react";
+import { useAuthStore } from "@/store/authStore";
 
 interface FloorTabsProps {
   floors: FloorWithTableCount[];
@@ -19,6 +21,7 @@ export function FloorTabs({
   onSelectFloor,
   isLoading,
 }: FloorTabsProps) {
+  const { isHighLevelUser } = useAuthStore();
   const { openModal } = useModalStore();
 
   const deleteFloorMutation = useDeleteFloor();
@@ -129,15 +132,17 @@ export function FloorTabs({
       ))}
 
       {/* Add Floor button */}
-      <Button
-        variant="ghost"
-        size="lg"
-        onClick={handleAddFloor}
-        className="h-12 px-5 border-dashed border-2"
-      >
-        <Icon name="Plus" className="h-5 w-5 mr-2" />
-        Add Floor
-      </Button>
+      <Activity mode={isHighLevelUser ? "visible" : "hidden"}>
+        <Button
+          variant="ghost"
+          size="lg"
+          onClick={handleAddFloor}
+          className="h-12 px-5 border-dashed border-2"
+        >
+          <Icon name="Plus" className="h-5 w-5 mr-2" />
+          Add Floor
+        </Button>
+      </Activity>
     </div>
   );
 }

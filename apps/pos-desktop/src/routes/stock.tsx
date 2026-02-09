@@ -52,7 +52,7 @@ function RouteComponent() {
   const handleStockAdjustment = () => {
     openModal(
       "Stock Adjustment",
-      <StockAdjustmentForm branchId={branchId ?? ""} />
+      <StockAdjustmentForm branchId={branchId ?? ""} />,
     );
   };
 
@@ -61,7 +61,7 @@ function RouteComponent() {
   const outOfStock = inventory.filter((item) => Number(item.stock) <= 0).length;
   const lowStock = lowStockItems.length;
   const inStock = inventory.filter(
-    (item) => Number(item.stock) > Number(item.minStock)
+    (item) => Number(item.stock) > Number(item.minStock),
   ).length;
 
   // Calculate pagination

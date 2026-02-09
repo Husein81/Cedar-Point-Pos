@@ -6,6 +6,7 @@ import type { CreateOrderDto } from "@/dto/order.dto";
 import {
   useCreateOrder,
   useProcessPayment,
+  useSendToKitchen,
   useUpdateOrderStatus,
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
@@ -61,14 +62,19 @@ export const InlineKeypad = () => {
     activeTabId,
     getOrderSubtotal,
     getVATAmount,
+    markItemsSentToKitchen,
+    getUnsentItems,
   } = useOrderStore();
 
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
 
+  const isRestaurant = user?.tenant?.businessType === BusinessType.RESTAURANT;
+
   const createOrder = useCreateOrder();
   const processPayment = useProcessPayment();
   const updateOrderStatus = useUpdateOrderStatus();
+  const sendToKitchen = useSendToKitchen();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const paymentLockRef = useRef(false);
@@ -86,6 +92,11 @@ export const InlineKeypad = () => {
 
   const deliveryNeedsCustomer =
     order?.type === OrderType.DELIVERY && !order?.customerId;
+
+  const deliveryNeedsAddress =
+    order?.type === OrderType.DELIVERY &&
+    !!order?.customerId &&
+    !order?.customerAddress;
 
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
@@ -417,6 +428,8 @@ export const InlineKeypad = () => {
 
         const active = getActiveOrder();
         if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
+        if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
+          return;
 
         setIsProcessing(true);
 
@@ -500,6 +513,7 @@ export const InlineKeypad = () => {
     await withPaymentLock(async () => {
       if (isProcessing || !order?.items?.length || total <= 0) return;
       if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
+      if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
 
       setIsProcessing(true);
 
@@ -556,6 +570,62 @@ export const InlineKeypad = () => {
     user?.tenant?.businessType,
     user?.tenantId,
     withPaymentLock,
+  ]);
+
+  /* ---------------------------------------------
+     Send to Kitchen (restaurant only)
+  --------------------------------------------- */
+
+  const unsentItems = getUnsentItems();
+  const hasUnsentItems = unsentItems.length > 0;
+
+  const handleSendToKitchen = useCallback(async () => {
+    if (isProcessing || !order?.items?.length || !hasUnsentItems) return;
+    if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
+    if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
+
+    setIsProcessing(true);
+
+    try {
+      const active = getActiveOrder();
+      if (!active || !branchId || !user?.tenantId) return;
+
+      if (!active.type) {
+        throw new Error("Order type is required");
+      }
+
+      const dto = buildOrderDto();
+      if (!dto) return;
+
+      const created = await createOrder.mutateAsync(dto);
+
+      // Send to kitchen via API
+      await sendToKitchen.mutateAsync(created.id);
+
+      // Mark all items as sent locally
+      markItemsSentToKitchen();
+
+      setOrderStatus(OrderStatus.PENDING);
+    } catch (error) {
+      console.error("Send to kitchen failed:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [
+    branchId,
+    buildOrderDto,
+    createOrder,
+    getActiveOrder,
+    hasUnsentItems,
+    isProcessing,
+    markItemsSentToKitchen,
+    order?.customerId,
+    order?.customerAddress,
+    order?.items?.length,
+    order?.type,
+    sendToKitchen,
+    setOrderStatus,
+    user?.tenantId,
   ]);
 
   /* ---------------------------------------------
@@ -705,16 +775,11 @@ export const InlineKeypad = () => {
   ]);
 
   const handleDollarButton = useCallback(() => {
-    if (isDiscountContext) {
-      handleContextSwitch("DISCOUNT_FIXED");
-    } else {
-      handleContextSwitch("PRICE_OVERRIDE");
-    }
-  }, [isDiscountContext, handleContextSwitch]);
+    if (!itemId) return; // $ requires a selected cart item
+    handleContextSwitch("PRICE_OVERRIDE");
+  }, [itemId, handleContextSwitch]);
 
-  const dollarContext: KeypadContext | "NULL" = isDiscountContext
-    ? "DISCOUNT_FIXED"
-    : "PRICE_OVERRIDE";
+  const dollarContext: KeypadContext | "NULL" = "PRICE_OVERRIDE";
 
   const keypad: KeyPad[] = useMemo(
     () => [
@@ -731,9 +796,8 @@ export const InlineKeypad = () => {
       { label: "5", context: "NULL", onClick: () => handleDigit(5) },
       { label: "6", context: "NULL", onClick: () => handleDigit(6) },
       {
-        label: "DISCOUNT_PERCENT",
-        context: "DISCOUNT_PERCENT",
-        icon: "Percent",
+        label: "Disc.",
+        context: "DISCOUNT",
         onClick: handleDiscountIntent,
       },
 
@@ -741,7 +805,7 @@ export const InlineKeypad = () => {
       { label: "8", context: "NULL", onClick: () => handleDigit(8) },
       { label: "9", context: "NULL", onClick: () => handleDigit(9) },
       {
-        label: isDiscountContext ? "DISCOUNT_FIXED" : "PRICE_OVERRIDE",
+        label: "PRICE_OVERRIDE",
         context: dollarContext,
         icon: "DollarSign",
         onClick: handleDollarButton,
@@ -771,7 +835,6 @@ export const InlineKeypad = () => {
       handleDigit,
       handleDiscountIntent,
       handleDollarButton,
-      isDiscountContext,
       dollarContext,
     ],
   );
@@ -804,34 +867,38 @@ export const InlineKeypad = () => {
         )}
 
         <div className="flex-1 grid grid-cols-4 gap-0.5 bg-border p-px">
-          {keypad.map((key) => (
-            <Button
-              key={key.label}
-              variant={key.variant ?? "outline"}
-              onClick={key.onClick}
-              className={cn(
-                "h-10 2xl:h-12 text-lg",
-                key.context !== "NULL" &&
-                  key.context === safeContext &&
-                  "bg-primary/15 text-primary ring-1 ring-primary/30",
-              )}
-            >
-              {key.icon ? (
-                <Icon
-                  name={key.icon}
-                  className={cn(
-                    "w-5 h-5 mb-1 text-muted-foreground hover:text-white",
-                    key.variant === "destructive" && "text-white",
-                    key.context !== "NULL" &&
-                      key.context === safeContext &&
-                      "text-primary",
-                  )}
-                />
-              ) : (
-                <span className="text-lg font-medium">{key.label}</span>
-              )}
-            </Button>
-          ))}
+          {keypad.map((key) => {
+            const isActive =
+              key.context !== "NULL" &&
+              (key.context === safeContext ||
+                (key.context === "DISCOUNT" && isDiscountContext));
+
+            return (
+              <Button
+                key={key.label}
+                variant={key.variant ?? "outline"}
+                onClick={key.onClick}
+                className={cn(
+                  "h-10 2xl:h-12 text-lg",
+                  isActive &&
+                    "bg-primary/15 text-primary ring-1 ring-primary/30",
+                )}
+              >
+                {key.icon ? (
+                  <Icon
+                    name={key.icon}
+                    className={cn(
+                      "w-5 h-5 mb-1 text-muted-foreground hover:text-white",
+                      key.variant === "destructive" && "text-white",
+                      isActive && "text-primary",
+                    )}
+                  />
+                ) : (
+                  <span className="text-lg font-medium">{key.label}</span>
+                )}
+              </Button>
+            );
+          })}
         </div>
 
         <div className="flex items-center border-t border-border p-2 gap-2">
@@ -842,7 +909,8 @@ export const InlineKeypad = () => {
               !order?.items?.length ||
               total <= 0 ||
               isProcessing ||
-              deliveryNeedsCustomer
+              deliveryNeedsCustomer ||
+              deliveryNeedsAddress
             }
             isSubmitting={isProcessing}
             onClick={handlePay}
@@ -851,22 +919,48 @@ export const InlineKeypad = () => {
             Payment
           </Button>
 
-          <AlertDialog
-            title="Confirm Order Without Payment"
-            description="Are you sure you want to confirm this order without processing a payment? This action cannot be undone."
-            onConfirm={handleConfirmWithoutPayment}
-            iconButton="Check"
-            buttonVariant="outline"
-            label="Confirm"
-            size="lg"
-            className="flex-1 h-12 text-sm font-semibold"
-            disabled={
-              !order?.items?.length ||
-              total <= 0 ||
-              isProcessing ||
-              deliveryNeedsCustomer
-            }
-          />
+          {isRestaurant ? (
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1 h-12 text-sm font-semibold"
+              disabled={
+                !order?.items?.length ||
+                !hasUnsentItems ||
+                isProcessing ||
+                deliveryNeedsCustomer ||
+                deliveryNeedsAddress
+              }
+              isSubmitting={isProcessing}
+              onClick={handleSendToKitchen}
+            >
+              <Icon name="ChefHat" className="w-5 h-5 mr-2" />
+              Send to Kitchen
+              {hasUnsentItems && (
+                <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                  {unsentItems.length}
+                </span>
+              )}
+            </Button>
+          ) : (
+            <AlertDialog
+              title="Confirm Order Without Payment"
+              description="Are you sure you want to confirm this order without processing a payment? This action cannot be undone."
+              onConfirm={handleConfirmWithoutPayment}
+              iconButton="Check"
+              buttonVariant="outline"
+              label="Confirm"
+              size="lg"
+              className="flex-1 h-12 text-sm font-semibold"
+              disabled={
+                !order?.items?.length ||
+                total <= 0 ||
+                isProcessing ||
+                deliveryNeedsCustomer ||
+                deliveryNeedsAddress
+              }
+            />
+          )}
         </div>
       </Shad.CollapsibleContent>
     </Shad.Collapsible>

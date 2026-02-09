@@ -5,10 +5,13 @@ import { useModalStore } from "@/store/modalStore";
 import { CustomerForm } from "./CustomerForm";
 import type { CustomerSummary } from "@/dto/customer.dto";
 import { Button, Icon, Input, Shad } from "@repo/ui";
+import { OrderType } from "@repo/types";
 
 export const CustomerSearchList = () => {
   const { openModal, closeModal } = useModalStore();
-  const { setCustomer } = useOrderStore();
+  const { setCustomer, getActiveOrder } = useOrderStore();
+  const order = getActiveOrder();
+  const requireAddress = order?.type === OrderType.DELIVERY;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -41,7 +44,10 @@ export const CustomerSearchList = () => {
   const handleOpenNewCustomer = () => {
     openModal(
       "New Customer",
-      <CustomerForm onCustomerCreated={handleCustomerCreated} />,
+      <CustomerForm
+        onCustomerCreated={handleCustomerCreated}
+        requireAddress={requireAddress}
+      />,
     );
   };
 

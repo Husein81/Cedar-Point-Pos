@@ -7,6 +7,7 @@ import { CustomerCard } from "./CustomerCard";
 import type { CustomerSummary } from "@/dto/customer.dto";
 import { useModalStore } from "@/store/modalStore";
 import { CustomerForm } from "./CustomerForm";
+import { OrderType } from "@repo/types";
 import _ from "lodash";
 
 type Props = {
@@ -24,7 +25,7 @@ export const CustomerSelector = ({ className }: Props) => {
 
   const { data: customers, isLoading } = useSearchCustomers(
     debouncedQuery ?? "",
-    open
+    open,
   );
 
   const { getActiveOrder, setCustomer } = useOrderStore();
@@ -59,7 +60,7 @@ export const CustomerSelector = ({ className }: Props) => {
         setSearchQuery("");
       }
     },
-    [customers, setCustomer]
+    [customers, setCustomer],
   );
 
   const handleRemoveCustomer = useCallback(() => {
@@ -70,13 +71,17 @@ export const CustomerSelector = ({ className }: Props) => {
     (customer: CustomerSummary) => {
       setCustomer(customer.id, customer.name);
     },
-    [setCustomer]
+    [setCustomer],
   );
 
   const handleOpenNewCustomer = () => {
+    const isDelivery = order?.type === OrderType.DELIVERY;
     openModal(
       "Customer Form",
-      <CustomerForm onCustomerCreated={handleCustomerCreated} />
+      <CustomerForm
+        onCustomerCreated={handleCustomerCreated}
+        requireAddress={isDelivery}
+      />,
     );
   };
 

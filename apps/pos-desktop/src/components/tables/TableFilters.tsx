@@ -1,5 +1,5 @@
 import { TableStatus } from "@repo/types";
-import { Button, Icon, Input, Label, Select } from "@repo/ui";
+import { Button, Icon, Input, Select } from "@repo/ui";
 import { useMemo, useState } from "react";
 import { TABLE_STATUS_OPTIONS } from "./config";
 
@@ -74,15 +74,9 @@ export function TableFilters({
     filters.maxCapacity;
 
   return (
-    <div className="flex flex-wrap gap-3 items-end">
+    <div className="flex flex-wrap gap-3 items-center">
       {/* Search Input */}
-      <div className="flex-1 min-w-37 max-w-sm">
-        <Label
-          htmlFor="table-search"
-          className="block text-sm font-medium mb-1.5"
-        >
-          Search
-        </Label>
+      <div className="flex-1 min-w-44 max-w-sm">
         <div className="relative">
           <Icon
             name="Search"
@@ -90,22 +84,16 @@ export function TableFilters({
           />
           <Input
             id="table-search"
-            placeholder="Search by name or number..."
+            placeholder="Search tables..."
             value={localFilters.search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-10"
           />
         </div>
       </div>
 
       {/* Status Filter */}
-      <div className="min-w-37">
-        <Label
-          htmlFor="status-filter"
-          className="block text-sm font-medium mb-1.5"
-        >
-          Status
-        </Label>
+      <div className="min-w-40">
         <Select
           placeholder="All Statuses"
           value={localFilters.status}
@@ -119,16 +107,10 @@ export function TableFilters({
 
       {/* Floor Filter */}
       {floors.length > 0 && (
-        <div className="min-w-37">
-          <Label
-            htmlFor="floor-filter"
-            className="block text-sm font-medium mb-1.5"
-          >
-            Floor
-          </Label>
+        <div className="min-w-40">
           <Select
             value={localFilters.floorId}
-            placeholder="All floors"
+            placeholder="All Floors"
             onChange={(opt) => handleFloorChange(opt.value)}
             options={floorOptions}
           />
@@ -141,10 +123,10 @@ export function TableFilters({
           variant="ghost"
           size="sm"
           onClick={handleClearFilters}
-          className="h-9"
+          className="h-10"
         >
           <Icon name="X" className="h-4 w-4 mr-2" />
-          Clear Filters
+          Clear
         </Button>
       )}
     </div>

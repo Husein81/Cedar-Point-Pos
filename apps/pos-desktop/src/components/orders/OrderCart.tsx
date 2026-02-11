@@ -42,7 +42,7 @@ export const OrderCart = () => {
 
   const order = getActiveOrder();
   const items = order?.items || [];
-  const isDelivery = order?.type === OrderType.DELIVERY;
+  const isDineIn = (order?.type ?? OrderType.DINE_IN) === OrderType.DINE_IN;
 
   // Track previous items count to detect when first item is added
   const prevItemsCount = useRef(0);
@@ -140,7 +140,7 @@ export const OrderCart = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {isRestaurant && !isDelivery && <TableSelector />}
+            {isRestaurant && isDineIn && <TableSelector />}
             {items.length > 0 && (
               <Button
                 variant="ghost"

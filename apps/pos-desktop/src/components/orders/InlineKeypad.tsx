@@ -8,6 +8,7 @@ import {
   useProcessPayment,
   useSendToKitchen,
   useUpdateOrderStatus,
+  useAddItemToOrder,
 } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
@@ -17,6 +18,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import AlertDialog from "../common/AlertDialog";
 import { KEYPAD_CONFIG, type KeypadContext } from "./config";
 import OrderActions from "./OrderActions";
@@ -75,6 +77,7 @@ export const InlineKeypad = () => {
   const processPayment = useProcessPayment();
   const updateOrderStatus = useUpdateOrderStatus();
   const sendToKitchen = useSendToKitchen();
+  const addItemToOrder = useAddItemToOrder();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const paymentLockRef = useRef(false);
@@ -89,6 +92,8 @@ export const InlineKeypad = () => {
   const shippingFee = order?.shippingFee ?? 0;
   const vat = getVATAmount();
   const total = subtotal - discount + shippingFee + vat;
+  const paidAmount = order?.paidAmount ?? 0;
+  const remainingTotal = Math.max(0, total - paidAmount);
 
   const deliveryNeedsCustomer =
     order?.type === OrderType.DELIVERY && !order?.customerId;
@@ -100,7 +105,10 @@ export const InlineKeypad = () => {
 
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
+
+  const isProcessing = isPaymentProcessing || isSendingToKitchen;
 
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
@@ -268,6 +276,36 @@ export const InlineKeypad = () => {
     user?.tenantId,
   ]);
 
+  /**
+   * Checks if the active order was loaded from the server.
+   * Server-persisted orders have CUID IDs (no 'order-' prefix).
+   */
+  const isLoadedOrder = useCallback((): boolean => {
+    const active = getActiveOrder();
+    if (!active) return false;
+    return !active.id.startsWith("order-");
+  }, [getActiveOrder]);
+
+  /**
+   * Returns the server order ID or creates a new order via API.
+   * For loaded orders, returns the existing server ID.
+   * For fresh orders, creates via createOrder API and returns the new ID.
+   */
+  const getOrCreateOrderId = useCallback(async (): Promise<string | null> => {
+    const active = getActiveOrder();
+    if (!active) return null;
+
+    if (isLoadedOrder()) {
+      return active.id;
+    }
+
+    const dto = buildOrderDto();
+    if (!dto) return null;
+
+    const created = await createOrder.mutateAsync(dto);
+    return created.id;
+  }, [buildOrderDto, createOrder, getActiveOrder, isLoadedOrder]);
+
   const withPaymentLock = useCallback(async (fn: () => Promise<void>) => {
     if (paymentLockRef.current) return;
     paymentLockRef.current = true;
@@ -422,7 +460,7 @@ export const InlineKeypad = () => {
   --------------------------------------------- */
 
   const handlePaymentConfirm = useCallback(
-    async (payments: PaymentEntry[]) => {
+    async (payments: PaymentEntry[], sendToKitchenFirst = false) => {
       await withPaymentLock(async () => {
         if (isProcessing || payments.length === 0) return;
 
@@ -431,10 +469,16 @@ export const InlineKeypad = () => {
         if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
           return;
 
-        setIsProcessing(true);
+        setIsPaymentProcessing(true);
 
         try {
-          if (!active || !branchId || !user?.tenantId || total <= 0) return;
+          if (
+            !active ||
+            !branchId ||
+            !user?.tenantId ||
+            remainingTotal <= 0
+          )
+            return;
 
           // Get the active tab ID before closing anything
           const tabToClose = activeTabId;
@@ -450,13 +494,41 @@ export const InlineKeypad = () => {
             throw new Error("Order type is required");
           }
 
-          const dto = buildOrderDto();
-          if (!dto) return;
+          const orderId = await getOrCreateOrderId();
+          if (!orderId) return;
 
-          const created = await createOrder.mutateAsync(dto);
+          // For loaded orders with new unsent items, add them to the server order first
+          if (isLoadedOrder()) {
+            const unsent = active.items.filter((i) => !i.sentToKitchen);
+            for (const item of unsent) {
+              await addItemToOrder.mutateAsync({
+                id: orderId,
+                item: {
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  notes: item.notes,
+                  modifiers: item.modifiers?.map((m) => m.modifierId),
+                },
+              });
+            }
+          }
+
+          // If Pay & Send: send unsent items to kitchen first
+          if (sendToKitchenFirst) {
+            const unsentCount = active.items.filter(
+              (i) => !i.sentToKitchen,
+            ).length;
+            if (unsentCount > 0) {
+              await sendToKitchen.mutateAsync(orderId);
+              markItemsSentToKitchen();
+              toast.success(
+                `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
+              );
+            }
+          }
 
           const result = await processPayment.mutateAsync({
-            id: created.id,
+            id: orderId,
             payments: payments.map((p) => ({
               amount: p.amount,
               method: p.method,
@@ -475,15 +547,21 @@ export const InlineKeypad = () => {
           if (result.status === OrderStatus.COMPLETED) {
             clearOrder();
           }
-        } catch (error) {
+
+          toast.success("Payment processed successfully");
+        } catch (error: any) {
+          const message =
+            error.response?.data?.message || error.message || "Payment failed";
           console.error("Payment failed:", error);
+          toast.error(message);
         } finally {
-          setIsProcessing(false);
+          setIsPaymentProcessing(false);
         }
       });
     },
     [
       activeTabId,
+      addItemToOrder,
       branchId,
       buildOrderDto,
       clearOrder,
@@ -492,10 +570,14 @@ export const InlineKeypad = () => {
       closeTab,
       createOrder,
       getActiveOrder,
+      getOrCreateOrderId,
+      isLoadedOrder,
       isProcessing,
+      markItemsSentToKitchen,
       processPayment,
+      sendToKitchen,
       setOrderStatus,
-      total,
+      remainingTotal,
       user?.tenant?.businessType,
       user?.tenantId,
       withPaymentLock,
@@ -505,7 +587,11 @@ export const InlineKeypad = () => {
   const handlePay = () => {
     openModal(
       "Payment Form",
-      <PaymentForm total={total} onConfirm={handlePaymentConfirm} />,
+      <PaymentForm
+        total={remainingTotal}
+        onConfirm={handlePaymentConfirm}
+        hasUnsentItems={hasUnsentItems}
+      />,
     );
   };
 
@@ -515,7 +601,7 @@ export const InlineKeypad = () => {
       if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
       if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
 
-      setIsProcessing(true);
+      setIsPaymentProcessing(true);
 
       try {
         const active = getActiveOrder();
@@ -534,22 +620,26 @@ export const InlineKeypad = () => {
           throw new Error("Order type is required");
         }
 
-        const dto = buildOrderDto();
-        if (!dto) return;
-
-        const created = await createOrder.mutateAsync(dto);
+        const orderId = await getOrCreateOrderId();
+        if (!orderId) return;
 
         // For restaurant orders, transition to PENDING
         await updateOrderStatus.mutateAsync({
-          id: created.id,
+          id: orderId,
           status: OrderStatus.PENDING,
         });
 
         setOrderStatus(OrderStatus.PENDING);
-      } catch (error) {
+        toast.success("Order confirmed");
+      } catch (error: any) {
+        const message =
+          error.response?.data?.message ||
+          error.message ||
+          "Order confirmation failed";
         console.error("Order confirmation failed:", error);
+        toast.error(message);
       } finally {
-        setIsProcessing(false);
+        setIsPaymentProcessing(false);
       }
     });
   }, [
@@ -562,6 +652,7 @@ export const InlineKeypad = () => {
     closeTab,
     createOrder,
     getActiveOrder,
+    getOrCreateOrderId,
     isProcessing,
     order?.items?.length,
     setOrderStatus,
@@ -580,11 +671,19 @@ export const InlineKeypad = () => {
   const hasUnsentItems = unsentItems.length > 0;
 
   const handleSendToKitchen = useCallback(async () => {
-    if (isProcessing || !order?.items?.length || !hasUnsentItems) return;
+    if (isSendingToKitchen || isPaymentProcessing) return;
+    if (!order?.items?.length) return;
+
+    // If there are no unsent items, show neutral toast and return
+    if (!hasUnsentItems) {
+      toast.success("No new items to send");
+      return;
+    }
+
     if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
     if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
 
-    setIsProcessing(true);
+    setIsSendingToKitchen(true);
 
     try {
       const active = getActiveOrder();
@@ -594,30 +693,59 @@ export const InlineKeypad = () => {
         throw new Error("Order type is required");
       }
 
-      const dto = buildOrderDto();
-      if (!dto) return;
+      const unsentCount = active.items.filter((i) => !i.sentToKitchen).length;
 
-      const created = await createOrder.mutateAsync(dto);
+      const orderId = await getOrCreateOrderId();
+      if (!orderId) return;
+
+      // For loaded orders, add only unsent items to the server order before sending
+      if (isLoadedOrder()) {
+        const unsent = active.items.filter((i) => !i.sentToKitchen);
+        for (const item of unsent) {
+          await addItemToOrder.mutateAsync({
+            id: orderId,
+            item: {
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: item.notes,
+              modifiers: item.modifiers?.map((m) => m.modifierId),
+            },
+          });
+        }
+      }
 
       // Send to kitchen via API
-      await sendToKitchen.mutateAsync(created.id);
+      await sendToKitchen.mutateAsync(orderId);
 
       // Mark all items as sent locally
       markItemsSentToKitchen();
 
       setOrderStatus(OrderStatus.PENDING);
-    } catch (error) {
+
+      toast.success(
+        `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
+      );
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to send to kitchen";
       console.error("Send to kitchen failed:", error);
+      toast.error(message);
     } finally {
-      setIsProcessing(false);
+      setIsSendingToKitchen(false);
     }
   }, [
+    addItemToOrder,
     branchId,
     buildOrderDto,
     createOrder,
     getActiveOrder,
+    getOrCreateOrderId,
     hasUnsentItems,
-    isProcessing,
+    isLoadedOrder,
+    isPaymentProcessing,
+    isSendingToKitchen,
     markItemsSentToKitchen,
     order?.customerId,
     order?.customerAddress,
@@ -907,12 +1035,12 @@ export const InlineKeypad = () => {
             className="flex-1 h-12 text-sm font-semibold"
             disabled={
               !order?.items?.length ||
-              total <= 0 ||
+              remainingTotal <= 0 ||
               isProcessing ||
               deliveryNeedsCustomer ||
               deliveryNeedsAddress
             }
-            isSubmitting={isProcessing}
+            isSubmitting={isPaymentProcessing}
             onClick={handlePay}
           >
             <Icon name="CreditCard" className="w-5 h-5 mr-2" />
@@ -926,12 +1054,11 @@ export const InlineKeypad = () => {
               className="flex-1 h-12 text-sm font-semibold"
               disabled={
                 !order?.items?.length ||
-                !hasUnsentItems ||
                 isProcessing ||
                 deliveryNeedsCustomer ||
                 deliveryNeedsAddress
               }
-              isSubmitting={isProcessing}
+              isSubmitting={isSendingToKitchen}
               onClick={handleSendToKitchen}
             >
               <Icon name="ChefHat" className="w-5 h-5 mr-2" />

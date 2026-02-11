@@ -11,7 +11,7 @@ type Props = {
 export function TableGrid({ tables, onTableClick, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
@@ -33,7 +33,7 @@ export function TableGrid({ tables, onTableClick, isLoading }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
       {tables.map((table) => (
         <TableCard key={table.id} table={table} onClick={onTableClick} />
       ))}

@@ -3,7 +3,7 @@
 import { AnyFieldApi } from "@tanstack/react-form";
 import * as React from "react";
 import { cn } from "../libs/utils";
-import { Icon, Shad, Badge } from "../components";
+import { Icon, Shad, Badge, Checkbox } from "../components";
 import { Label } from "../components";
 import FieldInfo from "./field-info";
 
@@ -61,7 +61,7 @@ const MultiSelectField = ({
           <button
             type="button"
             className={cn(
-              "flex min-h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              "flex min-h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
             )}
             disabled={disabled}
           >
@@ -108,16 +108,10 @@ const MultiSelectField = ({
                         onSelect={() => toggleSelection(option.value)}
                         className="cursor-pointer"
                       >
-                        <div
-                          className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible"
-                          )}
-                        >
-                          <Icon name="Check" className="h-3 w-3" />
-                        </div>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => toggleSelection(option.value)}
+                        />
                         <span>{option.label}</span>
                       </Shad.CommandItem>
                     );

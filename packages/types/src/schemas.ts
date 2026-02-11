@@ -14,6 +14,7 @@ import {
   TransferStatus,
   UserRole,
 } from "./enums";
+import { ca } from "zod/locales";
 
 // Tenant
 export const TenantSchema = z.object({
@@ -97,6 +98,14 @@ export const POSDeviceSchema = z.object({
 });
 export type POSDevice = z.infer<typeof POSDeviceSchema>;
 
+export const Color = z.object({
+  id: cuid,
+  name: z.string(),
+  hex: z.string(),
+  tenantId: cuid,
+});
+export type Color = z.infer<typeof Color>;
+
 // Category
 export const CategorySchema = z.object({
   id: cuid,
@@ -105,6 +114,8 @@ export const CategorySchema = z.object({
   code: z.string().nullable().optional(), // unique in prisma
   description: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
+  colorId: cuid.nullable().optional(),
+  color: Color.nullable().optional(),
 });
 export type Category = z.infer<typeof CategorySchema>;
 
@@ -131,6 +142,7 @@ export const ProductSchema = z.object({
   price: decimal.nullable().optional(),
   cost: decimal.nullable().optional(),
   categoryId: cuid.nullable().optional(),
+  category: CategorySchema.nullable().optional(),
   subcategoryId: cuid.nullable().optional(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),

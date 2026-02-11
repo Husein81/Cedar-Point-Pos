@@ -50,7 +50,7 @@ export const Button = ({
   size = "default",
   type = "button",
   formId,
-  props,
+  ...props
 }: Props) => {
   return (
     <SButton

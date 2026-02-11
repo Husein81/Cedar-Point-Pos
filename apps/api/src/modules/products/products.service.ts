@@ -23,7 +23,11 @@ export class ProductsService {
       where,
       include: {
         inventory: true,
-        category: true,
+        category: {
+          include: {
+            color: true,
+          },
+        },
         subcategory: true,
       },
     });

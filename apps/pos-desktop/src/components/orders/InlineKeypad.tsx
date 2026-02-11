@@ -66,6 +66,7 @@ export const InlineKeypad = () => {
     getVATAmount,
     markItemsSentToKitchen,
     getUnsentItems,
+    updateOrderId,
   } = useOrderStore();
 
   const { user } = useAuthStore();
@@ -256,6 +257,9 @@ export const InlineKeypad = () => {
       customerId: active.customerId || undefined,
       shippingFee: active.shippingFee,
       includeVAT: active.includeVAT,
+      ...(orderType === OrderType.DINE_IN && active.tableId
+        ? { tableId: active.tableId }
+        : {}),
       items: active.items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
@@ -303,8 +307,18 @@ export const InlineKeypad = () => {
     if (!dto) return null;
 
     const created = await createOrder.mutateAsync(dto);
+
+    // Persist server ID into local tab state so isLoadedOrder() works correctly
+    updateOrderId(created.id);
+
     return created.id;
-  }, [buildOrderDto, createOrder, getActiveOrder, isLoadedOrder]);
+  }, [
+    buildOrderDto,
+    createOrder,
+    getActiveOrder,
+    isLoadedOrder,
+    updateOrderId,
+  ]);
 
   const withPaymentLock = useCallback(async (fn: () => Promise<void>) => {
     if (paymentLockRef.current) return;
@@ -472,12 +486,7 @@ export const InlineKeypad = () => {
         setIsPaymentProcessing(true);
 
         try {
-          if (
-            !active ||
-            !branchId ||
-            !user?.tenantId ||
-            remainingTotal <= 0
-          )
+          if (!active || !branchId || !user?.tenantId || remainingTotal <= 0)
             return;
 
           // Get the active tab ID before closing anything
@@ -494,13 +503,23 @@ export const InlineKeypad = () => {
             throw new Error("Order type is required");
           }
 
+          // Capture loaded state BEFORE getOrCreateOrderId, because
+          // getOrCreateOrderId calls updateOrderId which changes the local
+          // order ID from 'order-*' to a server CUID — making isLoadedOrder()
+          // return true even for freshly-created orders.
+          const wasLoadedOrder = isLoadedOrder();
+
           const orderId = await getOrCreateOrderId();
           if (!orderId) return;
 
-          // For loaded orders with new unsent items, add them to the server order first
-          if (isLoadedOrder()) {
-            const unsent = active.items.filter((i) => !i.sentToKitchen);
-            for (const item of unsent) {
+          // For orders that were ALREADY on the server before this flow,
+          // add only unsent local items. Fresh orders already include all
+          // items in the createOrder payload, so skip to avoid duplicates.
+          if (wasLoadedOrder) {
+            const unsyncedLocal = active.items.filter(
+              (i) => !i.sentToKitchen && i.id.startsWith("item-"),
+            );
+            for (const item of unsyncedLocal) {
               await addItemToOrder.mutateAsync({
                 id: orderId,
                 item: {
@@ -695,13 +714,23 @@ export const InlineKeypad = () => {
 
       const unsentCount = active.items.filter((i) => !i.sentToKitchen).length;
 
+      // Capture loaded state BEFORE getOrCreateOrderId, because
+      // getOrCreateOrderId calls updateOrderId which changes the local
+      // order ID from 'order-*' to a server CUID — making isLoadedOrder()
+      // return true even for freshly-created orders.
+      const wasLoadedOrder = isLoadedOrder();
+
       const orderId = await getOrCreateOrderId();
       if (!orderId) return;
 
-      // For loaded orders, add only unsent items to the server order before sending
-      if (isLoadedOrder()) {
-        const unsent = active.items.filter((i) => !i.sentToKitchen);
-        for (const item of unsent) {
+      // For orders that were ALREADY on the server before this flow,
+      // add only unsent local items. Fresh orders already include all
+      // items in the createOrder payload, so skip to avoid duplicates.
+      if (wasLoadedOrder) {
+        const unsyncedLocal = active.items.filter(
+          (i) => !i.sentToKitchen && i.id.startsWith("item-"),
+        );
+        for (const item of unsyncedLocal) {
           await addItemToOrder.mutateAsync({
             id: orderId,
             item: {
@@ -715,12 +744,17 @@ export const InlineKeypad = () => {
       }
 
       // Send to kitchen via API
-      await sendToKitchen.mutateAsync(orderId);
+      const result = await sendToKitchen.mutateAsync(orderId);
 
       // Mark all items as sent locally
       markItemsSentToKitchen();
 
-      setOrderStatus(OrderStatus.PENDING);
+      // Use server-returned status instead of hardcoded value
+      if (result?.status) {
+        setOrderStatus(result.status as OrderStatus);
+      } else {
+        setOrderStatus(OrderStatus.PENDING);
+      }
 
       toast.success(
         `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,

@@ -7,6 +7,7 @@ import {
 } from "@/dto/order.dto";
 import type { Order, OrderStatus } from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { tableKeys } from "./queryKeys";
 
 const ORDER_QUERY_KEY = ["orders"];
 
@@ -32,6 +33,7 @@ export const useCreateOrder = () => {
     mutationFn: ordersApi.createOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
@@ -48,6 +50,7 @@ export const useProcessPayment = () => {
       ordersApi.processPayment(id, { payments }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
@@ -63,6 +66,7 @@ export const useUpdateOrderStatus = () => {
     mutationFn: ({ id, status }) => ordersApi.updateOrderStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
     },
   });
 };
@@ -87,6 +91,7 @@ export const useAssignTableToOrder = () => {
       ordersApi.assignTableToOrder(id, { tableId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
     },
   });
 };
@@ -152,6 +157,7 @@ export const useSendToKitchen = () => {
     mutationFn: ordersApi.sendToKitchen,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
     },
   });
 };
@@ -161,5 +167,39 @@ export const usePreviewDeductions = (id: string, branchId: string) => {
     queryKey: [...ORDER_QUERY_KEY, id, "preview-deductions", branchId],
     queryFn: () => ordersApi.previewDeductions(id, branchId),
     enabled: !!id && !!branchId,
+  });
+};
+
+export const useTransferOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Order,
+    Error,
+    { orderId: string; targetTableId: string; mergeIntoOrderId?: string }
+  >({
+    mutationFn: ({ orderId, targetTableId, mergeIntoOrderId }) =>
+      ordersApi.transferOrderToTable(orderId, targetTableId, mergeIntoOrderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+    },
+  });
+};
+
+export const useMergeOrders = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    Order,
+    Error,
+    { targetOrderId: string; sourceOrderId: string }
+  >({
+    mutationFn: ({ targetOrderId, sourceOrderId }) =>
+      ordersApi.mergeOrders(targetOrderId, sourceOrderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+    },
   });
 };

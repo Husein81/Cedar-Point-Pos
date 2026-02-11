@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/store/authStore";
 import { OrderStatus, OrderType } from "@repo/types";
 import type { Order as ServerOrder } from "@repo/types";
 import { create } from "zustand";
@@ -76,11 +77,16 @@ const generateOrderId = (): string => {
   return `order-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 
-const createEmptyOrder = (): Order => ({
+const getDefaultOrderType = (): OrderType => {
+  const businessType = useAuthStore.getState().user?.tenant?.businessType;
+  return businessType === "RETAIL" ? OrderType.RETAIL : OrderType.DINE_IN;
+};
+
+const createEmptyOrder = (overrides: Partial<Order> = {}): Order => ({
   id: generateOrderId(),
   status: "DRAFT",
   items: [],
-  type: undefined,
+  type: getDefaultOrderType(),
   discount: null,
   shippingFee: 0,
   includeVAT: false,
@@ -93,6 +99,7 @@ const createEmptyOrder = (): Order => ({
   notes: "",
   createdAt: new Date(),
   modifiedAt: new Date(),
+  ...overrides,
 });
 
 const createNewTab = (tabNumber: number): OrderTab => ({
@@ -171,8 +178,14 @@ interface OrderStoreState {
   holdOrder: () => void;
   resumeOrder: () => void;
 
+  // Update the order ID on the active tab (e.g. after server creation)
+  updateOrderId: (newId: string) => void;
+
   // Load existing server order into a new tab
-  loadOrder: (serverOrder: ServerOrder) => string | null;
+  loadOrder: (
+    serverOrder: ServerOrder,
+    forceRefresh?: boolean,
+  ) => string | null;
 
   // Computed helpers
   getActiveOrder: () => Order | null;
@@ -247,6 +260,7 @@ export const useOrderStore = create<OrderStoreState>()(
                       ...t.order,
                       tableId,
                       tableName,
+                      type: OrderType.DINE_IN,
                       modifiedAt: new Date(),
                     },
                   }
@@ -258,6 +272,54 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Create a new tab if we have room
         if (state.tabs.length >= state.maxTabs) {
+          // Evict a stale tab: prefer tabs with server-persisted table
+          // orders that aren't the active tab (least likely to still
+          // be relevant). This prevents silent failures when the user
+          // keeps navigating to different tables from the tables page.
+          const staleTab = state.tabs.find(
+            (t) =>
+              t.id !== state.activeTabId &&
+              t.order.tableId &&
+              !t.order.id.startsWith("order-"),
+          );
+
+          if (staleTab) {
+            const filtered = state.tabs.filter((t) => t.id !== staleTab.id);
+            const newTab: OrderTab = {
+              id: generateTabId(),
+              label: `Order ${filtered.length + 1}`,
+              order: {
+                ...createEmptyOrder({ type: OrderType.DINE_IN }),
+                tableId,
+                tableName,
+              },
+            };
+            const updatedTabs = renumberTabs([...filtered, newTab]);
+            set({ tabs: updatedTabs, activeTabId: newTab.id });
+            return newTab.id;
+          }
+
+          // No stale tab to evict — try evicting any non-active empty tab
+          const emptyTab = state.tabs.find(
+            (t) => t.id !== state.activeTabId && t.order.items.length === 0,
+          );
+
+          if (emptyTab) {
+            const filtered = state.tabs.filter((t) => t.id !== emptyTab.id);
+            const newTab: OrderTab = {
+              id: generateTabId(),
+              label: `Order ${filtered.length + 1}`,
+              order: {
+                ...createEmptyOrder({ type: OrderType.DINE_IN }),
+                tableId,
+                tableName,
+              },
+            };
+            const updatedTabs = renumberTabs([...filtered, newTab]);
+            set({ tabs: updatedTabs, activeTabId: newTab.id });
+            return newTab.id;
+          }
+
           return null;
         }
 
@@ -266,7 +328,7 @@ export const useOrderStore = create<OrderStoreState>()(
           id: generateTabId(),
           label: `Order ${newTabNumber}`,
           order: {
-            ...createEmptyOrder(),
+            ...createEmptyOrder({ type: OrderType.DINE_IN }),
             tableId,
             tableName,
           },
@@ -570,6 +632,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 items: [],
                 discount: null,
                 paidAmount: 0,
+                type: getDefaultOrderType(),
                 customerId: null,
                 customerName: null,
                 tableId: null,
@@ -717,6 +780,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 tableId,
                 tableName,
+                ...(tableId ? { type: OrderType.DINE_IN } : {}),
                 modifiedAt: new Date(),
               },
             };
@@ -822,7 +886,25 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      loadOrder: (serverOrder: ServerOrderWithPayments) => {
+      updateOrderId: (newId: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+            return {
+              ...tab,
+              order: { ...tab.order, id: newId, modifiedAt: new Date() },
+            };
+          }),
+        });
+      },
+
+      loadOrder: (
+        serverOrder: ServerOrderWithPayments,
+        forceRefresh?: boolean,
+      ) => {
         const state = get();
 
         // Check if this server order is already loaded in a tab
@@ -830,8 +912,11 @@ export const useOrderStore = create<OrderStoreState>()(
           (t) => t.order.id === serverOrder.id,
         );
         if (existingTab) {
-          set({ activeTabId: existingTab.id });
-          return existingTab.id;
+          if (!forceRefresh) {
+            set({ activeTabId: existingTab.id });
+            return existingTab.id;
+          }
+          // forceRefresh: fall through to re-hydrate the order data below
         }
 
         // Try to reuse the current active tab if it's empty
@@ -899,6 +984,25 @@ export const useOrderStore = create<OrderStoreState>()(
           createdAt: new Date(serverOrder.createdAt),
           modifiedAt: new Date(),
         };
+
+        if (forceRefresh && existingTab) {
+          // Re-hydrate existing tab with fresh server data
+          set({
+            tabs: state.tabs.map((t) =>
+              t.id === existingTab.id
+                ? {
+                    ...t,
+                    label: serverOrder.orderNumber
+                      ? `#${serverOrder.orderNumber}`
+                      : t.label,
+                    order: hydratedOrder,
+                  }
+                : t,
+            ),
+            activeTabId: existingTab.id,
+          });
+          return existingTab.id;
+        }
 
         if (canReuse && activeTab) {
           set({

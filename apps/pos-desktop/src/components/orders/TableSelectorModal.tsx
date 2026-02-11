@@ -67,8 +67,8 @@ export function TableSelectorModal({
   }, [filteredTables]);
 
   const handleSelect = (table: TableWithFloor) => {
-    onTableSelect(table);
     closeModal();
+    onTableSelect(table);
   };
 
   const handleClearSelection = () => {

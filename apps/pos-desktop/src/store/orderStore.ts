@@ -1,4 +1,5 @@
 import { OrderStatus, OrderType } from "@repo/types";
+import type { Order as ServerOrder } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -42,6 +43,7 @@ export type Order = {
   discount: OrderDiscount | null;
   shippingFee: number;
   includeVAT: boolean;
+  paidAmount: number;
   customerId: string | null;
   customerName: string | null;
   customerAddress: string | null;
@@ -56,6 +58,10 @@ export type OrderTab = {
   id: string;
   label: string;
   order: Order;
+};
+
+type ServerOrderWithPayments = ServerOrder & {
+  payments?: Array<{ amount?: number | string | null }>;
 };
 
 // =====================
@@ -78,6 +84,7 @@ const createEmptyOrder = (): Order => ({
   discount: null,
   shippingFee: 0,
   includeVAT: false,
+  paidAmount: 0,
   customerId: null,
   customerName: null,
   customerAddress: null,
@@ -163,6 +170,9 @@ interface OrderStoreState {
   setOrderType: (type?: string) => void;
   holdOrder: () => void;
   resumeOrder: () => void;
+
+  // Load existing server order into a new tab
+  loadOrder: (serverOrder: ServerOrder) => string | null;
 
   // Computed helpers
   getActiveOrder: () => Order | null;
@@ -342,6 +352,7 @@ export const useOrderStore = create<OrderStoreState>()(
             // Different modifiers = separate line items
             const existingItemIndex = tab.order.items.findIndex((i) => {
               if (i.productId !== item.productId) return false;
+              if (i.sentToKitchen) return false;
 
               // If product is not modifiable or no modifiers, merge by productId
               if (!item.modifiers || item.modifiers.length === 0) {
@@ -558,6 +569,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 items: [],
                 discount: null,
+                paidAmount: 0,
                 customerId: null,
                 customerName: null,
                 tableId: null,
@@ -808,6 +820,122 @@ export const useOrderStore = create<OrderStoreState>()(
             };
           }),
         });
+      },
+
+      loadOrder: (serverOrder: ServerOrderWithPayments) => {
+        const state = get();
+
+        // Check if this server order is already loaded in a tab
+        const existingTab = state.tabs.find(
+          (t) => t.order.id === serverOrder.id,
+        );
+        if (existingTab) {
+          set({ activeTabId: existingTab.id });
+          return existingTab.id;
+        }
+
+        // Try to reuse the current active tab if it's empty
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        const canReuse =
+          activeTab &&
+          activeTab.order.items.length === 0 &&
+          !activeTab.order.tableId &&
+          !activeTab.order.customerId;
+
+        // Determine if items were already sent to kitchen based on order status
+        const wasSentToKitchen =
+          serverOrder.status === "SENT_TO_KITCHEN" ||
+          serverOrder.status === "IN_PROGRESS" ||
+          serverOrder.status === "CONFIRMED" ||
+          serverOrder.status === "READY";
+
+        // Map server order items to local OrderItem format
+        const items: OrderItem[] = (serverOrder.items || []).map((si) => ({
+          id: si.id,
+          productId: si.productId,
+          name: si.product?.name || "Unknown",
+          price: parseFloat(String(si.unitPrice ?? 0)),
+          quantity: parseInt(String(si.quantity), 10) || 1,
+          notes: si.notes || undefined,
+          imageUrl: si.product?.imageUrl || null,
+          modifiers:
+            si.modifiers?.map((m: any) => ({
+              modifierId: m.modifierId || m.modifier?.id || m.id,
+              name: m.modifier?.name || m.name || "",
+              price: parseFloat(String(m.price ?? 0)),
+            })) || [],
+          sentToKitchen: wasSentToKitchen,
+          discount: si.discount
+            ? {
+                value: si.discount.value,
+                type: si.discount.type,
+              }
+            : undefined,
+        }));
+
+        const hydratedOrder: Order = {
+          id: serverOrder.id,
+          status: serverOrder.status as OrderStatus,
+          type: serverOrder.type as OrderType | undefined,
+          items,
+          discount: serverOrder.discount
+            ? {
+                value: parseFloat(String(serverOrder.discount)),
+                type: "FIXED" as DiscountType,
+              }
+            : null,
+          shippingFee: parseFloat(String(serverOrder.shippingFee ?? 0)),
+          includeVAT: serverOrder.includeVAT ?? false,
+          paidAmount: (serverOrder.payments || []).reduce(
+            (sum, p) => sum + Number(p.amount ?? 0),
+            0,
+          ),
+          customerId: serverOrder.customerId || null,
+          customerName: serverOrder.customer?.name || null,
+          customerAddress: serverOrder.customer?.address || null,
+          tableId: serverOrder.tableId || null,
+          tableName: serverOrder.table?.name || null,
+          notes: "",
+          createdAt: new Date(serverOrder.createdAt),
+          modifiedAt: new Date(),
+        };
+
+        if (canReuse && activeTab) {
+          set({
+            tabs: state.tabs.map((t) =>
+              t.id === activeTab.id
+                ? {
+                    ...t,
+                    label: serverOrder.orderNumber
+                      ? `#${serverOrder.orderNumber}`
+                      : t.label,
+                    order: hydratedOrder,
+                  }
+                : t,
+            ),
+          });
+          return activeTab.id;
+        }
+
+        // Create a new tab if we have room
+        if (state.tabs.length >= state.maxTabs) {
+          return null;
+        }
+
+        const newTab: OrderTab = {
+          id: generateTabId(),
+          label: serverOrder.orderNumber
+            ? `#${serverOrder.orderNumber}`
+            : `Order ${state.tabs.length + 1}`,
+          order: hydratedOrder,
+        };
+
+        set({
+          tabs: [...state.tabs, newTab],
+          activeTabId: newTab.id,
+        });
+
+        return newTab.id;
       },
 
       holdOrder: () => {

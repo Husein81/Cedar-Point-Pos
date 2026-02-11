@@ -12,33 +12,50 @@ export const TABLE_STATUS_OPTIONS: { label: string; value: TableStatus }[] = [
 
 export const getStatsCards = (
   stats: TableStats,
-): Array<{ title: string; count: number; icon: string }> => [
+): Array<{
+  title: string;
+  count: number;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+}> => [
   {
     title: "Total Tables",
     count: stats?.total || 0,
     icon: "LayoutGrid",
+    iconBg: "bg-slate-100 dark:bg-slate-800",
+    iconColor: "text-slate-600 dark:text-slate-300",
   },
   {
     title: "Available",
     count: stats?.available || 0,
     icon: "CircleCheck",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
     title: "Occupied",
     count: stats?.occupied || 0,
     icon: "Users",
+    iconBg: "bg-red-100 dark:bg-red-900/40",
+    iconColor: "text-red-600 dark:text-red-400",
   },
   {
     title: "Reserved",
     count: stats?.reserved || 0,
     icon: "Clock",
+    iconBg: "bg-purple-100 dark:bg-purple-900/40",
+    iconColor: "text-purple-600 dark:text-purple-400",
   },
 ];
 
 export const statusColors: Record<TableStatus, string> = {
-  AVAILABLE: "border-border bg-card",
-  OCCUPIED: "border-border bg-card",
-  RESERVED: "border-border bg-card",
+  AVAILABLE:
+    "border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20",
+  OCCUPIED:
+    "border-red-200 dark:border-red-900 bg-red-50/40 dark:bg-red-950/20",
+  RESERVED:
+    "border-purple-200 dark:border-purple-900 bg-purple-50/40 dark:bg-purple-950/20",
 };
 
 export const statusIcons: Record<TableStatus, string> = {

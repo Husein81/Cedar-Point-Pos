@@ -54,9 +54,13 @@ export class OrdersService {
       CANCELLED: [],
     };
 
-    // Restaurant: DRAFT → CONFIRMED → IN_PROGRESS → READY → COMPLETED
+    // Restaurant: DRAFT → (CONFIRMED) → SENT_TO_KITCHEN → IN_PROGRESS → READY → COMPLETED
     const restaurant: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      DRAFT: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+      DRAFT: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.CANCELLED,
+      ],
       CONFIRMED: [OrderStatus.IN_PROGRESS, OrderStatus.SENT_TO_KITCHEN],
       SENT_TO_KITCHEN: [OrderStatus.IN_PROGRESS],
       IN_PROGRESS: [OrderStatus.READY],
@@ -634,48 +638,52 @@ export class OrdersService {
         order.tenant?.businessType === BusinessType.RESTAURANT;
 
       let shouldDeductInventory = false;
+      let newStatus: OrderStatus | null = null;
 
-      if (isFullyPaid) {
-        // Get table info before updating order
-        const orderWithTable = await tx.order.findFirst({
-          where: { id: orderId },
-          select: { tableId: true },
-        });
-
-        // For restaurant orders, send to kitchen instead of marking completed
-        const newStatus = isRestaurant
-          ? OrderStatus.SENT_TO_KITCHEN
-          : OrderStatus.COMPLETED;
+      if (isRestaurant) {
+        newStatus = isFullyPaid ? OrderStatus.PAID : OrderStatus.PARTIALLY_PAID;
 
         await tx.order.update({
           where: { id: orderId },
-          data: {
-            status: newStatus,
-            ...(newStatus === OrderStatus.COMPLETED && {
+          data: { status: newStatus },
+        });
+      } else {
+        if (isFullyPaid) {
+          // Get table info before updating order
+          const orderWithTable = await tx.order.findFirst({
+            where: { id: orderId },
+            select: { tableId: true },
+          });
+
+          newStatus = OrderStatus.COMPLETED;
+
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: newStatus,
               completedAt: new Date(),
-            }),
-          },
-        });
+            },
+          });
 
-        // ✅ Update table status if order was associated with a table
-        if (orderWithTable?.tableId) {
-          await this.tableStatusService.markTableAvailableIfPossible(
-            orderWithTable.tableId,
-            orderId,
-            tenantId,
-            tx,
-          );
-        }
+          // ✅ Update table status if order was associated with a table
+          if (orderWithTable?.tableId) {
+            await this.tableStatusService.markTableAvailableIfPossible(
+              orderWithTable.tableId,
+              orderId,
+              tenantId,
+              tx,
+            );
+          }
 
-        // Flag for post-commit inventory deduction (non-restaurant only)
-        if (!isRestaurant) {
+          // Flag for post-commit inventory deduction (non-restaurant only)
           shouldDeductInventory = true;
+        } else if (order.status === OrderStatus.DRAFT) {
+          newStatus = OrderStatus.PENDING;
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: newStatus },
+          });
         }
-      } else if (order.status === OrderStatus.DRAFT) {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: OrderStatus.PENDING },
-        });
       }
 
       /* ============================================
@@ -701,11 +709,9 @@ export class OrdersService {
             currency: order.currencyCode,
           };
 
-      const finalStatus = isFullyPaid
-        ? isRestaurant
-          ? OrderStatus.SENT_TO_KITCHEN
-          : OrderStatus.COMPLETED
-        : OrderStatus.PENDING;
+      const finalStatus =
+        newStatus ??
+        (isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING);
 
       return {
         orderId,
@@ -774,6 +780,9 @@ export class OrdersService {
           total: true, // ✅ already includes VAT + shipping
           branchId: true,
           currencyCode: true,
+          tenant: {
+            select: { businessType: true },
+          },
           payments: {
             select: { amount: true }, // amount is BASE currency
           },
@@ -842,8 +851,8 @@ export class OrdersService {
       const isFullyPaid = newPaidBase >= totalDue;
 
       /* --------------------------------------------
-       Order state
-    -------------------------------------------- */
+        Order state
+     -------------------------------------------- */
 
       let shouldDeductInventory = false;
 
@@ -854,25 +863,37 @@ export class OrdersService {
           select: { tableId: true },
         });
 
+        if (order.tenant?.businessType === BusinessType.RESTAURANT) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.PAID },
+          });
+        } else {
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: OrderStatus.COMPLETED,
+              completedAt: new Date(),
+            },
+          });
+
+          // ✅ Update table status if order was associated with a table
+          if (orderWithTable?.tableId) {
+            await this.tableStatusService.markTableAvailableIfPossible(
+              orderWithTable.tableId,
+              orderId,
+              tenantId,
+              tx,
+            );
+          }
+
+          shouldDeductInventory = true;
+        }
+      } else if (order.tenant?.businessType === BusinessType.RESTAURANT) {
         await tx.order.update({
           where: { id: orderId },
-          data: {
-            status: OrderStatus.COMPLETED,
-            completedAt: new Date(),
-          },
+          data: { status: OrderStatus.PARTIALLY_PAID },
         });
-
-        // ✅ Update table status if order was associated with a table
-        if (orderWithTable?.tableId) {
-          await this.tableStatusService.markTableAvailableIfPossible(
-            orderWithTable.tableId,
-            orderId,
-            tenantId,
-            tx,
-          );
-        }
-
-        shouldDeductInventory = true;
       } else if (order.status === OrderStatus.DRAFT) {
         await tx.order.update({
           where: { id: orderId },
@@ -893,7 +914,13 @@ export class OrdersService {
 
       return {
         orderId,
-        status: isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING,
+        status: isFullyPaid
+          ? order.tenant?.businessType === BusinessType.RESTAURANT
+            ? OrderStatus.PAID
+            : OrderStatus.COMPLETED
+          : order.tenant?.businessType === BusinessType.RESTAURANT
+            ? OrderStatus.PARTIALLY_PAID
+            : OrderStatus.PENDING,
 
         totalDue,
         paid: this.money(Math.min(newPaidBase, totalDue)),
@@ -938,28 +965,81 @@ export class OrdersService {
   async addItemToOrder(tenantId: string, orderId: string, dto: AddItemDto) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
-      select: { status: true },
+      select: {
+        status: true,
+        tenant: { select: { businessType: true } },
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.status !== OrderStatus.DRAFT)
+    const isRestaurant = order.tenant.businessType === BusinessType.RESTAURANT;
+    if (isRestaurant) {
+      const editableStatuses = new Set<OrderStatus>([
+        OrderStatus.DRAFT,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.CONFIRMED,
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.PAID,
+        OrderStatus.PARTIALLY_PAID,
+      ]);
+      if (!editableStatuses.has(order.status)) {
+        throw new BadRequestException('Draft orders only');
+      }
+    } else if (order.status !== OrderStatus.DRAFT) {
       throw new BadRequestException('Draft orders only');
+    }
 
     const product = await this.prisma.product.findFirst({
       where: { id: dto.productId, tenantId, isDeleted: false },
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    const subtotal = dto.quantity * Number(product.price);
+    const unitPrice = Number(product.price);
+    let modifiersTotal = 0;
+    const itemModifiers: { modifierId: string; price: number }[] = [];
+
+    if (dto.modifiers?.length) {
+      const modifiers = await this.prisma.modifier.findMany({
+        where: {
+          id: { in: dto.modifiers },
+          tenantId,
+          isDeleted: false,
+        },
+        select: { id: true, price: true },
+      });
+      const modifierMap = new Map(modifiers.map((m) => [m.id, m]));
+
+      for (const modifierId of dto.modifiers) {
+        const modifier = modifierMap.get(modifierId);
+        if (modifier) {
+          const modifierPrice = Number(modifier.price);
+          modifiersTotal += modifierPrice;
+          itemModifiers.push({
+            modifierId,
+            price: modifierPrice,
+          });
+        }
+      }
+    }
+
+    const subtotal = dto.quantity * (unitPrice + modifiersTotal);
 
     await this.prisma.orderItem.create({
       data: {
         orderId,
         productId: product.id,
         quantity: dto.quantity,
-        unitPrice: new Prisma.Decimal(product.price || 0),
+        unitPrice: new Prisma.Decimal(unitPrice),
         subtotal: new Prisma.Decimal(subtotal),
         total: new Prisma.Decimal(subtotal),
         notes: dto.notes,
+        ...(itemModifiers.length > 0 && {
+          modifiers: {
+            create: itemModifiers.map((m) => ({
+              modifier: { connect: { id: m.modifierId } },
+              price: new Prisma.Decimal(m.price),
+            })),
+          },
+        }),
       },
     });
 
@@ -1044,12 +1124,83 @@ export class OrdersService {
     );
   }
 
-  async sendToKitchen(tenantId: string, orderId: string, userId: string) {
-    return this.updateStatus(
-      tenantId,
-      orderId,
-      OrderStatus.IN_PROGRESS,
-      userId,
+  async sendToKitchen(tenantId: string, orderId: string, _userId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, tenantId },
+          select: {
+            id: true,
+            status: true,
+            tenant: { select: { businessType: true } },
+            items: {
+              select: {
+                id: true,
+                tickets: {
+                  select: { id: true, station: true },
+                },
+              },
+            },
+          },
+        });
+
+        if (!order) throw new NotFoundException('Order not found');
+        if (order.tenant.businessType !== BusinessType.RESTAURANT) {
+          throw new BadRequestException(
+            'Send to kitchen is only available for restaurant orders',
+          );
+        }
+
+        if (
+          order.status === OrderStatus.CANCELLED ||
+          order.status === OrderStatus.COMPLETED ||
+          order.status === OrderStatus.FULLY_REFUNDED
+        ) {
+          throw new BadRequestException(
+            'Cannot send a completed, cancelled, or refunded order to kitchen',
+          );
+        }
+
+        // Only send items that do NOT already have a ticket for the default station
+        const itemsToSend = order.items.filter(
+          (item) => !item.tickets.some((t) => t.station === null),
+        );
+
+        if (itemsToSend.length === 0) {
+          // No-op: all items already sent
+          return tx.order.findUnique({ where: { id: orderId } });
+        }
+
+        const sentAt = new Date();
+        await tx.orderItemTicket.createMany({
+          data: itemsToSend.map((item) => ({
+            orderItemId: item.id,
+            station: null,
+            status: OrderStatus.SENT_TO_KITCHEN,
+            sentAt,
+          })),
+        });
+
+        // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
+        if (
+          order.status === OrderStatus.DRAFT ||
+          order.status === OrderStatus.CONFIRMED
+        ) {
+          this.validateTransition(
+            order.tenant.businessType,
+            order.status,
+            OrderStatus.SENT_TO_KITCHEN,
+          );
+
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: OrderStatus.SENT_TO_KITCHEN },
+          });
+        }
+
+        return tx.order.findUnique({ where: { id: orderId } });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
 
@@ -1096,7 +1247,14 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { discount: true, shippingFee: true, includeVAT: true },
+      select: {
+        discount: true,
+        shippingFee: true,
+        includeVAT: true,
+        status: true,
+        tenant: { select: { businessType: true } },
+        payments: { select: { amount: true } },
+      },
     });
 
     const discount = Number(order?.discount || 0);
@@ -1115,9 +1273,30 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vat);
 
+    let nextStatus = order?.status;
+    if (
+      order &&
+      order.tenant?.businessType === BusinessType.RESTAURANT &&
+      (order.status === OrderStatus.PAID ||
+        order.status === OrderStatus.PARTIALLY_PAID)
+    ) {
+      const paid = this.money(
+        order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+      );
+      const remaining = this.money(Math.max(0, total - paid));
+      nextStatus =
+        remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
+    }
+
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { subtotal, total, vat },
+      data: {
+        subtotal,
+        total,
+        vat,
+        ...(nextStatus &&
+          nextStatus !== order?.status && { status: nextStatus }),
+      },
     });
   }
 

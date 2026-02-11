@@ -67,17 +67,6 @@ export const productColumns: ColumnDef<Product>[] = [
   },
 
   {
-    accessorKey: "isIngredient",
-    header: "Type",
-    cell: ({ row }) =>
-      row.original.isIngredient ? (
-        <Badge variant="secondary">Ingredient</Badge>
-      ) : (
-        <Badge>Product</Badge>
-      ),
-  },
-
-  {
     accessorKey: "isActive",
     header: "Status",
     cell: ({ row }) =>

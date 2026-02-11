@@ -59,9 +59,6 @@ function RouteComponent() {
             ) : (
               <Badge variant="destructive">Inactive</Badge>
             )}
-            {product.isIngredient && (
-              <Badge variant="secondary">Ingredient</Badge>
-            )}
             {product.isModifiable && (
               <Badge variant="outline">Modifiable</Badge>
             )}
@@ -175,15 +172,6 @@ function RouteComponent() {
                 <Badge className="bg-green-500">Active</Badge>
               ) : (
                 <Badge variant="destructive">Inactive</Badge>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Type</span>
-              {product.isIngredient ? (
-                <Badge variant="secondary">Ingredient</Badge>
-              ) : (
-                <Badge>Product</Badge>
               )}
             </div>
 

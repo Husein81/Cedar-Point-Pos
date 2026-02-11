@@ -18,7 +18,7 @@ export class ModifiersService {
     groupId: string,
     createDto: CreateModifierDto,
   ) {
-    const { name, price, productId } = createDto;
+    const { name, price, productIds } = createDto;
 
     // Verify the modifier group exists and belongs to this tenant
     const group = await this.prisma.modifierGroup.findFirst({
@@ -33,18 +33,21 @@ export class ModifiersService {
       throw new NotFoundException('Modifier group not found');
     }
 
-    // If productId is provided, verify the product exists and belongs to this tenant
-    if (productId) {
-      const product = await this.prisma.product.findFirst({
+    // Validate all product IDs if provided
+    if (productIds && productIds.length > 0) {
+      const products = await this.prisma.product.findMany({
         where: {
-          id: productId,
+          id: { in: productIds },
           tenantId,
           isDeleted: false,
+          isModifiable: true, // ✅ Only allow modifiable products
         },
       });
 
-      if (!product) {
-        throw new NotFoundException('Product not found');
+      if (products.length !== productIds.length) {
+        throw new BadRequestException(
+          'One or more products not found or not modifiable',
+        );
       }
     }
 
@@ -66,22 +69,43 @@ export class ModifiersService {
       );
     }
 
-    const modifier = await this.prisma.modifier.create({
-      data: {
-        tenantId,
-        groupId,
-        name,
-        price,
-        productId,
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
+    // Create modifier with product assignments in a transaction
+    const modifier = await this.prisma.$transaction(async (tx) => {
+      const newMod = await tx.modifier.create({
+        data: {
+          tenantId,
+          groupId,
+          name,
+          price,
+        },
+      });
+
+      // Create product assignments if provided
+      if (productIds && productIds.length > 0) {
+        await tx.modifierProductAssignment.createMany({
+          data: productIds.map((productId) => ({
+            modifierId: newMod.id,
+            productId,
+          })),
+        });
+      }
+
+      // Return modifier with assignments
+      return tx.modifier.findUnique({
+        where: { id: newMod.id },
+        include: {
+          productAssignments: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
           },
         },
-      },
+      });
     });
 
     return modifier;
@@ -119,10 +143,14 @@ export class ModifiersService {
         ...(!includeDeleted && { isDeleted: false }),
       },
       include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
+        productAssignments: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -146,10 +174,14 @@ export class ModifiersService {
         isDeleted: false,
       },
       include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
+        productAssignments: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         group: {
@@ -191,19 +223,22 @@ export class ModifiersService {
       throw new NotFoundException('Modifier not found');
     }
 
-    // If updating productId, verify the product exists and belongs to this tenant
-    if (updateDto.productId !== undefined) {
-      if (updateDto.productId) {
-        const product = await this.prisma.product.findFirst({
+    // Validate product IDs if being updated
+    if (updateDto.productIds !== undefined) {
+      if (updateDto.productIds.length > 0) {
+        const products = await this.prisma.product.findMany({
           where: {
-            id: updateDto.productId,
+            id: { in: updateDto.productIds },
             tenantId,
             isDeleted: false,
+            isModifiable: true,
           },
         });
 
-        if (!product) {
-          throw new NotFoundException('Product not found');
+        if (products.length !== updateDto.productIds.length) {
+          throw new BadRequestException(
+            'One or more products not found or not modifiable',
+          );
         }
       }
     }
@@ -231,23 +266,51 @@ export class ModifiersService {
       }
     }
 
-    const updated = await this.prisma.modifier.update({
-      where: { id },
-      data: {
-        ...(updateDto.name && { name: updateDto.name }),
-        ...(updateDto.price !== undefined && { price: updateDto.price }),
-        ...(updateDto.productId !== undefined && {
-          productId: updateDto.productId,
-        }),
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
+    // Update modifier and product assignments in transaction
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Update modifier basic fields
+      const updatedMod = await tx.modifier.update({
+        where: { id },
+        data: {
+          ...(updateDto.name && { name: updateDto.name }),
+          ...(updateDto.price !== undefined && { price: updateDto.price }),
+        },
+      });
+
+      // Update product assignments if provided
+      if (updateDto.productIds !== undefined) {
+        // Delete existing assignments
+        await tx.modifierProductAssignment.deleteMany({
+          where: { modifierId: id },
+        });
+
+        // Create new assignments
+        if (updateDto.productIds.length > 0) {
+          await tx.modifierProductAssignment.createMany({
+            data: updateDto.productIds.map((productId) => ({
+              modifierId: id,
+              productId,
+            })),
+          });
+        }
+      }
+
+      // Return updated modifier with assignments
+      return tx.modifier.findUnique({
+        where: { id },
+        include: {
+          productAssignments: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
           },
         },
-      },
+      });
     });
 
     return updated;
@@ -301,7 +364,8 @@ export class ModifiersService {
 
     // Validate all productIds if provided
     const productIds = modifiers
-      .map((m) => m.productId)
+      .map((m) => m.productIds || [])
+      .flat()
       .filter((id): id is string => !!id);
 
     if (productIds.length > 0) {
@@ -339,7 +403,7 @@ export class ModifiersService {
       );
     }
 
-    // Create all modifiers
+    // Create all modifiers with product assignments
     const created = await this.prisma.$transaction(
       modifiers.map((modifier) =>
         this.prisma.modifier.create({
@@ -348,19 +412,37 @@ export class ModifiersService {
             groupId,
             name: modifier.name,
             price: modifier.price,
-            productId: modifier.productId,
           },
           include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
+            productAssignments: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
         }),
       ),
     );
+
+    // Create product assignments for modifiers that have productIds
+    for (let i = 0; i < created.length; i++) {
+      const modifier = created[i];
+      const productIds = modifiers[i].productIds;
+      
+      if (productIds && productIds.length > 0) {
+        await this.prisma.modifierProductAssignment.createMany({
+          data: productIds.map((productId) => ({
+            modifierId: modifier.id,
+            productId,
+          })),
+        });
+      }
+    }
 
     return created;
   }

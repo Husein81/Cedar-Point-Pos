@@ -13,6 +13,10 @@ import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CategoryService } from './category.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import type {
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from './dto/category.dto.js';
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -40,15 +44,15 @@ export class CategoryController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  createCategory(
-    @Req() req: Request,
-    @Body() data: Prisma.CategoryCreateWithoutTenantInput,
-  ) {
+  createCategory(@Req() req: Request, @Body() data: CreateCategoryDto) {
     const user = req.user as User;
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.categoryService.createCategory(user.tenantId, data);
+    return this.categoryService.createCategory({
+      ...data,
+      tenantId: user.tenantId,
+    });
   }
 
   @Put(':id')
@@ -56,13 +60,17 @@ export class CategoryController {
   updateCategory(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() data: Prisma.CategoryUpdateInput,
+    @Body() data: UpdateCategoryDto,
   ) {
     const user = req.user as User;
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
-    return this.categoryService.updateCategory(user.tenantId, id, data);
+    return this.categoryService.updateCategory({
+      ...data,
+      id,
+      tenantId: user.tenantId,
+    });
   }
 
   @Delete(':id')

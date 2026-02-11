@@ -1,12 +1,5 @@
-import { PrismaClient } from '../src/generated/prisma/client.js';
-import { PrismaPg } from '@prisma/adapter-pg';
 import 'dotenv/config';
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL as string,
-});
-
-const prisma = new PrismaClient({ adapter });
+import { PrismaService } from '../src/modules/prisma/prisma.service.js';
 
 /**
  * Default currencies for the global reference table
@@ -75,34 +68,90 @@ const defaultCurrencies = [
   },
 ];
 
-async function seedCurrencies() {
-  console.log('🌱 Seeding currencies...');
+const defaultColors = [
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Green', hex: '#10B981' },
+  { name: 'Yellow', hex: '#F59E0B' },
+  { name: 'Purple', hex: '#8B5CF6' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Indigo', hex: '#6366F1' },
+  { name: 'Orange', hex: '#F97316' },
+  { name: 'Teal', hex: '#14B8A6' },
+  { name: 'Gray', hex: '#6B7280' },
+];
 
-  for (const currency of defaultCurrencies) {
-    await prisma.currency.upsert({
-      where: { code: currency.code },
-      update: {
-        name: currency.name,
-        symbol: currency.symbol,
-        decimalPlaces: currency.decimalPlaces,
-      },
-      create: currency,
-    });
-    console.log(`  ✓ ${currency.code} - ${currency.name}`);
+export class Seeder {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async seedCurrencies() {
+    console.log('🌱 Seeding currencies...');
+
+    for (const currency of defaultCurrencies) {
+      await this.prisma.currency.upsert({
+        where: { code: currency.code },
+        update: {
+          name: currency.name,
+          symbol: currency.symbol,
+          decimalPlaces: currency.decimalPlaces,
+        },
+        create: currency,
+      });
+      console.log(`  ✓ ${currency.code} - ${currency.name}`);
+    }
+
+    console.log('✅ Currencies seeded successfully!');
   }
 
-  console.log('✅ Currencies seeded successfully!');
-}
+  async seedColors() {
+    console.log('Seeding default colors...');
 
-async function main() {
-  try {
-    await seedCurrencies();
-  } catch (error) {
-    console.error('❌ Seed failed:', error);
-    throw error;
-  } finally {
-    await prisma.$disconnect();
+    // Get or create a default tenant to assign colors to
+    let tenant = await this.prisma.tenant.findFirst();
+
+    if (!tenant) {
+      console.log('  ! No tenant found, creating "Default Tenant"...');
+      tenant = await this.prisma.tenant.create({
+        data: {
+          name: 'Default Tenant',
+          businessType: 'RETAIL',
+        },
+      });
+    }
+
+    for (const color of defaultColors) {
+      await this.prisma.color.upsert({
+        where: {
+          tenantId_hex: {
+            tenantId: tenant.id,
+            hex: color.hex,
+          },
+        },
+        update: {
+          name: color.name,
+        },
+        create: {
+          ...color,
+          tenantId: tenant.id,
+        },
+      });
+      console.log(`  ✓ ${color.name} (${color.hex})`);
+    }
+
+    console.log('✅ Colors seeded successfully!');
+  }
+
+  async main(): Promise<void> {
+    try {
+      // await this.seedCurrencies();
+      await this.seedColors();
+    } catch (error) {
+      console.error('❌ Seed failed:', error);
+      throw error;
+    } finally {
+      await this.prisma.$disconnect();
+    }
   }
 }
-
-main();
+const seeder = new Seeder(new PrismaService());
+await seeder.main();

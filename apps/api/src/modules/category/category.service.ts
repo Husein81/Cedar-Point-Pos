@@ -3,19 +3,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto.js';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
-  async createCategory(
-    tenantId: string,
-    data: Prisma.CategoryCreateWithoutTenantInput,
-  ) {
+  async createCategory(data: CreateCategoryDto) {
     return await this.prisma.category.create({
-      data: {
-        ...data,
-        tenantId,
-      },
+      data,
     });
   }
 
@@ -46,6 +41,7 @@ export class CategoryService {
           subcategories: {
             where: { isDeleted: false },
           },
+          color: true,
         },
       }),
     ]);
@@ -77,6 +73,7 @@ export class CategoryService {
         subcategories: {
           where: { isDeleted: false },
         },
+        color: true,
       },
     });
   }
@@ -92,6 +89,7 @@ export class CategoryService {
         subcategories: {
           where: { isDeleted: false },
         },
+        color: true,
       },
     });
 
@@ -102,15 +100,11 @@ export class CategoryService {
     return category;
   }
 
-  async updateCategory(
-    tenantId: string,
-    id: string,
-    data: Prisma.CategoryUpdateInput,
-  ) {
-    await this.getCategory(tenantId, id);
+  async updateCategory(data: UpdateCategoryDto) {
+    await this.getCategory(data.tenantId!, data.id!);
 
     return this.prisma.category.update({
-      where: { id },
+      where: { id: data.id },
       data,
     });
   }

@@ -1,6 +1,6 @@
 import { ColumnDef } from "@tanstack/react-table";
 import type { Category } from "@repo/types";
-import { Checkbox } from "@repo/ui";
+import { Checkbox, cn } from "@repo/ui";
 import { CategoryActions } from "@/components/category/CategoryActions";
 
 export const getCategoryColumns = (): ColumnDef<Category>[] => [
@@ -25,6 +25,33 @@ export const getCategoryColumns = (): ColumnDef<Category>[] => [
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
+  },
+  {
+    accessorKey: "color",
+    header: "Color",
+    cell: ({ row }) =>
+      row.original.color ? (
+        <div className="flex items-center gap-2">
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+            .category-color-${row.original.id} {
+              background-color: ${row.original.color.hex};
+            }
+          `,
+            }}
+          />
+          <div
+            className={cn(
+              "w-4 h-4 rounded-full border",
+              `category-color-${row.original.id}`,
+            )}
+          />
+          <span className="text-xs">{row.original.color.name}</span>
+        </div>
+      ) : (
+        "—"
+      ),
   },
   {
     accessorKey: "code",

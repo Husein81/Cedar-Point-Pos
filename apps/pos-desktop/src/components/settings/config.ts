@@ -18,6 +18,14 @@ export const settingsSections: SettingsSection[] = [
     href: "/settings/currencies",
     showFor: ["RETAIL", "RESTAURANT"],
   },
+  {
+    id: "colors",
+    label: "Colors",
+    description: "Manage colors for your categories and products",
+    icon: "Palette",
+    href: "/settings/colors",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
   // Future sections:
   // {
   //   id: "taxes",

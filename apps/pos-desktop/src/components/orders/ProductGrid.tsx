@@ -252,6 +252,21 @@ export const ProductGrid = () => {
                       }
                       size="lg"
                       className="whitespace-nowrap"
+                      style={
+                        category.color?.hex
+                          ? {
+                              backgroundColor:
+                                selectedCategoryId === category.id
+                                  ? category.color.hex
+                                  : "transparent",
+                              borderColor: category.color.hex,
+                              color:
+                                selectedCategoryId === category.id
+                                  ? "#fff"
+                                  : category.color.hex,
+                            }
+                          : {}
+                      }
                     >
                       {category.name}
                     </Button>

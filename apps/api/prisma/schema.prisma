@@ -7,37 +7,37 @@ datasource db {
   provider = "postgresql"
 }
 
-
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-    id               String       @id @default(cuid())
-    name             String
-    businessType     BusinessType
-    baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
-    isActive         Boolean      @default(true)
-    createdAt        DateTime     @default(now())
-    updatedAt        DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  name             String
+  businessType     BusinessType
+  baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-    users            User[]
-    branches         Branch[]
-    products         Product[]
-    inventory        Inventory[] // Inventory records still belong to the Tenant scope
-    inventoryHistory InventoryHistory[]
-    orders           Order[]
-    tables           Table[]
-    floors           Floor[] // Restaurant floor layouts
-    modifierGroups   ModifierGroup[]
-    recipes          Recipe[]
-    devices          POSDevice[]
-    customers        Customer[]
-    shifts           Shift[]
-    transfers        Transfer[]
-    settings         Json? // feature flags, tax rates, etc.
-    modifiers        Modifier[]
-    categories       Category[]
-    tenantCurrencies TenantCurrency[] // Tenant-specific currency configurations
+  users            User[]
+  branches         Branch[]
+  products         Product[]
+  inventory        Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory InventoryHistory[]
+  orders           Order[]
+  tables           Table[]
+  floors           Floor[] // Restaurant floor layouts
+  modifierGroups   ModifierGroup[]
+  recipes          Recipe[]
+  devices          POSDevice[]
+  customers        Customer[]
+  shifts           Shift[]
+  transfers        Transfer[]
+  settings         Json? // feature flags, tax rates, etc.
+  modifiers        Modifier[]
+  categories       Category[]
+  tenantCurrencies TenantCurrency[] // Tenant-specific currency configurations
+  colors           Color[]
 }
 
 model Currency {
@@ -86,23 +86,23 @@ model User {
 }
 
 model Branch {
-    id               String             @id @default(cuid())
-    tenantId         String
-    name             String
-    address          String?
-    phone            String?
-    isDeleted        Boolean            @default(false) // Soft delete
-    tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    tables           Table[]
-    floors           Floor[] // Restaurant floor layouts
-    devices          POSDevice[]
-    inventory        Inventory[] // Inventory is tracked at the Branch level
-    orders           Order[]
-    shifts           Shift[]
-    inventoryHistory InventoryHistory[]
-    transfersFrom    Transfer[]         @relation("TransfersFrom")
-    transfersTo      Transfer[]         @relation("TransfersTo")
-    products         Product[]
+  id               String             @id @default(cuid())
+  tenantId         String
+  name             String
+  address          String?
+  phone            String?
+  isDeleted        Boolean            @default(false) // Soft delete
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tables           Table[]
+  floors           Floor[] // Restaurant floor layouts
+  devices          POSDevice[]
+  inventory        Inventory[] // Inventory is tracked at the Branch level
+  orders           Order[]
+  shifts           Shift[]
+  inventoryHistory InventoryHistory[]
+  transfersFrom    Transfer[]         @relation("TransfersFrom")
+  transfersTo      Transfer[]         @relation("TransfersTo")
+  products         Product[]
 }
 
 model POSDevice {
@@ -130,6 +130,20 @@ model Category {
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   products      Product[]
   subcategories Subcategory[]
+  colorId       String?
+  color         Color?        @relation(fields: [colorId], references: [id])
+}
+
+model Color {
+  id         String     @id @default(cuid())
+  name       String
+  hex        String
+  tenantId   String
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@unique([tenantId, hex])
+  @@unique([tenantId, name])
 }
 
 model Subcategory {
@@ -311,43 +325,43 @@ model RefundItem {
 // ---------- RESTAURANT MODULE (FLOORS & TABLES) ----------
 //
 model Floor {
-    id        String   @id @default(cuid())
-    tenantId  String
-    branchId  String
-    name      String
-    order     Int      @default(0) // For UI ordering
-    isDeleted Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String   @id @default(cuid())
+  tenantId  String
+  branchId  String
+  name      String
+  order     Int      @default(0) // For UI ordering
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    tables Table[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tables Table[]
 
-    @@index([branchId, isDeleted])
+  @@index([branchId, isDeleted])
 }
 
 model Table {
-    id          String      @id @default(cuid())
-    tableNumber Int
-    tenantId    String
-    branchId    String
-    floorId     String?     // Optional floor assignment
-    name        String
-    capacity    Int         @default(4)
-    status      TableStatus @default(AVAILABLE)
-    isActive    Boolean     @default(true)
-    isDeleted   Boolean     @default(false)
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  tableNumber Int
+  tenantId    String
+  branchId    String
+  floorId     String? // Optional floor assignment
+  name        String
+  capacity    Int         @default(4)
+  status      TableStatus @default(AVAILABLE)
+  isActive    Boolean     @default(true)
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-    tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
-    orders Order[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  orders Order[]
 
-    @@index([branchId, isDeleted])
-    @@index([floorId])
+  @@index([branchId, isDeleted])
+  @@index([floorId])
 }
 
 model ModifierGroup {
@@ -584,7 +598,7 @@ enum TransferStatus {
 }
 
 enum TableStatus {
-    AVAILABLE  // Table is free and ready for guests
-    OCCUPIED   // Table has active guests/order
-    RESERVED   // Table is reserved for upcoming guests
+  AVAILABLE // Table is free and ready for guests
+  OCCUPIED // Table has active guests/order
+  RESERVED // Table is reserved for upcoming guests
 }

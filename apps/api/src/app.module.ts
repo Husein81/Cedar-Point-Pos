@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { BranchesModule } from './modules/branches/branches.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
+import { ColorModule } from './modules/color/color.module.js';
 import { RolesGuard } from './modules/common/guards/roles.guard.js';
 import { CurrenciesModule } from './modules/currencies/currencies.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
@@ -35,6 +36,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     BranchesModule,
     CategoryModule,
+    ColorModule,
     CurrenciesModule,
     CustomersModule,
     DevicesModule,

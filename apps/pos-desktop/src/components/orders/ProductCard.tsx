@@ -7,6 +7,7 @@ import { cn, Icon, Shad } from "@repo/ui";
 import { useProductModifiers } from "@/hooks/useModifiers";
 import { formatPrice } from "./config";
 import { ModifierModal } from "./ModifierModal";
+import { Activity } from "react";
 
 type Props = {
   product: Product;
@@ -99,6 +100,8 @@ const ProductCard = ({ product }: Props) => {
     });
   };
 
+  console.log(product.category?.color?.hex);
+
   return (
     <Shad.Card
       onClick={handleAddItem}
@@ -149,19 +152,27 @@ const ProductCard = ({ product }: Props) => {
         </div>
 
         {/* OUT OF STOCK OVERLAY */}
-        {isOutOfStock && (
+        <Activity mode={isOutOfStock ? "visible" : "hidden"}>
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="px-3 py-1 text-xs font-semibold text-white bg-destructive rounded">
               OUT OF STOCK
             </span>
           </div>
-        )}
+        </Activity>
       </div>
-      <div className="h-[15%] px-2 flex items-center">
+      <div className="px-2 flex items-center">
         <p className="text-xs font-medium truncate leading-tight">
           {product.name}
         </p>
       </div>
+      <Activity mode={product.category?.color ? "visible" : "hidden"}>
+        <div
+          className="rounded-lg"
+          style={{
+            border: `2px solid ${product.category?.color?.hex || "transparent"}`,
+          }}
+        />
+      </Activity>
     </Shad.Card>
   );
 };

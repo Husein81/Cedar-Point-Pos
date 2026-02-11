@@ -102,9 +102,11 @@ function KitchenPage() {
           icon={"ChefHat"}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4">
           {filteredAndSortedOrders.map((order) => (
-            <KitchenCard key={order.id} order={order} />
+            <div key={order.id} className="break-inside-avoid mb-4">
+              <KitchenCard order={order} />
+            </div>
           ))}
         </div>
       )}

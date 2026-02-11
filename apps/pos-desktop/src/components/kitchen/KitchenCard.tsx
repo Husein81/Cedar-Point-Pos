@@ -1,6 +1,6 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
+import { Badge, Button, cn, Icon } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback } from "react";
 import {
@@ -30,10 +30,10 @@ const KitchenCard = ({ order }: Props) => {
     }
   }, [order.id, order.status, handleStatusChange]);
 
-  // Calculate refund info
+
   const isFullyRefunded = order.status === "FULLY_REFUNDED";
 
-  // Helper to check if an item has been refunded
+  
   const getItemRefundInfo = (itemId: string) => {
     const item = order.items?.find((i) => i.id === itemId);
     if (!item || !item.refundItems || item.refundItems.length === 0) {
@@ -55,7 +55,7 @@ const KitchenCard = ({ order }: Props) => {
     };
   };
 
-  // Get button status info
+
   const { nextStatus, buttonLabel } = getActionButtonStatus(order.status);
 
   return (
@@ -105,7 +105,7 @@ const KitchenCard = ({ order }: Props) => {
         )}
 
         {/* Items List */}
-        <Shad.ScrollArea className="max-h-48 space-y-2 [&>div>div]:pr-3">
+        <div className="space-y-2 [&>div>div]:pr-3">
           {order.items?.map((item) => {
             const refundInfo = getItemRefundInfo(item.id);
             return (
@@ -184,7 +184,7 @@ const KitchenCard = ({ order }: Props) => {
               </div>
             );
           })}
-        </Shad.ScrollArea>
+        </div>
       </div>
 
       {/* Footer Button */}

@@ -56,8 +56,8 @@ export const ProductGrid = () => {
     if (!products) return [];
 
     return products.filter((product) => {
-      // Only show active, non-deleted, non-ingredient products
-      if (!product.isActive || product.isDeleted || product.isIngredient) {
+      // Only show active and non-deleted products
+      if (!product.isActive || product.isDeleted) {
         return false;
       }
 
@@ -111,7 +111,7 @@ export const ProductGrid = () => {
 
     const categoryIdsWithProducts = new Set(
       products
-        .filter((p) => p.isActive && !p.isDeleted && !p.isIngredient)
+        .filter((p) => p.isActive && !p.isDeleted)
         .map((p) => p.categoryId)
         .filter(Boolean),
     );
@@ -135,10 +135,7 @@ export const ProductGrid = () => {
       products
         .filter(
           (p) =>
-            p.isActive &&
-            !p.isDeleted &&
-            !p.isIngredient &&
-            p.categoryId === selectedCategoryId,
+            p.isActive && !p.isDeleted && p.categoryId === selectedCategoryId,
         )
         .map((p) => p.subcategoryId)
         .filter(Boolean),

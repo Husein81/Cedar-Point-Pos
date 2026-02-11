@@ -56,6 +56,44 @@ export type OrderTab = {
   order: Order;
 };
 
+// Type for backend order response (from API)
+export type BackendOrder = {
+  id: string;
+  status: OrderStatus;
+  type?: OrderType;
+  items: Array<{
+    id: string;
+    productId: string;
+    quantity: number | string;
+    unitPrice: number | string;
+    notes?: string | null;
+    discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
+    product?: {
+      id: string;
+      name: string;
+      imageUrl?: string | null;
+    } | null;
+    modifiers?: Array<{
+      modifierId: string;
+      price: number | string;
+      modifier?: {
+        id: string;
+        name: string;
+      } | null;
+    }>;
+  }>;
+  discount?: number | null;
+  shippingFee?: number | string | null;
+  includeVAT?: boolean;
+  customerId?: string | null;
+  customer?: { name: string } | null;
+  tableId?: string | null;
+  table?: { name: string } | null;
+  notes?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+};
+
 // =====================
 // Helpers
 // =====================
@@ -162,6 +200,9 @@ interface OrderStoreState {
   getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
+
+  // Loading existing orders from backend
+  loadExistingOrder: (backendOrder: BackendOrder) => void;
 
   // Utility
   reset: () => void;
@@ -656,10 +697,34 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         if (!state.activeTabId) return;
 
+        // If selecting a table, check if another tab already has this table
+        // and copy its order (so tabs with the same table share the same order)
+        let orderToCopy: Order | null = null;
+        if (tableId) {
+          const existingTab = state.tabs.find(
+            (tab) => tab.id !== state.activeTabId && tab.order.tableId === tableId
+          );
+          if (existingTab) {
+            orderToCopy = existingTab.order;
+          }
+        }
+
         set({
           tabs: state.tabs.map((tab) => {
             if (tab.id !== state.activeTabId) return tab;
 
+            // If we found another tab with this table, copy its order
+            if (orderToCopy) {
+              return {
+                ...tab,
+                order: {
+                  ...orderToCopy,
+                  modifiedAt: new Date(),
+                },
+              };
+            }
+
+            // Otherwise just update the table reference
             return {
               ...tab,
               order: {
@@ -911,6 +976,54 @@ export const useOrderStore = create<OrderStoreState>()(
         set({
           tabs: [newTab],
           activeTabId: newTab.id,
+        });
+      },
+
+      /**
+       * Load an existing backend order into the active tab
+       * Converts backend order format to local order format
+       */
+      loadExistingOrder: (backendOrder: BackendOrder) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        const order: Order = {
+          id: backendOrder.id,
+          status: backendOrder.status as OrderStatus,
+          type: backendOrder.type as OrderType | undefined,
+          items: (backendOrder.items || []).map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            name: item.product?.name || "Unknown Product",
+            price: Number(item.unitPrice),
+            quantity: Number(item.quantity),
+            notes: item.notes || undefined,
+            imageUrl: item.product?.imageUrl || null,
+            modifiers: item.modifiers?.map((m) => ({
+              modifierId: m.modifierId,
+              name: m.modifier?.name || "Unknown Modifier",
+              price: Number(m.price),
+            })),
+            discount: item.discount as OrderItem["discount"],
+          })),
+          discount: backendOrder.discount
+            ? { type: "FIXED" as const, value: Number(backendOrder.discount) }
+            : null,
+          shippingFee: Number(backendOrder.shippingFee || 0),
+          includeVAT: backendOrder.includeVAT ?? false,
+          customerId: backendOrder.customerId ?? null,
+          customerName: backendOrder.customer?.name ?? null,
+          tableId: backendOrder.tableId ?? null,
+          tableName: backendOrder.table?.name ?? null,
+          notes: backendOrder.notes || "",
+          createdAt: new Date(backendOrder.createdAt),
+          modifiedAt: new Date(backendOrder.updatedAt || backendOrder.createdAt),
+        };
+
+        set({
+          tabs: state.tabs.map((tab) =>
+            tab.id === state.activeTabId ? { ...tab, order } : tab
+          ),
         });
       },
     }),

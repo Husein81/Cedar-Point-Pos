@@ -18,7 +18,7 @@ export class InventoryDeductionService {
   ) {}
   /**
    * Validate and deduct stock when order is COMPLETED
-   * Handles both direct products and recipe-based ingredient deduction
+   * Handles direct products deduction
    * Implements idempotency to prevent double-deduction
    *
    * ⚠️ IMPORTANT: This method ALLOWS negative stock for SALE transactions.
@@ -35,7 +35,7 @@ export class InventoryDeductionService {
     deductionsApplied: number;
     stockWarnings: StockWarningInfo[];
   }> {
-    // Get order with items and product details (including recipes for ingredient deduction)
+    // Get order with items and product details
     const order = await this.prisma.order.findFirst({
       where: {
         id: orderId,
@@ -47,8 +47,7 @@ export class InventoryDeductionService {
           include: {
             product: {
               include: {
-                recipesUsedIn: true,
-                inventory: true, // Include inventory to calculate ingredient deductions
+                inventory: true, // Include inventory to calculate deductions
               },
             },
           },
@@ -124,7 +123,7 @@ export class InventoryDeductionService {
     );
 
     this.logger.log(
-      `Stock deducted for order ${orderId}: ${deductions.length} products/ingredients`,
+      `Stock deducted for order ${orderId}: ${deductions.length} products`,
     );
 
     return {
@@ -136,7 +135,6 @@ export class InventoryDeductionService {
 
   /**
    * Calculate stock deductions from order items
-   * For products with recipes, calculate ingredient requirements
    */
   private calculateStockDeductions(
     orderItems: OrderItem[],
@@ -155,39 +153,17 @@ export class InventoryDeductionService {
         continue;
       }
 
-      // Check if product has recipes (is a finished product made from ingredients)
-      if (product?.recipesUsedIn && product?.recipesUsedIn.length > 0) {
-        // Recipe-based product: deduct ingredients
-        for (const recipe of product.recipesUsedIn) {
-          const ingredient = recipe.ingredient;
-          const ingredientId = String(recipe.ingredientId);
-          const requiredQty = Number(recipe.quantity) * orderQty;
-
-          const existing = deductions.get(ingredientId);
-          if (existing) {
-            existing.quantity += requiredQty;
-          } else {
-            deductions.set(ingredientId, {
-              productId: ingredientId,
-              productName: ingredient?.name ?? '',
-              quantity: requiredQty,
-              orderItemId: item.id,
-            });
-          }
-        }
+      // Simple product: deduct directly
+      const existing = deductions.get(String(product.id));
+      if (existing) {
+        existing.quantity += orderQty;
       } else {
-        // Simple product: deduct directly
-        const existing = deductions.get(String(product.id));
-        if (existing) {
-          existing.quantity += orderQty;
-        } else {
-          deductions.set(String(product.id), {
-            productId: String(product.id),
-            productName: String(product.name),
-            quantity: orderQty,
-            orderItemId: item.id,
-          });
-        }
+        deductions.set(String(product.id), {
+          productId: String(product.id),
+          productName: String(product.name),
+          quantity: orderQty,
+          orderItemId: item.id,
+        });
       }
     }
 
@@ -217,7 +193,6 @@ export class InventoryDeductionService {
             id: true,
             name: true,
             sku: true,
-            isIngredient: true,
           },
         },
       },
@@ -238,16 +213,12 @@ export class InventoryDeductionService {
           inventory?.product ||
           (await this.prisma.product.findUnique({
             where: { id: deduction.productId },
-            select: { name: true, isIngredient: true },
+            select: { name: true },
           }));
 
         insufficientStock.push({
           productId: String(deduction.productId),
           productName: String(product?.name),
-          ...(product?.isIngredient && {
-            ingredientId: String(deduction.productId),
-            ingredientName: String(product.name),
-          }),
           required: deduction.quantity,
           available,
         });
@@ -272,8 +243,6 @@ export class InventoryDeductionService {
     insufficientItems: Array<{
       productId: string;
       productName: string;
-      ingredientId?: string;
-      ingredientName?: string;
       required: number;
       available: number;
     }>;
@@ -292,7 +261,6 @@ export class InventoryDeductionService {
             id: true,
             name: true,
             sku: true,
-            isIngredient: true,
           },
         },
       },
@@ -305,8 +273,6 @@ export class InventoryDeductionService {
     const insufficientItems: Array<{
       productId: string;
       productName: string;
-      ingredientId?: string;
-      ingredientName?: string;
       required: number;
       available: number;
     }> = [];
@@ -320,16 +286,12 @@ export class InventoryDeductionService {
           inventory?.product ||
           (await this.prisma.product.findUnique({
             where: { id: deduction.productId },
-            select: { name: true, isIngredient: true },
+            select: { name: true },
           }));
 
         insufficientItems.push({
           productId: String(deduction.productId),
           productName: String(product?.name),
-          ...(product?.isIngredient && {
-            ingredientId: String(deduction.productId),
-            ingredientName: String(product.name),
-          }),
           required: deduction.quantity,
           available,
         });
@@ -427,25 +389,10 @@ export class InventoryDeductionService {
     branchId: string,
     items: Array<{ productId: string; quantity: number }>,
   ) {
-    // Get products with recipes
     const products = await this.prisma.product.findMany({
       where: {
         id: { in: items.map((i) => i.productId) },
         tenantId,
-      },
-      include: {
-        recipesUsedIn: {
-          include: {
-            ingredient: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                isIngredient: true,
-              },
-            },
-          },
-        },
       },
     });
 
@@ -456,10 +403,7 @@ export class InventoryDeductionService {
       productId: string;
       productName: string;
       sku: string | null;
-      isIngredient: boolean;
       quantity: number;
-      source: 'direct' | 'recipe';
-      fromProduct?: string;
     };
 
     const deductions = new Map<string, DeductionItem>();
@@ -470,42 +414,17 @@ export class InventoryDeductionService {
 
       const orderQty = item.quantity;
 
-      if (product.recipesUsedIn && product.recipesUsedIn.length > 0) {
-        // Recipe-based
-        for (const recipe of product.recipesUsedIn) {
-          const ingredientId = recipe.ingredientId;
-          const requiredQty = Number(recipe.quantity) * orderQty;
-
-          const existing = deductions.get(ingredientId);
-          if (existing) {
-            existing.quantity += requiredQty;
-          } else {
-            deductions.set(ingredientId, {
-              productId: ingredientId,
-              productName: recipe.ingredient.name,
-              sku: recipe.ingredient.sku,
-              isIngredient: true,
-              quantity: requiredQty,
-              source: 'recipe',
-              fromProduct: product.name,
-            });
-          }
-        }
+      // Direct deduction
+      const existing = deductions.get(product.id);
+      if (existing) {
+        existing.quantity += orderQty;
       } else {
-        // Direct deduction
-        const existing = deductions.get(product.id);
-        if (existing) {
-          existing.quantity += orderQty;
-        } else {
-          deductions.set(String(product.id), {
-            productId: String(product.id),
-            productName: String(product.name),
-            sku: String(product.sku),
-            isIngredient: product.isIngredient,
-            quantity: orderQty,
-            source: 'direct',
-          });
-        }
+        deductions.set(String(product.id), {
+          productId: String(product.id),
+          productName: String(product.name),
+          sku: String(product.sku),
+          quantity: orderQty,
+        });
       }
     }
 

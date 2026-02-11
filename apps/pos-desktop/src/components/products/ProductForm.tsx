@@ -79,7 +79,6 @@ export const ProductForm = ({ product }: Props) => {
       branchId: product?.branchId || "",
       imageUrl: product?.imageUrl || "",
       isActive: product?.isActive ?? true,
-      isIngredient: product?.isIngredient ?? false,
       isModifiable: product?.isModifiable ?? false,
     },
     onSubmit: async ({ value }) => {
@@ -118,7 +117,6 @@ export const ProductForm = ({ product }: Props) => {
           branchId: value.branchId || undefined,
           imageUrl: imageUrl || undefined,
           isActive: value.isActive,
-          isIngredient: value.isIngredient,
           isModifiable: value.isModifiable,
         };
 
@@ -435,10 +433,6 @@ export const ProductForm = ({ product }: Props) => {
       <div className="space-y-3">
         <form.Field name="isActive">
           {(field) => <SwitchField label="Is Active" field={field} />}
-        </form.Field>
-
-        <form.Field name="isIngredient">
-          {(field) => <SwitchField label="Is Ingredient" field={field} />}
         </form.Field>
 
         <form.Field name="isModifiable">

@@ -117,4 +117,10 @@ export const ordersApi = {
     const response = await api.post(`/orders/${id}/send-to-kitchen`);
     return response.data;
   },
+
+  // Get active (unpaid) order for a specific table
+  getActiveOrderByTableId: async (tableId: string): Promise<Order | null> => {
+    const response = await api.get(`/orders/table/${tableId}/active`);
+    return response.data;
+  },
 };

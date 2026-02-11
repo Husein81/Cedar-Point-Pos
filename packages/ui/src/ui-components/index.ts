@@ -11,5 +11,6 @@ export { default as Select } from "./select";
 export { default as SelectField } from "./select-field";
 export { default as SwitchField } from "./switch-field";
 export { default as TextareaField } from "./textarea-field";
+export { default as MultiSelectField } from "./multi-select-field";
 export { default as Pagination } from "./pagination";
 export { Tabs } from "./tabs";

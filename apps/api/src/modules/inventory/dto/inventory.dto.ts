@@ -37,6 +37,7 @@ export const ReferenceTypeSchema = z.enum([
   'REFUND',
   'TRANSFER',
   'ADJUSTMENT',
+  'PURCHASE_ORDER',
 ]);
 export type ReferenceType = z.infer<typeof ReferenceTypeSchema>;
 

@@ -5,6 +5,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { useModalStore } from "@/store/modalStore";
 import { TableSelectorModal } from "./TableSelectorModal";
 import type { TableWithFloor } from "@/dto/tables.dto";
+import { ordersApi } from "@/apis/ordersApi";
 
 // ============================================================================
 // TableSelector Component

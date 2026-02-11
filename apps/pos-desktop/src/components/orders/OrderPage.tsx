@@ -5,11 +5,12 @@ import { Separator, Button, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 type Props = {
   tableId?: string;
   tableName?: string;
+  orderType?: string;
   showBackToTables?: boolean;
   isLoadedOrder?: boolean;
 };
@@ -17,6 +18,7 @@ type Props = {
 export function OrderPage({
   tableId,
   tableName,
+  orderType: _orderType,
   showBackToTables,
   isLoadedOrder,
 }: Props) {
@@ -36,9 +38,18 @@ export function OrderPage({
     ? tableName
     : (order?.tableName ?? tableName);
 
-  useEffect(() => {
+  // Use useLayoutEffect to switch/create the table tab synchronously
+  // before the browser paints, preventing the stale-table flash.
+  const tableInitRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
     if (tableId && tableName) {
-      createTabWithTable(tableId, tableName);
+      // Only re-run if the target table actually changed
+      if (tableInitRef.current !== tableId) {
+        tableInitRef.current = tableId;
+        createTabWithTable(tableId, tableName);
+      }
+    } else {
+      tableInitRef.current = null;
     }
   }, [tableId, tableName, createTabWithTable]);
 

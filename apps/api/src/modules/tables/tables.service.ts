@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from './table-status.service.js';
-import type { TableStatus } from '../../generated/prisma/client.js';
+import { TableStatus } from '../../generated/prisma/client.js';
 import type {
   CreateTableDto,
   UpdateTableDto,
@@ -281,7 +281,8 @@ export class TablesService {
 
   /**
    * Update table status (AVAILABLE, OCCUPIED, RESERVED)
-   * Uses TableStatusService for proper validation and consistency
+   * Uses TableStatusService for proper validation and consistency.
+   * Guarded: blocks manual release to AVAILABLE if active orders exist.
    */
   async updateTableStatus(
     id: string,
@@ -290,6 +291,20 @@ export class TablesService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // Guard: block manual release to AVAILABLE if table has active orders
+        if (data.status === 'AVAILABLE') {
+          const hasActive = await this.tableStatusService.hasActiveOrders(
+            id,
+            tenantId,
+            tx,
+          );
+          if (hasActive) {
+            throw new BadRequestException(
+              'Cannot release table with active orders. Complete or cancel all orders first.',
+            );
+          }
+        }
+
         // Use TableStatusService for validation and update
         await this.tableStatusService.updateTableStatus(
           id,
@@ -304,6 +319,23 @@ export class TablesService {
     } catch (error) {
       this.handleError(error, 'update table status');
     }
+  }
+
+  /**
+   * Returns all active (non-terminal) orders for a given table.
+   * Used by the frontend when clicking an occupied table.
+   */
+  async getActiveOrdersByTable(tableId: string, tenantId: string) {
+    const table = await this.prisma.table.findFirst({
+      where: { id: tableId, tenantId, isDeleted: false },
+      select: { id: true },
+    });
+
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    return this.tableStatusService.getActiveOrdersForTable(tableId, tenantId);
   }
 
   async deleteTable(id: string, tenantId: string) {

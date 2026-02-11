@@ -21,7 +21,7 @@ export const ordersApi = {
 
   // Get all orders with filters
   getOrders: async (
-    filters?: OrderFilters
+    filters?: OrderFilters,
   ): Promise<PaginationResponse<Order>> => {
     const response = await api.get("/orders", { params: filters });
     return response.data;
@@ -36,7 +36,7 @@ export const ordersApi = {
   // Process single or batch payment for an order
   processPayment: async (
     id: string,
-    data: PaymentDto[] | PaymentDto | { payments: PaymentDto[] }
+    data: PaymentDto[] | PaymentDto | { payments: PaymentDto[] },
   ): Promise<Order> => {
     const response = await api.post(`/orders/${id}/payment`, data);
     return response.data;
@@ -45,7 +45,7 @@ export const ordersApi = {
   // Update order status
   updateOrderStatus: async (
     id: string,
-    data: UpdateOrderStatusDto
+    data: UpdateOrderStatusDto,
   ): Promise<Order> => {
     const response = await api.patch(`/orders/${id}/status`, data);
     return response.data;
@@ -54,7 +54,7 @@ export const ordersApi = {
   // Update order discount
   updateOrderDiscount: async (
     id: string,
-    data: UpdateOrderDiscountDto
+    data: UpdateOrderDiscountDto,
   ): Promise<Order> => {
     const response = await api.patch(`/orders/${id}/discount`, data);
     return response.data;
@@ -63,7 +63,7 @@ export const ordersApi = {
   // Assign table to order
   assignTableToOrder: async (
     id: string,
-    data: AssignTableDto
+    data: AssignTableDto,
   ): Promise<Order> => {
     const response = await api.patch(`/orders/${id}/table`, data);
     return response.data;
@@ -79,7 +79,7 @@ export const ordersApi = {
   updateItemQuantity: async (
     id: string,
     itemId: string,
-    data: UpdateQuantityDto
+    data: UpdateQuantityDto,
   ): Promise<Order> => {
     const response = await api.patch(`/orders/${id}/items/${itemId}`, data);
     return response.data;
@@ -95,11 +95,11 @@ export const ordersApi = {
   updateItemDiscount: async (
     id: string,
     itemId: string,
-    data: UpdateItemDiscountDto
+    data: UpdateItemDiscountDto,
   ): Promise<Order> => {
     const response = await api.patch(
       `/orders/${id}/items/${itemId}/discount`,
-      data
+      data,
     );
     return response.data;
   },
@@ -115,6 +115,30 @@ export const ordersApi = {
   // Send order to kitchen
   sendToKitchen: async (id: string): Promise<Order> => {
     const response = await api.post(`/orders/${id}/send-to-kitchen`);
+    return response.data;
+  },
+
+  // Transfer order to a different table (optionally merge into existing order)
+  transferOrderToTable: async (
+    id: string,
+    targetTableId: string,
+    mergeIntoOrderId?: string,
+  ): Promise<Order> => {
+    const response = await api.patch(`/orders/${id}/transfer-table`, {
+      targetTableId,
+      ...(mergeIntoOrderId ? { mergeIntoOrderId } : {}),
+    });
+    return response.data;
+  },
+
+  // Merge source order into target order (same table)
+  mergeOrders: async (
+    targetOrderId: string,
+    sourceOrderId: string,
+  ): Promise<Order> => {
+    const response = await api.post(`/orders/${targetOrderId}/merge`, {
+      sourceOrderId,
+    });
     return response.data;
   },
 };

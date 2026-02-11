@@ -149,15 +149,15 @@ export function TablesPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() =>
-              navigate({
-                to: "/orders",
-                search: { orderType: "takeaway" },
-              })
-            }
-          >
+            <Button
+              size="sm"
+              onClick={() =>
+                navigate({
+                  to: "/orders",
+                  search: { orderType: "dine_in" },
+                })
+              }
+            >
             <Icon name="Plus" className="h-4 w-4 mr-2" />
             New Order
           </Button>

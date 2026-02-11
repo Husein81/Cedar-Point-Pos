@@ -8,6 +8,7 @@ import React, { useCallback, useState } from "react";
 import { AlertDialog } from "../common";
 import { STATUS_OPTIONS, statusColors, TABLE_STATUS_CONFIG } from "./config";
 import { TableForm } from "./TableForm";
+import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
 
 interface TableCardProps {
   table: TableWithFloor;
@@ -23,6 +24,7 @@ export function TableCard({ table }: TableCardProps) {
 
   const updateStatusMutation = useUpdateTableStatus();
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isActiveOrdersOpen, setIsActiveOrdersOpen] = useState(false);
 
   const handleEditTable = (table: TableWithFloor) =>
     openModal("Edit Table", <TableForm table={table} />);
@@ -35,7 +37,13 @@ export function TableCard({ table }: TableCardProps) {
         return;
       }
 
-      // Navigate to orders page with table context
+      // If table is OCCUPIED, show active orders dialog instead of navigating
+      if (status === "OCCUPIED") {
+        setIsActiveOrdersOpen(true);
+        return;
+      }
+
+      // Navigate to orders page with table context (AVAILABLE or RESERVED tables)
       navigate({
         to: "/orders",
         search: {
@@ -46,7 +54,7 @@ export function TableCard({ table }: TableCardProps) {
         },
       });
     },
-    [navigate, table.id, table.name, table.floor],
+    [navigate, table.id, table.name, table.floor, status],
   );
 
   const handleStatusChange = useCallback(
@@ -181,6 +189,13 @@ export function TableCard({ table }: TableCardProps) {
           )}
         </div>
       </Shad.CardContent>
+
+      {/* Active Orders Dialog — shown when clicking an occupied table */}
+      <TableActiveOrdersDialog
+        table={table}
+        open={isActiveOrdersOpen}
+        onOpenChange={setIsActiveOrdersOpen}
+      />
     </Shad.Card>
   );
 }

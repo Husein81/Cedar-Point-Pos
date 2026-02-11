@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -123,6 +124,20 @@ export class OrdersService {
       ].includes(type)
     ) {
       throw new BadRequestException('Invalid order type for restaurant');
+    }
+
+    // Enforce one active order per table for dine-in
+    if (tableId && type === OrderType.DINE_IN) {
+      const existingActive = await this.tableStatusService.hasActiveOrders(
+        tableId,
+        tenantId,
+      );
+      if (existingActive) {
+        throw new ConflictException({
+          message: 'This table already has an active order',
+          code: 'TABLE_HAS_ACTIVE_ORDER',
+        });
+      }
     }
 
     const orderNumber = `${new Date().getFullYear()}-${String(orderCount + 1).padStart(5, '0')}`;
@@ -1205,32 +1220,550 @@ export class OrdersService {
   }
 
   async assignTableToOrder(tenantId: string, orderId: string, tableId: string) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, tenantId },
-      select: { status: true, type: true },
-    });
-    if (!order) throw new NotFoundException('Order not found');
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: { status: true, type: true, tableId: true },
+      });
+      if (!order) throw new NotFoundException('Order not found');
 
-    // Verify table exists and belongs to the tenant
-    const table = await this.prisma.table.findFirst({
-      where: { id: tableId, tenantId, isDeleted: false },
-    });
-    if (!table) throw new NotFoundException('Table not found');
+      const oldTableId = order.tableId;
 
-    // Update the order with the table
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { tableId },
+      // Verify new table exists
+      const table = await tx.table.findFirst({
+        where: { id: tableId, tenantId, isDeleted: false },
+      });
+      if (!table) throw new NotFoundException('Table not found');
+
+      // Guard: block assign if table already has active orders (one-order-per-table)
+      if (tableId !== oldTableId) {
+        const activeOrders = await this.getActiveOrdersOnTable(
+          tableId,
+          tenantId,
+          tx,
+        );
+        if (activeOrders.length > 0) {
+          throw new ConflictException({
+            code: 'TABLE_HAS_ACTIVE_ORDER',
+            tableId,
+            activeOrderIds: activeOrders.map((o) => o.id),
+            message:
+              'This table already has an active order. Transfer and merge instead.',
+          });
+        }
+      }
+
+      // Update the order with the new table
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { tableId },
+        include: {
+          table: true,
+          items: { include: { product: true } },
+        },
+      });
+
+      // Mark new table as occupied
+      await this.tableStatusService.markTableOccupiedIfNeeded(
+        tableId,
+        tenantId,
+        tx,
+      );
+
+      // Release old table if it was different and has no remaining active orders
+      if (oldTableId && oldTableId !== tableId) {
+        await this.tableStatusService.markTableAvailableIfPossible(
+          oldTableId,
+          orderId,
+          tenantId,
+          tx,
+        );
+      }
+
+      return updated;
+    });
+  }
+
+  /**
+   * Transfer an order from its current table to a different table.
+   * If the target table has active orders and mergeIntoOrderId is provided,
+   * atomically: transfer + merge in one transaction.
+   * If the target has active orders and no mergeIntoOrderId, throw ConflictException.
+   */
+  async transferOrderToTable(
+    tenantId: string,
+    orderId: string,
+    targetTableId: string,
+    mergeIntoOrderId?: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: { id: true, status: true, tableId: true },
+      });
+      if (!order) throw new NotFoundException('Order not found');
+
+      if (!order.tableId) {
+        throw new BadRequestException(
+          'Order is not assigned to any table. Use assign-table instead.',
+        );
+      }
+
+      if (order.tableId === targetTableId) {
+        throw new BadRequestException('Order is already on this table');
+      }
+
+      // Verify target table exists
+      await this.tableStatusService.validateTableForOrder(
+        targetTableId,
+        tenantId,
+        tx,
+      );
+
+      // Check if target table has active orders
+      const targetActiveOrders = await this.getActiveOrdersOnTable(
+        targetTableId,
+        tenantId,
+        tx,
+      );
+      const targetActiveOrderIds = targetActiveOrders.map((o) => o.id);
+
+      if (targetActiveOrders.length > 0 && !mergeIntoOrderId) {
+        throw new ConflictException({
+          code: 'TABLE_HAS_ACTIVE_ORDER',
+          tableId: targetTableId,
+          activeOrderIds: targetActiveOrderIds,
+          message:
+            'Target table has active orders. Provide mergeIntoOrderId to merge.',
+        });
+      }
+      if (targetActiveOrders.length === 0 && mergeIntoOrderId) {
+        throw new BadRequestException(
+          'mergeIntoOrderId was provided but target table has no active orders',
+        );
+      }
+      if (
+        targetActiveOrders.length > 0 &&
+        mergeIntoOrderId &&
+        !targetActiveOrderIds.includes(mergeIntoOrderId)
+      ) {
+        throw new BadRequestException(
+          'mergeIntoOrderId is not an active order on the target table',
+        );
+      }
+
+      const sourceTableId = order.tableId;
+
+      // Move the order to target table
+      await tx.order.update({
+        where: { id: orderId },
+        data: { tableId: targetTableId },
+      });
+
+      // Mark target table as occupied
+      await this.tableStatusService.markTableOccupiedIfNeeded(
+        targetTableId,
+        tenantId,
+        tx,
+      );
+
+      // If mergeIntoOrderId provided, merge within the same transaction
+      if (mergeIntoOrderId) {
+        const merged = await this.mergeOrdersInTx(
+          tx,
+          tenantId,
+          mergeIntoOrderId,
+          orderId,
+        );
+
+        await this.tableStatusService.markTableAvailableIfPossible(
+          sourceTableId,
+          orderId,
+          tenantId,
+          tx,
+        );
+
+        return merged;
+      }
+
+      // Release source table if no more active orders
+      await this.tableStatusService.markTableAvailableIfPossible(
+        sourceTableId,
+        orderId,
+        tenantId,
+        tx,
+      );
+
+      // Return the transferred order
+      return tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          table: true,
+          items: {
+            include: {
+              product: true,
+              modifiers: { include: { modifier: true } },
+            },
+          },
+          payments: true,
+          customer: true,
+        },
+      });
+    });
+  }
+
+  /**
+   * Merge a source order into a target order on the same table.
+   * Moves all items from source → target, then cancels source.
+   * Both orders must be on the same table and in an editable status.
+   */
+  async mergeOrders(
+    tenantId: string,
+    targetOrderId: string,
+    sourceOrderId: string,
+  ) {
+    if (targetOrderId === sourceOrderId) {
+      throw new BadRequestException('Cannot merge an order with itself');
+    }
+
+    const MERGEABLE_STATUSES = new Set<string>([
+      OrderStatus.DRAFT,
+      OrderStatus.CONFIRMED,
+      OrderStatus.SENT_TO_KITCHEN,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.PENDING,
+      OrderStatus.READY,
+      OrderStatus.PAID,
+      OrderStatus.PARTIALLY_PAID,
+    ]);
+
+    return this.prisma.$transaction(async (tx) => {
+      const [target, source] = await Promise.all([
+        tx.order.findFirst({
+          where: { id: targetOrderId, tenantId },
+          select: {
+            id: true,
+            status: true,
+            tableId: true,
+            branchId: true,
+            tenant: { select: { businessType: true } },
+          },
+        }),
+        tx.order.findFirst({
+          where: { id: sourceOrderId, tenantId },
+          include: {
+            items: {
+              include: {
+                modifiers: true,
+                tickets: true,
+              },
+            },
+            payments: true,
+          },
+        }),
+      ]);
+
+      if (!target) throw new NotFoundException('Target order not found');
+      if (!source) throw new NotFoundException('Source order not found');
+
+      if (target.tenant.businessType !== BusinessType.RESTAURANT) {
+        throw new BadRequestException(
+          'Order merging is only available for restaurant orders',
+        );
+      }
+
+      if (!MERGEABLE_STATUSES.has(target.status)) {
+        throw new BadRequestException(
+          `Target order status "${target.status}" does not allow merging`,
+        );
+      }
+
+      if (!MERGEABLE_STATUSES.has(source.status)) {
+        throw new BadRequestException(
+          `Source order status "${source.status}" does not allow merging`,
+        );
+      }
+
+      if (!target.tableId || !source.tableId) {
+        throw new BadRequestException(
+          'Both orders must be assigned to a table to merge',
+        );
+      }
+
+      if (target.tableId !== source.tableId) {
+        throw new BadRequestException(
+          'Both orders must be on the same table to merge',
+        );
+      }
+
+      // Move all items from source to target
+      await tx.orderItem.updateMany({
+        where: { orderId: sourceOrderId },
+        data: { orderId: targetOrderId },
+      });
+
+      // Move any payments from source to target
+      if (source.payments.length > 0) {
+        await tx.payment.updateMany({
+          where: { orderId: sourceOrderId },
+          data: { orderId: targetOrderId },
+        });
+      }
+
+      // Cancel the source order (now empty)
+      await tx.order.update({
+        where: { id: sourceOrderId },
+        data: { status: OrderStatus.CANCELLED },
+      });
+
+      // Recalculate target order totals
+      // (inline to use tx)
+      const allItems = await tx.orderItem.findMany({
+        where: { orderId: targetOrderId },
+        select: { subtotal: true },
+      });
+
+      const subtotal = this.round(
+        allItems.reduce((s, i) => s + Number(i.subtotal), 0),
+      );
+
+      const targetFull = await tx.order.findUnique({
+        where: { id: targetOrderId },
+        select: {
+          discount: true,
+          shippingFee: true,
+          includeVAT: true,
+          payments: { select: { amount: true } },
+        },
+      });
+
+      const discount = Number(targetFull?.discount || 0);
+      const shippingFee = Number(targetFull?.shippingFee || 0);
+      const includeVAT = Boolean(targetFull?.includeVAT);
+      const afterDiscount = this.round(
+        Math.max(0, subtotal - discount + shippingFee),
+      );
+      const vat = includeVAT ? this.round(afterDiscount * VAT_RATE) : 0;
+      const total = this.round(afterDiscount + vat);
+
+      // Re-evaluate paid status
+      const paid = this.money(
+        (targetFull?.payments || []).reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        ),
+      );
+      const remaining = this.money(Math.max(0, total - paid));
+
+      let newStatus: OrderStatus | undefined;
+      if (paid > 0) {
+        newStatus =
+          remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
+      }
+
+      await tx.order.update({
+        where: { id: targetOrderId },
+        data: {
+          subtotal,
+          total,
+          vat,
+          ...(newStatus && { status: newStatus }),
+        },
+      });
+
+      // Return the merged target order
+      return tx.order.findUnique({
+        where: { id: targetOrderId },
+        include: {
+          items: {
+            include: {
+              product: true,
+              modifiers: { include: { modifier: true } },
+            },
+          },
+          payments: true,
+          customer: true,
+          table: true,
+        },
+      });
+    });
+  }
+
+  // ---- Private helpers for transfer+merge ----
+
+  private readonly ACTIVE_ORDER_STATUSES = [
+    OrderStatus.DRAFT,
+    OrderStatus.PENDING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.IN_PROGRESS,
+    OrderStatus.SENT_TO_KITCHEN,
+    OrderStatus.READY,
+  ];
+
+  /**
+   * Get active (non-terminal) orders on a table within a transaction.
+   */
+  private async getActiveOrdersOnTable(
+    tableId: string,
+    tenantId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.order.findMany({
+      where: {
+        tableId,
+        tenantId,
+        status: { in: this.ACTIVE_ORDER_STATUSES },
+      },
+      select: { id: true, status: true, orderNumber: true },
+    });
+  }
+
+  /**
+   * Merge logic extracted so it can run inside an existing transaction (for atomic transfer+merge).
+   */
+  private async mergeOrdersInTx(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    targetOrderId: string,
+    sourceOrderId: string,
+  ) {
+    const MERGEABLE_STATUSES = new Set<string>([
+      OrderStatus.DRAFT,
+      OrderStatus.CONFIRMED,
+      OrderStatus.SENT_TO_KITCHEN,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.PENDING,
+      OrderStatus.READY,
+      OrderStatus.PAID,
+      OrderStatus.PARTIALLY_PAID,
+    ]);
+
+    const [target, source] = await Promise.all([
+      tx.order.findFirst({
+        where: { id: targetOrderId, tenantId },
+        select: {
+          id: true,
+          status: true,
+          tableId: true,
+          branchId: true,
+          tenant: { select: { businessType: true } },
+        },
+      }),
+      tx.order.findFirst({
+        where: { id: sourceOrderId, tenantId },
+        include: {
+          items: { include: { modifiers: true, tickets: true } },
+          payments: true,
+        },
+      }),
+    ]);
+
+    if (!target) throw new NotFoundException('Target order not found');
+    if (!source) throw new NotFoundException('Source order not found');
+
+    if (target.tenant.businessType !== BusinessType.RESTAURANT) {
+      throw new BadRequestException(
+        'Order merging is only available for restaurant orders',
+      );
+    }
+
+    if (!MERGEABLE_STATUSES.has(target.status)) {
+      throw new BadRequestException(
+        `Target order status "${target.status}" does not allow merging`,
+      );
+    }
+    if (!MERGEABLE_STATUSES.has(source.status)) {
+      throw new BadRequestException(
+        `Source order status "${source.status}" does not allow merging`,
+      );
+    }
+
+    if (!target.tableId || !source.tableId) {
+      throw new BadRequestException(
+        'Both orders must be assigned to a table to merge',
+      );
+    }
+    if (target.tableId !== source.tableId) {
+      throw new BadRequestException(
+        'Both orders must be on the same table to merge',
+      );
+    }
+
+    // Move items + payments, cancel source
+    await tx.orderItem.updateMany({
+      where: { orderId: sourceOrderId },
+      data: { orderId: targetOrderId },
+    });
+    if (source.payments.length > 0) {
+      await tx.payment.updateMany({
+        where: { orderId: sourceOrderId },
+        data: { orderId: targetOrderId },
+      });
+    }
+    await tx.order.update({
+      where: { id: sourceOrderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    // Recalculate totals
+    const allItems = await tx.orderItem.findMany({
+      where: { orderId: targetOrderId },
+      select: { subtotal: true },
+    });
+    const subtotal = this.round(
+      allItems.reduce((s, i) => s + Number(i.subtotal), 0),
+    );
+    const targetFull = await tx.order.findUnique({
+      where: { id: targetOrderId },
+      select: {
+        discount: true,
+        shippingFee: true,
+        includeVAT: true,
+        payments: { select: { amount: true } },
+      },
+    });
+    const discount = Number(targetFull?.discount || 0);
+    const shippingFee = Number(targetFull?.shippingFee || 0);
+    const includeVAT = Boolean(targetFull?.includeVAT);
+    const afterDiscount = this.round(
+      Math.max(0, subtotal - discount + shippingFee),
+    );
+    const vat = includeVAT ? this.round(afterDiscount * VAT_RATE) : 0;
+    const total = this.round(afterDiscount + vat);
+
+    const paid = this.money(
+      (targetFull?.payments || []).reduce(
+        (sum, p) => sum + Number(p.amount),
+        0,
+      ),
+    );
+    const remaining = this.money(Math.max(0, total - paid));
+    let newStatus: OrderStatus | undefined;
+    if (paid > 0) {
+      newStatus = remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
+    }
+
+    await tx.order.update({
+      where: { id: targetOrderId },
+      data: { subtotal, total, vat, ...(newStatus && { status: newStatus }) },
+    });
+
+    return tx.order.findUnique({
+      where: { id: targetOrderId },
       include: {
-        table: true,
         items: {
           include: {
             product: true,
+            modifiers: { include: { modifier: true } },
           },
         },
+        payments: true,
+        customer: true,
+        table: true,
       },
     });
   }
+
   /* ----------------------------------------------------
      TOTALS
   ---------------------------------------------------- */

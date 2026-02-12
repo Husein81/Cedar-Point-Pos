@@ -25,6 +25,7 @@ function OrderPageComponent() {
     businessType === "RESTAURANT" &&
     !search.tableId &&
     search.orderType !== "takeaway" &&
+    search.orderType !== "dine_in" &&
     search.orderType !== "loaded"
   ) {
     return <Navigate to="/tables" />;
@@ -35,14 +36,16 @@ function OrderPageComponent() {
   const showBackToTables =
     businessType === "RESTAURANT" &&
     !search.tableId &&
-    (search.orderType === "takeaway" || isLoaded);
+    (search.orderType === "takeaway" ||
+      search.orderType === "dine_in" ||
+      isLoaded);
 
   return (
-    <OrderPage
-      tableId={search.tableId}
-      tableName={search.tableName}
-      showBackToTables={showBackToTables}
-      isLoadedOrder={isLoaded}
-    />
+      <OrderPage
+        tableId={search.tableId}
+        tableName={search.tableName}
+        showBackToTables={showBackToTables}
+        isLoadedOrder={isLoaded}
+      />
   );
 }

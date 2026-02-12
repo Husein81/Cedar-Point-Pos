@@ -1,6 +1,6 @@
 import type { TableWithFloor } from "@/dto/tables.dto";
 import { useActiveOrdersByTable } from "@/hooks/useTable";
-import { cn } from "@repo/ui";
+import { Button, cn } from "@repo/ui";
 import { MiniOrderInfo } from "./MiniOrderInfo";
 
 type TransferMergeViewProps = {
@@ -43,8 +43,9 @@ export function TransferMergeView({
         your transferred order into:
       </p>
       {targetOrders.map((order) => (
-        <button
+        <Button
           key={order.id}
+          variant="outline"
           onClick={() => onMerge(order.id)}
           disabled={isPending}
           className={cn(
@@ -53,7 +54,7 @@ export function TransferMergeView({
           )}
         >
           <MiniOrderInfo order={order} />
-        </button>
+        </Button>
       ))}
     </div>
   );

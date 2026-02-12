@@ -383,32 +383,29 @@ export const InlineKeypad = () => {
      Input Handlers (UI behavior preserved)
   --------------------------------------------- */
 
-  const handleDigit = useCallback(
-    (digit: number) => {
-      setValue((prev) => {
-        const next =
-          mode !== "APPEND"
+  const handleDigit = (digit: number) => {
+    setValue((prev) => {
+      const next =
+        mode !== "APPEND"
+          ? String(digit)
+          : prev === "0"
             ? String(digit)
-            : prev === "0"
-              ? String(digit)
-              : prev + digit;
+            : prev + digit;
 
-        if (
-          config.decimals > 0 &&
-          next.includes(".") &&
-          next.split(".")[1]!.length > config.decimals
-        ) {
-          return prev;
-        }
+      if (
+        config.decimals > 0 &&
+        next.includes(".") &&
+        next.split(".")[1]!.length > config.decimals
+      ) {
+        return prev;
+      }
 
-        setMode("APPEND");
-        return next;
-      });
-    },
-    [config.decimals, mode],
-  );
+      setMode("APPEND");
+      return next;
+    });
+  };
 
-  const handleBackspace = useCallback(() => {
+  const handleBackspace = () => {
     setValue((prev) => {
       if (!prev.length) {
         setMode("IDLE");
@@ -424,9 +421,9 @@ export const InlineKeypad = () => {
       setMode("APPEND");
       return next;
     });
-  }, [config.allowZero, config.minValue]);
+  };
 
-  const handleDecimal = useCallback(() => {
+  const handleDecimal = () => {
     if (config.decimals === 0) return;
 
     setValue((prev) => {
@@ -436,21 +433,18 @@ export const InlineKeypad = () => {
       }
       return prev.includes(".") ? prev : prev + ".";
     });
-  }, [config.decimals, mode]);
+  };
 
-  const handleContextSwitch = useCallback(
-    (next: KeypadContext) => {
-      if (next === safeContext) {
-        clearEntry();
-        return;
-      }
-      setMode("REPLACE");
-      switchContext(next);
-    },
-    [clearEntry, safeContext, switchContext],
-  );
+  const handleContextSwitch = (next: KeypadContext) => {
+    if (next === safeContext) {
+      clearEntry();
+      return;
+    }
+    setMode("REPLACE");
+    switchContext(next);
+  };
 
-  const handleDifferent = useCallback(() => {
+  const handleDifferent = () => {
     if (safeContext !== "PRICE_OVERRIDE") return;
 
     const base = parse(String(currentValue || 0));
@@ -458,7 +452,7 @@ export const InlineKeypad = () => {
     setDiffBaseValue(base);
     setMode("REPLACE");
     setValue("0");
-  }, [currentValue, parse, safeContext]);
+  };
 
   /* ---------------------------------------------
      Payment + Confirm Flows
@@ -601,7 +595,7 @@ export const InlineKeypad = () => {
     );
   };
 
-  const handleConfirmWithoutPayment = useCallback(async () => {
+  const handleConfirmWithoutPayment = async () => {
     await withPaymentLock(async () => {
       if (isProcessing || !order?.items?.length || total <= 0) return;
       if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
@@ -648,26 +642,7 @@ export const InlineKeypad = () => {
         setIsPaymentProcessing(false);
       }
     });
-  }, [
-    activeTabId,
-    branchId,
-    buildOrderDto,
-    clearOrder,
-    closeKeypad,
-    closeModal,
-    closeTab,
-    createOrder,
-    getActiveOrder,
-    getOrCreateOrderId,
-    isProcessing,
-    order?.items?.length,
-    setOrderStatus,
-    total,
-    updateOrderStatus,
-    user?.tenant?.businessType,
-    user?.tenantId,
-    withPaymentLock,
-  ]);
+  };
 
   /* ---------------------------------------------
      Send to Kitchen (restaurant only)
@@ -676,7 +651,7 @@ export const InlineKeypad = () => {
   const unsentItems = getUnsentItems();
   const hasUnsentItems = unsentItems.length > 0;
 
-  const handleSendToKitchen = useCallback(async () => {
+  const handleSendToKitchen = async () => {
     if (isSendingToKitchen || isPaymentProcessing) return;
     if (!order?.items?.length) return;
 
@@ -752,26 +727,7 @@ export const InlineKeypad = () => {
     } finally {
       setIsSendingToKitchen(false);
     }
-  }, [
-    addItemToOrder,
-    branchId,
-    buildOrderDto,
-    createOrder,
-    getActiveOrder,
-    getOrCreateOrderId,
-    hasUnsentItems,
-    isLoadedOrder,
-    isPaymentProcessing,
-    isSendingToKitchen,
-    markItemsSentToKitchen,
-    order?.customerId,
-    order?.customerAddress,
-    order?.items?.length,
-    order?.type,
-    sendToKitchen,
-    setOrderStatus,
-    user?.tenantId,
-  ]);
+  };
 
   /* ---------------------------------------------
      Render
@@ -808,46 +764,42 @@ export const InlineKeypad = () => {
     return null;
   }, [safeContext, isDiscountContext, resolveDiscountMode, itemId]);
 
-  const openDiscountForItem = useCallback(
-    (discountContext: KeypadContext) => {
-      if (!itemId) return;
+  const openDiscountForItem = (discountContext: KeypadContext) => {
+    if (!itemId) return;
 
-      const item = order?.items.find((i) => i.id === itemId);
-      if (!item) return;
+    const item = order?.items.find((i) => i.id === itemId);
+    if (!item) return;
 
-      closeModal();
-      handleContextSwitch(discountContext as Exclude<KeypadContext, undefined>);
-    },
-    [itemId, order?.items, closeModal, handleContextSwitch],
-  );
+    closeModal();
+    handleContextSwitch(discountContext as Exclude<KeypadContext, undefined>);
+  };
 
-  const openDiscountForOrder = useCallback(
-    (discountContext: "DISCOUNT_PERCENT" | "DISCOUNT_FIXED") => {
-      const currentDiscount = order?.discount;
-      const discountValue = currentDiscount?.value ?? 0;
-      const discountTypeValue =
-        discountContext === "DISCOUNT_PERCENT" ? "PERCENTAGE" : "FIXED";
+  const openDiscountForOrder = (
+    discountContext: "DISCOUNT_PERCENT" | "DISCOUNT_FIXED",
+  ) => {
+    const currentDiscount = order?.discount;
+    const discountValue = currentDiscount?.value ?? 0;
+    const discountTypeValue =
+      discountContext === "DISCOUNT_PERCENT" ? "PERCENTAGE" : "FIXED";
 
-      closeModal();
-      closeKeypad();
+    closeModal();
+    closeKeypad();
 
-      const openKp = useKeypadStore.getState().openKeypad;
-      openKp({
-        context: discountContext,
-        currentValue: discountValue,
-        discountType: discountTypeValue,
-        onConfirm: () => {},
-        onDiscountChange: (value, type) => {
-          setDiscount({ value, type });
-        },
-        maxValueOverride:
-          discountContext === "DISCOUNT_FIXED" ? subtotal : undefined,
-      });
-    },
-    [order?.discount, closeModal, closeKeypad, setDiscount, subtotal],
-  );
+    const openKp = useKeypadStore.getState().openKeypad;
+    openKp({
+      context: discountContext,
+      currentValue: discountValue,
+      discountType: discountTypeValue,
+      onConfirm: () => {},
+      onDiscountChange: (value, type) => {
+        setDiscount({ value, type });
+      },
+      maxValueOverride:
+        discountContext === "DISCOUNT_FIXED" ? subtotal : undefined,
+    });
+  };
 
-  const handleDiscountIntent = useCallback(() => {
+  const handleDiscountIntent = () => {
     if (isDiscountContext) {
       clearEntry();
       return;
@@ -908,19 +860,12 @@ export const InlineKeypad = () => {
       </div>,
       "Choose discount type and scope.",
     );
-  }, [
-    isDiscountContext,
-    clearEntry,
-    itemId,
-    openModal,
-    openDiscountForItem,
-    openDiscountForOrder,
-  ]);
+  };
 
-  const handleDollarButton = useCallback(() => {
+  const handleDollarButton = () => {
     if (!itemId) return;
     handleContextSwitch("PRICE_OVERRIDE");
-  }, [itemId, handleContextSwitch]);
+  };
 
   const dollarContext: KeypadContext | "NULL" = "PRICE_OVERRIDE";
 

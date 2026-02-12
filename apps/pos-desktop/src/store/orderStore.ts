@@ -894,6 +894,16 @@ export const useOrderStore = create<OrderStoreState>()(
             : undefined,
         }));
 
+        const resolvedTableId = serverOrder.tableId || null;
+        const tableNameFromPayload =
+          serverOrder.table && typeof serverOrder.table.name === "string"
+            ? serverOrder.table.name
+            : null;
+        const tableNameFromExistingTab = existingTab?.order.tableName ?? null;
+        const resolvedTableName = resolvedTableId
+          ? (tableNameFromPayload ?? tableNameFromExistingTab ?? null)
+          : null;
+
         const hydratedOrder: Order = {
           id: serverOrder.id,
           status: serverOrder.status as OrderStatus,
@@ -914,8 +924,8 @@ export const useOrderStore = create<OrderStoreState>()(
           customerId: serverOrder.customerId || null,
           customerName: serverOrder.customer?.name || null,
           customerAddress: serverOrder.customer?.address || null,
-          tableId: serverOrder.tableId || null,
-          tableName: serverOrder.table?.name || null,
+          tableId: resolvedTableId,
+          tableName: resolvedTableName,
           notes: "",
           createdAt: new Date(serverOrder.createdAt),
           modifiedAt: new Date(),

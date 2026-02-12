@@ -114,12 +114,12 @@ export function OngoingOrdersList({ className }: Props) {
       const tabId = loadOrder(order);
       if (tabId) {
         const tableId = order.tableId || order.table?.id;
-        const tableName = order.table?.name;
+        const tableName = order.table?.name ?? null;
         navigate({
           to: "/orders",
           search: {
             tableId: tableId || undefined,
-            tableName: tableName || undefined,
+            ...(tableName ? { tableName } : {}),
             // If no table, mark as loaded so the route guard won't redirect
             orderType: tableId ? undefined : "loaded",
           },

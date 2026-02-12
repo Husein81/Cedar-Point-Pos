@@ -72,17 +72,17 @@ export function TableActiveOrdersDialog({
     (order: Order) => {
       const tabId = loadOrder(order);
       if (tabId) {
+        const tableId = order.tableId || table.id;
         handleOpenChange(false);
         navigate({
           to: "/orders",
           search: {
-            tableId: table.id,
-            tableName,
+            tableId: tableId || undefined,
           },
         });
       }
     },
-    [loadOrder, navigate, table.id, tableName, handleOpenChange],
+    [loadOrder, navigate, table.id, handleOpenChange],
   );
 
   // Create a new order on this table
@@ -331,13 +331,14 @@ export function TableActiveOrdersDialog({
                     Select the order that will <strong>keep</strong> all items:
                   </p>
                   {activeOrders.map((order) => (
-                    <button
+                    <Button
                       key={order.id}
+                      variant="outline"
                       onClick={() => setMergeTargetId(order.id)}
                       className="w-full rounded-lg border p-3 hover:bg-accent transition-colors text-left"
                     >
                       <MiniOrderInfo order={order} />
-                    </button>
+                    </Button>
                   ))}
                 </>
               ) : (
@@ -349,8 +350,9 @@ export function TableActiveOrdersDialog({
                   {activeOrders
                     .filter((o) => o.id !== mergeTargetId)
                     .map((order) => (
-                      <button
+                      <Button
                         key={order.id}
+                        variant="outline"
                         onClick={() => handleMerge(order.id)}
                         disabled={mergeMutation.isPending}
                         className={cn(
@@ -359,7 +361,7 @@ export function TableActiveOrdersDialog({
                         )}
                       >
                         <MiniOrderInfo order={order} />
-                      </button>
+                      </Button>
                     ))}
                 </>
               )}

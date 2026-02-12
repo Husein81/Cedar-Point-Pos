@@ -264,13 +264,16 @@ export class TableStatusService {
       include: {
         items: {
           include: {
-            product: {
-              select: { id: true, name: true },
+            product: true,
+            modifiers: {
+              include: { modifier: true },
             },
+            refundItems: true,
           },
         },
         customer: { select: { id: true, name: true } },
         payments: { select: { amount: true } },
+        table: true,
       },
       orderBy: { createdAt: 'desc' },
     });

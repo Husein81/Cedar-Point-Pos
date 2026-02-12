@@ -389,6 +389,7 @@ export class OrdersService {
           },
           payments: true,
           customer: true,
+          table: true,
           refunds: true,
         },
       }),

@@ -34,9 +34,7 @@ export function OrderPage({
   const activeTableId = showBackToTables
     ? tableId
     : (order?.tableId ?? tableId);
-  const activeTableName = showBackToTables
-    ? tableName
-    : (order?.tableName ?? tableName);
+  const activeTableName = order?.tableName ?? null;
 
   // Use useLayoutEffect to switch/create the table tab synchronously
   // before the browser paints, preventing the stale-table flash.

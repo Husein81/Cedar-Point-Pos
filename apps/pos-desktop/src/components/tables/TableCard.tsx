@@ -29,33 +29,30 @@ export function TableCard({ table }: TableCardProps) {
   const handleEditTable = (table: TableWithFloor) =>
     openModal("Edit Table", <TableForm table={table} />);
 
-  const handleCardClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Don't navigate if clicking on action buttons or dropdown
-      const target = e.target as HTMLElement;
-      if (target.closest("button") || target.closest("[data-dropdown]")) {
-        return;
-      }
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on action buttons or dropdown
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("[data-dropdown]")) {
+      return;
+    }
 
-      // If table is OCCUPIED, show active orders dialog instead of navigating
-      if (status === "OCCUPIED") {
-        setIsActiveOrdersOpen(true);
-        return;
-      }
+    // If table is OCCUPIED, show active orders dialog instead of navigating
+    if (status === "OCCUPIED") {
+      setIsActiveOrdersOpen(true);
+      return;
+    }
 
-      // Navigate to orders page with table context (AVAILABLE or RESERVED tables)
-      navigate({
-        to: "/orders",
-        search: {
-          tableId: table.id,
-          tableName: table.floor
-            ? `${table.floor.name} - ${table.name}`
-            : table.name,
-        },
-      });
-    },
-    [navigate, table.id, table.name, table.floor, status],
-  );
+    // Navigate to orders page with table context (AVAILABLE or RESERVED tables)
+    navigate({
+      to: "/orders",
+      search: {
+        tableId: table.id,
+        tableName: table.floor
+          ? `${table.floor.name} - ${table.name}`
+          : table.name,
+      },
+    });
+  };
 
   const handleStatusChange = useCallback(
     (newStatus: TableStatus) => {

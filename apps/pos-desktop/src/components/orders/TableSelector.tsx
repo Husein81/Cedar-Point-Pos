@@ -3,12 +3,11 @@ import { useSearch } from "@tanstack/react-router";
 import { Button, Icon } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { useModalStore } from "@/store/modalStore";
-import { useTransferOrder } from "@/hooks/useOrder";
+import { useTableSelectorTransferOrder } from "@/hooks/useOrder";
 import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { TableSelectorModal } from "./TableSelectorModal";
 import type { TableWithFloor } from "@/dto/tables.dto";
 import type { Order } from "@repo/types";
-import { toast } from "sonner";
 
 // ============================================================================
 // TableSelector Component
@@ -17,11 +16,9 @@ import { toast } from "sonner";
 export function TableSelector() {
   const openModal = useModalStore((state) => state.openModal);
   const closeModal = useModalStore((state) => state.closeModal);
-  const { getActiveOrder, setTable, createTabWithTable, loadOrder, closeTab } =
-    useOrderStore();
+  const { getActiveOrder, setTable, createTabWithTable } = useOrderStore();
   const order = getActiveOrder();
-  const activeTabId = useOrderStore((s) => s.activeTabId);
-  const transferOrder = useTransferOrder();
+  const transferOrder = useTableSelectorTransferOrder();
 
   // Read tableId from URL search params
   const searchParams = useSearch({ from: "/orders/" });
@@ -41,47 +38,25 @@ export function TableSelector() {
   const openMergeRequiredModal = useCallback(
     (params: {
       orderId: string;
-      targetTable: TableWithFloor;
+      targetTableId: string;
+      targetDisplayName: string;
       activeOrderIds: string[];
     }) => {
-      const { orderId, targetTable, activeOrderIds } = params;
-      const targetDisplayName = targetTable.floor
-        ? `${targetTable.floor.name} - ${targetTable.name}`
-        : targetTable.name;
+      const { orderId, targetTableId, targetDisplayName, activeOrderIds } =
+        params;
 
       openModal(
         "Merge Required",
         <MergeTargetSelector
           activeOrderIds={activeOrderIds}
-          tableId={targetTable.id}
+          tableId={targetTableId}
           onSelect={(mergeIntoOrderId) => {
-            transferOrder.mutate(
-              {
-                orderId,
-                targetTableId: targetTable.id,
-                mergeIntoOrderId,
-              },
-              {
-                onSuccess: (mergedOrder) => {
-                  // Merge returns the target order (different ID from source).
-                  // Close stale source tab and load the merged target order.
-                  if (mergedOrder.id !== orderId && activeTabId) {
-                    closeTab(activeTabId);
-                  }
-                  loadOrder(mergedOrder as any, true);
-                  toast.success(
-                    `Order transferred and merged on ${targetDisplayName}`,
-                  );
-                  closeModal();
-                },
-                onError: (err: any) => {
-                  toast.error(
-                    err?.response?.data?.message ||
-                      "Failed to transfer and merge",
-                  );
-                },
-              },
-            );
+            transferOrder.mutate({
+              orderId,
+              targetTableId,
+              mergeIntoOrderId,
+              targetTableDisplayName: targetDisplayName,
+            });
           }}
           onCancel={() => {
             closeModal();
@@ -91,16 +66,21 @@ export function TableSelector() {
         `${targetDisplayName} already has an active order. Select which order to merge into.`,
       );
     },
-    [
-      openModal,
-      closeModal,
-      transferOrder,
-      setTable,
-      loadOrder,
-      closeTab,
-      activeTabId,
-    ],
+    [openModal, closeModal, transferOrder],
   );
+
+  useEffect(() => {
+    const conflict = transferOrder.conflict;
+    if (!conflict) return;
+
+    openMergeRequiredModal({
+      orderId: conflict.orderId,
+      targetTableId: conflict.targetTableId,
+      targetDisplayName: conflict.targetTableDisplayName || "selected table",
+      activeOrderIds: conflict.activeOrderIds,
+    });
+    transferOrder.clearConflict();
+  }, [transferOrder.conflict, transferOrder.clearConflict, openMergeRequiredModal]);
 
   const handleTableSelect = useCallback(
     (table: TableWithFloor) => {
@@ -125,7 +105,7 @@ export function TableSelector() {
       const hasItems = currentOrder && currentOrder.items.length > 0;
 
       if (hasItems && currentOrder.tableId) {
-        // Current order has items AND is assigned to a table — prompt user
+        // Current order has items AND is assigned to a table - prompt user
         const isServerOrder = !currentOrder.id.startsWith("order-");
 
         openModal(
@@ -142,7 +122,7 @@ export function TableSelector() {
                 variant="outline"
                 className="justify-start gap-2"
                 onClick={() => {
-                  // Switch without transfer — create a new tab for the new table
+                  // Switch without transfer � create a new tab for the new table
                   createTabWithTable(table.id, displayName);
                   closeModal();
                 }}
@@ -160,35 +140,11 @@ export function TableSelector() {
                   className="justify-start gap-2"
                   disabled={transferOrder.isPending}
                   onClick={() => {
-                    transferOrder.mutate(
-                      {
-                        orderId: currentOrder.id,
-                        targetTableId: table.id,
-                      },
-                      {
-                        onSuccess: (transferredOrder) => {
-                          // Pure transfer (same order ID) — refresh tab data from server payload
-                          loadOrder(transferredOrder as any, true);
-                          toast.success(`Order transferred to ${displayName}`);
-                          closeModal();
-                        },
-                        onError: (err: any) => {
-                          const data = err?.response?.data;
-                          // If target has active orders, show merge selection
-                          if (data?.code === "TABLE_HAS_ACTIVE_ORDER") {
-                            openMergeRequiredModal({
-                              orderId: currentOrder.id,
-                              targetTable: table,
-                              activeOrderIds: data.activeOrderIds || [],
-                            });
-                            return;
-                          }
-                          const message =
-                            data?.message || "Failed to transfer order";
-                          toast.error(message);
-                        },
-                      },
-                    );
+                    transferOrder.mutate({
+                      orderId: currentOrder.id,
+                      targetTableId: table.id,
+                      targetTableDisplayName: displayName,
+                    });
                   }}
                 >
                   <Icon name="MoveRight" className="h-4 w-4" />
@@ -212,20 +168,20 @@ export function TableSelector() {
           "Choose how to handle the current order",
         );
       } else if (hasItems && !currentOrder.tableId) {
-        // Order has items but NO table yet — just assign the table.
+        // Order has items but NO table yet � just assign the table.
         // But first check if another tab already has this table's order.
         const existingTableTab = useOrderStore
           .getState()
           .tabs.find((t) => t.order.tableId === table.id);
         if (existingTableTab) {
-          // Table already has an open tab — switch to it instead of
+          // Table already has an open tab � switch to it instead of
           // overwriting the current order's table assignment.
           createTabWithTable(table.id, displayName);
         } else {
           setTable(table.id, displayName);
         }
       } else {
-        // Empty order — use createTabWithTable so it finds and activates
+        // Empty order � use createTabWithTable so it finds and activates
         // any existing tab for this table (e.g. an occupied table with
         // a server-persisted order), instead of blindly overwriting.
         createTabWithTable(table.id, displayName);
@@ -238,8 +194,6 @@ export function TableSelector() {
       openModal,
       closeModal,
       transferOrder,
-      openMergeRequiredModal,
-      loadOrder,
     ],
   );
 
@@ -270,7 +224,7 @@ export function TableSelector() {
 }
 
 // ============================================================================
-// MergeTargetSelector — shown when target table has active orders
+// MergeTargetSelector � shown when target table has active orders
 // ============================================================================
 
 function MergeTargetSelector({

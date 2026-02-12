@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tablesApi } from "../apis/tablesApi";
 import { useBranchStore } from "@/store/branchStore";
-import { tableKeys, STALE_TIME } from "./queryKeys";
 import type {
   CreateTableDto,
   UpdateTableDto,
   TableWithFloor,
 } from "@/dto/tables.dto";
 import type { Order, TableStatus } from "@repo/types";
+
+const TABLE_QUERY_KEY = ["tables"];
 
 /**
  * Get all tables for the current branch
@@ -17,9 +18,9 @@ export const useTablesByBranch = () => {
   const { branchId } = useBranchStore();
 
   return useQuery({
-    queryKey: tableKeys.byBranch(branchId!),
+    queryKey: [...TABLE_QUERY_KEY, "branch", branchId],
     queryFn: () => tablesApi.getTablesByBranch(branchId!),
-    staleTime: STALE_TIME.TABLES,
+    staleTime: 60_000,
     enabled: !!branchId,
   });
 };
@@ -31,9 +32,9 @@ export const useTablesByFloor = (floorId: string | null) => {
   const { branchId } = useBranchStore();
 
   return useQuery({
-    queryKey: tableKeys.byFloor(floorId!),
+    queryKey: [...TABLE_QUERY_KEY, "floor", floorId],
     queryFn: () => tablesApi.getTablesByFloor(floorId!),
-    staleTime: STALE_TIME.TABLES,
+    staleTime: 60_000,
     enabled: !!floorId && !!branchId,
   });
 };
@@ -45,9 +46,9 @@ export const useTableStats = () => {
   const { branchId } = useBranchStore();
 
   return useQuery({
-    queryKey: tableKeys.stats(branchId!),
+    queryKey: [...TABLE_QUERY_KEY, "stats", branchId],
     queryFn: () => tablesApi.getTableStats(branchId!),
-    staleTime: STALE_TIME.STATS,
+    staleTime: 30_000,
     enabled: !!branchId,
   });
 };
@@ -58,9 +59,9 @@ export const useTableStats = () => {
  */
 export const useActiveOrdersByTable = (tableId: string | null) => {
   return useQuery<Order[]>({
-    queryKey: tableKeys.activeOrders(tableId!),
+    queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
     queryFn: () => tablesApi.getActiveOrdersByTable(tableId!),
-    staleTime: STALE_TIME.STATS,
+    staleTime: 30_000,
     enabled: !!tableId,
   });
 };
@@ -70,9 +71,9 @@ export const useActiveOrdersByTable = (tableId: string | null) => {
  */
 export const useTable = (id: string) => {
   return useQuery<TableWithFloor>({
-    queryKey: tableKeys.detail(id),
+    queryKey: [...TABLE_QUERY_KEY, id],
     queryFn: () => tablesApi.getTable(id),
-    staleTime: STALE_TIME.SINGLE_TABLE,
+    staleTime: 120_000,
     enabled: !!id,
   });
 };
@@ -82,17 +83,13 @@ export const useTable = (id: string) => {
  */
 export const useCreateTable = () => {
   const queryClient = useQueryClient();
-  const { branchId } = useBranchStore();
 
   return useMutation<TableWithFloor, Error, CreateTableDto>({
     mutationFn: tablesApi.createTable,
     onSuccess: (data) => {
       toast.success(`Table "${data.name}" created successfully`);
-      // Invalidate all table queries for this branch
-      queryClient.invalidateQueries({
-        queryKey: tableKeys.byBranch(branchId!),
-      });
-      queryClient.invalidateQueries({ queryKey: tableKeys.stats(branchId!) });
+      // Invalidate all table queries
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
     onError: (error: any) => {
       const message =
@@ -123,7 +120,7 @@ export const useUpdateTable = () => {
 
     onMutate: async ({ id, data }) => {
       // Cancel outgoing refetches
-      const queryKey = tableKeys.byBranch(branchId!);
+      const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot previous value
@@ -143,11 +140,11 @@ export const useUpdateTable = () => {
       return { previousTables };
     },
 
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousTables) {
         queryClient.setQueryData(
-          tableKeys.byBranch(branchId!),
+          [...TABLE_QUERY_KEY, "branch", branchId!],
           context.previousTables,
         );
       }
@@ -161,10 +158,7 @@ export const useUpdateTable = () => {
 
     onSettled: () => {
       // Refetch to ensure sync
-      queryClient.invalidateQueries({
-        queryKey: tableKeys.byBranch(branchId!),
-      });
-      queryClient.invalidateQueries({ queryKey: tableKeys.stats(branchId!) });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };
@@ -186,7 +180,7 @@ export const useUpdateTableStatus = () => {
 
     onMutate: async ({ id, status }) => {
       // Cancel outgoing refetches
-      const queryKey = tableKeys.byBranch(branchId!);
+      const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot previous value
@@ -207,10 +201,7 @@ export const useUpdateTableStatus = () => {
     },
 
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: tableKeys.byBranch(branchId!),
-      });
-      queryClient.invalidateQueries({ queryKey: tableKeys.stats(branchId!) });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };
@@ -227,7 +218,7 @@ export const useDeleteTable = () => {
 
     onMutate: async (id) => {
       // Cancel outgoing refetches
-      const queryKey = tableKeys.byBranch(branchId!);
+      const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot previous value
@@ -245,11 +236,11 @@ export const useDeleteTable = () => {
       return { previousTables };
     },
 
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousTables) {
         queryClient.setQueryData(
-          tableKeys.byBranch(branchId!),
+          [...TABLE_QUERY_KEY, "branch", branchId!],
           context.previousTables,
         );
       }
@@ -263,10 +254,7 @@ export const useDeleteTable = () => {
 
     onSettled: () => {
       // Refetch to ensure sync
-      queryClient.invalidateQueries({
-        queryKey: tableKeys.byBranch(branchId!),
-      });
-      queryClient.invalidateQueries({ queryKey: tableKeys.stats(branchId!) });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };

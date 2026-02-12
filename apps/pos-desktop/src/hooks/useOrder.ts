@@ -1,4 +1,6 @@
 import { ordersApi } from "@/apis/ordersApi";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
 import {
   AddItemDto,
   CreateOrderDto,
@@ -7,9 +9,11 @@ import {
 } from "@/dto/order.dto";
 import type { Order, OrderStatus } from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { tableKeys } from "./queryKeys";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const ORDER_QUERY_KEY = ["orders"];
+const TABLE_QUERY_KEY = ["tables"];
 
 export const useOrders = (filters?: OrderFilters) => {
   return useQuery({
@@ -33,7 +37,7 @@ export const useCreateOrder = () => {
     mutationFn: ordersApi.createOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
@@ -50,7 +54,7 @@ export const useProcessPayment = () => {
       ordersApi.processPayment(id, { payments }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
@@ -66,7 +70,7 @@ export const useUpdateOrderStatus = () => {
     mutationFn: ({ id, status }) => ordersApi.updateOrderStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };
@@ -91,7 +95,7 @@ export const useAssignTableToOrder = () => {
       ordersApi.assignTableToOrder(id, { tableId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };
@@ -157,7 +161,7 @@ export const useSendToKitchen = () => {
     mutationFn: ordersApi.sendToKitchen,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };
@@ -182,9 +186,92 @@ export const useTransferOrder = () => {
       ordersApi.transferOrderToTable(orderId, targetTableId, mergeIntoOrderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
+};
+
+type TableSelectorTransferVariables = {
+  orderId: string;
+  targetTableId: string;
+  mergeIntoOrderId?: string;
+  targetTableDisplayName?: string;
+};
+
+type TableSelectorTransferConflict = {
+  code: "TABLE_HAS_ACTIVE_ORDER";
+  message?: string;
+  activeOrderIds: string[];
+  orderId: string;
+  targetTableId: string;
+  targetTableDisplayName?: string;
+};
+
+export const useTableSelectorTransferOrder = () => {
+  const queryClient = useQueryClient();
+  const { loadOrder, closeTab } = useOrderStore();
+  const closeModal = useModalStore((state) => state.closeModal);
+  const [conflict, setConflict] = useState<TableSelectorTransferConflict | null>(
+    null,
+  );
+
+  const mutation = useMutation<Order, any, TableSelectorTransferVariables>({
+    mutationFn: ({ orderId, targetTableId, mergeIntoOrderId }) =>
+      ordersApi.transferOrderToTable(orderId, targetTableId, mergeIntoOrderId),
+    onMutate: () => {
+      setConflict(null);
+    },
+    onSuccess: (transferredOrder, variables) => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+
+      const targetDisplayName = variables.targetTableDisplayName ?? "selected table";
+      const isMerge = !!variables.mergeIntoOrderId;
+
+      if (isMerge) {
+        const activeTabId = useOrderStore.getState().activeTabId;
+        if (transferredOrder.id !== variables.orderId && activeTabId) {
+          closeTab(activeTabId);
+        }
+
+        loadOrder(transferredOrder as any, true);
+        toast.success(`Order transferred and merged on ${targetDisplayName}`);
+        closeModal();
+        return;
+      }
+
+      loadOrder(transferredOrder as any, true);
+      toast.success(`Order transferred to ${targetDisplayName}`);
+      closeModal();
+    },
+    onError: (err, variables) => {
+      const data = err?.response?.data;
+      if (data?.code === "TABLE_HAS_ACTIVE_ORDER") {
+        setConflict({
+          code: "TABLE_HAS_ACTIVE_ORDER",
+          message: data?.message,
+          activeOrderIds: data?.activeOrderIds || [],
+          orderId: variables.orderId,
+          targetTableId: variables.targetTableId,
+          targetTableDisplayName: variables.targetTableDisplayName,
+        });
+        return;
+      }
+
+      toast.error(
+        data?.message ||
+          (variables.mergeIntoOrderId
+            ? "Failed to transfer and merge"
+            : "Failed to transfer order"),
+      );
+    },
+  });
+
+  return {
+    ...mutation,
+    conflict,
+    clearConflict: () => setConflict(null),
+  };
 };
 
 export const useMergeOrders = () => {
@@ -199,7 +286,7 @@ export const useMergeOrders = () => {
       ordersApi.mergeOrders(targetOrderId, sourceOrderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: tableKeys.all });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
   });
 };

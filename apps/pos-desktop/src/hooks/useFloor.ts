@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { floorsApi } from "../apis/floorsApi";
 import { useBranchStore } from "@/store/branchStore";
-import { floorKeys, tableKeys, STALE_TIME } from "./queryKeys";
 import type {
   CreateFloorDto,
   UpdateFloorDto,
   FloorWithTableCount,
 } from "@/dto/tables.dto";
 import type { Floor } from "@repo/types";
+
+const FLOOR_QUERY_KEY = ["floors"];
 
 /**
  * Get all floors for the current branch with table counts
@@ -17,9 +18,9 @@ export const useFloorsByBranch = () => {
   const { branchId } = useBranchStore();
 
   return useQuery({
-    queryKey: floorKeys.byBranch(branchId!),
+    queryKey: [...FLOOR_QUERY_KEY, "branch", branchId],
     queryFn: () => floorsApi.getFloorsByBranch(branchId!),
-    staleTime: STALE_TIME.FLOORS,
+    staleTime: 300_000,
     enabled: !!branchId,
   });
 };
@@ -29,9 +30,9 @@ export const useFloorsByBranch = () => {
  */
 export const useFloor = (id: string) => {
   return useQuery<FloorWithTableCount>({
-    queryKey: floorKeys.detail(id),
+    queryKey: [...FLOOR_QUERY_KEY, id],
     queryFn: () => floorsApi.getFloor(id),
-    staleTime: STALE_TIME.SINGLE_FLOOR,
+    staleTime: 300_000,
     enabled: !!id,
   });
 };
@@ -41,15 +42,12 @@ export const useFloor = (id: string) => {
  */
 export const useCreateFloor = () => {
   const queryClient = useQueryClient();
-  const { branchId } = useBranchStore();
 
   return useMutation<Floor, Error, CreateFloorDto>({
     mutationFn: floorsApi.createFloor,
     onSuccess: (data) => {
       toast.success(`Floor "${data.name}" created successfully`);
-      queryClient.invalidateQueries({
-        queryKey: floorKeys.byBranch(branchId!),
-      });
+      queryClient.invalidateQueries({ queryKey: FLOOR_QUERY_KEY });
     },
     onError: (error) => {
       const message = error.message || "Failed to create floor";
@@ -75,7 +73,7 @@ export const useUpdateFloor = () => {
 
     onMutate: async ({ id, data }) => {
       // Cancel outgoing refetches
-      const queryKey = floorKeys.byBranch(branchId!);
+      const queryKey = [...FLOOR_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot previous value
@@ -99,7 +97,7 @@ export const useUpdateFloor = () => {
       // Rollback on error
       if (context?.previousFloors) {
         queryClient.setQueryData(
-          floorKeys.byBranch(branchId!),
+          [...FLOOR_QUERY_KEY, "branch", branchId!],
           context.previousFloors,
         );
       }
@@ -113,9 +111,7 @@ export const useUpdateFloor = () => {
 
     onSettled: () => {
       // Refetch to ensure sync
-      queryClient.invalidateQueries({
-        queryKey: floorKeys.byBranch(branchId!),
-      });
+      queryClient.invalidateQueries({ queryKey: FLOOR_QUERY_KEY });
     },
   });
 };
@@ -132,7 +128,7 @@ export const useDeleteFloor = () => {
 
     onMutate: async (id) => {
       // Cancel outgoing refetches
-      const queryKey = floorKeys.byBranch(branchId!);
+      const queryKey = [...FLOOR_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
       // Snapshot previous value
@@ -154,7 +150,7 @@ export const useDeleteFloor = () => {
       // Rollback on error
       if (context?.previousFloors) {
         queryClient.setQueryData(
-          floorKeys.byBranch(branchId!),
+          [...FLOOR_QUERY_KEY, "branch", branchId!],
           context.previousFloors,
         );
       }

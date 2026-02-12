@@ -130,7 +130,6 @@ interface OrderStoreState {
   createTabWithTable: (tableId: string, tableName: string) => string | null;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  renameTab: (tabId: string, newLabel: string) => void;
 
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
@@ -153,7 +152,6 @@ interface OrderStoreState {
 
   // VAT actions
   toggleVAT: () => void;
-  setVAT: (includeVAT: boolean) => void;
 
   // Customer actions
   setCustomer: (
@@ -166,8 +164,6 @@ interface OrderStoreState {
   setTable: (tableId: string | null, tableName: string | null) => void;
 
   // Order notes
-  setOrderNotes: (notes: string) => void;
-
   // Kitchen
   markItemsSentToKitchen: () => void;
   getUnsentItems: () => OrderItem[];
@@ -175,8 +171,6 @@ interface OrderStoreState {
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
   setOrderType: (type?: string) => void;
-  holdOrder: () => void;
-  resumeOrder: () => void;
 
   // Update the order ID on the active tab (e.g. after server creation)
   updateOrderId: (newId: string) => void;
@@ -189,17 +183,11 @@ interface OrderStoreState {
 
   // Computed helpers
   getActiveOrder: () => Order | null;
-  getActiveTab: () => OrderTab | null;
   getOrderSubtotal: (tabId?: string) => number;
-  getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
   getVATAmount: (tabId?: string) => number;
-  getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
-
-  // Utility
-  reset: () => void;
 }
 
 const INITIAL_TAB = createNewTab(1);
@@ -386,14 +374,6 @@ export const useOrderStore = create<OrderStoreState>()(
         if (state.tabs.some((t) => t.id === tabId)) {
           set({ activeTabId: tabId });
         }
-      },
-
-      renameTab: (tabId: string, newLabel: string) => {
-        set((state) => ({
-          tabs: state.tabs.map((tab) =>
-            tab.id === tabId ? { ...tab, label: newLabel } : tab,
-          ),
-        }));
       },
 
       // =====================
@@ -712,26 +692,6 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      setVAT: (includeVAT: boolean) => {
-        const state = get();
-        if (!state.activeTabId) return;
-
-        set({
-          tabs: state.tabs.map((tab) => {
-            if (tab.id !== state.activeTabId) return tab;
-
-            return {
-              ...tab,
-              order: {
-                ...tab.order,
-                includeVAT,
-                modifiedAt: new Date(),
-              },
-            };
-          }),
-        });
-      },
-
       // =====================
       // Customer Actions
       // =====================
@@ -781,30 +741,6 @@ export const useOrderStore = create<OrderStoreState>()(
                 tableId,
                 tableName,
                 ...(tableId ? { type: OrderType.DINE_IN } : {}),
-                modifiedAt: new Date(),
-              },
-            };
-          }),
-        });
-      },
-
-      // =====================
-      // Order Notes
-      // =====================
-
-      setOrderNotes: (notes: string) => {
-        const state = get();
-        if (!state.activeTabId) return;
-
-        set({
-          tabs: state.tabs.map((tab) => {
-            if (tab.id !== state.activeTabId) return tab;
-
-            return {
-              ...tab,
-              order: {
-                ...tab.order,
-                notes,
                 modifiedAt: new Date(),
               },
             };
@@ -1042,14 +978,6 @@ export const useOrderStore = create<OrderStoreState>()(
         return newTab.id;
       },
 
-      holdOrder: () => {
-        get().setOrderStatus("ON_HOLD");
-      },
-
-      resumeOrder: () => {
-        get().setOrderStatus("DRAFT");
-      },
-
       // =====================
       // Computed Helpers
       // =====================
@@ -1058,31 +986,6 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
         return activeTab?.order ?? null;
-      },
-
-      getActiveTab: () => {
-        const state = get();
-        return state.tabs.find((t) => t.id === state.activeTabId) ?? null;
-      },
-
-      /**
-       * Optimized selector to get only tableId from active order
-       * Prevents unnecessary re-renders when other order properties change
-       */
-      getActiveTableId: () => {
-        const state = get();
-        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-        return activeTab?.order.tableId ?? null;
-      },
-
-      /**
-       * Optimized selector to get only tableName from active order
-       * Prevents unnecessary re-renders when other order properties change
-       */
-      getActiveTableName: () => {
-        const state = get();
-        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-        return activeTab?.order.tableName ?? null;
       },
 
       getOrderSubtotal: (tabId?: string) => {
@@ -1115,32 +1018,6 @@ export const useOrderStore = create<OrderStoreState>()(
         }, 0);
       },
 
-      // Get total of all item-level discounts
-      getItemDiscountsTotal: (tabId?: string) => {
-        const state = get();
-        const targetTabId = tabId ?? state.activeTabId;
-        const tab = state.tabs.find((t) => t.id === targetTabId);
-
-        if (!tab) return 0;
-
-        return tab.order.items.reduce((sum, item) => {
-          if (!item.discount) return sum;
-
-          // Calculate base price + modifiers
-          const modifiersTotal =
-            item.modifiers?.reduce((modSum, mod) => modSum + mod.price, 0) || 0;
-          const unitPrice = item.price + modifiersTotal;
-          const lineTotal = unitPrice * item.quantity;
-
-          if (item.discount.type === "PERCENTAGE") {
-            return sum + lineTotal * (item.discount.value / 100);
-          } else {
-            // FIXED discount
-            return sum + item.discount.value;
-          }
-        }, 0);
-      },
-
       getDiscountAmount: (tabId?: string) => {
         const state = get();
         const targetTabId = tabId ?? state.activeTabId;
@@ -1157,21 +1034,6 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Fixed discount - cannot exceed subtotal
         return Math.min(value, subtotal);
-      },
-
-      getOrderTotal: (tabId?: string) => {
-        const state = get();
-        const subtotal = state.getOrderSubtotal(tabId);
-        const discount = state.getDiscountAmount(tabId);
-        const targetTabId = tabId ?? state.activeTabId;
-        const tab = state.tabs.find((t) => t.id === targetTabId);
-        const shippingFee = tab?.order.shippingFee ?? 0;
-        const subtotalAfterDiscount = Math.max(
-          0,
-          subtotal - discount + shippingFee,
-        );
-        const vatAmount = state.getVATAmount(tabId);
-        return subtotalAfterDiscount + vatAmount;
       },
 
       getVATAmount: (tabId?: string) => {
@@ -1201,18 +1063,6 @@ export const useOrderStore = create<OrderStoreState>()(
       canCreateNewTab: () => {
         const state = get();
         return state.tabs.length < state.maxTabs;
-      },
-
-      // =====================
-      // Utility
-      // =====================
-
-      reset: () => {
-        const newTab = createNewTab(1);
-        set({
-          tabs: [newTab],
-          activeTabId: newTab.id,
-        });
       },
     }),
     {

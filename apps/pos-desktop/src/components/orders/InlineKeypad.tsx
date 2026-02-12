@@ -172,7 +172,6 @@ export const InlineKeypad = () => {
 
   const applyKeypadValue = useCallback(
     async (numericValue: number) => {
-      // permission gate
       if (config.requiresPermission && onPermissionRequired) {
         const allowed = await onPermissionRequired(safeContext);
         if (!allowed) {
@@ -181,7 +180,6 @@ export const InlineKeypad = () => {
         }
       }
 
-      // dispatch by context
       if (safeContext === "QUANTITY") {
         onConfirm?.(numericValue);
         return;
@@ -209,13 +207,11 @@ export const InlineKeypad = () => {
       ) {
         const type = resolveDiscountMode(safeContext);
 
-        // item-level discount
         if (itemId && onDiscountChange) {
           onDiscountChange(numericValue, type);
           return;
         }
 
-        // order-level discount
         setDiscount({ value: numericValue, type });
       }
     },
@@ -241,13 +237,10 @@ export const InlineKeypad = () => {
     const active = getActiveOrder();
     if (!active || !branchId || !user?.tenantId) return null;
 
-    // Determine order type
     let orderType: OrderType;
     if (user.tenant?.businessType === BusinessType.RESTAURANT) {
-      // For restaurants, use the active order type or default to DINE_IN
       orderType = active.type || OrderType.DINE_IN;
     } else {
-      // For retail, always use RETAIL type
       orderType = OrderType.RETAIL;
     }
 
@@ -308,7 +301,6 @@ export const InlineKeypad = () => {
 
     const created = await createOrder.mutateAsync(dto);
 
-    // Persist server ID into local tab state so isLoadedOrder() works correctly
     updateOrderId(created.id);
 
     return created.id;
@@ -401,7 +393,6 @@ export const InlineKeypad = () => {
               ? String(digit)
               : prev + digit;
 
-        // decimals limit
         if (
           config.decimals > 0 &&
           next.includes(".") &&
@@ -503,18 +494,14 @@ export const InlineKeypad = () => {
             throw new Error("Order type is required");
           }
 
-          // Capture loaded state BEFORE getOrCreateOrderId, because
-          // getOrCreateOrderId calls updateOrderId which changes the local
-          // order ID from 'order-*' to a server CUID — making isLoadedOrder()
-          // return true even for freshly-created orders.
+          // Capture loaded state BEFORE getOrCreateOrderId
           const wasLoadedOrder = isLoadedOrder();
 
           const orderId = await getOrCreateOrderId();
           if (!orderId) return;
 
           // For orders that were ALREADY on the server before this flow,
-          // add only unsent local items. Fresh orders already include all
-          // items in the createOrder payload, so skip to avoid duplicates.
+          // add only unsent local items.
           if (wasLoadedOrder) {
             const unsyncedLocal = active.items.filter(
               (i) => !i.sentToKitchen && i.id.startsWith("item-"),
@@ -714,18 +701,14 @@ export const InlineKeypad = () => {
 
       const unsentCount = active.items.filter((i) => !i.sentToKitchen).length;
 
-      // Capture loaded state BEFORE getOrCreateOrderId, because
-      // getOrCreateOrderId calls updateOrderId which changes the local
-      // order ID from 'order-*' to a server CUID — making isLoadedOrder()
-      // return true even for freshly-created orders.
+      // Capture loaded state BEFORE getOrCreateOrderId
       const wasLoadedOrder = isLoadedOrder();
 
       const orderId = await getOrCreateOrderId();
       if (!orderId) return;
 
       // For orders that were ALREADY on the server before this flow,
-      // add only unsent local items. Fresh orders already include all
-      // items in the createOrder payload, so skip to avoid duplicates.
+      // add only unsent local items.
       if (wasLoadedOrder) {
         const unsyncedLocal = active.items.filter(
           (i) => !i.sentToKitchen && i.id.startsWith("item-"),
@@ -827,7 +810,6 @@ export const InlineKeypad = () => {
 
   const openDiscountForItem = useCallback(
     (discountContext: KeypadContext) => {
-      // Item must already be selected via keypad (itemId set)
       if (!itemId) return;
 
       const item = order?.items.find((i) => i.id === itemId);
@@ -866,7 +848,6 @@ export const InlineKeypad = () => {
   );
 
   const handleDiscountIntent = useCallback(() => {
-    // If already in a discount context, toggle it off
     if (isDiscountContext) {
       clearEntry();
       return;
@@ -937,7 +918,7 @@ export const InlineKeypad = () => {
   ]);
 
   const handleDollarButton = useCallback(() => {
-    if (!itemId) return; // $ requires a selected cart item
+    if (!itemId) return;
     handleContextSwitch("PRICE_OVERRIDE");
   }, [itemId, handleContextSwitch]);
 

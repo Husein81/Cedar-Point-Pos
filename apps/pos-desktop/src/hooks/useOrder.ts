@@ -288,6 +288,9 @@ export const useMergeOrders = () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
+  });
+};
+
 /**
  * Query hook for fetching active order by tableId
  * Useful when you want automatic refetching

@@ -37,7 +37,7 @@ export const sidebarSections: SidebarSection[] = [
       {
         label: "Orders",
         icon: "Receipt",
-        href: "/orders",
+        href: "/tables",
         tooltip: "Orders",
         showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER", "CASHIER"],

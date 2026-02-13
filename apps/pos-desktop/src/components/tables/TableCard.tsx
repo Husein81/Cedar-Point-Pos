@@ -82,7 +82,7 @@ export function TableCard({ table }: TableCardProps) {
       {/* Hover Action Buttons */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-3 right-3 z-10 flex gap-1.5 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        className="absolute top-3 right-3 z-10 flex gap-1.5 items-center transition-opacity duration-200"
       >
         <Button
           variant="ghost"

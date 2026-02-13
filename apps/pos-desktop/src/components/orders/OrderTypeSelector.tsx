@@ -1,11 +1,84 @@
 // OrderTypeSelector.tsx
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearch } from "@tanstack/react-router";
+import { useAuthStore } from "@/store/authStore";
+import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { useModalStore } from "@/store/modalStore";
 import { useCustomer, useUpdateCustomer } from "@/hooks/useCustomer";
 import { OrderType } from "@repo/types";
-import { Button, Icon, Textarea } from "@repo/ui";
+import { Button, cn, Icon, Textarea } from "@repo/ui";
 import { CustomerSearchList } from "./CustomerSearchList";
+
+export const OrderTypeSelector = () => {
+  const { user } = useAuthStore();
+  const { switchContext } = useKeypadStore();
+  const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
+  const order = getActiveOrder();
+  const search = useSearch({ from: "/orders/" });
+
+  useEffect(() => {
+    // If order type is set in URL (e.g. from tables page), use it
+    if (search.orderType) {
+      const typeFromUrl = search.orderType.toUpperCase() as OrderType;
+      setOrderType(typeFromUrl);
+      if (typeFromUrl === OrderType.DELIVERY) {
+        switchContext("SHIPPING");
+      }
+    }
+  }, [search.orderType, setOrderType, switchContext]);
+
+  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
+
+  const currentType = order?.type
+    ? order.type
+    : isRestaurant
+      ? "DINE_IN"
+      : "RETAIL";
+
+  const selectType = (type: OrderType) => {
+    setOrderType(type);
+
+    // Auto-handle shipping
+    if (type !== OrderType.DELIVERY) {
+      setShippingFee(0);
+    }
+
+    if (type === OrderType.DELIVERY) {
+      switchContext("SHIPPING");
+    }
+  };
+
+  const orderTypes = isRestaurant
+    ? [
+        { type: OrderType.DINE_IN, label: "Dine-In" },
+        { type: OrderType.TAKEAWAY, label: "Takeaway" },
+        { type: OrderType.DELIVERY, label: "Delivery" },
+      ]
+    : [
+        { type: OrderType.RETAIL, label: "Pickup" },
+        { type: OrderType.DELIVERY, label: "Delivery" },
+      ];
+
+  return (
+    <div className="flex gap-1 border-b bg-muted p-1">
+      {orderTypes.map(({ type, label }) => (
+        <Button
+          key={type}
+          size="sm"
+          variant="ghost"
+          className={cn(
+            "flex-1",
+            currentType === type && "bg-primary/15 text-primary",
+          )}
+          onClick={() => selectType(type)}
+        >
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
+};
 
 /** Small inline form to collect a delivery address */
 const DeliveryAddressPrompt = ({

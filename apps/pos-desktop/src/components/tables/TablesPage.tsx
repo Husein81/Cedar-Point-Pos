@@ -15,12 +15,15 @@ import {
   TableGrid,
   TablesStatsCards,
 } from "@/components/tables";
+import { OngoingOrdersList } from "@/components/orders/OngoingOrdersList";
 
 // Types
 import type { TableFilters as TableFiltersType } from "@/components/tables/TableFilters";
 import type { FloorWithTableCount, TableWithFloor } from "@/dto/tables.dto";
 import { useModalStore } from "@/store/modalStore";
 import { useAuthStore } from "@/store/authStore";
+
+type ActiveView = "dine-in" | "orders";
 
 export function TablesPage() {
   const { isHighLevelUser } = useAuthStore();
@@ -38,6 +41,7 @@ export function TablesPage() {
   const { data: stats } = useTableStats();
 
   // UI State
+  const [activeView, setActiveView] = useState<ActiveView>("dine-in");
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -120,61 +124,92 @@ export function TablesPage() {
       <div className="flex justify-between">
         <div className="flex items-center gap-1 bg-muted/40 p-1 w-fit rounded-lg border">
           <Button
-            variant="secondary"
+            variant={activeView === "dine-in" ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-md shadow-sm bg-background hover:bg-background text-foreground"
+            className={
+              activeView === "dine-in"
+                ? "rounded-md shadow-sm bg-background hover:bg-background text-foreground"
+                : "rounded-md hover:bg-background hover:text-foreground text-muted-foreground"
+            }
+            onClick={() => setActiveView("dine-in")}
           >
             Dine In
           </Button>
           <Button
-            variant="ghost"
+            variant={activeView === "orders" ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-md hover:bg-background hover:text-foreground text-muted-foreground"
-            onClick={() =>
-              navigate({
-                to: "/orders",
-                search: { orderType: "takeaway" },
-              })
+            className={
+              activeView === "orders"
+                ? "rounded-md shadow-sm bg-background hover:bg-background text-foreground"
+                : "rounded-md hover:bg-background hover:text-foreground text-muted-foreground"
             }
+            onClick={() => setActiveView("orders")}
           >
-            New Order
+            Orders
           </Button>
         </div>
-        <Activity mode={isHighLevelUser ? "visible" : "hidden"}>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetchTables()}>
-              <Icon name="RefreshCw" className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button size="sm" onClick={handleAddTable}>
-              <Icon name="Plus" className="h-4 w-4 mr-2" />
-              Add Table
-            </Button>
-          </div>
-        </Activity>
+        <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() =>
+                navigate({
+                  to: "/orders",
+                  search: { orderType: "dine_in" },
+                })
+              }
+            >
+            <Icon name="Plus" className="h-4 w-4 mr-2" />
+            New Order
+          </Button>
+          {activeView === "dine-in" && (
+            <Activity mode={isHighLevelUser ? "visible" : "hidden"}>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchTables()}
+                >
+                  <Icon name="RefreshCw" className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleAddTable}>
+                  <Icon name="Plus" className="h-4 w-4 mr-2" />
+                  Add Table
+                </Button>
+              </div>
+            </Activity>
+          )}
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <TablesStatsCards stats={stats} />
+      {activeView === "dine-in" ? (
+        <>
+          {/* Stats Cards */}
+          <TablesStatsCards stats={stats} />
 
-      {/* Floor Tabs */}
-      <FloorTabs
-        floors={floors}
-        selectedFloorId={selectedFloorId}
-        onSelectFloor={setSelectedFloorId}
-        onDeleteFloor={handleDeleteFloor}
-        isLoading={isLoadingFloors}
-      />
+          {/* Floor Tabs */}
+          <FloorTabs
+            floors={floors}
+            selectedFloorId={selectedFloorId}
+            onSelectFloor={setSelectedFloorId}
+            onDeleteFloor={handleDeleteFloor}
+            isLoading={isLoadingFloors}
+          />
 
-      {/* Filters */}
-      <TableFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        floors={floors.map((f) => ({ id: f.id, name: f.name }))}
-      />
+          {/* Filters */}
+          <TableFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            floors={floors.map((f) => ({ id: f.id, name: f.name }))}
+          />
 
-      {/* Table Grid */}
-      <TableGrid tables={filteredTables} isLoading={isLoadingTables} />
+          {/* Table Grid */}
+          <TableGrid tables={filteredTables} isLoading={isLoadingTables} />
+        </>
+      ) : (
+        /* Orders Tab Content */
+        <OngoingOrdersList />
+      )}
 
       {/* Delete Confirmation Dialog */}
       {/* <Shad.AlertDialog

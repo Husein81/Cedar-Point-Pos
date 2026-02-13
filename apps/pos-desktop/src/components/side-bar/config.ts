@@ -109,14 +109,6 @@ export const sidebarSections: SidebarSection[] = [
         roles: ["ADMIN", "MANAGER", "KITCHEN"],
       },
       {
-        label: "Recipes",
-        icon: "CookingPot",
-        href: "/recipes",
-        tooltip: "Recipes",
-        showFor: ["RESTAURANT"],
-        roles: ["ADMIN", "MANAGER"],
-      },
-      {
         label: "Transfers",
         icon: "ArrowLeftRight",
         href: "/transfers",

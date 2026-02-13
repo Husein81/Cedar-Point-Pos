@@ -4,12 +4,14 @@ export interface CreateCategoryDto {
   name: string;
   code?: string;
   description?: string;
+  colorId?: string;
 }
 
 export interface UpdateCategoryDto {
   name?: string;
   code?: string;
   description?: string;
+  colorId?: string;
 }
 
 export interface CategoryWithSubcategories extends Category {

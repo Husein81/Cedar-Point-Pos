@@ -1,7 +1,8 @@
 import { useCreateCategory, useUpdateCategory } from "@/hooks/useCategory";
+import { useColors } from "@/hooks/useColor";
 import { useModalStore } from "@/store/modalStore";
 import type { Category } from "@repo/types";
-import { Button, InputField, TextareaField } from "@repo/ui";
+import { Button, InputField, SelectField, TextareaField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
 type Props = {
@@ -12,12 +13,19 @@ export const CategoryForm = ({ category }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
+  const { data: colors = [] } = useColors();
+
+  const colorOptions = colors.map((c) => ({
+    value: c.id,
+    label: c.name,
+  }));
 
   const form = useForm({
     defaultValues: {
       name: category?.name || "",
       code: category?.code || "",
       description: category?.description || "",
+      colorId: category?.colorId || "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -28,6 +36,7 @@ export const CategoryForm = ({ category }: Props) => {
               name: value.name,
               code: value.code || undefined,
               description: value.description || undefined,
+              colorId: value.colorId || undefined,
             },
           });
         } else {
@@ -35,6 +44,7 @@ export const CategoryForm = ({ category }: Props) => {
             name: value.name,
             code: value.code || undefined,
             description: value.description || undefined,
+            colorId: value.colorId || undefined,
           });
         }
         closeModal();
@@ -88,6 +98,17 @@ export const CategoryForm = ({ category }: Props) => {
             label="Description"
             field={field}
             placeholder="Enter category description"
+          />
+        )}
+      </form.Field>
+
+      <form.Field name="colorId">
+        {(field) => (
+          <SelectField
+            label="Color"
+            field={field}
+            options={colorOptions}
+            placeholder="Select a color"
           />
         )}
       </form.Field>

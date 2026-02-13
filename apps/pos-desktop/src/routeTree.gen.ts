@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as RefundsRouteImport } from './routes/refunds'
-import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -29,6 +28,7 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
+import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
 import { Route as ReportsProductsRouteImport } from './routes/reports/products'
 import { Route as ReportsPaymentsRouteImport } from './routes/reports/payments'
@@ -54,11 +54,6 @@ const StockRoute = StockRouteImport.update({
 const RefundsRoute = RefundsRouteImport.update({
   id: '/refunds',
   path: '/refunds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecipesRoute = RecipesRouteImport.update({
-  id: '/recipes',
-  path: '/recipes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -141,6 +136,11 @@ const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
   path: '/settings/currencies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsColorsRoute = SettingsColorsRouteImport.update({
+  id: '/settings/colors',
+  path: '/settings/colors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsSalesRoute = ReportsSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
@@ -205,7 +205,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -220,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -238,7 +238,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -253,6 +252,7 @@ export interface FileRoutesByTo {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -272,7 +272,6 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
-  '/recipes': typeof RecipesRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -287,6 +286,7 @@ export interface FileRoutesById {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -307,7 +307,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -322,6 +321,7 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/colors'
     | '/settings/currencies'
     | '/categories'
     | '/customers'
@@ -340,7 +340,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -355,6 +354,7 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/colors'
     | '/settings/currencies'
     | '/categories'
     | '/customers'
@@ -373,7 +373,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
-    | '/recipes'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -388,6 +387,7 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/colors'
     | '/settings/currencies'
     | '/categories/'
     | '/customers/'
@@ -407,7 +407,6 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   KitchenRoute: typeof KitchenRoute
   PaymentsRoute: typeof PaymentsRoute
-  RecipesRoute: typeof RecipesRoute
   RefundsRoute: typeof RefundsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
@@ -415,6 +414,7 @@ export interface RootRouteChildren {
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
+  SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -447,13 +447,6 @@ declare module '@tanstack/react-router' {
       path: '/refunds'
       fullPath: '/refunds'
       preLoaderRoute: typeof RefundsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recipes': {
-      id: '/recipes'
-      path: '/recipes'
-      fullPath: '/recipes'
-      preLoaderRoute: typeof RecipesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -568,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsCurrenciesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/colors': {
+      id: '/settings/colors'
+      path: '/settings/colors'
+      fullPath: '/settings/colors'
+      preLoaderRoute: typeof SettingsColorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/sales': {
       id: '/reports/sales'
       path: '/sales'
@@ -680,7 +680,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   KitchenRoute: KitchenRoute,
   PaymentsRoute: PaymentsRoute,
-  RecipesRoute: RecipesRoute,
   RefundsRoute: RefundsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
@@ -688,6 +687,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   InvoicesOrderIdRoute: InvoicesOrderIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
+  SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,

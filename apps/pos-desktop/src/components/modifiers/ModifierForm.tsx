@@ -2,7 +2,7 @@ import { useCreateModifier, useUpdateModifier } from "@/hooks/useModifierApi";
 import { useProducts } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
 import { Product } from "@repo/types";
-import { Button, InputField, SelectField } from "@repo/ui";
+import { Button, InputField, MultiSelectField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
 /**
@@ -18,7 +18,14 @@ interface ModifierFormProps {
     id: string;
     name: string;
     price: number;
-    productId?: string | null;
+    productAssignments?: {
+      id: string;
+      productId: string;
+      product: {
+        id: string;
+        name: string;
+      };
+    }[];
   };
 }
 
@@ -43,7 +50,7 @@ export const ModifierForm = ({
     defaultValues: {
       name: editingModifier?.name || "",
       price: editingModifier?.price?.toString() || "0.00",
-      productId: editingModifier?.productId || "",
+      productIds: editingModifier?.productAssignments?.map((a) => a.productId) || [],
     },
     onSubmit: async ({ value }) => {
       if (!groupId) return;
@@ -52,7 +59,7 @@ export const ModifierForm = ({
         const submitData = {
           name: value.name,
           price: parseFloat(value.price) || 0,
-          productId: value.productId || undefined,
+          productIds: value.productIds || [],
         };
 
         if (isEditMode && editingModifier) {
@@ -131,18 +138,17 @@ export const ModifierForm = ({
       </form.Field>
 
       {/* Product Assignment (Optional) */}
-      <form.Field name="productId">
+      <form.Field name="productIds">
         {(field) => (
-          <SelectField
-            label="Assign to Product"
-            placeholder="All modifiable products"
+          <MultiSelectField
+            label="Assign to Products"
+            placeholder="Select products (optional)"
+            subLabel="💡 Leave empty to make this modifier available to all modifiable products."
             field={field}
-            options={[
-              ...modifiableProducts.map((product: Product) => ({
-                value: product.id,
-                label: product.name,
-              })),
-            ]}
+            options={modifiableProducts.map((product: Product) => ({
+              value: product.id,
+              label: product.name,
+            }))}
           />
         )}
       </form.Field>
@@ -150,9 +156,7 @@ export const ModifierForm = ({
       {/* Info */}
       <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/50 rounded-md p-3">
         <p className="text-xs text-muted-foreground">
-          💡 Set price to $0 for options with no additional charge. Leave
-          product empty to make this modifier available to all modifiable
-          products.
+          💡 Set price to $0 for options with no additional charge.
         </p>
       </div>
 

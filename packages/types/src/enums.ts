@@ -97,3 +97,12 @@ export const TableStatus = {
   RESERVED: "RESERVED", // Table is reserved for upcoming guests
 } as const;
 export type TableStatus = (typeof TableStatus)[keyof typeof TableStatus];
+
+export const PurchaseOrderStatus = {
+  PENDING: "PENDING",
+  ORDERED: "ORDERED",
+  RECEIVED: "RECEIVED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type PurchaseOrderStatus =
+  (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus];

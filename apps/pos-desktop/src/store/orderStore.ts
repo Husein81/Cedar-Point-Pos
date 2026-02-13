@@ -65,6 +65,43 @@ type ServerOrderWithPayments = ServerOrder & {
   payments?: Array<{ amount?: number | string | null }>;
 };
 
+export type BackendOrder = {
+  id: string;
+  status: OrderStatus;
+  type?: OrderType;
+  items: Array<{
+    id: string;
+    productId: string;
+    quantity: number | string;
+    unitPrice: number | string;
+    notes?: string | null;
+    discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
+    product?: {
+      id: string;
+      name: string;
+      imageUrl?: string | null;
+    } | null;
+    modifiers?: Array<{
+      modifierId: string;
+      price: number | string;
+      modifier?: {
+        id: string;
+        name: string;
+      } | null;
+    }>;
+  }>;
+  discount?: number | null;
+  shippingFee?: number | string | null;
+  includeVAT?: boolean;
+  customerId?: string | null;
+  customer?: { name: string; address?: string | null } | null;
+  tableId?: string | null;
+  table?: { name: string } | null;
+  notes?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+};
+
 // =====================
 // Helpers
 // =====================
@@ -177,7 +214,7 @@ interface OrderStoreState {
 
   // Load existing server order into a new tab
   loadOrder: (
-    serverOrder: ServerOrder,
+    serverOrder: ServerOrderWithPayments,
     forceRefresh?: boolean,
   ) => string | null;
 
@@ -188,6 +225,12 @@ interface OrderStoreState {
   getVATAmount: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
+
+  // Loading existing orders from backend
+  loadExistingOrder: (backendOrder: BackendOrder) => void;
+
+  // Utility
+  reset: () => void;
 }
 
 const INITIAL_TAB = createNewTab(1);
@@ -287,7 +330,7 @@ export const useOrderStore = create<OrderStoreState>()(
             return newTab.id;
           }
 
-          // No stale tab to evict — try evicting any non-active empty tab
+          // No stale tab to evict - try evicting any non-active empty tab
           const emptyTab = state.tabs.find(
             (t) => t.id !== state.activeTabId && t.order.items.length === 0,
           );
@@ -1073,6 +1116,60 @@ export const useOrderStore = create<OrderStoreState>()(
       canCreateNewTab: () => {
         const state = get();
         return state.tabs.length < state.maxTabs;
+      },
+
+      reset: () => {
+        const newTab = createNewTab(1);
+        set({
+          tabs: [newTab],
+          activeTabId: newTab.id,
+        });
+      },
+
+      loadExistingOrder: (backendOrder: BackendOrder) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        const order: Order = {
+          id: backendOrder.id,
+          status: backendOrder.status as OrderStatus,
+          type: backendOrder.type as OrderType | undefined,
+          items: (backendOrder.items || []).map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            name: item.product?.name || "Unknown Product",
+            price: Number(item.unitPrice),
+            quantity: Number(item.quantity),
+            notes: item.notes || undefined,
+            imageUrl: item.product?.imageUrl || null,
+            modifiers: item.modifiers?.map((m) => ({
+              modifierId: m.modifierId,
+              name: m.modifier?.name || "Unknown Modifier",
+              price: Number(m.price),
+            })),
+            discount: item.discount as OrderItem["discount"],
+          })),
+          discount: backendOrder.discount
+            ? { type: "FIXED", value: Number(backendOrder.discount) }
+            : null,
+          shippingFee: Number(backendOrder.shippingFee || 0),
+          includeVAT: backendOrder.includeVAT ?? false,
+          paidAmount: 0,
+          customerId: backendOrder.customerId ?? null,
+          customerName: backendOrder.customer?.name ?? null,
+          customerAddress: backendOrder.customer?.address ?? null,
+          tableId: backendOrder.tableId ?? null,
+          tableName: backendOrder.table?.name ?? null,
+          notes: backendOrder.notes || "",
+          createdAt: new Date(backendOrder.createdAt),
+          modifiedAt: new Date(backendOrder.updatedAt || backendOrder.createdAt),
+        };
+
+        set({
+          tabs: state.tabs.map((tab) =>
+            tab.id === state.activeTabId ? { ...tab, order } : tab,
+          ),
+        });
       },
     }),
     {

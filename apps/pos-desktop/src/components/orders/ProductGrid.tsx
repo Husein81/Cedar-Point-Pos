@@ -1,4 +1,13 @@
-import { Button, Icon, Input, Shad, Skeleton, Empty, cn } from "@repo/ui";
+import {
+  Button,
+  Icon,
+  Input,
+  Shad,
+  Skeleton,
+  Empty,
+  cn,
+  SButton,
+} from "@repo/ui";
 import { useProducts } from "@/hooks/useProduct";
 import { useCategories } from "@/hooks/useCategory";
 import { useOrderStore } from "@/store/orderStore";
@@ -47,8 +56,8 @@ export const ProductGrid = () => {
     if (!products) return [];
 
     return products.filter((product) => {
-      // Only show active, non-deleted, non-ingredient products
-      if (!product.isActive || product.isDeleted || product.isIngredient) {
+      // Only show active and non-deleted products
+      if (!product.isActive || product.isDeleted) {
         return false;
       }
 
@@ -102,7 +111,7 @@ export const ProductGrid = () => {
 
     const categoryIdsWithProducts = new Set(
       products
-        .filter((p) => p.isActive && !p.isDeleted && !p.isIngredient)
+        .filter((p) => p.isActive && !p.isDeleted)
         .map((p) => p.categoryId)
         .filter(Boolean),
     );
@@ -126,10 +135,7 @@ export const ProductGrid = () => {
       products
         .filter(
           (p) =>
-            p.isActive &&
-            !p.isDeleted &&
-            !p.isIngredient &&
-            p.categoryId === selectedCategoryId,
+            p.isActive && !p.isDeleted && p.categoryId === selectedCategoryId,
         )
         .map((p) => p.subcategoryId)
         .filter(Boolean),
@@ -139,6 +145,13 @@ export const ProductGrid = () => {
       (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id),
     );
   }, [selectedCategoryId, categories, products]);
+
+  // Get the selected category's color for subcategories
+  const selectedCategoryColor = useMemo(() => {
+    if (!selectedCategoryId || !categories) return null;
+    const category = categories.find((cat) => cat.id === selectedCategoryId);
+    return category?.color?.hex;
+  }, [selectedCategoryId, categories]);
 
   const handleProductClick = (product: Product) => {
     addItem({
@@ -243,7 +256,7 @@ export const ProductGrid = () => {
                     key={category.id}
                     className="pl-2 basis-auto"
                   >
-                    <Button
+                    <SButton
                       onClick={() => handleCategoryClick(category.id)}
                       variant={
                         selectedCategoryId === category.id
@@ -251,10 +264,25 @@ export const ProductGrid = () => {
                           : "outline"
                       }
                       size="lg"
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap cursor-pointer"
+                      style={
+                        category.color?.hex
+                          ? {
+                              backgroundColor:
+                                selectedCategoryId === category.id
+                                  ? category.color.hex
+                                  : "transparent",
+                              borderColor: category.color.hex,
+                              color:
+                                selectedCategoryId === category.id
+                                  ? "#fff"
+                                  : category.color.hex,
+                            }
+                          : {}
+                      }
                     >
                       {category.name}
-                    </Button>
+                    </SButton>
                   </Shad.CarouselItem>
                 ))}
           </Shad.CarouselContent>
@@ -281,16 +309,28 @@ export const ProductGrid = () => {
             <Shad.CarouselContent className="mx-6">
               {/* All (in category) */}
               <Shad.CarouselItem className="pl-2 basis-auto">
-                <Button
+                <SButton
                   onClick={() => handleSubcategoryClick(null)}
                   variant={
                     selectedSubcategoryId === null ? "secondary" : "ghost"
                   }
                   size="default"
-                  className="whitespace-nowrap text-sm"
+                  className="whitespace-nowrap text-sm cursor-pointer"
+                  style={
+                    selectedCategoryColor
+                      ? {
+                          backgroundColor:
+                            selectedSubcategoryId === null
+                              ? `${selectedCategoryColor}20`
+                              : "transparent",
+                          borderColor: selectedCategoryColor,
+                          color: selectedCategoryColor,
+                        }
+                      : {}
+                  }
                 >
                   All
-                </Button>
+                </SButton>
               </Shad.CarouselItem>
 
               {activeSubcategories.map((subcategory) => (
@@ -298,7 +338,7 @@ export const ProductGrid = () => {
                   key={subcategory.id}
                   className="pl-2 basis-auto"
                 >
-                  <Button
+                  <SButton
                     onClick={() => handleSubcategoryClick(subcategory.id)}
                     variant={
                       selectedSubcategoryId === subcategory.id
@@ -307,9 +347,21 @@ export const ProductGrid = () => {
                     }
                     size="default"
                     className="whitespace-nowrap text-sm"
+                    style={
+                      selectedCategoryColor
+                        ? {
+                            backgroundColor:
+                              selectedSubcategoryId === subcategory.id
+                                ? `${selectedCategoryColor}20`
+                                : "transparent",
+                            borderColor: selectedCategoryColor,
+                            color: selectedCategoryColor,
+                          }
+                        : {}
+                    }
                   >
                     {subcategory.name}
-                  </Button>
+                  </SButton>
                 </Shad.CarouselItem>
               ))}
             </Shad.CarouselContent>

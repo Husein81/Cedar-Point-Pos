@@ -288,5 +288,24 @@ export const useMergeOrders = () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
+/**
+ * Query hook for fetching active order by tableId
+ * Useful when you want automatic refetching
+ */
+export const useActiveOrderByTable = (tableId: string | null) => {
+  return useQuery({
+    queryKey: [...ORDER_QUERY_KEY, "active-by-table", tableId],
+    queryFn: () => ordersApi.getActiveOrderByTableId(tableId!),
+    enabled: !!tableId,
+  });
+};
+
+/**
+ * Mutation hook for on-demand fetching of active order by tableId
+ * Useful when you want to trigger the fetch imperatively (e.g., on table selection)
+ */
+export const useFetchActiveOrderByTable = () => {
+  return useMutation<Order | null, Error, string>({
+    mutationFn: ordersApi.getActiveOrderByTableId,
   });
 };

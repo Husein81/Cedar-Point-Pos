@@ -7,7 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
 //
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
@@ -29,15 +28,17 @@ model Tenant {
     tables           Table[]
     floors           Floor[] // Restaurant floor layouts
     modifierGroups   ModifierGroup[]
-    recipes          Recipe[]
     devices          POSDevice[]
     customers        Customer[]
+    suppliers        Supplier[]
+    purchaseOrders   PurchaseOrder[]
     shifts           Shift[]
     transfers        Transfer[]
     settings         Json? // feature flags, tax rates, etc.
     modifiers        Modifier[]
     categories       Category[]
     tenantCurrencies TenantCurrency[] // Tenant-specific currency configurations
+    colors           Color[]
 }
 
 model Currency {
@@ -103,6 +104,7 @@ model Branch {
     transfersFrom    Transfer[]         @relation("TransfersFrom")
     transfersTo      Transfer[]         @relation("TransfersTo")
     products         Product[]
+    purchaseOrders   PurchaseOrder[]
 }
 
 model POSDevice {
@@ -130,6 +132,20 @@ model Category {
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   products      Product[]
   subcategories Subcategory[]
+  colorId       String?
+  color         Color?        @relation(fields: [colorId], references: [id])
+}
+
+model Color {
+  id         String     @id @default(cuid())
+  name       String
+  hex        String
+  tenantId   String
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@unique([tenantId, hex])
+  @@unique([tenantId, name])
 }
 
 model Subcategory {
@@ -143,36 +159,35 @@ model Subcategory {
 }
 
 model Product {
-  id               String             @id @default(cuid())
-  tenantId         String
-  name             String
-  description      String?
-  imageUrl         String?
-  sku              String?            @unique
-  barcode          String?            @unique
-  price            Decimal?           @default(0) @db.Decimal(10, 2)
-  cost             Decimal?           @default(0) @db.Decimal(10, 2)
-  categoryId       String?
-  subcategoryId    String?
-  isActive         Boolean            @default(true)
-  isDeleted        Boolean            @default(false)
-  isIngredient     Boolean            @default(false)
-  isModifiable     Boolean            @default(false)
-  createdAt        DateTime           @default(now())
-  branchId         String?
-  inventory        Inventory[]
-  inventoryHistory InventoryHistory[]
-  modifiers        Modifier[]
-  offerGroupItems  OfferGroupItem[]
-  orderItems       OrderItem[]
-  branch           Branch?            @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  category         Category?          @relation(fields: [categoryId], references: [id])
-  subcategory      Subcategory?       @relation(fields: [subcategoryId], references: [id])
-  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ingredientIn     Recipe[]           @relation("IngredientRecipe")
-  recipesUsedIn    Recipe[]           @relation("SellableRecipe")
-  RefundItem       RefundItem[]
-  transferItems    TransferItem[]
+  id                  String                        @id @default(cuid())
+  tenantId            String
+  name                String
+  description         String?
+  imageUrl            String?
+  sku                 String?                       @unique
+  barcode             String?                       @unique
+  price               Decimal?                      @default(0) @db.Decimal(10, 2)
+  cost                Decimal?                      @default(0) @db.Decimal(10, 2)
+  categoryId          String?
+  subcategoryId       String?
+  isActive            Boolean                       @default(true)
+  isDeleted           Boolean                       @default(false)
+  isModifiable        Boolean                       @default(false)
+  createdAt           DateTime                      @default(now())
+  branchId            String?
+  inventory           Inventory[]
+  inventoryHistory    InventoryHistory[]
+  modifiers           Modifier[]
+  modifierAssignments ModifierProductAssignment[]
+  offerGroupItems     OfferGroupItem[]
+  orderItems          OrderItem[]
+  branch              Branch?                       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category            Category?                     @relation(fields: [categoryId], references: [id])
+  subcategory         Subcategory?                  @relation(fields: [subcategoryId], references: [id])
+  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  RefundItem          RefundItem[]
+  transferItems       TransferItem[]
+  purchaseOrderItems  PurchaseOrderItem[]
 }
 
 model Offer {
@@ -311,43 +326,43 @@ model RefundItem {
 // ---------- RESTAURANT MODULE (FLOORS & TABLES) ----------
 //
 model Floor {
-    id        String   @id @default(cuid())
-    tenantId  String
-    branchId  String
-    name      String
-    order     Int      @default(0) // For UI ordering
-    isDeleted Boolean  @default(false)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String   @id @default(cuid())
+  tenantId  String
+  branchId  String
+  name      String
+  order     Int      @default(0) // For UI ordering
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    tables Table[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tables Table[]
 
-    @@index([branchId, isDeleted])
+  @@index([branchId, isDeleted])
 }
 
 model Table {
-    id          String      @id @default(cuid())
-    tableNumber Int
-    tenantId    String
-    branchId    String
-    floorId     String?     // Optional floor assignment
-    name        String
-    capacity    Int         @default(4)
-    status      TableStatus @default(AVAILABLE)
-    isActive    Boolean     @default(true)
-    isDeleted   Boolean     @default(false)
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  tableNumber Int
+  tenantId    String
+  branchId    String
+  floorId     String? // Optional floor assignment
+  name        String
+  capacity    Int         @default(4)
+  status      TableStatus @default(AVAILABLE)
+  isActive    Boolean     @default(true)
+  isDeleted   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-    tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-    floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
-    orders Order[]
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  orders Order[]
 
-    @@index([branchId, isDeleted])
-    @@index([floorId])
+  @@index([branchId, isDeleted])
+  @@index([floorId])
 }
 
 model ModifierGroup {
@@ -361,30 +376,32 @@ model ModifierGroup {
 }
 
 model Modifier {
-  id            String              @id @default(cuid())
-  tenantId      String
-  groupId       String
-  productId     String?
-  name          String
-  price         Decimal             @default(0)
-  isDeleted     Boolean             @default(false)
-  group         ModifierGroup       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  product       Product?            @relation(fields: [productId], references: [id])
-  tenant        Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orderItemMods OrderItemModifier[]
+  id                  String                        @id @default(cuid())
+  tenantId            String
+  groupId             String
+  productId           String?                       // @deprecated - kept for backward compatibility
+  name                String
+  price               Decimal                       @default(0)
+  isDeleted           Boolean                       @default(false)
+  group               ModifierGroup                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  product             Product?                      @relation(fields: [productId], references: [id])
+  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItemMods       OrderItemModifier[]
+  productAssignments  ModifierProductAssignment[]
 }
 
-model Recipe {
-  id           String  @id @default(cuid())
-  tenantId     String
-  productId    String
-  ingredientId String
-  quantity     Decimal @db.Decimal(10, 4)
-  ingredient   Product @relation("IngredientRecipe", fields: [ingredientId], references: [id])
-  product      Product @relation("SellableRecipe", fields: [productId], references: [id])
-  tenant       Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, ingredientId])
+model ModifierProductAssignment {
+  id          String   @id @default(cuid())
+  modifierId  String
+  productId   String
+  createdAt   DateTime @default(now())
+  
+  modifier    Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([modifierId, productId])
+  @@index([modifierId])
+  @@index([productId])
 }
 
 model Order {
@@ -487,6 +504,68 @@ model Customer {
   @@index([tenantId])
 }
 
+//
+// ---------- SUPPLIER MODULE ----------
+//
+model Supplier {
+  id             String          @id @default(cuid())
+  tenantId       String
+  name           String
+  companyName    String?
+  phone          String?
+  email          String?
+  address        String?
+  category       String?         // Custom category (user-defined)
+  currentBalance Decimal         @default(0) @db.Decimal(10, 2)
+  notes          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  tenantId    String
+  branchId    String
+  supplierId  String
+  orderNumber String?
+  totalAmount Decimal             @default(0) @db.Decimal(10, 2)
+  status      PurchaseOrderStatus @default(PENDING)
+  notes       String?
+  orderedAt   DateTime            @default(now())
+  receivedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch      Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items       PurchaseOrderItem[]
+
+  @@index([tenantId, supplierId])
+  @@index([tenantId, branchId])
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Decimal       @db.Decimal(10, 4)
+  unitCost        Decimal       @db.Decimal(10, 2)
+  totalCost       Decimal       @db.Decimal(10, 2)
+  notes           String?
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseOrderId, productId])
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
 model Shift {
   id         String      @id @default(cuid())
   tenantId   String
@@ -584,7 +663,14 @@ enum TransferStatus {
 }
 
 enum TableStatus {
-    AVAILABLE  // Table is free and ready for guests
-    OCCUPIED   // Table has active guests/order
-    RESERVED   // Table is reserved for upcoming guests
+  AVAILABLE  // Table is free and ready for guests
+  OCCUPIED   // Table has active guests/order
+  RESERVED   // Table is reserved for upcoming guests
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  ORDERED
+  RECEIVED
+  CANCELLED
 }

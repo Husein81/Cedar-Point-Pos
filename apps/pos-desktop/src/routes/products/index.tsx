@@ -42,10 +42,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
-        title={"Products"}
-        subtitle={"Manage your products and ingredients"}
-      />
+      <Heading title={"Products"} subtitle={"Manage your products"} />
 
       <DataTable
         columns={productColumns}

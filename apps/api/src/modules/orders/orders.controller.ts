@@ -88,6 +88,20 @@ export class OrdersController {
   }
 
   /**
+   * Get active (unpaid) order for a specific table
+   * Returns the order if found, null if no active order exists
+   */
+  @Get('table/:tableId/active')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  findActiveOrderByTable(
+    @Req() req: Request,
+    @Param('tableId') tableId: string,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.findActiveOrderByTableId(user.tenantId, tableId);
+  }
+
+  /**
    * Get order by ID
    */
   @Get(':id')

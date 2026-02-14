@@ -1,4 +1,6 @@
+import { useAuthStore } from "@/store/authStore";
 import { OrderStatus, OrderType } from "@repo/types";
+import type { Order as ServerOrder } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -26,6 +28,7 @@ export type OrderItem = {
     value: number;
     type: "PERCENTAGE" | "FIXED";
   };
+  sentToKitchen?: boolean;
 };
 
 export type OrderDiscount = {
@@ -41,8 +44,10 @@ export type Order = {
   discount: OrderDiscount | null;
   shippingFee: number;
   includeVAT: boolean;
+  paidAmount: number;
   customerId: string | null;
   customerName: string | null;
+  customerAddress: string | null;
   tableId: string | null;
   tableName: string | null;
   notes: string;
@@ -56,7 +61,10 @@ export type OrderTab = {
   order: Order;
 };
 
-// Type for backend order response (from API)
+type ServerOrderWithPayments = ServerOrder & {
+  payments?: Array<{ amount?: number | string | null }>;
+};
+
 export type BackendOrder = {
   id: string;
   status: OrderStatus;
@@ -86,7 +94,7 @@ export type BackendOrder = {
   shippingFee?: number | string | null;
   includeVAT?: boolean;
   customerId?: string | null;
-  customer?: { name: string } | null;
+  customer?: { name: string; address?: string | null } | null;
   tableId?: string | null;
   table?: { name: string } | null;
   notes?: string | null;
@@ -106,21 +114,29 @@ const generateOrderId = (): string => {
   return `order-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 
-const createEmptyOrder = (): Order => ({
+const getDefaultOrderType = (): OrderType => {
+  const businessType = useAuthStore.getState().user?.tenant?.businessType;
+  return businessType === "RETAIL" ? OrderType.RETAIL : OrderType.DINE_IN;
+};
+
+const createEmptyOrder = (overrides: Partial<Order> = {}): Order => ({
   id: generateOrderId(),
   status: "DRAFT",
   items: [],
-  type: undefined,
+  type: getDefaultOrderType(),
   discount: null,
   shippingFee: 0,
   includeVAT: false,
+  paidAmount: 0,
   customerId: null,
   customerName: null,
+  customerAddress: null,
   tableId: null,
   tableName: null,
   notes: "",
   createdAt: new Date(),
   modifiedAt: new Date(),
+  ...overrides,
 });
 
 const createNewTab = (tabNumber: number): OrderTab => ({
@@ -151,7 +167,6 @@ interface OrderStoreState {
   createTabWithTable: (tableId: string, tableName: string) => string | null;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  renameTab: (tabId: string, newLabel: string) => void;
 
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
@@ -162,6 +177,7 @@ interface OrderStoreState {
     discount: { value: number; type: "PERCENTAGE" | "FIXED" },
   ) => void;
   updateItemModifiers: (itemId: string, modifiers: OrderItemModifier[]) => void; // New
+  updateItemNotes: (itemId: string, notes: string) => void;
   removeItem: (itemId: string) => void;
   clearOrder: () => void;
 
@@ -173,31 +189,40 @@ interface OrderStoreState {
 
   // VAT actions
   toggleVAT: () => void;
-  setVAT: (includeVAT: boolean) => void;
 
   // Customer actions
-  setCustomer: (customerId: string | null, customerName: string | null) => void;
+  setCustomer: (
+    customerId: string | null,
+    customerName: string | null,
+    customerAddress?: string | null,
+  ) => void;
 
   // Table actions
   setTable: (tableId: string | null, tableName: string | null) => void;
 
   // Order notes
-  setOrderNotes: (notes: string) => void;
+  // Kitchen
+  markItemsSentToKitchen: () => void;
+  getUnsentItems: () => OrderItem[];
 
   // Order status
   setOrderStatus: (status: OrderStatus) => void;
   setOrderType: (type?: string) => void;
-  holdOrder: () => void;
-  resumeOrder: () => void;
+
+  // Update the order ID on the active tab (e.g. after server creation)
+  updateOrderId: (newId: string) => void;
+
+  // Load existing server order into a new tab
+  loadOrder: (
+    serverOrder: ServerOrderWithPayments,
+    forceRefresh?: boolean,
+  ) => string | null;
 
   // Computed helpers
   getActiveOrder: () => Order | null;
-  getActiveTab: () => OrderTab | null;
   getOrderSubtotal: (tabId?: string) => number;
-  getItemDiscountsTotal: (tabId?: string) => number;
   getDiscountAmount: (tabId?: string) => number;
   getVATAmount: (tabId?: string) => number;
-  getOrderTotal: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
 
@@ -243,9 +268,7 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
 
         // First, check if there's already a tab with this table
-        const existingTab = state.tabs.find(
-          (t) => t.order.tableId === tableId
-        );
+        const existingTab = state.tabs.find((t) => t.order.tableId === tableId);
         if (existingTab) {
           set({ activeTabId: existingTab.id });
           return existingTab.id;
@@ -263,15 +286,16 @@ export const useOrderStore = create<OrderStoreState>()(
             tabs: state.tabs.map((t) =>
               t.id === activeTab.id
                 ? {
-                  ...t,
-                  order: {
-                    ...t.order,
-                    tableId,
-                    tableName,
-                    modifiedAt: new Date(),
-                  },
-                }
-                : t
+                    ...t,
+                    order: {
+                      ...t.order,
+                      tableId,
+                      tableName,
+                      type: OrderType.DINE_IN,
+                      modifiedAt: new Date(),
+                    },
+                  }
+                : t,
             ),
           });
           return activeTab.id;
@@ -279,6 +303,54 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Create a new tab if we have room
         if (state.tabs.length >= state.maxTabs) {
+          // Evict a stale tab: prefer tabs with server-persisted table
+          // orders that aren't the active tab (least likely to still
+          // be relevant). This prevents silent failures when the user
+          // keeps navigating to different tables from the tables page.
+          const staleTab = state.tabs.find(
+            (t) =>
+              t.id !== state.activeTabId &&
+              t.order.tableId &&
+              !t.order.id.startsWith("order-"),
+          );
+
+          if (staleTab) {
+            const filtered = state.tabs.filter((t) => t.id !== staleTab.id);
+            const newTab: OrderTab = {
+              id: generateTabId(),
+              label: `Order ${filtered.length + 1}`,
+              order: {
+                ...createEmptyOrder({ type: OrderType.DINE_IN }),
+                tableId,
+                tableName,
+              },
+            };
+            const updatedTabs = renumberTabs([...filtered, newTab]);
+            set({ tabs: updatedTabs, activeTabId: newTab.id });
+            return newTab.id;
+          }
+
+          // No stale tab to evict - try evicting any non-active empty tab
+          const emptyTab = state.tabs.find(
+            (t) => t.id !== state.activeTabId && t.order.items.length === 0,
+          );
+
+          if (emptyTab) {
+            const filtered = state.tabs.filter((t) => t.id !== emptyTab.id);
+            const newTab: OrderTab = {
+              id: generateTabId(),
+              label: `Order ${filtered.length + 1}`,
+              order: {
+                ...createEmptyOrder({ type: OrderType.DINE_IN }),
+                tableId,
+                tableName,
+              },
+            };
+            const updatedTabs = renumberTabs([...filtered, newTab]);
+            set({ tabs: updatedTabs, activeTabId: newTab.id });
+            return newTab.id;
+          }
+
           return null;
         }
 
@@ -287,7 +359,7 @@ export const useOrderStore = create<OrderStoreState>()(
           id: generateTabId(),
           label: `Order ${newTabNumber}`,
           order: {
-            ...createEmptyOrder(),
+            ...createEmptyOrder({ type: OrderType.DINE_IN }),
             tableId,
             tableName,
           },
@@ -347,14 +419,6 @@ export const useOrderStore = create<OrderStoreState>()(
         }
       },
 
-      renameTab: (tabId: string, newLabel: string) => {
-        set((state) => ({
-          tabs: state.tabs.map((tab) =>
-            tab.id === tabId ? { ...tab, label: newLabel } : tab,
-          ),
-        }));
-      },
-
       // =====================
       // Order Item Actions
       // =====================
@@ -373,6 +437,7 @@ export const useOrderStore = create<OrderStoreState>()(
             // Different modifiers = separate line items
             const existingItemIndex = tab.order.items.findIndex((i) => {
               if (i.productId !== item.productId) return false;
+              if (i.sentToKitchen) return false;
 
               // If product is not modifiable or no modifiers, merge by productId
               if (!item.modifiers || item.modifiers.length === 0) {
@@ -531,6 +596,30 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
+      updateItemNotes: (itemId: string, notes: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                items: tab.order.items.map((item) =>
+                  item.id === itemId
+                    ? { ...item, notes: notes || undefined }
+                    : item,
+                ),
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
       removeItem: (itemId: string) => {
         const state = get();
         if (!state.activeTabId) return;
@@ -565,6 +654,8 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 items: [],
                 discount: null,
+                paidAmount: 0,
+                type: getDefaultOrderType(),
                 customerId: null,
                 customerName: null,
                 tableId: null,
@@ -644,31 +735,15 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      setVAT: (includeVAT: boolean) => {
-        const state = get();
-        if (!state.activeTabId) return;
-
-        set({
-          tabs: state.tabs.map((tab) => {
-            if (tab.id !== state.activeTabId) return tab;
-
-            return {
-              ...tab,
-              order: {
-                ...tab.order,
-                includeVAT,
-                modifiedAt: new Date(),
-              },
-            };
-          }),
-        });
-      },
-
       // =====================
       // Customer Actions
       // =====================
 
-      setCustomer: (customerId: string | null, customerName: string | null) => {
+      setCustomer: (
+        customerId: string | null,
+        customerName: string | null,
+        customerAddress?: string | null,
+      ) => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -682,6 +757,7 @@ export const useOrderStore = create<OrderStoreState>()(
                 ...tab.order,
                 customerId,
                 customerName,
+                customerAddress: customerAddress ?? null,
                 modifiedAt: new Date(),
               },
             };
@@ -697,40 +773,17 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         if (!state.activeTabId) return;
 
-        // If selecting a table, check if another tab already has this table
-        // and copy its order (so tabs with the same table share the same order)
-        let orderToCopy: Order | null = null;
-        if (tableId) {
-          const existingTab = state.tabs.find(
-            (tab) => tab.id !== state.activeTabId && tab.order.tableId === tableId
-          );
-          if (existingTab) {
-            orderToCopy = existingTab.order;
-          }
-        }
-
         set({
           tabs: state.tabs.map((tab) => {
             if (tab.id !== state.activeTabId) return tab;
 
-            // If we found another tab with this table, copy its order
-            if (orderToCopy) {
-              return {
-                ...tab,
-                order: {
-                  ...orderToCopy,
-                  modifiedAt: new Date(),
-                },
-              };
-            }
-
-            // Otherwise just update the table reference
             return {
               ...tab,
               order: {
                 ...tab.order,
                 tableId,
                 tableName,
+                ...(tableId ? { type: OrderType.DINE_IN } : {}),
                 modifiedAt: new Date(),
               },
             };
@@ -739,10 +792,10 @@ export const useOrderStore = create<OrderStoreState>()(
       },
 
       // =====================
-      // Order Notes
+      // Order Status & Type
       // =====================
 
-      setOrderNotes: (notes: string) => {
+      markItemsSentToKitchen: () => {
         const state = get();
         if (!state.activeTabId) return;
 
@@ -754,7 +807,10 @@ export const useOrderStore = create<OrderStoreState>()(
               ...tab,
               order: {
                 ...tab.order,
-                notes,
+                items: tab.order.items.map((item) => ({
+                  ...item,
+                  sentToKitchen: true,
+                })),
                 modifiedAt: new Date(),
               },
             };
@@ -762,9 +818,12 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      // =====================
-      // Order Status & Type
-      // =====================
+      getUnsentItems: () => {
+        const state = get();
+        const order = state.tabs.find((t) => t.id === state.activeTabId)?.order;
+        if (!order) return [];
+        return order.items.filter((i) => !i.sentToKitchen);
+      },
 
       setOrderStatus: (status: OrderStatus) => {
         const state = get();
@@ -806,12 +865,170 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      holdOrder: () => {
-        get().setOrderStatus("ON_HOLD");
+      updateOrderId: (newId: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+            return {
+              ...tab,
+              order: { ...tab.order, id: newId, modifiedAt: new Date() },
+            };
+          }),
+        });
       },
 
-      resumeOrder: () => {
-        get().setOrderStatus("DRAFT");
+      loadOrder: (
+        serverOrder: ServerOrderWithPayments,
+        forceRefresh?: boolean,
+      ) => {
+        const state = get();
+
+        // Check if this server order is already loaded in a tab
+        const existingTab = state.tabs.find(
+          (t) => t.order.id === serverOrder.id,
+        );
+        if (existingTab) {
+          if (!forceRefresh) {
+            set({ activeTabId: existingTab.id });
+            return existingTab.id;
+          }
+          // forceRefresh: fall through to re-hydrate the order data below
+        }
+
+        // Try to reuse the current active tab if it's empty
+        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+        const canReuse =
+          activeTab &&
+          activeTab.order.items.length === 0 &&
+          !activeTab.order.tableId &&
+          !activeTab.order.customerId;
+
+        // Determine if items were already sent to kitchen based on order status
+        const wasSentToKitchen =
+          serverOrder.status === "SENT_TO_KITCHEN" ||
+          serverOrder.status === "IN_PROGRESS" ||
+          serverOrder.status === "CONFIRMED" ||
+          serverOrder.status === "READY";
+
+        // Map server order items to local OrderItem format
+        const items: OrderItem[] = (serverOrder.items || []).map((si) => ({
+          id: si.id,
+          productId: si.productId,
+          name: si.product?.name || "Unknown",
+          price: parseFloat(String(si.unitPrice ?? 0)),
+          quantity: parseInt(String(si.quantity), 10) || 1,
+          notes: si.notes || undefined,
+          imageUrl: si.product?.imageUrl || null,
+          modifiers:
+            si.modifiers?.map((m: any) => ({
+              modifierId: m.modifierId || m.modifier?.id || m.id,
+              name: m.modifier?.name || m.name || "",
+              price: parseFloat(String(m.price ?? 0)),
+            })) || [],
+          sentToKitchen: wasSentToKitchen,
+          discount: si.discount
+            ? {
+                value: si.discount.value,
+                type: si.discount.type,
+              }
+            : undefined,
+        }));
+
+        const resolvedTableId = serverOrder.tableId || null;
+        const tableNameFromPayload =
+          serverOrder.table && typeof serverOrder.table.name === "string"
+            ? serverOrder.table.name
+            : null;
+        const tableNameFromExistingTab = existingTab?.order.tableName ?? null;
+        const resolvedTableName = resolvedTableId
+          ? (tableNameFromPayload ?? tableNameFromExistingTab ?? null)
+          : null;
+
+        const hydratedOrder: Order = {
+          id: serverOrder.id,
+          status: serverOrder.status as OrderStatus,
+          type: serverOrder.type as OrderType | undefined,
+          items,
+          discount: serverOrder.discount
+            ? {
+                value: parseFloat(String(serverOrder.discount)),
+                type: "FIXED" as DiscountType,
+              }
+            : null,
+          shippingFee: parseFloat(String(serverOrder.shippingFee ?? 0)),
+          includeVAT: serverOrder.includeVAT ?? false,
+          paidAmount: (serverOrder.payments || []).reduce(
+            (sum, p) => sum + Number(p.amount ?? 0),
+            0,
+          ),
+          customerId: serverOrder.customerId || null,
+          customerName: serverOrder.customer?.name || null,
+          customerAddress: serverOrder.customer?.address || null,
+          tableId: resolvedTableId,
+          tableName: resolvedTableName,
+          notes: "",
+          createdAt: new Date(serverOrder.createdAt),
+          modifiedAt: new Date(),
+        };
+
+        if (forceRefresh && existingTab) {
+          // Re-hydrate existing tab with fresh server data
+          set({
+            tabs: state.tabs.map((t) =>
+              t.id === existingTab.id
+                ? {
+                    ...t,
+                    label: serverOrder.orderNumber
+                      ? `#${serverOrder.orderNumber}`
+                      : t.label,
+                    order: hydratedOrder,
+                  }
+                : t,
+            ),
+            activeTabId: existingTab.id,
+          });
+          return existingTab.id;
+        }
+
+        if (canReuse && activeTab) {
+          set({
+            tabs: state.tabs.map((t) =>
+              t.id === activeTab.id
+                ? {
+                    ...t,
+                    label: serverOrder.orderNumber
+                      ? `#${serverOrder.orderNumber}`
+                      : t.label,
+                    order: hydratedOrder,
+                  }
+                : t,
+            ),
+          });
+          return activeTab.id;
+        }
+
+        // Create a new tab if we have room
+        if (state.tabs.length >= state.maxTabs) {
+          return null;
+        }
+
+        const newTab: OrderTab = {
+          id: generateTabId(),
+          label: serverOrder.orderNumber
+            ? `#${serverOrder.orderNumber}`
+            : `Order ${state.tabs.length + 1}`,
+          order: hydratedOrder,
+        };
+
+        set({
+          tabs: [...state.tabs, newTab],
+          activeTabId: newTab.id,
+        });
+
+        return newTab.id;
       },
 
       // =====================
@@ -822,31 +1039,6 @@ export const useOrderStore = create<OrderStoreState>()(
         const state = get();
         const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
         return activeTab?.order ?? null;
-      },
-
-      getActiveTab: () => {
-        const state = get();
-        return state.tabs.find((t) => t.id === state.activeTabId) ?? null;
-      },
-
-      /**
-       * Optimized selector to get only tableId from active order
-       * Prevents unnecessary re-renders when other order properties change
-       */
-      getActiveTableId: () => {
-        const state = get();
-        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-        return activeTab?.order.tableId ?? null;
-      },
-
-      /**
-       * Optimized selector to get only tableName from active order
-       * Prevents unnecessary re-renders when other order properties change
-       */
-      getActiveTableName: () => {
-        const state = get();
-        const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
-        return activeTab?.order.tableName ?? null;
       },
 
       getOrderSubtotal: (tabId?: string) => {
@@ -879,32 +1071,6 @@ export const useOrderStore = create<OrderStoreState>()(
         }, 0);
       },
 
-      // Get total of all item-level discounts
-      getItemDiscountsTotal: (tabId?: string) => {
-        const state = get();
-        const targetTabId = tabId ?? state.activeTabId;
-        const tab = state.tabs.find((t) => t.id === targetTabId);
-
-        if (!tab) return 0;
-
-        return tab.order.items.reduce((sum, item) => {
-          if (!item.discount) return sum;
-
-          // Calculate base price + modifiers
-          const modifiersTotal =
-            item.modifiers?.reduce((modSum, mod) => modSum + mod.price, 0) || 0;
-          const unitPrice = item.price + modifiersTotal;
-          const lineTotal = unitPrice * item.quantity;
-
-          if (item.discount.type === "PERCENTAGE") {
-            return sum + lineTotal * (item.discount.value / 100);
-          } else {
-            // FIXED discount
-            return sum + item.discount.value;
-          }
-        }, 0);
-      },
-
       getDiscountAmount: (tabId?: string) => {
         const state = get();
         const targetTabId = tabId ?? state.activeTabId;
@@ -921,21 +1087,6 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Fixed discount - cannot exceed subtotal
         return Math.min(value, subtotal);
-      },
-
-      getOrderTotal: (tabId?: string) => {
-        const state = get();
-        const subtotal = state.getOrderSubtotal(tabId);
-        const discount = state.getDiscountAmount(tabId);
-        const targetTabId = tabId ?? state.activeTabId;
-        const tab = state.tabs.find((t) => t.id === targetTabId);
-        const shippingFee = tab?.order.shippingFee ?? 0;
-        const subtotalAfterDiscount = Math.max(
-          0,
-          subtotal - discount + shippingFee,
-        );
-        const vatAmount = state.getVATAmount(tabId);
-        return subtotalAfterDiscount + vatAmount;
       },
 
       getVATAmount: (tabId?: string) => {
@@ -967,10 +1118,6 @@ export const useOrderStore = create<OrderStoreState>()(
         return state.tabs.length < state.maxTabs;
       },
 
-      // =====================
-      // Utility
-      // =====================
-
       reset: () => {
         const newTab = createNewTab(1);
         set({
@@ -979,10 +1126,6 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      /**
-       * Load an existing backend order into the active tab
-       * Converts backend order format to local order format
-       */
       loadExistingOrder: (backendOrder: BackendOrder) => {
         const state = get();
         if (!state.activeTabId) return;
@@ -1007,12 +1150,14 @@ export const useOrderStore = create<OrderStoreState>()(
             discount: item.discount as OrderItem["discount"],
           })),
           discount: backendOrder.discount
-            ? { type: "FIXED" as const, value: Number(backendOrder.discount) }
+            ? { type: "FIXED", value: Number(backendOrder.discount) }
             : null,
           shippingFee: Number(backendOrder.shippingFee || 0),
           includeVAT: backendOrder.includeVAT ?? false,
+          paidAmount: 0,
           customerId: backendOrder.customerId ?? null,
           customerName: backendOrder.customer?.name ?? null,
+          customerAddress: backendOrder.customer?.address ?? null,
           tableId: backendOrder.tableId ?? null,
           tableName: backendOrder.table?.name ?? null,
           notes: backendOrder.notes || "",
@@ -1022,7 +1167,7 @@ export const useOrderStore = create<OrderStoreState>()(
 
         set({
           tabs: state.tabs.map((tab) =>
-            tab.id === state.activeTabId ? { ...tab, order } : tab
+            tab.id === state.activeTabId ? { ...tab, order } : tab,
           ),
         });
       },

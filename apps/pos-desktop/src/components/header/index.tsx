@@ -9,7 +9,7 @@ export function Header() {
   const { user } = useAuthStore();
 
   return (
-    <header className="bg-sidebar pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
+    <header className="bg-background pl-2 border-b z-50 fixed top-0 inset-x-0 h-10 flex items-center justify-between window-drag">
       <LeftSide />
 
       <div className="flex items-center gap-4">

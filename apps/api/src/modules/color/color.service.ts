@@ -16,6 +16,7 @@ export class ColorService {
   async getColors(tenantId: string): Promise<Color[]> {
     try {
       const colors = await this.prisma.color.findMany({
+        where: { tenantId },
         orderBy: {
           name: 'asc',
         },

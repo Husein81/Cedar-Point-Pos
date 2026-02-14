@@ -18,7 +18,8 @@ export type PaymentEntry = {
 
 type Props = {
   total: number;
-  onConfirm: (payments: PaymentEntry[]) => void;
+  onConfirm: (payments: PaymentEntry[], sendToKitchenFirst?: boolean) => void;
+  hasUnsentItems?: boolean;
 };
 
 const PAYMENT_METHODS: {
@@ -31,7 +32,11 @@ const PAYMENT_METHODS: {
   { value: "ONLINE", label: "Online", icon: "Smartphone" },
 ];
 
-export const PaymentForm = ({ total, onConfirm }: Props) => {
+export const PaymentForm = ({
+  total,
+  onConfirm,
+  hasUnsentItems = false,
+}: Props) => {
   const { closeModal } = useModalStore();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
@@ -177,10 +182,18 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
     setGivenAmount("");
   };
 
+  const [isConfirming, setIsConfirming] = useState(false);
+
   const handleConfirm = () => {
-    if (!isFullyPaid || payments.length === 0) return;
-    onConfirm(payments);
-    closeModal();
+    if (!isFullyPaid || payments.length === 0 || isConfirming) return;
+    setIsConfirming(true);
+    onConfirm(payments, false);
+  };
+
+  const handlePayAndSend = () => {
+    if (!isFullyPaid || payments.length === 0 || isConfirming) return;
+    setIsConfirming(true);
+    onConfirm(payments, true);
   };
 
   // ===== LOADING STATE =====
@@ -408,18 +421,48 @@ export const PaymentForm = ({ total, onConfirm }: Props) => {
 
       {/* ===== FOOTER ACTIONS ===== */}
       <div className="flex pt-4 gap-2">
-        <Button variant="outline" type="button" onClick={closeModal}>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={closeModal}
+          disabled={isConfirming}
+        >
           Cancel
         </Button>
 
-        <Button
-          onClick={handleConfirm}
-          disabled={!isFullyPaid || payments.length === 0}
-          className="flex-1  text-base"
-        >
-          <Icon name="Check" className="w-5 h-5" />
-          {isFullyPaid ? "Complete" : "Add Payment"}
-        </Button>
+        {hasUnsentItems ? (
+          <>
+            <Button
+              variant="outline"
+              onClick={handleConfirm}
+              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              isSubmitting={isConfirming}
+              className="flex-1 text-base"
+            >
+              <Icon name="CreditCard" className="w-5 h-5" />
+              Pay Only
+            </Button>
+            <Button
+              onClick={handlePayAndSend}
+              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              isSubmitting={isConfirming}
+              className="flex-1 text-base"
+            >
+              <Icon name="ChefHat" className="w-5 h-5" />
+              Pay & Send
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={handleConfirm}
+            disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+            isSubmitting={isConfirming}
+            className="flex-1 text-base"
+          >
+            <Icon name="Check" className="w-5 h-5" />
+            {isFullyPaid ? "Complete" : "Add Payment"}
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -201,6 +201,45 @@ export class OrdersController {
     );
   }
 
+  @Patch(':id/transfer-table')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  transferOrderToTable(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { targetTableId: string; mergeIntoOrderId?: string },
+  ) {
+    if (!body.targetTableId) {
+      throw new BadRequestException('Target table ID is required');
+    }
+
+    const user = req.user as { tenantId: string };
+    return this.ordersService.transferOrderToTable(
+      user.tenantId,
+      id,
+      body.targetTableId,
+      body.mergeIntoOrderId,
+    );
+  }
+
+  @Post(':id/merge')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  mergeOrders(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { sourceOrderId: string },
+  ) {
+    if (!body.sourceOrderId) {
+      throw new BadRequestException('Source order ID is required');
+    }
+
+    const user = req.user as { tenantId: string };
+    return this.ordersService.mergeOrders(
+      user.tenantId,
+      id,
+      body.sourceOrderId,
+    );
+  }
+
   /**
    * Add item to order
    */

@@ -6,3 +6,4 @@ export { FloorForm } from "./FloorForm";
 export { TableFilters } from "./TableFilters";
 export { TablesStatsCards } from "./TablesStatsCards";
 export { TablesPage } from "./TablesPage";
+export { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";

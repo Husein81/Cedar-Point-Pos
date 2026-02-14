@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from './table-status.service.js';
-import type { TableStatus } from '../../generated/prisma/client.js';
+import { TableStatus } from '../../generated/prisma/client.js';
 import type {
   CreateTableDto,
   UpdateTableDto,
@@ -22,7 +22,6 @@ export class TablesService {
 
   /**
    * Centralized error handler to eliminate code duplication
-   * Re-throws known exceptions, wraps unknown errors
    */
   private handleError(error: unknown, context: string): never {
     if (
@@ -37,9 +36,6 @@ export class TablesService {
     );
   }
 
-  /**
-   * Get all active tables for a branch (excludes soft-deleted tables)
-   */
   async getTablesByBranch(branchId: string, tenantId: string) {
     return this.prisma.table.findMany({
       where: {
@@ -59,12 +55,7 @@ export class TablesService {
     });
   }
 
-  /**
-   * Get all active tables for a specific floor
-   * Optimized to reduce database calls
-   */
   async getTablesByFloor(floorId: string, tenantId: string) {
-    // Fetch tables and validate floor exists in single query
     const tables = await this.prisma.table.findMany({
       where: {
         floorId,
@@ -74,7 +65,6 @@ export class TablesService {
       orderBy: { tableNumber: 'asc' },
     });
 
-    // If no tables found, verify floor exists to provide accurate error
     if (tables.length === 0) {
       const floorExists = await this.prisma.floor.findFirst({
         where: {
@@ -92,9 +82,6 @@ export class TablesService {
     return tables;
   }
 
-  /**
-   * Get a specific table by ID (only if not deleted)
-   */
   async getTableById(id: string, tenantId: string) {
     const table = await this.prisma.table.findFirst({
       where: {
@@ -119,14 +106,9 @@ export class TablesService {
     return table;
   }
 
-  /**
-   * Create a new table with tenant scoping
-   * Uses transaction to ensure data consistency
-   */
   async createTable(data: CreateTableDto, tenantId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // Verify branch belongs to tenant
         const branch = await tx.branch.findFirst({
           where: {
             id: data.branchId,
@@ -139,7 +121,6 @@ export class TablesService {
           throw new BadRequestException('Branch not found or access denied');
         }
 
-        // If floorId provided, verify it belongs to the same branch
         if (data.floorId) {
           const floor = await tx.floor.findFirst({
             where: {
@@ -157,7 +138,6 @@ export class TablesService {
           }
         }
 
-        // Check for duplicate table number in the same branch
         const existingTable = await tx.table.findFirst({
           where: {
             branchId: data.branchId,
@@ -196,14 +176,9 @@ export class TablesService {
     }
   }
 
-  /**
-   * Update an existing table with tenant scoping
-   * Uses transaction to ensure data consistency
-   */
   async updateTable(id: string, data: UpdateTableDto, tenantId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // Verify table exists and belongs to tenant
         const existingTable = await tx.table.findFirst({
           where: {
             id,
@@ -216,7 +191,6 @@ export class TablesService {
           throw new NotFoundException('Table not found');
         }
 
-        // If updating floorId, verify floor belongs to same branch
         if (data.floorId !== undefined && data.floorId !== null) {
           const floor = await tx.floor.findFirst({
             where: {
@@ -234,7 +208,6 @@ export class TablesService {
           }
         }
 
-        // If updating table number, check for duplicates
         if (
           data.tableNumber &&
           data.tableNumber !== existingTable.tableNumber
@@ -281,7 +254,7 @@ export class TablesService {
 
   /**
    * Update table status (AVAILABLE, OCCUPIED, RESERVED)
-   * Uses TableStatusService for proper validation and consistency
+   * Blocks manual release to AVAILABLE if active orders exist.
    */
   async updateTableStatus(
     id: string,
@@ -290,7 +263,19 @@ export class TablesService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // Use TableStatusService for validation and update
+        if (data.status === 'AVAILABLE') {
+          const hasActive = await this.tableStatusService.hasActiveOrders(
+            id,
+            tenantId,
+            tx,
+          );
+          if (hasActive) {
+            throw new BadRequestException(
+              'Cannot release table with active orders. Complete or cancel all orders first.',
+            );
+          }
+        }
+
         await this.tableStatusService.updateTableStatus(
           id,
           data.status as TableStatus,
@@ -298,7 +283,6 @@ export class TablesService {
           tx,
         );
 
-        // Return updated table with floor info
         return this.getTableById(id, tenantId);
       });
     } catch (error) {
@@ -306,10 +290,25 @@ export class TablesService {
     }
   }
 
+  /**
+   * Returns all active orders for a given table.
+   */
+  async getActiveOrdersByTable(tableId: string, tenantId: string) {
+    const table = await this.prisma.table.findFirst({
+      where: { id: tableId, tenantId, isDeleted: false },
+      select: { id: true },
+    });
+
+    if (!table) {
+      throw new NotFoundException('Table not found');
+    }
+
+    return this.tableStatusService.getActiveOrdersForTable(tableId, tenantId);
+  }
+
   async deleteTable(id: string, tenantId: string) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // Verify table exists and belongs to tenant
         const existingTable = await tx.table.findFirst({
           where: {
             id,
@@ -322,7 +321,6 @@ export class TablesService {
           throw new NotFoundException('Table not found');
         }
 
-        // Check for active orders on this table
         const activeOrdersCount = await tx.order.count({
           where: {
             tableId: id,
@@ -348,9 +346,6 @@ export class TablesService {
     }
   }
 
-  /**
-   * Get table statistics by status for a branch
-   */
   async getTableStats(branchId: string, tenantId: string) {
     const tables = await this.prisma.table.findMany({
       where: {

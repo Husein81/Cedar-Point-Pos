@@ -223,6 +223,63 @@ export class TableStatusService {
   }
 
   /**
+   * Check if a table has any active (non-terminal) orders.
+   * Used by manual release guard to prevent releasing occupied tables.
+   */
+  async hasActiveOrders(
+    tableId: string,
+    tenantId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const prismaClient = tx || this.prisma;
+
+    const count = await prismaClient.order.count({
+      where: {
+        tableId,
+        tenantId,
+        status: { in: this.ACTIVE_ORDER_STATUSES },
+      },
+    });
+
+    return count > 0;
+  }
+
+  /**
+   * Get all active orders for a table (non-terminal statuses).
+   * Returns summary data for UI display.
+   */
+  async getActiveOrdersForTable(
+    tableId: string,
+    tenantId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const prismaClient = tx || this.prisma;
+
+    return prismaClient.order.findMany({
+      where: {
+        tableId,
+        tenantId,
+        status: { in: this.ACTIVE_ORDER_STATUSES },
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            modifiers: {
+              include: { modifier: true },
+            },
+            refundItems: true,
+          },
+        },
+        customer: { select: { id: true, name: true } },
+        payments: { select: { amount: true } },
+        table: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * Marks a table as AVAILABLE if no other active orders exist
    *
    * @param tableId - ID of the table

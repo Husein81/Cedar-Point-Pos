@@ -13,10 +13,13 @@ type Props = {
   placeholder?: string;
 } & React.ComponentProps<"textarea">;
 
-const InputField = ({ label, field, placeholder }: Props) => {
+const TextareaField = ({ label, field, placeholder, ...props }: Props) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor={field.name}>{label}:</Label>
+      <Label htmlFor={field.name}>
+        {label}
+        {props.required && <span className="text-destructive"> *</span>}
+      </Label>
       <div className="relative">
         <Textarea
           name={field.name}
@@ -24,6 +27,7 @@ const InputField = ({ label, field, placeholder }: Props) => {
           placeholder={placeholder}
           onBlur={field.handleBlur}
           onChange={(e) => field.handleChange(e.target.value)}
+          {...props}
         />
       </div>
       <FieldInfo field={field} className={cn("text-destructive")} />
@@ -31,4 +35,4 @@ const InputField = ({ label, field, placeholder }: Props) => {
   );
 };
 
-export default InputField;
+export default TextareaField;

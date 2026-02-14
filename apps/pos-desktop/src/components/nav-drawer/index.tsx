@@ -3,8 +3,8 @@ import type { BusinessType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
-import { sidebarSections } from "../side-bar/config";
-import NavUser from "../side-bar/nav-user";
+import { sidebarSections } from "./config";
+import NavUser from "./nav-user";
 import { useNavigate } from "@tanstack/react-router";
 
 type NavDrawerProps = {

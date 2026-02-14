@@ -8,6 +8,7 @@ import React, { useCallback, useState } from "react";
 import { AlertDialog } from "../common";
 import { STATUS_OPTIONS, statusColors, TABLE_STATUS_CONFIG } from "./config";
 import { TableForm } from "./TableForm";
+import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
 
 interface TableCardProps {
   table: TableWithFloor;
@@ -23,31 +24,35 @@ export function TableCard({ table }: TableCardProps) {
 
   const updateStatusMutation = useUpdateTableStatus();
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isActiveOrdersOpen, setIsActiveOrdersOpen] = useState(false);
 
   const handleEditTable = (table: TableWithFloor) =>
     openModal("Edit Table", <TableForm table={table} />);
 
-  const handleCardClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Don't navigate if clicking on action buttons or dropdown
-      const target = e.target as HTMLElement;
-      if (target.closest("button") || target.closest("[data-dropdown]")) {
-        return;
-      }
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on action buttons or dropdown
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("[data-dropdown]")) {
+      return;
+    }
 
-      // Navigate to orders page with table context
-      navigate({
-        to: "/orders",
-        search: {
-          tableId: table.id,
-          tableName: table.floor
-            ? `${table.floor.name} - ${table.name}`
-            : table.name,
-        },
-      });
-    },
-    [navigate, table.id, table.name, table.floor],
-  );
+    // If table is OCCUPIED, show active orders dialog instead of navigating
+    if (status === "OCCUPIED") {
+      setIsActiveOrdersOpen(true);
+      return;
+    }
+
+    // Navigate to orders page with table context (AVAILABLE or RESERVED tables)
+    navigate({
+      to: "/orders",
+      search: {
+        tableId: table.id,
+        tableName: table.floor
+          ? `${table.floor.name} - ${table.name}`
+          : table.name,
+      },
+    });
+  };
 
   const handleStatusChange = useCallback(
     (newStatus: TableStatus) => {
@@ -68,7 +73,7 @@ export function TableCard({ table }: TableCardProps) {
     <Shad.Card
       className={cn(
         "group relative overflow-hidden transition-all duration-200 cursor-pointer",
-        "hover:shadow-lg hover:scale-[1.02]",
+        "hover:shadow-md hover:-translate-y-0.5",
         statusColors[status],
         !table.isActive && "opacity-50",
       )}
@@ -77,18 +82,18 @@ export function TableCard({ table }: TableCardProps) {
       {/* Hover Action Buttons */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute top-9 right-4 z-10 flex gap-2 items-center transition-opacity duration-200"
+        className="absolute top-3 right-3 z-10 flex gap-1.5 items-center transition-opacity duration-200"
       >
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 bg-background/80 backdrop-blur-sm shadow-sm"
+          className="h-9 w-9 bg-background/80 backdrop-blur-sm shadow-sm"
           onClick={() => {
             handleEditTable(table);
           }}
           aria-label="Edit table"
         >
-          <Icon name="Pencil" className="h-4.5 w-4.5" />
+          <Icon name="Pencil" className="h-4 w-4" />
         </Button>
         <AlertDialog
           iconButton="Trash2"
@@ -96,14 +101,14 @@ export function TableCard({ table }: TableCardProps) {
           buttonVariant="destructive"
           title={`Delete Table "${table.name}"?`}
           description={`This will remove table "${table.name}" from your restaurant layout. This action cannot be undone.`}
-          className="h-10 w-10"
+          className="h-9 w-9"
           onConfirm={() => {
             deleteTableMutation.mutate(table.id);
           }}
         />
       </div>
 
-      <Shad.CardHeader className="pb-3 pt-5">
+      <Shad.CardHeader className="pb-2 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Status Dropdown for manual editing */}
@@ -120,7 +125,7 @@ export function TableCard({ table }: TableCardProps) {
                   <Badge
                     variant="outline"
                     className={cn(
-                      "font-semibold text-sm px-4 py-1",
+                      "font-semibold text-xs px-3 py-0.5",
                       config.className,
                     )}
                   >
@@ -158,29 +163,36 @@ export function TableCard({ table }: TableCardProps) {
         </div>
       </Shad.CardHeader>
 
-      <Shad.CardContent className="pt-0 pb-5">
-        <div className="text-center py-4">
-          <h3 className="text-4xl font-bold text-foreground">
+      <Shad.CardContent className="pt-0 pb-4">
+        <div className="text-center py-3">
+          <h3 className="text-3xl font-bold text-foreground">
             {table.tableNumber}
           </h3>
-          <p className="text-sm text-muted-foreground font-medium">
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">
             {table.name}
           </p>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
-          <div className="flex items-center gap-1">
-            <Icon name="Users" className="h-4 w-4" />
+        <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+          <div className="flex items-center gap-1.5">
+            <Icon name="Users" className="h-3.5 w-3.5" />
             <span>{table.capacity} guests</span>
           </div>
           {table.floor && (
-            <div className="flex items-center gap-1">
-              <Icon name="Building2" className="h-4 w-4" />
+            <div className="flex items-center gap-1.5">
+              <Icon name="Building2" className="h-3.5 w-3.5" />
               <span>{table.floor.name}</span>
             </div>
           )}
         </div>
       </Shad.CardContent>
+
+      {/* Active Orders Dialog — shown when clicking an occupied table */}
+      <TableActiveOrdersDialog
+        table={table}
+        open={isActiveOrdersOpen}
+        onOpenChange={setIsActiveOrdersOpen}
+      />
     </Shad.Card>
   );
 }

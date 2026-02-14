@@ -5,11 +5,13 @@ import { useNavigate } from "@tanstack/react-router";
 import logo from "/assets/logo.png";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useDrawer } from "../layouts/client-layout";
 
 const LeftSide = () => {
   const navigate = useNavigate();
 
   const { user, isAuthenticated } = useAuthStore();
+  const { setOpen } = useDrawer();
 
   const logoutMutation = useLogout();
 
@@ -31,7 +33,13 @@ const LeftSide = () => {
       user?.role !== "CASHIER" &&
       user?.role !== "KITCHEN" ? (
         <>
-          <Shad.SidebarTrigger className="no-drag" />
+          <Button
+            variant="ghost"
+            size="icon"
+            iconName="Menu"
+            onClick={() => setOpen(true)}
+            className="no-drag"
+          />
           <div className="h-10 border" />
         </>
       ) : isAuthenticated ? (

@@ -10,12 +10,14 @@ type Item = {
   name: string;
   price: number;
   quantity: number;
+  notes?: string;
   discount?: {
     value: number;
     type: DiscountType;
   };
   imageUrl?: string | null;
   modifiers?: OrderItemModifier[];
+  sentToKitchen?: boolean;
 };
 
 type Props = {
@@ -109,7 +111,7 @@ export const CartItem = ({
     >
       {/* Quantity with Stock Warning */}
       <div className="flex items-center gap-1">
-        <span className="w-6 text-sm font-semibold text-foreground tabular-nums">
+        <span className="w-6 text-xs font-semibold text-foreground tabular-nums">
           {item.quantity}
         </span>
         {showStockWarning && (
@@ -141,13 +143,32 @@ export const CartItem = ({
       {/* Item Details */}
       <div className="flex-1 min-w-0">
         {/* Item Name */}
-        <p className="text-sm font-medium text-foreground line-clamp-1">
-          {item.name}
-        </p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs font-medium text-foreground line-clamp-1">
+            {item.name}
+          </p>
+          {item.sentToKitchen && (
+            <Icon
+              name="ChefHat"
+              className="h-3 w-3 text-emerald-500 shrink-0"
+            />
+          )}
+        </div>
+
+        {/* Note Indicator */}
+        {item.notes && (
+          <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1 line-clamp-1">
+            <Icon
+              name="StickyNote"
+              className="h-2.5 w-2.5 text-primary shrink-0"
+            />
+            <span className="truncate">{item.notes}</span>
+          </p>
+        )}
 
         {/* Modifiers */}
         {item.modifiers && item.modifiers.length > 0 && (
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="text-[10px] text-muted-foreground mt-0.5">
             {item.modifiers.map((mod, idx) => (
               <span key={mod.modifierId}>
                 {mod.name}
@@ -170,13 +191,13 @@ export const CartItem = ({
         )}
 
         {/* Unit Price */}
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-[10px] text-muted-foreground mt-0.5">
           {formatPrice(unitPrice)} $/Units
         </p>
 
         {/* Discount Info (if any) */}
         {item.discount && item.discount.value > 0 && (
-          <p className="text-xs text-primary">
+          <p className="text-[10px] text-primary">
             {item.discount.value}
             {item.discount.type === "PERCENTAGE" ? "%" : " $"} discount -
             {formatPrice(discountAmount)} $ off
@@ -185,7 +206,7 @@ export const CartItem = ({
 
         {/* Stock Warning Inline (alternative to tooltip for visibility) */}
         {showStockWarning && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
             <Icon name="CircleAlert" className="h-3 w-3" />
             Stock after sale: {resultingStock.toFixed(2)}
           </p>
@@ -194,7 +215,7 @@ export const CartItem = ({
 
       {/* Line Total */}
       <div className="text-right shrink-0">
-        <span className={cn("text-sm font-semibold tabular-nums")}>
+        <span className={cn("text-xs font-semibold tabular-nums")}>
           {finalTotal} ${" "}
         </span>
       </div>

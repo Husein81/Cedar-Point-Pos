@@ -63,6 +63,14 @@ export class TablesController {
     return this.tablesService.getTableById(id, tenantId);
   }
 
+  @Get('/:id/active-orders')
+  getActiveOrdersByTable(
+    @Param('id') id: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tablesService.getActiveOrdersByTable(id, tenantId);
+  }
+
   /**
    * Create a new table (Admin/Manager only)
    */

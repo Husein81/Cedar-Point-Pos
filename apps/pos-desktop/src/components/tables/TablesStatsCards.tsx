@@ -10,24 +10,22 @@ export function TablesStatsCards({ stats }: Props) {
   const statsCards = getStatsCards(stats!);
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {/* Total Tables Card */}
       {statsCards.map((stat) => (
-        <Shad.Card
-          key={stat.title}
-          className="bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
-        >
-          <Shad.CardContent className="pt-6">
+        <Shad.Card key={stat.title}>
+          <Shad.CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">
                   {stat.title}
                 </p>
-                <p className="text-3xl font-bold">{stat.count}</p>
+                <p className="text-3xl font-bold mt-1">{stat.count}</p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <div
+                className={`h-11 w-11 rounded-full flex items-center justify-center ${stat.iconBg}`}
+              >
                 <Icon
                   name={stat.icon}
-                  className="h-6 w-6 text-slate-600 dark:text-slate-300"
+                  className={`h-5 w-5 ${stat.iconColor}`}
                 />
               </div>
             </div>

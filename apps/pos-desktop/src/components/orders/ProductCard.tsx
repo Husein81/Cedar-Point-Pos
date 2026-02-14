@@ -120,7 +120,7 @@ const ProductCard = ({ product }: Props) => {
       {item && (
         <div
           className={cn(
-            "absolute bottom-1 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
+            "absolute bottom-2 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
             isNegative
               ? "bg-amber-500/90 text-white"
               : "bg-accent/40 text-primary",

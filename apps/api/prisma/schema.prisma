@@ -11,34 +11,37 @@ datasource db {
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-    id               String       @id @default(cuid())
-    name             String
-    businessType     BusinessType
-    baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
-    isActive         Boolean      @default(true)
-    createdAt        DateTime     @default(now())
-    updatedAt        DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  name             String
+  businessType     BusinessType
+  baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-    users            User[]
-    branches         Branch[]
-    products         Product[]
-    inventory        Inventory[] // Inventory records still belong to the Tenant scope
-    inventoryHistory InventoryHistory[]
-    orders           Order[]
-    tables           Table[]
-    floors           Floor[] // Restaurant floor layouts
-    modifierGroups   ModifierGroup[]
-    devices          POSDevice[]
-    customers        Customer[]
-    suppliers        Supplier[]
-    purchaseOrders   PurchaseOrder[]
-    shifts           Shift[]
-    transfers        Transfer[]
-    settings         Json? // feature flags, tax rates, etc.
-    modifiers        Modifier[]
-    categories       Category[]
-    tenantCurrencies TenantCurrency[] // Tenant-specific currency configurations
-    colors           Color[]
+  users               User[]
+  branches            Branch[]
+  products            Product[]
+  inventory           Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory    InventoryHistory[]
+  orders              Order[]
+  tables              Table[]
+  floors              Floor[] // Restaurant floor layouts
+  modifierGroups      ModifierGroup[]
+  devices             POSDevice[]
+  customers           Customer[]
+  suppliers           Supplier[]
+  purchaseOrders      PurchaseOrder[]
+  shifts              Shift[]
+  transfers           Transfer[]
+  settings            Json? // feature flags, tax rates, etc.
+  modifiers           Modifier[]
+  categories          Category[]
+  tenantCurrencies    TenantCurrency[] // Tenant-specific currency configurations
+  colors              Color[]
+  loyaltyProgram      LoyaltyProgram?
+  loyaltyAccounts     LoyaltyAccount[]
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model Currency {
@@ -68,43 +71,44 @@ model TenantCurrency {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  name               String
-  email              String?            @unique
-  username           String             @unique
-  password           String
-  role               UserRole           @default(CASHIER)
-  isActive           Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  tenantId           String?
-  inventoryHistory   InventoryHistory[]
-  orders             Order[]
-  shifts             Shift[]
-  transfersApproved  Transfer[]         @relation("TransferApprovals")
-  transfersRequested Transfer[]         @relation("TransferRequests")
-  tenant             Tenant?            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(cuid())
+  name                String
+  email               String?              @unique
+  username            String               @unique
+  password            String
+  role                UserRole             @default(CASHIER)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  tenantId            String?
+  inventoryHistory    InventoryHistory[]
+  orders              Order[]
+  shifts              Shift[]
+  transfersApproved   Transfer[]           @relation("TransferApprovals")
+  transfersRequested  Transfer[]           @relation("TransferRequests")
+  loyaltyTransactions LoyaltyTransaction[] @relation("UserLoyaltyTransactions")
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Branch {
-    id               String             @id @default(cuid())
-    tenantId         String
-    name             String
-    address          String?
-    phone            String?
-    isDeleted        Boolean            @default(false) // Soft delete
-    tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    tables           Table[]
-    floors           Floor[] // Restaurant floor layouts
-    devices          POSDevice[]
-    inventory        Inventory[] // Inventory is tracked at the Branch level
-    orders           Order[]
-    shifts           Shift[]
-    inventoryHistory InventoryHistory[]
-    transfersFrom    Transfer[]         @relation("TransfersFrom")
-    transfersTo      Transfer[]         @relation("TransfersTo")
-    products         Product[]
-    purchaseOrders   PurchaseOrder[]
+  id               String             @id @default(cuid())
+  tenantId         String
+  name             String
+  address          String?
+  phone            String?
+  isDeleted        Boolean            @default(false) // Soft delete
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tables           Table[]
+  floors           Floor[] // Restaurant floor layouts
+  devices          POSDevice[]
+  inventory        Inventory[] // Inventory is tracked at the Branch level
+  orders           Order[]
+  shifts           Shift[]
+  inventoryHistory InventoryHistory[]
+  transfersFrom    Transfer[]         @relation("TransfersFrom")
+  transfersTo      Transfer[]         @relation("TransfersTo")
+  products         Product[]
+  purchaseOrders   PurchaseOrder[]
 }
 
 model POSDevice {
@@ -159,21 +163,21 @@ model Subcategory {
 }
 
 model Product {
-  id                  String                        @id @default(cuid())
+  id                  String                      @id @default(cuid())
   tenantId            String
   name                String
   description         String?
   imageUrl            String?
-  sku                 String?                       @unique
-  barcode             String?                       @unique
-  price               Decimal?                      @default(0) @db.Decimal(10, 2)
-  cost                Decimal?                      @default(0) @db.Decimal(10, 2)
+  sku                 String?                     @unique
+  barcode             String?                     @unique
+  price               Decimal?                    @default(0) @db.Decimal(10, 2)
+  cost                Decimal?                    @default(0) @db.Decimal(10, 2)
   categoryId          String?
   subcategoryId       String?
-  isActive            Boolean                       @default(true)
-  isDeleted           Boolean                       @default(false)
-  isModifiable        Boolean                       @default(false)
-  createdAt           DateTime                      @default(now())
+  isActive            Boolean                     @default(true)
+  isDeleted           Boolean                     @default(false)
+  isModifiable        Boolean                     @default(false)
+  createdAt           DateTime                    @default(now())
   branchId            String?
   inventory           Inventory[]
   inventoryHistory    InventoryHistory[]
@@ -181,10 +185,10 @@ model Product {
   modifierAssignments ModifierProductAssignment[]
   offerGroupItems     OfferGroupItem[]
   orderItems          OrderItem[]
-  branch              Branch?                       @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  category            Category?                     @relation(fields: [categoryId], references: [id])
-  subcategory         Subcategory?                  @relation(fields: [subcategoryId], references: [id])
-  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch              Branch?                     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category            Category?                   @relation(fields: [categoryId], references: [id])
+  subcategory         Subcategory?                @relation(fields: [subcategoryId], references: [id])
+  tenant              Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   RefundItem          RefundItem[]
   transferItems       TransferItem[]
   purchaseOrderItems  PurchaseOrderItem[]
@@ -293,15 +297,18 @@ model TransferItem {
 }
 
 model Refund {
-  id            String       @id @default(cuid())
-  orderId       String?
-  totalAmount   Decimal      @default(0) @db.Decimal(10, 2)
-  reason        String?
-  refundedAt    DateTime     @default(now())
-  manualRefund  Boolean      @default(false)
-  paymentMethod String?
-  order         Order?       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  refundItems   RefundItem[]
+  id                    String               @id @default(cuid())
+  orderId               String?
+  totalAmount           Decimal              @default(0) @db.Decimal(10, 2)
+  reason                String?
+  refundedAt            DateTime             @default(now())
+  manualRefund          Boolean              @default(false)
+  paymentMethod         String?
+  loyaltyPointsRestored Int                  @default(0)
+  loyaltyPointsReversed Int                  @default(0)
+  order                 Order?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refundItems           RefundItem[]
+  loyaltyTransactions   LoyaltyTransaction[] @relation("RefundLoyaltyTransactions")
 }
 
 model RefundItem {
@@ -376,66 +383,74 @@ model ModifierGroup {
 }
 
 model Modifier {
-  id                  String                        @id @default(cuid())
-  tenantId            String
-  groupId             String
-  productId           String?                       // @deprecated - kept for backward compatibility
-  name                String
-  price               Decimal                       @default(0)
-  isDeleted           Boolean                       @default(false)
-  group               ModifierGroup                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  product             Product?                      @relation(fields: [productId], references: [id])
-  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orderItemMods       OrderItemModifier[]
-  productAssignments  ModifierProductAssignment[]
+  id                 String                      @id @default(cuid())
+  tenantId           String
+  groupId            String
+  productId          String? // @deprecated - kept for backward compatibility
+  name               String
+  price              Decimal                     @default(0)
+  isDeleted          Boolean                     @default(false)
+  group              ModifierGroup               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  product            Product?                    @relation(fields: [productId], references: [id])
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItemMods      OrderItemModifier[]
+  productAssignments ModifierProductAssignment[]
 }
 
 model ModifierProductAssignment {
-  id          String   @id @default(cuid())
-  modifierId  String
-  productId   String
-  createdAt   DateTime @default(now())
-  
-  modifier    Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  modifierId String
+  productId  String
+  createdAt  DateTime @default(now())
+
+  modifier Modifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@unique([modifierId, productId])
   @@index([modifierId])
   @@index([productId])
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  tenantId     String
-  userId       String?
-  branchId     String
-  tableId      String?
-  deviceId     String?
-  customerId   String?
-  shiftId      String?
-  orderNumber  String?
-  type         OrderType
-  status       OrderStatus @default(DRAFT)
-  subtotal     Decimal     @default(0) @db.Decimal(10, 2)
-  total        Decimal     @default(0) @db.Decimal(10, 2)
-  discount     Decimal?    @default(0) @db.Decimal(10, 2)
-  createdAt    DateTime    @default(now())
-  completedAt  DateTime?
-  shippingFee  Decimal?    @default(0) @db.Decimal(10, 2)
-  currencyCode String?     @default("USD")
-  exchangeRate Decimal?    @db.Decimal(18, 6)
-  includeVAT   Boolean     @default(false)
-  vat          Decimal?    @default(0) @db.Decimal(10, 2)
-  branch       Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  customer     Customer?   @relation(fields: [customerId], references: [id])
-  device       POSDevice?  @relation(fields: [deviceId], references: [id])
-  shift        Shift?      @relation(fields: [shiftId], references: [id])
-  table        Table?      @relation(fields: [tableId], references: [id])
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user         User?       @relation(fields: [userId], references: [id])
-  items        OrderItem[]
-  payments     Payment[]
-  refunds      Refund[]
+  id                              String               @id @default(cuid())
+  tenantId                        String
+  userId                          String?
+  branchId                        String
+  tableId                         String?
+  deviceId                        String?
+  customerId                      String?
+  shiftId                         String?
+  orderNumber                     String?
+  type                            OrderType
+  status                          OrderStatus          @default(DRAFT)
+  subtotal                        Decimal              @default(0) @db.Decimal(10, 2)
+  total                           Decimal              @default(0) @db.Decimal(10, 2)
+  discount                        Decimal?             @default(0) @db.Decimal(10, 2)
+  createdAt                       DateTime             @default(now())
+  completedAt                     DateTime?
+  shippingFee                     Decimal?             @default(0) @db.Decimal(10, 2)
+  currencyCode                    String?              @default("USD")
+  exchangeRate                    Decimal?             @db.Decimal(18, 6)
+  includeVAT                      Boolean              @default(false)
+  vat                             Decimal?             @default(0) @db.Decimal(10, 2)
+  loyaltyRedeemedPoints           Int                  @default(0)
+  loyaltyRedeemedAmount           Decimal              @default(0) @db.Decimal(10, 2)
+  loyaltyEarnedPoints             Int                  @default(0)
+  loyaltyEligibleBaseAtCompletion Decimal              @default(0) @db.Decimal(10, 2)
+  loyaltyRedeemBaseAtCompletion   Decimal              @default(0) @db.Decimal(10, 2)
+  loyaltyProgramSnapshot          Json?
+  loyaltyCompletedAt              DateTime?
+  branch                          Branch               @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customer                        Customer?            @relation(fields: [customerId], references: [id])
+  device                          POSDevice?           @relation(fields: [deviceId], references: [id])
+  shift                           Shift?               @relation(fields: [shiftId], references: [id])
+  table                           Table?               @relation(fields: [tableId], references: [id])
+  tenant                          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                            User?                @relation(fields: [userId], references: [id])
+  items                           OrderItem[]
+  payments                        Payment[]
+  refunds                         Refund[]
+  loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
 
   @@index([tenantId, branchId, createdAt])
 }
@@ -490,18 +505,91 @@ model Payment {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orders    Order[]
+  id                  String               @id @default(cuid())
+  tenantId            String
+  name                String
+  email               String?
+  phone               String?
+  address             String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders              Order[]
+  loyaltyAccount      LoyaltyAccount?
+  loyaltyTransactions LoyaltyTransaction[]
 
   @@index([tenantId])
+}
+
+model LoyaltyProgram {
+  id                     String                @id @default(cuid())
+  tenantId               String                @unique
+  isEnabled              Boolean               @default(false)
+  enrollmentMode         LoyaltyEnrollmentMode @default(AUTO)
+  earnPointsPerCurrency  Decimal?              @db.Decimal(10, 4)
+  redeemPointsStep       Int?
+  redeemCurrencyPerStep  Decimal?              @db.Decimal(10, 2)
+  minRedeemPoints        Int                   @default(0)
+  maxRedeemPercent       Decimal?              @db.Decimal(5, 2)
+  allowNoCustomerAccrual Boolean               @default(false)
+  pointsExpirationDays   Int?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  tenant                 Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isEnabled])
+}
+
+model LoyaltyAccount {
+  id               String               @id @default(cuid())
+  tenantId         String
+  customerId       String               @unique
+  pointsBalance    Int                  @default(0)
+  lifetimeEarned   Int                  @default(0)
+  lifetimeRedeemed Int                  @default(0)
+  lifetimeRestored Int                  @default(0)
+  lifetimeReversed Int                  @default(0)
+  lifetimeAdjusted Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer         Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transactions     LoyaltyTransaction[]
+
+  @@unique([tenantId, customerId])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([tenantId, pointsBalance])
+}
+
+model LoyaltyTransaction {
+  id             String                 @id @default(cuid())
+  tenantId       String
+  accountId      String
+  customerId     String
+  orderId        String?
+  refundId       String?
+  type           LoyaltyTransactionType
+  direction      LoyaltyDirection
+  points         Int
+  moneyAmount    Decimal?               @db.Decimal(10, 2)
+  balanceAfter   Int
+  idempotencyKey String                 @unique
+  reason         String?
+  metadata       Json?
+  actorUserId    String?
+  createdAt      DateTime               @default(now())
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account        LoyaltyAccount         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  customer       Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order          Order?                 @relation("OrderLoyaltyTransactions", fields: [orderId], references: [id], onDelete: SetNull)
+  refund         Refund?                @relation("RefundLoyaltyTransactions", fields: [refundId], references: [id], onDelete: SetNull)
+  actorUser      User?                  @relation("UserLoyaltyTransactions", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([accountId, createdAt])
+  @@index([orderId])
+  @@index([refundId])
 }
 
 //
@@ -515,7 +603,7 @@ model Supplier {
   phone          String?
   email          String?
   address        String?
-  category       String?         // Custom category (user-defined)
+  category       String? // Custom category (user-defined)
   currentBalance Decimal         @default(0) @db.Decimal(10, 2)
   notes          String?
   isActive       Boolean         @default(true)
@@ -663,9 +751,9 @@ enum TransferStatus {
 }
 
 enum TableStatus {
-  AVAILABLE  // Table is free and ready for guests
-  OCCUPIED   // Table has active guests/order
-  RESERVED   // Table is reserved for upcoming guests
+  AVAILABLE // Table is free and ready for guests
+  OCCUPIED // Table has active guests/order
+  RESERVED // Table is reserved for upcoming guests
 }
 
 enum PurchaseOrderStatus {
@@ -673,4 +761,24 @@ enum PurchaseOrderStatus {
   ORDERED
   RECEIVED
   CANCELLED
+}
+
+enum LoyaltyEnrollmentMode {
+  AUTO
+  MANUAL
+  INVITE_ONLY
+}
+
+enum LoyaltyTransactionType {
+  EARN
+  REDEEM
+  REFUND_RESTORE_REDEEM
+  REFUND_REVERSE_EARN
+  MANUAL_ADJUSTMENT
+  RECONCILE_RESTORE
+}
+
+enum LoyaltyDirection {
+  CREDIT
+  DEBIT
 }

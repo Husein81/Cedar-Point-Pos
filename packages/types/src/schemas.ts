@@ -3,6 +3,9 @@ import { decimal, isoDate, cuid } from "./config";
 import {
   BusinessType,
   InventoryChangeType,
+  LoyaltyDirection,
+  LoyaltyEnrollmentMode,
+  LoyaltyTransactionType,
   ModifierType,
   OrderStatus,
   OrderType,
@@ -263,6 +266,10 @@ export const RefundSchema = z.object({
   totalAmount: decimal.default("0"),
   reason: z.string().nullable().optional(),
   refundedAt: isoDate,
+  manualRefund: z.boolean().default(false),
+  paymentMethod: z.string().nullable().optional(),
+  loyaltyPointsRestored: z.number().int().default(0),
+  loyaltyPointsReversed: z.number().int().default(0),
   items: z.array(RefundItemSchema).optional(),
 });
 export type Refund = z.infer<typeof RefundSchema>;
@@ -398,6 +405,16 @@ export const OrderSchema = z.object({
   // Currency snapshot (for reporting)
   currencyCode: z.string().nullable().optional().default("USD"),
   exchangeRate: decimal.nullable().optional(),
+
+  // Loyalty fields
+  loyaltyRedeemedPoints: z.number().int().default(0),
+  loyaltyRedeemedAmount: decimal.default("0"),
+  loyaltyEarnedPoints: z.number().int().default(0),
+  loyaltyEligibleBaseAtCompletion: decimal.default("0"),
+  loyaltyRedeemBaseAtCompletion: decimal.default("0"),
+  loyaltyProgramSnapshot: z.unknown().nullable().optional(),
+  loyaltyCompletedAt: isoDate.nullable().optional(),
+
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
   items: z.array(OrderItemSchema).optional(), // OrderItem[]
@@ -447,6 +464,7 @@ export const CustomerSchema = z.object({
   address: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
+  loyaltyAccount: z.lazy(() => LoyaltyAccountSchema).nullable().optional(),
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 
@@ -506,7 +524,6 @@ export const PurchaseOrderItemSchema = z.object({
 });
 export type PurchaseOrderItem = z.infer<typeof PurchaseOrderItemSchema>;
 
-
 // Shift
 export const ShiftSchema = z.object({
   id: cuid,
@@ -524,6 +541,65 @@ export const ShiftSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
+
+// ===========================================
+//         Loyalty Schemas
+// ===========================================
+
+// LoyaltyProgram
+export const LoyaltyProgramSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  isEnabled: z.boolean().default(false),
+  enrollmentMode: z.enum(LoyaltyEnrollmentMode).default("AUTO"),
+  earnPointsPerCurrency: decimal.nullable().optional(),
+  redeemPointsStep: z.number().int().nullable().optional(),
+  redeemCurrencyPerStep: decimal.nullable().optional(),
+  minRedeemPoints: z.number().int().default(0),
+  maxRedeemPercent: decimal.nullable().optional(),
+  allowNoCustomerAccrual: z.boolean().default(false),
+  pointsExpirationDays: z.number().int().nullable().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type LoyaltyProgram = z.infer<typeof LoyaltyProgramSchema>;
+
+// LoyaltyAccount
+export const LoyaltyAccountSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  customerId: cuid,
+  pointsBalance: z.number().int().default(0),
+  lifetimeEarned: z.number().int().default(0),
+  lifetimeRedeemed: z.number().int().default(0),
+  lifetimeRestored: z.number().int().default(0),
+  lifetimeReversed: z.number().int().default(0),
+  lifetimeAdjusted: z.number().int().default(0),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type LoyaltyAccount = z.infer<typeof LoyaltyAccountSchema>;
+
+// LoyaltyTransaction
+export const LoyaltyTransactionSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  accountId: cuid,
+  customerId: cuid,
+  orderId: cuid.nullable().optional(),
+  refundId: cuid.nullable().optional(),
+  type: z.enum(LoyaltyTransactionType),
+  direction: z.enum(LoyaltyDirection),
+  points: z.number().int(),
+  moneyAmount: decimal.nullable().optional(),
+  balanceAfter: z.number().int(),
+  idempotencyKey: z.string(),
+  reason: z.string().nullable().optional(),
+  metadata: z.unknown().nullable().optional(),
+  actorUserId: cuid.nullable().optional(),
+  createdAt: isoDate,
+});
+export type LoyaltyTransaction = z.infer<typeof LoyaltyTransactionSchema>;
 
 // ===========================================
 //         Query Params Schema

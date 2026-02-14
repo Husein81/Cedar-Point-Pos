@@ -91,6 +91,32 @@ export const ShiftStatus = {
 } as const;
 export type ShiftStatus = (typeof ShiftStatus)[keyof typeof ShiftStatus];
 
+export const LoyaltyEnrollmentMode = {
+  AUTO: "AUTO",
+  MANUAL: "MANUAL",
+  INVITE_ONLY: "INVITE_ONLY",
+} as const;
+export type LoyaltyEnrollmentMode =
+  (typeof LoyaltyEnrollmentMode)[keyof typeof LoyaltyEnrollmentMode];
+
+export const LoyaltyTransactionType = {
+  EARN: "EARN",
+  REDEEM: "REDEEM",
+  REFUND_RESTORE_REDEEM: "REFUND_RESTORE_REDEEM",
+  REFUND_REVERSE_EARN: "REFUND_REVERSE_EARN",
+  MANUAL_ADJUSTMENT: "MANUAL_ADJUSTMENT",
+  RECONCILE_RESTORE: "RECONCILE_RESTORE",
+} as const;
+export type LoyaltyTransactionType =
+  (typeof LoyaltyTransactionType)[keyof typeof LoyaltyTransactionType];
+
+export const LoyaltyDirection = {
+  CREDIT: "CREDIT",
+  DEBIT: "DEBIT",
+} as const;
+export type LoyaltyDirection =
+  (typeof LoyaltyDirection)[keyof typeof LoyaltyDirection];
+
 export const TableStatus = {
   AVAILABLE: "AVAILABLE", // Table is free and ready for guests
   OCCUPIED: "OCCUPIED", // Table has active guests/order

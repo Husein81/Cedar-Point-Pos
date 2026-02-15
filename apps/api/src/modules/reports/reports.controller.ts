@@ -370,6 +370,47 @@ export class ReportsController {
   }
 
   // ============================================================
+  // LOYALTY REPORT ENDPOINTS
+  // ============================================================
+
+  /**
+   * Loyalty Summary - Aggregate metrics for loyalty program
+   * GET /reports/loyalty?from=2024-01-01&to=2024-12-31
+   */
+  @Get('loyalty')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getLoyaltySummary(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getLoyaltySummary(user.tenantId, parsedQuery);
+  }
+
+  /**
+   * Loyalty Transactions List - Paginated ledger entries
+   * GET /reports/loyalty/transactions?from=2024-01-01&to=2024-12-31&page=1&pageSize=25
+   *
+   * Supports:
+   * - Sorting: sortBy (createdAt, type, points, direction), sortDir (asc/desc)
+   * - Pagination: page, pageSize
+   */
+  @Get('loyalty/transactions')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async getLoyaltyTransactionsList(
+    @Req() req: Request,
+    @Query() query: Record<string, unknown>,
+  ) {
+    const user = req.user as { tenantId: string };
+    const parsedQuery = this.parseQuery(query);
+    return this.reportsService.getLoyaltyTransactionsList(
+      user.tenantId,
+      parsedQuery,
+    );
+  }
+
+  // ============================================================
   // DASHBOARD ENDPOINTS (UNCHANGED)
   // ============================================================
 

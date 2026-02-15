@@ -169,6 +169,21 @@ export class CustomersService {
     const averageOrderValue =
       completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
 
+    // Fetch loyalty account summary (returns zero-shape if no account)
+    const loyaltyAccount = await this.prisma.loyaltyAccount.findUnique({
+      where: {
+        tenantId_customerId: { tenantId, customerId },
+      },
+      select: {
+        pointsBalance: true,
+        lifetimeEarned: true,
+        lifetimeRedeemed: true,
+        lifetimeRestored: true,
+        lifetimeReversed: true,
+        lifetimeAdjusted: true,
+      },
+    });
+
     return {
       id: customer.id,
       name: customer.name,
@@ -181,6 +196,23 @@ export class CustomersService {
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       lastOrderAt,
       averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+      loyalty: loyaltyAccount
+        ? {
+            pointsBalance: loyaltyAccount.pointsBalance,
+            lifetimeEarned: loyaltyAccount.lifetimeEarned,
+            lifetimeRedeemed: loyaltyAccount.lifetimeRedeemed,
+            lifetimeRestored: loyaltyAccount.lifetimeRestored,
+            lifetimeReversed: loyaltyAccount.lifetimeReversed,
+            lifetimeAdjusted: loyaltyAccount.lifetimeAdjusted,
+          }
+        : {
+            pointsBalance: 0,
+            lifetimeEarned: 0,
+            lifetimeRedeemed: 0,
+            lifetimeRestored: 0,
+            lifetimeReversed: 0,
+            lifetimeAdjusted: 0,
+          },
     };
   }
 

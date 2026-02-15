@@ -155,6 +155,8 @@ export class OrdersController {
       method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
+      // Loyalty redemption (optional)
+      loyalty?: { redeemPoints: number };
     },
   ) {
     const user = req.user as { tenantId: string; id: string };

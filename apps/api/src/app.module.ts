@@ -16,6 +16,7 @@ import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { KitchenModule } from './modules/kitchen/kitchen.module.js';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module.js';
 import { ModifierGroupsModule } from './modules/modifier-groups/modifier-groups.module.js';
+import { OffersModule } from './modules/offers/offers.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
@@ -55,6 +56,7 @@ import { UsersModule } from './modules/users/users.module.js';
     TransfersModule,
     OrdersModule,
     ModifierGroupsModule,
+    OffersModule,
     RefundsModule,
     ReportsModule,
     SystemAdminModule,

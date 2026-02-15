@@ -167,8 +167,12 @@ export type Product = z.infer<typeof ProductSchema>;
 // Offer / OfferGroup / OfferGroupItem
 export const OfferSchema = z.object({
   id: cuid,
+  tenantId: cuid,
   name: z.string(),
   basePrice: decimal,
+  isActive: z.boolean().default(true),
+  createdAt: isoDate,
+  updatedAt: isoDate,
 });
 export type Offer = z.infer<typeof OfferSchema>;
 

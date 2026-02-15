@@ -1,68 +1,82 @@
-export type SupplierSummary = {
-  id: string;
-  name: string;
-  companyName: string | null;
-  phone: string | null;
-  email: string | null;
-};
+import { z } from "zod";
 
-export type SupplierDetails = SupplierSummary & {
-  address: string | null;
-  category: string | null;
-  currentBalance: number;
-  notes: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  _count: {
-    purchaseOrders: number;
-  };
-};
+const SupplierSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  companyName: z.string().nullable(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+});
+export type SupplierSummary = z.infer<typeof SupplierSummarySchema>;
 
-export type SupplierFullDetails = Omit<SupplierDetails, "_count"> & {
-  totalOrders: number;
-  totalPurchaseAmount: number;
-  averagePurchaseValue: number;
-  lastPurchaseDate: string | null;
-  lastPurchaseAmount: number | null;
-};
+const SupplierDetailsSchema = SupplierSummarySchema.extend({
+  address: z.string().nullable(),
+  category: z.string().nullable(),
+  currentBalance: z.number(),
+  notes: z.string().nullable(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  _count: z.object({
+    purchaseOrders: z.number(),
+  }),
+});
+export type SupplierDetails = z.infer<typeof SupplierDetailsSchema>;
 
-export type SupplierPurchaseOrder = {
-  id: string;
-  orderNumber: string | null;
-  totalAmount: number;
-  status: string;
-  notes: string | null;
-  orderedAt: string;
-  receivedAt: string | null;
-  branch: {
-    id: string;
-    name: string;
-  };
-  items: Array<{
-    id: string;
-    quantity: string;
-    unitCost: string;
-    totalCost: string;
-    product: {
-      id: string;
-      name: string;
-      sku: string | null;
-      barcode: string | null;
-    };
-  }>;
-};
+const SupplierFullDetailsSchema = SupplierDetailsSchema.omit({
+  _count: true,
+}).extend({
+  totalOrders: z.number(),
+  totalPurchaseAmount: z.number(),
+  averagePurchaseValue: z.number(),
+  lastPurchaseDate: z.string().nullable(),
+  lastPurchaseAmount: z.number().nullable(),
+});
+export type SupplierFullDetails = z.infer<typeof SupplierFullDetailsSchema>;
 
-export type CreateSupplierDto = {
-  name: string;
-  companyName?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  category?: string | null;
-  notes?: string | null;
-};
+const SupplierPurchaseOrderSchema = z.object({
+  id: z.string(),
+  orderNumber: z.string().nullable(),
+  totalAmount: z.number(),
+  status: z.string(),
+  notes: z.string().nullable(),
+  orderedAt: z.string(),
+  receivedAt: z.string().nullable(),
+  branch: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      quantity: z.string(),
+      unitCost: z.string(),
+      totalCost: z.string(),
+      product: z.object({
+        id: z.string(),
+        name: z.string(),
+        sku: z.string().nullable(),
+        barcode: z.string().nullable(),
+      }),
+    })
+  ),
+});
+export type SupplierPurchaseOrder = z.infer<
+  typeof SupplierPurchaseOrderSchema
+>;
 
-export type UpdateSupplierDto = Partial<CreateSupplierDto> & {
-  currentBalance?: number;
-};
+export const CreateSupplierSchema = z.object({
+  name: z.string(),
+  companyName: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+export type CreateSupplierDto = z.infer<typeof CreateSupplierSchema>;
+
+export const UpdateSupplierSchema = CreateSupplierSchema.partial().extend({
+  currentBalance: z.number().optional(),
+});
+export type UpdateSupplierDto = z.infer<typeof UpdateSupplierSchema>;

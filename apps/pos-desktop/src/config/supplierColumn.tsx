@@ -1,7 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Checkbox } from "@repo/ui";
+import { Badge, Checkbox } from "@repo/ui";
 import { SupplierActions } from "@/components/supplier/SupplierActions";
-import type { SupplierDetails } from "@/dto/supplier.dto";
+import type { SupplierDetails, SupplierPurchaseOrder } from "@/dto/supplier.dto";
+import { getPurchaseOrderStatusConfig } from "@/components/supplier/config";
 
 export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
   {
@@ -84,5 +85,69 @@ export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
     id: "actions",
     header: "Actions",
     cell: ({ row }) => <SupplierActions supplier={row.original} />,
+  },
+];
+
+export const getPurchaseOrderColumns = (): ColumnDef<SupplierPurchaseOrder>[] => [
+  {
+    accessorKey: "orderNumber",
+    header: "Order #",
+    cell: ({ row }) => (
+      <div className="font-medium">
+        {row.original.orderNumber || row.original.id.slice(0, 8)}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "branch",
+    header: "Branch",
+    cell: ({ row }) => (
+      <div className="text-gray-600 dark:text-gray-400">
+        {row.original.branch?.name || "—"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "orderedAt",
+    header: "Date",
+    cell: ({ row }) => (
+      <div className="text-gray-600 dark:text-gray-400">
+        {new Date(row.original.orderedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const config = getPurchaseOrderStatusConfig(row.original.status);
+      return (
+        <Badge className={config.className} variant={config.className ? undefined : "secondary"}>
+          {config.label}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "totalAmount",
+    header: "Total",
+    cell: ({ row }) => (
+      <div className="font-medium">
+        ${Number(row.original.totalAmount).toFixed(2)}
+      </div>
+    ),
+  },
+  {
+    id: "items",
+    header: "Items",
+    cell: ({ row }) => (
+      <div className="text-gray-600 dark:text-gray-400">
+        {row.original.items?.length || 0}
+      </div>
+    ),
   },
 ];

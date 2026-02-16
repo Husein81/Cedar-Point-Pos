@@ -34,7 +34,10 @@ export class OffersService {
 
       const searchTerm = search?.trim();
       if (searchTerm) {
-        where.name = { contains: searchTerm, mode: Prisma.QueryMode.insensitive };
+        where.name = {
+          contains: searchTerm,
+          mode: Prisma.QueryMode.insensitive,
+        };
       }
 
       const sortableFields: Record<string, true> = {
@@ -132,18 +135,17 @@ export class OffersService {
 
   async updateOffer(tenantId: string, offerId: string, data: UpdateOfferDto) {
     try {
-      const offer = await this.prisma.offer.findFirst({
+      // We use deleteMany style 'where' to ensure tenant separation in one call
+      const result = await this.prisma.offer.updateMany({
         where: { id: offerId, tenantId },
+        data,
       });
 
-      if (!offer) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer not found');
       }
 
-      return await this.prisma.offer.update({
-        where: { id: offerId },
-        data,
-      });
+      return await this.prisma.offer.findUnique({ where: { id: offerId } });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       console.error('Error updating offer:', error);
@@ -153,17 +155,15 @@ export class OffersService {
 
   async deleteOffer(tenantId: string, offerId: string) {
     try {
-      const offer = await this.prisma.offer.findFirst({
+      const result = await this.prisma.offer.deleteMany({
         where: { id: offerId, tenantId },
       });
 
-      if (!offer) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer not found');
       }
 
-      return await this.prisma.offer.delete({
-        where: { id: offerId },
-      });
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       console.error('Error deleting offer:', error);
@@ -209,26 +209,20 @@ export class OffersService {
     data: UpdateOfferGroupDto,
   ) {
     try {
-      // Verify offer belongs to tenant
-      const offer = await this.prisma.offer.findFirst({
-        where: { id: offerId, tenantId },
+      const result = await this.prisma.offerGroup.updateMany({
+        where: {
+          id: groupId,
+          offer: { id: offerId, tenantId },
+        },
+        data,
       });
 
-      if (!offer) {
-        throw new NotFoundException('Offer not found');
-      }
-
-      const group = await this.prisma.offerGroup.findFirst({
-        where: { id: groupId, offerId },
-      });
-
-      if (!group) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer group not found');
       }
 
-      return await this.prisma.offerGroup.update({
+      return await this.prisma.offerGroup.findUnique({
         where: { id: groupId },
-        data,
       });
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -237,32 +231,20 @@ export class OffersService {
     }
   }
 
-  async deleteOfferGroup(
-    tenantId: string,
-    offerId: string,
-    groupId: string,
-  ) {
+  async deleteOfferGroup(tenantId: string, offerId: string, groupId: string) {
     try {
-      // Verify offer belongs to tenant
-      const offer = await this.prisma.offer.findFirst({
-        where: { id: offerId, tenantId },
+      const result = await this.prisma.offerGroup.deleteMany({
+        where: {
+          id: groupId,
+          offer: { id: offerId, tenantId },
+        },
       });
 
-      if (!offer) {
-        throw new NotFoundException('Offer not found');
-      }
-
-      const group = await this.prisma.offerGroup.findFirst({
-        where: { id: groupId, offerId },
-      });
-
-      if (!group) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer group not found');
       }
 
-      return await this.prisma.offerGroup.delete({
-        where: { id: groupId },
-      });
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       console.error('Error deleting offer group:', error);
@@ -308,9 +290,7 @@ export class OffersService {
       });
 
       if (existing) {
-        throw new BadRequestException(
-          'This product is already in the group',
-        );
+        throw new BadRequestException('This product is already in the group');
       }
 
       return await this.prisma.offerGroupItem.create({
@@ -336,9 +316,7 @@ export class OffersService {
       )
         throw error;
       console.error('Error adding offer group item:', error);
-      throw new InternalServerErrorException(
-        'Failed to add offer group item',
-      );
+      throw new InternalServerErrorException('Failed to add offer group item');
     }
   }
 
@@ -350,42 +328,26 @@ export class OffersService {
     data: UpdateOfferGroupItemDto,
   ) {
     try {
-      // Verify offer belongs to tenant
-      const offer = await this.prisma.offer.findFirst({
-        where: { id: offerId, tenantId },
+      const result = await this.prisma.offerGroupItem.updateMany({
+        where: {
+          id: itemId,
+          offerGroup: {
+            id: groupId,
+            offer: { id: offerId, tenantId },
+          },
+        },
+        data: { extraPrice: data.extraPrice },
       });
 
-      if (!offer) {
-        throw new NotFoundException('Offer not found');
-      }
-
-      // Verify group belongs to offer
-      const group = await this.prisma.offerGroup.findFirst({
-        where: { id: groupId, offerId },
-      });
-
-      if (!group) {
-        throw new NotFoundException('Offer group not found');
-      }
-
-      const item = await this.prisma.offerGroupItem.findFirst({
-        where: { id: itemId, offerGroupId: groupId },
-      });
-
-      if (!item) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer group item not found');
       }
 
-      return await this.prisma.offerGroupItem.update({
+      return await this.prisma.offerGroupItem.findUnique({
         where: { id: itemId },
-        data: { extraPrice: data.extraPrice },
         include: {
           product: {
-            select: {
-              id: true,
-              name: true,
-              price: true,
-            },
+            select: { id: true, name: true, price: true },
           },
         },
       });
@@ -405,35 +367,21 @@ export class OffersService {
     itemId: string,
   ) {
     try {
-      // Verify offer belongs to tenant
-      const offer = await this.prisma.offer.findFirst({
-        where: { id: offerId, tenantId },
+      const result = await this.prisma.offerGroupItem.deleteMany({
+        where: {
+          id: itemId,
+          offerGroup: {
+            id: groupId,
+            offer: { id: offerId, tenantId },
+          },
+        },
       });
 
-      if (!offer) {
-        throw new NotFoundException('Offer not found');
-      }
-
-      // Verify group belongs to offer
-      const group = await this.prisma.offerGroup.findFirst({
-        where: { id: groupId, offerId },
-      });
-
-      if (!group) {
-        throw new NotFoundException('Offer group not found');
-      }
-
-      const item = await this.prisma.offerGroupItem.findFirst({
-        where: { id: itemId, offerGroupId: groupId },
-      });
-
-      if (!item) {
+      if (result.count === 0) {
         throw new NotFoundException('Offer group item not found');
       }
 
-      return await this.prisma.offerGroupItem.delete({
-        where: { id: itemId },
-      });
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       console.error('Error removing offer group item:', error);

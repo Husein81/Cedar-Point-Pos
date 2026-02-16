@@ -67,10 +67,7 @@ export class OffersController {
    */
   @Post()
   @Roles('ADMIN', 'MANAGER')
-  async createOffer(
-    @Req() req: Request,
-    @Body() body: CreateOfferDto,
-  ) {
+  async createOffer(@Req() req: Request, @Body() body: CreateOfferDto) {
     const { tenantId } = req.user as { tenantId: string };
     return this.offersService.createOffer(tenantId, body);
   }

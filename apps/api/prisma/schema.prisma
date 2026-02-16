@@ -216,6 +216,8 @@ model OfferGroup {
   freeItemsCount  Int              @default(0)
   offer           Offer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
   offerGroupItems OfferGroupItem[]
+
+  @@index([offerId])
 }
 
 model OfferGroupItem {

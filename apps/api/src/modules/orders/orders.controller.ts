@@ -155,6 +155,8 @@ export class OrdersController {
       method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
+      // Loyalty redemption (optional)
+      loyalty?: { redeemPoints: number };
     },
   ) {
     const user = req.user as { tenantId: string; id: string };
@@ -338,6 +340,6 @@ export class OrdersController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   sendToKitchen(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string; id: string };
-    return this.ordersService.sendToKitchen(user.tenantId, id, user.id);
+    return this.ordersService.sendToKitchen(user.tenantId, id);
   }
 }

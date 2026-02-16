@@ -1,17 +1,17 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
-import { Button, Shad } from "@repo/ui";
+import { Button } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import logo from "/assets/logo.png";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { useDrawer } from "../layouts/client-layout";
+import { useOptionalDrawer } from "../layouts/client-layout";
 
 const LeftSide = () => {
   const navigate = useNavigate();
 
   const { user, isAuthenticated } = useAuthStore();
-  const { setOpen } = useDrawer();
+  const drawer = useOptionalDrawer();
 
   const logoutMutation = useLogout();
 
@@ -30,6 +30,7 @@ const LeftSide = () => {
   return (
     <div className="flex items-center gap-4">
       {isAuthenticated &&
+      drawer &&
       user?.role !== "CASHIER" &&
       user?.role !== "KITCHEN" ? (
         <>
@@ -37,7 +38,7 @@ const LeftSide = () => {
             variant="ghost"
             size="icon"
             iconName="Menu"
-            onClick={() => setOpen(true)}
+            onClick={() => drawer.setOpen(true)}
             className="no-drag"
           />
           <div className="h-10 border" />

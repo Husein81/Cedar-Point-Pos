@@ -1,13 +1,20 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  LoyaltyDirection,
+  LoyaltyTransactionType,
+  OrderStatus,
+} from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
+import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
 import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
+import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateRefundDto } from './dto/create-refund.dto.js';
-import { OrderStatus } from '@repo/types';
 
 interface RefundableOrdersParams {
   page?: number;
@@ -21,9 +28,12 @@ interface RefundableOrdersParams {
 
 @Injectable()
 export class RefundsService {
+  private readonly logger = new Logger(RefundsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryTransactionService: InventoryTransactionService,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
 
   /**
@@ -243,6 +253,15 @@ export class RefundsService {
             product: { select: { id: true, name: true } },
           },
         },
+        refunds: {
+          select: {
+            loyaltyPointsRestored: true,
+            loyaltyPointsReversed: true,
+            refundItems: {
+              select: { subtotal: true },
+            },
+          },
+        },
       },
     });
 
@@ -360,6 +379,64 @@ export class RefundsService {
               include: { refundItems: true },
             });
 
+            /* ── Loyalty adjustments ─────────────────────────────── */
+            let loyaltyPointsRestored = 0;
+            let loyaltyPointsReversed = 0;
+            const hasLoyalty =
+              order.loyaltyRedeemedPoints > 0 || order.loyaltyEarnedPoints > 0;
+
+            if (hasLoyalty && order.customerId) {
+              // Cumulative eligible refunded amount (same basis as completion snapshot):
+              //   numerator = sum of ALL refundItem.subtotal across ALL refunds on this order
+              //     (each subtotal = qty * unitPrice, matching how eligible base was computed)
+              //   denominator = order.loyaltyEligibleBaseAtCompletion
+              const priorRefundedAmount = order.refunds.reduce(
+                (sum, r) =>
+                  sum.plus(
+                    r.refundItems.reduce(
+                      (s, ri) => s.plus(LoyaltyMath.toDecimal(ri.subtotal)),
+                      new Prisma.Decimal(0),
+                    ),
+                  ),
+                new Prisma.Decimal(0),
+              );
+              const eligibleRefundedAmountAfter =
+                priorRefundedAmount.plus(totalRefundAmount);
+
+              // Already-applied cumulative totals from all previous refunds
+              const alreadyRestored = order.refunds.reduce(
+                (sum, r) => sum + r.loyaltyPointsRestored,
+                0,
+              );
+              const alreadyReversed = order.refunds.reduce(
+                (sum, r) => sum + r.loyaltyPointsReversed,
+                0,
+              );
+
+              const adjustments = LoyaltyMath.computeRefundLoyaltyAdjustments({
+                eligibleRefundedAmountAfter,
+                loyaltyEligibleBaseAtCompletion:
+                  order.loyaltyEligibleBaseAtCompletion,
+                loyaltyRedeemedPoints: order.loyaltyRedeemedPoints,
+                loyaltyEarnedPoints: order.loyaltyEarnedPoints,
+                alreadyRestored,
+                alreadyReversed,
+              });
+
+              loyaltyPointsRestored = adjustments.incrementRestore;
+              loyaltyPointsReversed = adjustments.incrementReverse;
+
+              if (loyaltyPointsRestored > 0 || loyaltyPointsReversed > 0) {
+                await tx.refund.update({
+                  where: { id: refund.id },
+                  data: {
+                    loyaltyPointsRestored,
+                    loyaltyPointsReversed,
+                  },
+                });
+              }
+            }
+
             // ✅ Performance: Check if order is now fully refunded
             // Uses data already available (no extra DB queries)
             const requestedMap = new Map(
@@ -393,7 +470,12 @@ export class RefundsService {
               }
             }
 
-            return refund;
+            return {
+              ...refund,
+              loyaltyPointsRestored,
+              loyaltyPointsReversed,
+              _customerId: order.customerId,
+            };
           },
           {
             maxWait: 5000,
@@ -401,7 +483,56 @@ export class RefundsService {
           },
         );
 
-        return createdRefund;
+        // ── Post-commit: Loyalty ledger entries ────────────────
+        if (createdRefund._customerId) {
+          if (createdRefund.loyaltyPointsRestored > 0) {
+            try {
+              await this.loyaltyService.applyLedgerEntry({
+                tenantId,
+                customerId: createdRefund._customerId,
+                orderId,
+                refundId: createdRefund.id,
+                type: LoyaltyTransactionType.REFUND_RESTORE_REDEEM,
+                direction: LoyaltyDirection.CREDIT,
+                points: createdRefund.loyaltyPointsRestored,
+                idempotencyKey: `refund:${createdRefund.id}:restore`,
+                reason: reason || 'Refund restore redeemed points',
+                actorUserId: userId,
+              });
+            } catch (err) {
+              this.logger.error(
+                `[createRefund] Loyalty restore failed for refund ${createdRefund.id}:`,
+                err,
+              );
+            }
+          }
+
+          if (createdRefund.loyaltyPointsReversed > 0) {
+            try {
+              await this.loyaltyService.applyLedgerEntry({
+                tenantId,
+                customerId: createdRefund._customerId,
+                orderId,
+                refundId: createdRefund.id,
+                type: LoyaltyTransactionType.REFUND_REVERSE_EARN,
+                direction: LoyaltyDirection.DEBIT,
+                points: createdRefund.loyaltyPointsReversed,
+                idempotencyKey: `refund:${createdRefund.id}:reverse`,
+                reason: reason || 'Refund reverse earned points',
+                actorUserId: userId,
+              });
+            } catch (err) {
+              this.logger.error(
+                `[createRefund] Loyalty reverse failed for refund ${createdRefund.id}:`,
+                err,
+              );
+            }
+          }
+        }
+
+        // Strip internal flags
+        const { _customerId, ...result } = createdRefund;
+        return result;
       } catch (error) {
         if (
           error instanceof BadRequestException ||

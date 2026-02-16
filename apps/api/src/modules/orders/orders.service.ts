@@ -2,11 +2,21 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { BusinessType, OrderStatus, OrderType, QueryParams } from '@repo/types';
+import {
+  BusinessType,
+  LoyaltyDirection,
+  LoyaltyTransactionType,
+  OrderStatus,
+  OrderType,
+  QueryParams,
+} from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
+import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
+import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from '../tables/table-status.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
@@ -27,10 +37,13 @@ const VAT_RATE = 0.11; // 11% VAT
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly tableStatusService: TableStatusService,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -425,7 +438,9 @@ export class OrdersService {
           status: true,
           tableId: true,
           branchId: true,
+          total: true,
           tenant: { select: { businessType: true } },
+          payments: { select: { amount: true } },
         },
       });
 
@@ -436,6 +451,19 @@ export class OrdersService {
         order.status,
         nextStatus,
       );
+
+      // Guard: order must be fully paid before marking COMPLETED
+      if (nextStatus === OrderStatus.COMPLETED) {
+        const totalPaid = order.payments.reduce(
+          (sum, p) => sum.add(p.amount),
+          new Prisma.Decimal(0),
+        );
+        if (totalPaid.lt(order.total)) {
+          throw new BadRequestException(
+            'Order cannot be completed: payment has not been fully settled',
+          );
+        }
+      }
 
       // Update order status
       const result = await tx.order.update({
@@ -477,6 +505,9 @@ export class OrdersService {
         updated._branchId,
         userId,
       );
+
+      // Phase 3: Loyalty earn on completion
+      await this.earnLoyaltyPoints(tenantId, orderId, userId);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -505,6 +536,7 @@ export class OrdersService {
       method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
+      loyalty?: { redeemPoints: number };
     },
     userId: string,
   ) {
@@ -557,8 +589,13 @@ export class OrdersService {
           id: true,
           status: true,
           total: true, // ✅ already includes VAT + shipping
+          subtotal: true,
+          discount: true,
           branchId: true,
           currencyCode: true,
+          customerId: true,
+          loyaltyRedeemedPoints: true,
+          loyaltyRedeemedAmount: true,
           payments: {
             select: { amount: true }, // amount is in BASE currency
           },
@@ -575,10 +612,94 @@ export class OrdersService {
       }
 
       /* ============================================
+         LOYALTY REDEMPTION
+      ============================================ */
+
+      let loyaltyRedeemedAmount = Number(order.loyaltyRedeemedAmount || 0);
+      let loyaltyRedeemedPoints = order.loyaltyRedeemedPoints || 0;
+      let _loyaltyApplied = false;
+
+      const loyaltyRequest = paymentsInput.loyalty?.redeemPoints;
+      if (loyaltyRequest && loyaltyRequest > 0) {
+        if (loyaltyRedeemedPoints > 0) {
+          throw new BadRequestException(
+            'Loyalty points already redeemed on this order',
+          );
+        }
+        if (!order.customerId) {
+          throw new BadRequestException(
+            'Customer is required for loyalty redemption',
+          );
+        }
+
+        const program = await this.loyaltyService.getProgram(tenantId);
+        if (!program.isEnabled) {
+          throw new BadRequestException('Loyalty program is not enabled');
+        }
+        if (
+          !program.redeemPointsStep ||
+          !program.redeemCurrencyPerStep ||
+          program.maxRedeemPercent == null
+        ) {
+          throw new BadRequestException(
+            'Loyalty program redemption not configured',
+          );
+        }
+        if (loyaltyRequest < (program.minRedeemPoints || 0)) {
+          throw new BadRequestException(
+            `Minimum redemption is ${program.minRedeemPoints} points`,
+          );
+        }
+
+        const account = await this.loyaltyService.getAccount(
+          tenantId,
+          order.customerId,
+        );
+        if (account.pointsBalance < loyaltyRequest) {
+          throw new BadRequestException(
+            `Insufficient loyalty balance. Available: ${account.pointsBalance}`,
+          );
+        }
+
+        const eligibleBase = LoyaltyMath.computeEligibleBase(
+          order.subtotal,
+          order.discount || 0,
+          0,
+        );
+
+        const redemption = LoyaltyMath.computeRedemption({
+          requestedPoints: loyaltyRequest,
+          redeemPointsStep: program.redeemPointsStep,
+          redeemCurrencyPerStep: program.redeemCurrencyPerStep,
+          maxRedeemPercent: program.maxRedeemPercent,
+          eligibleBase,
+        });
+
+        if (redemption.appliedPoints === 0) {
+          throw new BadRequestException(
+            'No points can be redeemed for this order',
+          );
+        }
+
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            loyaltyRedeemedPoints: redemption.appliedPoints,
+            loyaltyRedeemedAmount: redemption.appliedDiscount,
+            loyaltyRedeemBaseAtCompletion: eligibleBase,
+          },
+        });
+
+        loyaltyRedeemedAmount = Number(redemption.appliedDiscount);
+        loyaltyRedeemedPoints = redemption.appliedPoints;
+        _loyaltyApplied = true;
+      }
+
+      /* ============================================
          BATCH CALCULATION IN BASE CURRENCY
       ============================================ */
 
-      const totalDue = this.money(Number(order.total));
+      const totalDue = this.money(Number(order.total) - loyaltyRedeemedAmount);
 
       // Already paid (all in base currency)
       const alreadyPaid = this.money(
@@ -737,9 +858,13 @@ export class OrdersService {
         remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
         change: changeInfo,
         paymentCount: payments.length,
+        loyaltyRedeemedPoints,
+        loyaltyRedeemedAmount,
         // Internal flags — stripped before returning to client
         _shouldDeductInventory: shouldDeductInventory,
         _branchId: order.branchId,
+        _loyaltyApplied,
+        _customerId: order.customerId,
       };
     });
 
@@ -764,9 +889,35 @@ export class OrdersService {
       }
     }
 
+    // ── Phase 3: Post-commit loyalty ledger debit ────────────────────────
+    if (txResult._loyaltyApplied && txResult._customerId) {
+      try {
+        await this.loyaltyService.applyLedgerEntry({
+          tenantId,
+          customerId: txResult._customerId,
+          orderId,
+          type: LoyaltyTransactionType.REDEEM,
+          direction: LoyaltyDirection.DEBIT,
+          points: txResult.loyaltyRedeemedPoints,
+          moneyAmount: txResult.loyaltyRedeemedAmount,
+          idempotencyKey: `order:${orderId}:redeem`,
+          actorUserId: userId,
+        });
+      } catch (err) {
+        this.logger.error(
+          `[processPayment] Loyalty debit failed for order ${orderId}:`,
+          err,
+        );
+      }
+    }
+
+    // ── Phase 4: Post-commit loyalty earn (retail → COMPLETED) ───────────
+    if (txResult.status === OrderStatus.COMPLETED && txResult._customerId) {
+      await this.earnLoyaltyPoints(tenantId, orderId, userId);
+    }
+
     // Strip internal flags before returning
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { _shouldDeductInventory, _branchId, ...result } = txResult;
+    const { ...result } = txResult;
     return result;
   }
 
@@ -1140,7 +1291,7 @@ export class OrdersService {
     );
   }
 
-  async sendToKitchen(tenantId: string, orderId: string, _userId: string) {
+  async sendToKitchen(tenantId: string, orderId: string) {
     return this.prisma.$transaction(
       async (tx) => {
         const order = await tx.order.findFirst({
@@ -1824,6 +1975,9 @@ export class OrdersService {
         shippingFee: true,
         includeVAT: true,
         status: true,
+        customerId: true,
+        loyaltyRedeemedPoints: true,
+        loyaltyRedeemedAmount: true,
         tenant: { select: { businessType: true } },
         payments: { select: { amount: true } },
       },
@@ -1845,6 +1999,69 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vat);
 
+    /* ── Loyalty reconciliation ────────────────────────────────────── */
+    let loyaltyUpdate: Record<string, unknown> = {};
+    let loyaltyRedeemedAmount = Number(order?.loyaltyRedeemedAmount || 0);
+
+    if (order && order.loyaltyRedeemedPoints > 0 && order.customerId) {
+      const program = await this.loyaltyService.getProgram(tenantId);
+      if (
+        program.isEnabled &&
+        program.redeemPointsStep &&
+        program.redeemCurrencyPerStep &&
+        program.maxRedeemPercent != null
+      ) {
+        const newEligibleBase = LoyaltyMath.computeEligibleBase(
+          subtotal,
+          discount,
+          0,
+        );
+        const allowedPoints = LoyaltyMath.computeAllowedRedemption({
+          newEligibleBase,
+          redeemPointsStep: program.redeemPointsStep,
+          redeemCurrencyPerStep: program.redeemCurrencyPerStep,
+          maxRedeemPercent: program.maxRedeemPercent,
+          currentRedeemedPoints: order.loyaltyRedeemedPoints,
+        });
+
+        if (allowedPoints < order.loyaltyRedeemedPoints) {
+          const pointsToRestore = order.loyaltyRedeemedPoints - allowedPoints;
+
+          // Recompute the discount for the allowed points
+          const newRedemption = LoyaltyMath.computeRedemption({
+            requestedPoints: allowedPoints,
+            redeemPointsStep: program.redeemPointsStep,
+            redeemCurrencyPerStep: program.redeemCurrencyPerStep,
+            maxRedeemPercent: program.maxRedeemPercent,
+            eligibleBase: newEligibleBase,
+          });
+
+          const restoredMoney = LoyaltyMath.toDecimal(
+            loyaltyRedeemedAmount,
+          ).minus(newRedemption.appliedDiscount);
+
+          // Create RECONCILE_RESTORE ledger entry
+          await this.loyaltyService.applyLedgerEntry({
+            tenantId,
+            customerId: order.customerId,
+            orderId,
+            type: LoyaltyTransactionType.RECONCILE_RESTORE,
+            direction: LoyaltyDirection.CREDIT,
+            points: pointsToRestore,
+            moneyAmount: restoredMoney,
+            idempotencyKey: `order:${orderId}:reconcile-restore:${allowedPoints}:${restoredMoney.toString()}`,
+            reason: 'Order modification reduced eligible base',
+          });
+
+          loyaltyRedeemedAmount = Number(newRedemption.appliedDiscount);
+          loyaltyUpdate = {
+            loyaltyRedeemedPoints: allowedPoints,
+            loyaltyRedeemedAmount: newRedemption.appliedDiscount,
+          };
+        }
+      }
+    }
+
     let nextStatus = order?.status;
     if (
       order &&
@@ -1855,7 +2072,8 @@ export class OrdersService {
       const paid = this.money(
         order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
       );
-      const remaining = this.money(Math.max(0, total - paid));
+      const effectiveTotal = this.money(total - loyaltyRedeemedAmount);
+      const remaining = this.money(Math.max(0, effectiveTotal - paid));
       nextStatus =
         remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
     }
@@ -1866,10 +2084,95 @@ export class OrdersService {
         subtotal,
         total,
         vat,
+        ...loyaltyUpdate,
         ...(nextStatus &&
           nextStatus !== order?.status && { status: nextStatus }),
       },
     });
+  }
+
+  // Earn loyalty points when an order is completed.
+  private async earnLoyaltyPoints(
+    tenantId: string,
+    orderId: string,
+    userId?: string,
+  ) {
+    try {
+      const order = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: {
+          customerId: true,
+          subtotal: true,
+          discount: true,
+          loyaltyRedeemedAmount: true,
+          loyaltyEarnedPoints: true,
+        },
+      });
+
+      if (!order?.customerId) return;
+      if (order.loyaltyEarnedPoints > 0) return; // Already earned (idempotent)
+
+      const program = await this.loyaltyService.getProgram(tenantId);
+      if (!program.isEnabled || !program.earnPointsPerCurrency) return;
+
+      const eligibleBase = LoyaltyMath.computeEligibleBase(
+        order.subtotal,
+        order.discount || 0,
+        order.loyaltyRedeemedAmount || 0,
+      );
+
+      const earnedPoints = LoyaltyMath.computeEarnedPoints(
+        eligibleBase,
+        program.earnPointsPerCurrency,
+      );
+
+      if (earnedPoints <= 0) return;
+
+      // Snapshot program config at completion time
+      const snapshot = {
+        earnPointsPerCurrency: Number(program.earnPointsPerCurrency),
+        redeemPointsStep: program.redeemPointsStep,
+        redeemCurrencyPerStep: program.redeemCurrencyPerStep
+          ? Number(program.redeemCurrencyPerStep)
+          : null,
+        maxRedeemPercent:
+          program.maxRedeemPercent != null
+            ? Number(program.maxRedeemPercent)
+            : null,
+      };
+
+      await this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          loyaltyEarnedPoints: earnedPoints,
+          loyaltyEligibleBaseAtCompletion: eligibleBase,
+          loyaltyProgramSnapshot: snapshot,
+          loyaltyCompletedAt: new Date(),
+        },
+      });
+
+      await this.loyaltyService.applyLedgerEntry({
+        tenantId,
+        customerId: order.customerId,
+        orderId,
+        type: LoyaltyTransactionType.EARN,
+        direction: LoyaltyDirection.CREDIT,
+        points: earnedPoints,
+        moneyAmount: eligibleBase,
+        idempotencyKey: `order:${orderId}:earn`,
+        reason: `Earned ${earnedPoints} points on order completion`,
+        actorUserId: userId,
+      });
+
+      this.logger.log(
+        `Loyalty earn: order=${orderId} pts=${earnedPoints} base=${eligibleBase.toString()}`,
+      );
+    } catch (err) {
+      this.logger.error(
+        `[earnLoyaltyPoints] Failed for order ${orderId}:`,
+        err,
+      );
+    }
   }
 
   private money(value: number): number {

@@ -108,6 +108,11 @@ export class CustomersService {
             _count: {
               select: { orders: true },
             },
+            loyaltyAccount: {
+              select: {
+                pointsBalance: true,
+              },
+            },
           },
         }),
       ]);

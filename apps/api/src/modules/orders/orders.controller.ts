@@ -340,6 +340,6 @@ export class OrdersController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   sendToKitchen(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string; id: string };
-    return this.ordersService.sendToKitchen(user.tenantId, id, user.id);
+    return this.ordersService.sendToKitchen(user.tenantId, id);
   }
 }

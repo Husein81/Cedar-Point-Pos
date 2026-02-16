@@ -917,13 +917,7 @@ export class OrdersService {
     }
 
     // Strip internal flags before returning
-    const {
-      _shouldDeductInventory,
-      _branchId,
-      _loyaltyApplied,
-      _customerId,
-      ...result
-    } = txResult;
+    const { ...result } = txResult;
     return result;
   }
 
@@ -1297,7 +1291,7 @@ export class OrdersService {
     );
   }
 
-  async sendToKitchen(tenantId: string, orderId: string, _userId: string) {
+  async sendToKitchen(tenantId: string, orderId: string) {
     return this.prisma.$transaction(
       async (tx) => {
         const order = await tx.order.findFirst({
@@ -2055,7 +2049,7 @@ export class OrdersService {
             direction: LoyaltyDirection.CREDIT,
             points: pointsToRestore,
             moneyAmount: restoredMoney,
-            idempotencyKey: `order:${orderId}:reconcile:${Date.now()}`,
+            idempotencyKey: `order:${orderId}:reconcile-restore:${allowedPoints}:${restoredMoney.toString()}`,
             reason: 'Order modification reduced eligible base',
           });
 

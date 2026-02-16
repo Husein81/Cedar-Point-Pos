@@ -128,6 +128,9 @@ export const RefundConfirmModal = ({
               <li>Return ${total.toFixed(2)} to the customer</li>
               <li>Restore inventory for refunded items</li>
               <li>Update order status to reflect the refund</li>
+              <li>
+                Restore redeemed loyalty points &amp; reverse earned points
+              </li>
             </ul>
           </div>
         </div>

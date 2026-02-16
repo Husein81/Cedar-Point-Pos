@@ -70,6 +70,14 @@ export const PaymentDto = z.object({
 });
 export type PaymentDto = z.infer<typeof PaymentDto>;
 
+/**
+ * Optional loyalty redemption payload sent alongside payments.
+ * Backend uses this to compute the loyalty discount on the order.
+ */
+export interface LoyaltyRedemptionPayload {
+  redeemPoints: number;
+}
+
 export interface OrderFilters extends QueryParams {
   status?: OrderStatus;
   branchId?: string;

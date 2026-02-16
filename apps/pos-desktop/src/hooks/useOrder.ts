@@ -4,6 +4,7 @@ import { useOrderStore } from "@/store/orderStore";
 import {
   AddItemDto,
   CreateOrderDto,
+  type LoyaltyRedemptionPayload,
   OrderFilters,
   PaymentDto,
 } from "@/dto/order.dto";
@@ -50,8 +51,15 @@ export const useProcessPayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, payments }: { id: string; payments: PaymentDto[] }) =>
-      ordersApi.processPayment(id, { payments }),
+    mutationFn: ({
+      id,
+      payments,
+      loyalty,
+    }: {
+      id: string;
+      payments: PaymentDto[];
+      loyalty?: LoyaltyRedemptionPayload;
+    }) => ordersApi.processPayment(id, { payments, loyalty }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
@@ -59,6 +67,8 @@ export const useProcessPayment = () => {
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
       });
+      // Invalidate loyalty account after redemption
+      queryClient.invalidateQueries({ queryKey: ["loyalty"] });
     },
   });
 };
@@ -211,9 +221,8 @@ export const useTableSelectorTransferOrder = () => {
   const queryClient = useQueryClient();
   const { loadOrder, closeTab } = useOrderStore();
   const closeModal = useModalStore((state) => state.closeModal);
-  const [conflict, setConflict] = useState<TableSelectorTransferConflict | null>(
-    null,
-  );
+  const [conflict, setConflict] =
+    useState<TableSelectorTransferConflict | null>(null);
 
   const mutation = useMutation<Order, any, TableSelectorTransferVariables>({
     mutationFn: ({ orderId, targetTableId, mergeIntoOrderId }) =>
@@ -225,7 +234,8 @@ export const useTableSelectorTransferOrder = () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
 
-      const targetDisplayName = variables.targetTableDisplayName ?? "selected table";
+      const targetDisplayName =
+        variables.targetTableDisplayName ?? "selected table";
       const isMerge = !!variables.mergeIntoOrderId;
 
       if (isMerge) {

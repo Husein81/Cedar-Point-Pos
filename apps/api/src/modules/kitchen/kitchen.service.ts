@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
+import { OrdersService } from '../orders/orders.service.js';
 import { OrderStatus, QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/browser.js';
 
@@ -8,7 +8,7 @@ import { Prisma } from '../../generated/prisma/browser.js';
 export class KitchenService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly inventoryDeductionService: InventoryDeductionService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   async getKitchenOrders(
@@ -27,6 +27,8 @@ export class KitchenService {
           'IN_PROGRESS',
           'SENT_TO_KITCHEN',
           'READY',
+          'PAID',
+          'PARTIALLY_PAID',
           'FULLY_REFUNDED',
         ],
       },
@@ -233,75 +235,14 @@ export class KitchenService {
     tenantId: string,
     userId?: string,
   ) {
-    const order = await this.prisma.order.findFirst({
-      where: {
-        id: orderId,
-        tenantId,
-      },
-      include: {
-        tenant: {
-          select: { businessType: true },
-        },
-      },
-    });
-
-    if (!order) {
-      throw new ForbiddenException('Order not found');
-    }
-
-    // If marking as COMPLETED, also set completedAt and deduct inventory
-    if (status === 'COMPLETED') {
-      return this.prisma.$transaction(async (tx) => {
-        const updatedOrder = await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status,
-            completedAt: new Date(),
-          },
-          include: {
-            items: {
-              include: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        // Deduct inventory for restaurant orders when completed by kitchen
-        if (userId) {
-          await this.inventoryDeductionService.deductStockForOrder(
-            tenantId,
-            orderId,
-            order.branchId,
-            userId,
-          );
-        }
-
-        return updatedOrder;
-      });
-    }
-
-    return this.prisma.order.update({
-      where: { id: orderId },
-      data: { status },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    // Delegate to the central orders state machine so transitions, settlement
+    // guards, inventory deductions, and loyalty earning stay consistent.
+    return this.ordersService.updateStatus(
+      tenantId,
+      orderId,
+      status,
+      userId ?? 'SYSTEM',
+    );
   }
 
   async updateTicketStatus(

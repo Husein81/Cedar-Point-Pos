@@ -73,6 +73,8 @@ export interface RefundHistory {
   totalAmount: number;
   reason: string | null;
   isPartialRefund?: boolean;
+  loyaltyPointsRestored?: number;
+  loyaltyPointsReversed?: number;
   items: Array<{
     productName: string;
     quantity: number;

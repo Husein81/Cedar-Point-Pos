@@ -26,6 +26,14 @@ export const settingsSections: SettingsSection[] = [
     href: "/settings/colors",
     showFor: ["RETAIL", "RESTAURANT"],
   },
+  {
+    id: "loyalty",
+    label: "Loyalty Program",
+    description: "Configure customer loyalty points, earning, and redemption",
+    icon: "Award",
+    href: "/settings/loyalty",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
   // Future sections:
   // {
   //   id: "taxes",

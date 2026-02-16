@@ -16,6 +16,14 @@ export type CustomerFullDetails = CustomerDetails & {
   totalRevenue: number;
   lastOrderAt: string | null;
   averageOrderValue: number;
+  loyalty?: {
+    pointsBalance: number;
+    lifetimeEarned: number;
+    lifetimeRedeemed: number;
+    lifetimeRestored: number;
+    lifetimeReversed: number;
+    lifetimeAdjusted: number;
+  };
 };
 
 export type CustomerOrder = {

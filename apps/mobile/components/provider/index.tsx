@@ -6,7 +6,9 @@ const Provider = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={queryClient}>
-      <View style={{ flex: 1 }}>{children}</View>
+      <View style={{ flex: 1 }} className="bg-background">
+        {children}
+      </View>
     </QueryClientProvider>
   );
 };

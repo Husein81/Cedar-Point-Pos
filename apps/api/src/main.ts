@@ -13,6 +13,7 @@ async function bootstrap() {
         'http://localhost:3000', // Admin dashboard
         'http://localhost:5173', // POS web
         'http://localhost:19006', // Expo / RN web
+        'http://192.168.0.102:8081', // Mobile web
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -24,7 +25,7 @@ async function bootstrap() {
       ],
     });
     app.useGlobalPipes(new ZodValidationPipe());
-    await app.listen(process.env.PORT ?? 5000);
+    await app.listen(process.env.PORT ?? 5000, '0.0.0.0');
   } catch (error) {
     console.error(error);
   }

@@ -1,68 +1,68 @@
 import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
 export const LIGHT_NAV_THEME = {
-  background: "oklch(0.98 0.01 260)",
-  foreground: "oklch(0.18 0.03 260)",
-  card: "oklch(0.99 0.01 260)",
-  border: "oklch(0.9 0.02 260)",
+  background: "#F7F9FC",
+  foreground: "#1A202C",
+  card: "#FFFFFF",
+  border: "#E2E8F0",
 
-  primary: "oklch(0.63 0.23 270)",
-  primaryForeground: "oklch(0.98 0.01 260)",
+  primary: "#525FF9",
+  primaryForeground: "#FFFFFF",
 
-  accent: "oklch(0.63 0.23 270)",
+  accent: "#525FF9",
 
-  muted: "oklch(0.94 0.02 260)",
-  mutedForeground: "oklch(0.45 0.04 260)",
+  muted: "#F0F2F7",
+  mutedForeground: "#64748B",
 
-  success: "oklch(0.69 0.16 145)",
-  warning: "oklch(0.78 0.16 85)",
-  info: "oklch(0.72 0.18 250)",
-  destructive: "oklch(0.58 0.22 25)",
+  success: "#22C55E",
+  warning: "#EAB308",
+  info: "#3B82F6",
+  destructive: "#EF4444",
 
-  sidebar: "oklch(0.97 0.01 260)",
-  sidebarForeground: "oklch(0.18 0.03 260)",
+  sidebar: "#F5F7FA",
+  sidebarForeground: "#1A202C",
 
-  ring: "oklch(0.63 0.23 270)",
+  ring: "#525FF9",
 
   chart: {
-    c1: "oklch(0.63 0.23 270)",
-    c2: "oklch(0.72 0.18 250)",
-    c3: "oklch(0.55 0.14 240)",
-    c4: "oklch(0.78 0.16 85)",
-    c5: "oklch(0.69 0.16 145)",
+    c1: "#525FF9",
+    c2: "#3B82F6",
+    c3: "#4C6EF5",
+    c4: "#EAB308",
+    c5: "#22C55E",
   },
 };
 
 export const DARK_NAV_THEME = {
-  background: "oklch(0.18 0.03 260)",
-  foreground: "oklch(0.96 0.01 260)",
-  card: "oklch(0.21 0.03 260)",
-  border: "oklch(0.3 0.04 260)",
+  background: "#031128",
+  foreground: "#F1F5F9",
+  card: "#0F172A",
+  border: "#334155",
 
-  primary: "oklch(0.72 0.18 250)",
-  primaryForeground: "oklch(0.18 0.03 260)",
+  primary: "#5D9EFF",
+  primaryForeground: "#031128",
 
-  accent: "oklch(0.63 0.23 270)",
+  accent: "#525FF9",
 
-  muted: "oklch(0.26 0.04 260)",
-  mutedForeground: "oklch(0.7 0.04 260)",
+  muted: "#1E293B",
+  mutedForeground: "#94A3B8",
 
-  success: "oklch(0.62 0.14 145)",
-  warning: "oklch(0.7 0.15 85)",
-  info: "oklch(0.72 0.18 250)",
-  destructive: "oklch(0.45 0.18 25)",
+  success: "#16A34A",
+  warning: "#CA8A04",
+  info: "#3B82F6",
+  destructive: "#B91C1C",
 
-  sidebar: "oklch(0.16 0.03 260)",
-  sidebarForeground: "oklch(0.96 0.01 260)",
+  sidebar: "#020C1C",
+  sidebarForeground: "#F1F5F9",
 
-  ring: "oklch(0.72 0.18 250)",
+  ring: "#5D9EFF",
 
   chart: {
-    c1: "oklch(0.72 0.18 250)",
-    c2: "oklch(0.63 0.23 270)",
-    c3: "oklch(0.58 0.16 240)",
-    c4: "oklch(0.7 0.15 85)",
-    c5: "oklch(0.62 0.14 145)",
+    c1: "#5D9EFF",
+    c2: "#525FF9",
+    c3: "#4C6EF5",
+    c4: "#CA8A04",
+    c5: "#16A34A",
   },
 };
 

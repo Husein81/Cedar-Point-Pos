@@ -4,7 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BusinessType, OrderStatus, OrderType, QueryParams } from '@repo/types';
+import {
+  BusinessType,
+  CashMovementReferenceType,
+  CashMovementType,
+  OrderStatus,
+  OrderType,
+  QueryParams,
+} from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -80,6 +87,54 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Validate shiftId and deviceId belong to tenant and match the order branch.
+   * Throws BadRequestException/NotFoundException on mismatch.
+   * No-ops when both are absent (backward compat).
+   */
+  private async validateShiftAndDevice(
+    tenantId: string,
+    branchId: string,
+    shiftId?: string | null,
+    deviceId?: string | null,
+  ) {
+    if (!shiftId && !deviceId) return;
+
+    if (shiftId) {
+      const shift = await this.prisma.shift.findFirst({
+        where: { id: shiftId, tenantId },
+        select: { branchId: true, deviceId: true },
+      });
+      if (!shift) {
+        throw new NotFoundException('Shift not found or not accessible');
+      }
+      if (shift.branchId !== branchId) {
+        throw new BadRequestException(
+          'Shift does not belong to the order branch',
+        );
+      }
+      // If caller also passed deviceId, it must match the shift's device
+      if (deviceId && shift.deviceId && shift.deviceId !== deviceId) {
+        throw new BadRequestException('Device does not match the shift device');
+      }
+    }
+
+    if (deviceId) {
+      const device = await this.prisma.pOSDevice.findFirst({
+        where: { id: deviceId, tenantId },
+        select: { branchId: true },
+      });
+      if (!device) {
+        throw new NotFoundException('Device not found or not accessible');
+      }
+      if (device.branchId !== branchId) {
+        throw new BadRequestException(
+          'Device does not belong to the order branch',
+        );
+      }
+    }
+  }
+
   /* ----------------------------------------------------
      CREATE
   ---------------------------------------------------- */
@@ -95,6 +150,8 @@ export class OrdersService {
       shippingFee,
       includeVAT,
       guestCount,
+      shiftId,
+      deviceId,
     } = dto;
 
     // Fetch tenant info and branch order count in parallel
@@ -281,6 +338,9 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
+    // Validate shift/device ownership and branch consistency
+    await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
+
     // Use transaction to create order and update table status atomically
     return this.prisma.$transaction(async (tx) => {
       // Create the order
@@ -300,6 +360,8 @@ export class OrdersService {
           vat: vatAmount,
           ...(tableId && { tableId }),
           ...(customerId && { customerId }),
+          ...(shiftId && { shiftId }),
+          ...(deviceId && { deviceId }),
           items: { create: orderItems },
         },
         include: {
@@ -505,6 +567,10 @@ export class OrdersService {
       method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
+      // Shift attribution (optional for backward compat)
+      shiftId?: string;
+      deviceId?: string;
+      idempotencyKey?: string;
     },
     userId: string,
   ) {
@@ -543,6 +609,80 @@ export class OrdersService {
       );
     }
 
+    // ── Shift context (passed by caller; no auto-resolution) ─────────────
+    const resolvedShiftId = paymentsInput.shiftId || null;
+    const resolvedDeviceId = paymentsInput.deviceId || null;
+
+    // Validate shift/device ownership against the order branch
+    if (resolvedShiftId || resolvedDeviceId) {
+      const orderForBranch = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: { branchId: true },
+      });
+      if (!orderForBranch) throw new NotFoundException('Order not found');
+      await this.validateShiftAndDevice(
+        tenantId,
+        orderForBranch.branchId,
+        resolvedShiftId,
+        resolvedDeviceId,
+      );
+    }
+
+    // ── Idempotency check (order-scoped) ─────────────────────────────────
+    if (paymentsInput.idempotencyKey) {
+      const existing = await this.prisma.payment.findFirst({
+        where: {
+          orderId,
+          idempotencyKey: paymentsInput.idempotencyKey,
+          order: { tenantId },
+        },
+      });
+      if (existing) {
+        // Return accurate cached result from persisted data
+        const order = await this.prisma.order.findFirst({
+          where: { id: orderId, tenantId },
+          select: {
+            total: true,
+            status: true,
+            currencyCode: true,
+            payments: {
+              select: {
+                amount: true,
+                method: true,
+                currencyCode: true,
+                exchangeRate: true,
+              },
+            },
+          },
+        });
+        const totalDue = this.money(Number(order?.total || 0));
+        const allPayments = order?.payments || [];
+        const totalPaid = this.money(
+          allPayments.reduce((s, p) => s + Number(p.amount), 0),
+        );
+        const changeBase = Math.max(0, totalPaid - totalDue);
+        const firstCash = allPayments.find(
+          (p) => p.method === PaymentMethod.CASH,
+        );
+        const changeCurrency =
+          firstCash?.currencyCode || order?.currencyCode || 'USD';
+        const changeRate = firstCash ? Number(firstCash.exchangeRate || 1) : 1;
+        return {
+          orderId,
+          status: order?.status || OrderStatus.PENDING,
+          totalDue,
+          paid: this.money(Math.min(totalPaid, totalDue)),
+          remaining: this.money(Math.max(0, totalDue - totalPaid)),
+          change: {
+            amount: this.money(changeBase / changeRate),
+            currency: changeCurrency,
+          },
+          paymentCount: allPayments.length,
+          idempotent: true,
+        };
+      }
+    }
+
     // ── Phase 1: Atomic payment + status update ──────────────────────────
     // Run payment records + order status inside ONE transaction.
     // Inventory deduction is intentionally OUTSIDE to avoid deadlocks:
@@ -558,6 +698,8 @@ export class OrdersService {
           status: true,
           total: true, // ✅ already includes VAT + shipping
           branchId: true,
+          shiftId: true,
+          deviceId: true,
           currencyCode: true,
           payments: {
             select: { amount: true }, // amount is in BASE currency
@@ -623,14 +765,21 @@ export class OrdersService {
          CREATE PAYMENT RECORDS FOR ALL PAYMENTS
       ============================================ */
 
-      await Promise.all(
-        payments.map((payment) => {
+      const createdPayments = await Promise.all(
+        payments.map((payment, idx) => {
           const exchangeRate =
             payment.currencyCode && payment.currencyCode !== order.currencyCode
               ? payment.exchangeRate || 1
               : 1;
 
           const paymentInBase = this.money(payment.amount * exchangeRate);
+
+          // Build idempotency key: first payment gets the main key, subsequent get suffixed
+          const paymentIdempotencyKey = paymentsInput.idempotencyKey
+            ? idx === 0
+              ? paymentsInput.idempotencyKey
+              : `${paymentsInput.idempotencyKey}__${idx}`
+            : undefined;
 
           return tx.payment.create({
             data: {
@@ -641,10 +790,60 @@ export class OrdersService {
               exchangeRate: exchangeRate
                 ? new Prisma.Decimal(exchangeRate)
                 : undefined,
+              // ── Shift attribution ──
+              shiftId: resolvedShiftId || undefined,
+              deviceId: resolvedDeviceId || undefined, // nullable FK-safe (B)
+              userId,
+              idempotencyKey: paymentIdempotencyKey,
             },
           });
         }),
       );
+
+      /* ============================================
+         CREATE CASH MOVEMENTS (for cash payments)
+      ============================================ */
+
+      if (resolvedShiftId && order.branchId) {
+        const cashPayments = createdPayments.filter(
+          (p) => p.method === PaymentMethod.CASH,
+        );
+
+        if (cashPayments.length > 0) {
+          await Promise.all(
+            cashPayments.map((cp) =>
+              tx.cashMovement.create({
+                data: {
+                  tenantId,
+                  branchId: order.branchId,
+                  shiftId: resolvedShiftId,
+                  deviceId: resolvedDeviceId || undefined,
+                  userId,
+                  type: CashMovementType.CASH_SALE,
+                  amount: new Prisma.Decimal(Number(cp.amount)),
+                  reason: `Payment for order ${orderId}`,
+                  referenceId: cp.id,
+                  referenceType: CashMovementReferenceType.PAYMENT,
+                },
+              }),
+            ),
+          );
+        }
+      }
+
+      /* ============================================
+         BACKFILL Order.shiftId (if null and shift provided)
+      ============================================ */
+      if (resolvedShiftId && !order.shiftId) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            shiftId: resolvedShiftId,
+            ...(resolvedDeviceId &&
+              !order.deviceId && { deviceId: resolvedDeviceId }),
+          },
+        });
+      }
 
       /* ============================================
          UPDATE ORDER STATUS
@@ -724,6 +923,32 @@ export class OrdersService {
             amount: this.money(0),
             currency: order.currencyCode,
           };
+
+      /* ============================================
+         CASH CHANGE MOVEMENT
+      ============================================ */
+
+      if (
+        resolvedShiftId &&
+        order.branchId &&
+        changeBase > 0 &&
+        firstCashPayment
+      ) {
+        await tx.cashMovement.create({
+          data: {
+            tenantId,
+            branchId: order.branchId,
+            shiftId: resolvedShiftId,
+            deviceId: resolvedDeviceId || undefined,
+            userId,
+            type: CashMovementType.CASH_CHANGE,
+            amount: new Prisma.Decimal(changeBase),
+            reason: `Change for order ${orderId}`,
+            referenceId: orderId,
+            referenceType: CashMovementReferenceType.ORDER,
+          },
+        });
+      }
 
       const finalStatus =
         newStatus ??
@@ -1140,6 +1365,7 @@ export class OrdersService {
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async sendToKitchen(tenantId: string, orderId: string, _userId: string) {
     return this.prisma.$transaction(
       async (tx) => {

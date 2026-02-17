@@ -2,6 +2,8 @@ import { z } from "zod";
 import { decimal, isoDate, cuid } from "./config";
 import {
   BusinessType,
+  CashMovementReferenceType,
+  CashMovementType,
   InventoryChangeType,
   LoyaltyDirection,
   LoyaltyEnrollmentMode,
@@ -11,6 +13,8 @@ import {
   OrderType,
   PaymentMethod,
   PurchaseOrderStatus,
+  ShiftCloseMode,
+  ShiftCloseResult,
   ShiftStatus,
   SortOrder,
   TableStatus,
@@ -270,7 +274,15 @@ export const RefundSchema = z.object({
   paymentMethod: z.string().nullable().optional(),
   loyaltyPointsRestored: z.number().int().default(0),
   loyaltyPointsReversed: z.number().int().default(0),
+  // Shift attribution
+  tenantId: cuid.nullable().optional(),
+  branchId: cuid.nullable().optional(),
+  shiftId: cuid.nullable().optional(),
+  deviceId: cuid.nullable().optional(),
+  userId: cuid.nullable().optional(),
+  idempotencyKey: z.string().nullable().optional(),
   items: z.array(RefundItemSchema).optional(),
+  refundPayments: z.array(z.lazy(() => RefundPaymentSchema)).optional(),
 });
 export type Refund = z.infer<typeof RefundSchema>;
 
@@ -451,6 +463,11 @@ export const PaymentSchema = z.object({
   exchangeRate: decimal.nullable().optional(),
   transactionId: z.string().nullable().optional(),
   paidAt: isoDate,
+  // Shift attribution
+  shiftId: cuid.nullable().optional(),
+  deviceId: cuid.nullable().optional(),
+  userId: cuid.nullable().optional(),
+  idempotencyKey: z.string().nullable().optional(),
 });
 export type Payment = z.infer<typeof PaymentSchema>;
 
@@ -464,7 +481,10 @@ export const CustomerSchema = z.object({
   address: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
-  loyaltyAccount: z.lazy(() => LoyaltyAccountSchema).nullable().optional(),
+  loyaltyAccount: z
+    .lazy(() => LoyaltyAccountSchema)
+    .nullable()
+    .optional(),
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 
@@ -539,8 +559,49 @@ export const ShiftSchema = z.object({
   difference: decimal.nullable().optional(),
   status: z.enum(ShiftStatus).default("OPEN"),
   notes: z.string().nullable().optional(),
+  // Close-related fields
+  closedById: cuid.nullable().optional(),
+  closeMode: z.enum(ShiftCloseMode).nullable().optional(),
+  closeResult: z.enum(ShiftCloseResult).nullable().optional(),
+  varianceAmount: decimal.nullable().optional(),
+  variancePercent: decimal.nullable().optional(),
+  approvedById: cuid.nullable().optional(),
+  approvalNote: z.string().nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
+
+// RefundPayment
+export const RefundPaymentSchema = z.object({
+  id: cuid,
+  refundId: cuid,
+  method: z.enum(PaymentMethod),
+  amount: decimal,
+  currencyCode: z.string().nullable().optional(),
+  exchangeRate: decimal.nullable().optional(),
+  shiftId: cuid.nullable().optional(),
+  deviceId: cuid.nullable().optional(),
+  userId: cuid.nullable().optional(),
+  createdAt: isoDate,
+});
+export type RefundPayment = z.infer<typeof RefundPaymentSchema>;
+
+// CashMovement
+export const CashMovementSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  shiftId: cuid,
+  deviceId: cuid.nullable().optional(),
+  userId: cuid,
+  type: z.enum(CashMovementType),
+  amount: decimal,
+  reason: z.string().nullable().optional(),
+  referenceId: z.string().nullable().optional(),
+  referenceType: z.enum(CashMovementReferenceType).nullable().optional(),
+  idempotencyKey: z.string().nullable().optional(),
+  createdAt: isoDate,
+});
+export type CashMovement = z.infer<typeof CashMovementSchema>;
 
 // ===========================================
 //         Loyalty Schemas

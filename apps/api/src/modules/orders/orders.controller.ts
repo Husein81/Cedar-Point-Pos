@@ -155,6 +155,10 @@ export class OrdersController {
       method?: PaymentMethod;
       currencyCode?: string;
       exchangeRate?: number;
+      // Shift attribution (optional)
+      shiftId?: string;
+      deviceId?: string;
+      idempotencyKey?: string;
     },
   ) {
     const user = req.user as { tenantId: string; id: string };

@@ -6,8 +6,14 @@ import {
 import { Prisma } from '../../generated/prisma/client.js';
 import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShiftsService } from '../shifts/shifts.service.js';
 import { CreateRefundDto } from './dto/create-refund.dto.js';
-import { OrderStatus } from '@repo/types';
+import {
+  CashMovementReferenceType,
+  CashMovementType,
+  OrderStatus,
+} from '@repo/types';
+import { PaymentMethod } from '../../generated/prisma/client.js';
 
 interface RefundableOrdersParams {
   page?: number;
@@ -24,6 +30,7 @@ export class RefundsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryTransactionService: InventoryTransactionService,
+    private readonly shiftsService: ShiftsService,
   ) {}
 
   /**
@@ -234,6 +241,17 @@ export class RefundsService {
       throw new BadRequestException('At least one item must be refunded');
     }
 
+    // ── Idempotency check (tenant-scoped) ───────────────────────────────
+    if (dto.idempotencyKey) {
+      const existing = await this.prisma.refund.findFirst({
+        where: { tenantId, idempotencyKey: dto.idempotencyKey },
+        include: { refundItems: true },
+      });
+      if (existing) {
+        return existing; // Return cached result for idempotent retry
+      }
+    }
+
     // ✅ OPTIMIZED: Fetch and validate OUTSIDE transaction to minimize lock time
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
@@ -258,6 +276,26 @@ export class RefundsService {
 
     if (!order.branchId) {
       throw new BadRequestException('Order must have a branch assigned');
+    }
+
+    // ── Resolve shift context (best-effort, with order branchId) ──────────
+    let resolvedShiftId = dto.shiftId || null;
+    let resolvedDeviceId = dto.deviceId || null;
+
+    if (!resolvedShiftId) {
+      try {
+        const currentShift = await this.shiftsService.getCurrentShift(
+          tenantId,
+          resolvedDeviceId || undefined,
+          order.branchId || undefined,
+        );
+        if (currentShift) {
+          resolvedShiftId = currentShift.id;
+          resolvedDeviceId = resolvedDeviceId || currentShift.deviceId;
+        }
+      } catch {
+        // Shift resolution is best-effort; don't block refund
+      }
     }
 
     const orderItemMap = new Map(order.items.map((i) => [i.id, i]));
@@ -346,19 +384,107 @@ export class RefundsService {
               }
             }
 
-            // Create refund record
+            // Create refund record with attribution
             const refund = await tx.refund.create({
               data: {
                 orderId,
                 reason: reason || null,
                 totalAmount: totalRefundAmount.toFixed(2),
                 refundedAt: new Date(),
+                // ── Shift attribution ──
+                tenantId,
+                branchId: order.branchId,
+                shiftId: resolvedShiftId || undefined,
+                deviceId: resolvedDeviceId || undefined,
+                userId,
+                idempotencyKey: dto.idempotencyKey || undefined,
                 refundItems: {
                   createMany: { data: refundItems },
                 },
               },
               include: { refundItems: true },
             });
+
+            /* ============================================
+               CREATE REFUND PAYMENT RECORDS
+            ============================================ */
+            if (dto.refundPayments && dto.refundPayments.length > 0) {
+              // ── F) Validate sum(refundPayments base) matches totalRefundAmount ──
+              const refundPaymentsBaseTotal = dto.refundPayments.reduce(
+                (sum, rp) => {
+                  const exchangeRate = rp.exchangeRate || 1;
+                  return sum + Math.round(rp.amount * exchangeRate * 100) / 100;
+                },
+                0,
+              );
+              const tolerance = 0.02; // Allow 2 cent rounding tolerance
+              if (
+                Math.abs(
+                  refundPaymentsBaseTotal - totalRefundAmount.toNumber(),
+                ) > tolerance
+              ) {
+                throw new BadRequestException(
+                  `Refund payment total (${refundPaymentsBaseTotal.toFixed(2)}) does not match computed refund amount (${totalRefundAmount.toFixed(2)})`,
+                );
+              }
+
+              await Promise.all(
+                dto.refundPayments.map((rp) => {
+                  const exchangeRate = rp.exchangeRate || 1;
+                  const amountInBase =
+                    Math.round(rp.amount * exchangeRate * 100) / 100;
+
+                  return tx.refundPayment.create({
+                    data: {
+                      refundId: refund.id,
+                      method: rp.method as PaymentMethod,
+                      amount: new Prisma.Decimal(amountInBase),
+                      currencyCode: rp.currencyCode,
+                      exchangeRate: rp.exchangeRate
+                        ? new Prisma.Decimal(rp.exchangeRate)
+                        : undefined,
+                      shiftId: resolvedShiftId || undefined,
+                      deviceId: resolvedDeviceId || undefined,
+                      userId,
+                    },
+                  });
+                }),
+              );
+
+              /* ============================================
+                 CASH MOVEMENTS FOR CASH REFUNDS
+              ============================================ */
+              if (resolvedShiftId && order.branchId) {
+                const cashRefundPayments = dto.refundPayments.filter(
+                  (rp) => rp.method === 'CASH',
+                );
+
+                if (cashRefundPayments.length > 0) {
+                  await Promise.all(
+                    cashRefundPayments.map((crp) => {
+                      const exchangeRate = crp.exchangeRate || 1;
+                      const amountInBase =
+                        Math.round(crp.amount * exchangeRate * 100) / 100;
+
+                      return tx.cashMovement.create({
+                        data: {
+                          tenantId,
+                          branchId: order.branchId,
+                          shiftId: resolvedShiftId,
+                          deviceId: resolvedDeviceId || undefined,
+                          userId,
+                          type: CashMovementType.CASH_REFUND_OUT,
+                          amount: new Prisma.Decimal(amountInBase),
+                          reason: `Refund for order ${orderId}`,
+                          referenceId: refund.id,
+                          referenceType: CashMovementReferenceType.REFUND,
+                        },
+                      });
+                    }),
+                  );
+                }
+              }
+            }
 
             // ✅ Performance: Check if order is now fully refunded
             // Uses data already available (no extra DB queries)
@@ -466,14 +592,6 @@ export class RefundsService {
     }
   }
 
-  private async getAlreadyRefundedQuantity(orderItemId: string) {
-    const result = await this.prisma.refundItem.aggregate({
-      where: { orderItemId },
-      _sum: { quantity: true },
-    });
-    return new Prisma.Decimal(result._sum.quantity || 0);
-  }
-
   async findAll(
     tenantId: string,
     params: {
@@ -562,60 +680,5 @@ export class RefundsService {
         new Prisma.Decimal(r._sum.quantity ?? 0),
       ]),
     );
-  }
-
-  /**
-   * ✅ PERFORMANCE: Check if order is fully refunded
-   * Uses aggregation query (single DB call) instead of fetching all items
-   * Returns true only if ALL items have been fully refunded
-   */
-  private async isOrderFullyRefunded(
-    tx: Prisma.TransactionClient | undefined,
-    orderId: string,
-  ): Promise<boolean> {
-    const client = tx ?? this.prisma;
-
-    // Get order with item quantities
-    const order = await client.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-          },
-        },
-      },
-    });
-
-    if (!order || order.items.length === 0) return false;
-
-    // Get total refunded quantity per item in single query
-    const refundedItems = await client.refundItem.groupBy({
-      by: ['orderItemId'],
-      where: {
-        orderItem: {
-          orderId,
-        },
-      },
-      _sum: {
-        quantity: true,
-      },
-    });
-
-    const refundedMap = new Map(
-      refundedItems.map((r) => [
-        r.orderItemId,
-        new Prisma.Decimal(r._sum.quantity ?? 0),
-      ]),
-    );
-
-    // Check if every item is fully refunded
-    return order.items.every((item) => {
-      const refundedQty = refundedMap.get(item.id) ?? new Prisma.Decimal(0);
-      const originalQty = new Prisma.Decimal(item.quantity);
-      return refundedQty.equals(originalQty);
-    });
   }
 }

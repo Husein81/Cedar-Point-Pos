@@ -12,4 +12,4 @@ import { OrdersService } from './orders.service.js';
   providers: [OrdersService, OrderItemService],
   exports: [OrdersService],
 })
-export class OrdersModule { }
+export class OrdersModule {}

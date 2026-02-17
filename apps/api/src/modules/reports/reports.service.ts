@@ -25,7 +25,11 @@ export interface SalesOrderRow {
   discount: number;
   total: number;
   paymentsSummary: {
-    methods: Array<{ method: string; amount: number; currencyCode: string | null }>;
+    methods: Array<{
+      method: string;
+      amount: number;
+      currencyCode: string | null;
+    }>;
     totalPaid: number;
   };
 }
@@ -112,7 +116,6 @@ export interface CategoryRevenueRow {
   profit: number;
 }
 
-
 // ============================================================
 // Helper Functions
 // ============================================================
@@ -150,7 +153,7 @@ function validateSortBy(
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   // ============================================================
   // NEW LIST ENDPOINTS
@@ -172,6 +175,7 @@ export class ReportsService {
       from,
       to,
       branchId,
+      shiftId,
       orderType,
       paymentMethod,
       status,
@@ -194,6 +198,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
       ...(orderType && { type: orderType }),
       ...(status && { status }),
       ...(userId && { userId }),
@@ -297,7 +302,6 @@ export class ReportsService {
       meta: buildPaginationMeta(totalItems, page, pageSize),
     };
   }
-
 
   /**
    * Inventory Movements List - Paginated inventory history rows
@@ -417,6 +421,7 @@ export class ReportsService {
       from,
       to,
       branchId,
+      shiftId,
       sortBy,
       sortDir = 'desc',
       page = 1,
@@ -447,6 +452,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
         ...(categoryId && {
           product: {
@@ -538,7 +544,7 @@ export class ReportsService {
    * Sales Report - Total revenue, order count, average order value, and best order type
    */
   async getSalesReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     // Fetch tenant business type to determine allowed order types
     const tenant = await this.prisma.tenant.findUnique({
@@ -566,6 +572,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
     };
 
     // Run aggregation and order type groupBy in parallel
@@ -602,6 +609,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
       },
       include: {
         payments: true,
@@ -609,13 +617,17 @@ export class ReportsService {
     });
 
     const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
-      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const totalPaid = order.payments.reduce(
+        (pSum, payment) => pSum + Number(payment.amount),
+        0,
+      );
       return sum + totalPaid;
     }, 0);
 
     const combinedRevenue = totalRevenue + partiallyPaidRevenue;
     const combinedOrderCount = orderCount + partiallyPaidOrders.length;
-    const averageOrderValue = combinedOrderCount > 0 ? combinedRevenue / combinedOrderCount : 0;
+    const averageOrderValue =
+      combinedOrderCount > 0 ? combinedRevenue / combinedOrderCount : 0;
 
     // Determine best order type (most frequent)
     let bestOrderType: string | null = null;
@@ -623,7 +635,10 @@ export class ReportsService {
 
     for (const group of ordersByType) {
       // Prisma groupBy _count represents the total count of grouped items
-      const count = typeof group._count === 'number' ? group._count : (group._count as any)?._all || 0;
+      const count =
+        typeof group._count === 'number'
+          ? group._count
+          : ((group._count as Record<string, number>)?._all ?? 0);
       if (count > maxCount) {
         maxCount = count;
         bestOrderType = group.type;
@@ -646,7 +661,7 @@ export class ReportsService {
    * Debts Report - Total debts, unpaid orders count, and top debtor
    */
   async getDebtsReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const where: Prisma.OrderWhereInput = {
       tenantId,
@@ -656,6 +671,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
     };
 
     // Get aggregated totals
@@ -680,6 +696,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
       },
       include: {
         payments: true,
@@ -687,7 +704,10 @@ export class ReportsService {
     });
 
     const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
-      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const totalPaid = order.payments.reduce(
+        (pSum, payment) => pSum + Number(payment.amount),
+        0,
+      );
       const unpaid = Number(order.total) - totalPaid;
       return sum + unpaid;
     }, 0);
@@ -707,6 +727,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
         customerId: { not: null }, // Only orders with customers
       },
       _sum: {
@@ -725,12 +746,16 @@ export class ReportsService {
 
     if (ordersByCustomer.length > 0 && ordersByCustomer[0].customerId) {
       const topDebtorId = ordersByCustomer[0].customerId;
-      const topDebtorTotalOrdered = Number(ordersByCustomer[0]._sum.total) || 0;
 
       // For partially paid orders of this customer, calculate actual debt
-      const customerPartialOrders = partiallyPaidOrders.filter(o => o.customerId === topDebtorId);
+      const customerPartialOrders = partiallyPaidOrders.filter(
+        (o) => o.customerId === topDebtorId,
+      );
       const customerPartialDebt = customerPartialOrders.reduce((sum, order) => {
-        const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+        const totalPaid = order.payments.reduce(
+          (pSum, payment) => pSum + Number(payment.amount),
+          0,
+        );
         return sum + (Number(order.total) - totalPaid);
       }, 0);
 
@@ -741,11 +766,13 @@ export class ReportsService {
           status: 'PENDING',
           createdAt: { gte: from, lte: to },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
         _sum: { total: true },
       });
 
-      topDebtorAmount = Number(customerPendingOrders._sum.total || 0) + customerPartialDebt;
+      topDebtorAmount =
+        Number(customerPendingOrders._sum.total || 0) + customerPartialDebt;
 
       // Fetch customer name
       const customer = await this.prisma.customer.findUnique({
@@ -777,6 +804,7 @@ export class ReportsService {
       from,
       to,
       branchId,
+      shiftId,
       search,
       sortBy,
       sortDir = 'desc',
@@ -796,6 +824,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
       // Search by order number
       ...(search && {
         orderNumber: { contains: search, mode: 'insensitive' as const },
@@ -860,7 +889,7 @@ export class ReportsService {
    * Top Selling Products - Top 10 products by revenue
    */
   async getTopSellingProducts(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     // Get order items for completed orders
     const topProducts = await this.prisma.orderItem.groupBy({
@@ -874,6 +903,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       _sum: {
@@ -920,7 +950,7 @@ export class ReportsService {
    * Most Ordered Products - Top 5 products by quantity sold
    */
   async getMostOrderedProducts(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const topProducts = await this.prisma.orderItem.groupBy({
       by: ['productId'],
@@ -933,6 +963,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       _sum: {
@@ -976,7 +1007,7 @@ export class ReportsService {
    * Least Sold Products - Bottom 5 products by quantity sold
    */
   async getLeastSoldProducts(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const leastProducts = await this.prisma.orderItem.groupBy({
       by: ['productId'],
@@ -989,6 +1020,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       _sum: {
@@ -1032,9 +1064,10 @@ export class ReportsService {
    * Payments Report - Revenue grouped by payment method
    */
   async getPaymentsReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const where: Prisma.PaymentWhereInput = {
+      ...(shiftId && { shiftId }),
       order: {
         tenantId,
         status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
@@ -1062,7 +1095,7 @@ export class ReportsService {
       transactionCount:
         typeof p._count === 'number'
           ? p._count
-          : (p._count as unknown as { _all: number })._all ?? 0,
+          : ((p._count as unknown as { _all: number })._all ?? 0),
     }));
 
     const grandTotal = paymentBreakdown.reduce(
@@ -1077,7 +1110,7 @@ export class ReportsService {
     let mostUsedMethod: string | null = null;
     if (paymentBreakdown.length > 0) {
       mostUsedMethod = paymentBreakdown.reduce((max, p) =>
-        p.transactionCount > max.transactionCount ? p : max
+        p.transactionCount > max.transactionCount ? p : max,
       ).method;
     }
 
@@ -1098,9 +1131,10 @@ export class ReportsService {
     tenantId: string,
     query: ReportQueryDto & { page?: number; pageSize?: number },
   ) {
-    const { from, to, branchId, page = 1, pageSize = 25 } = query;
+    const { from, to, branchId, shiftId, page = 1, pageSize = 25 } = query;
 
     const where: Prisma.PaymentWhereInput = {
+      ...(shiftId && { shiftId }),
       order: {
         tenantId,
         status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
@@ -1158,7 +1192,7 @@ export class ReportsService {
    * Orders Report - Order counts by status
    */
   async getOrdersReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const orders = await this.prisma.order.groupBy({
       by: ['status'],
@@ -1169,6 +1203,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
       },
       _count: true,
     });
@@ -1327,7 +1362,7 @@ export class ReportsService {
    * Sales by Category - Revenue breakdown by category
    */
   async getSalesByCategory(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const orderItems = await this.prisma.orderItem.findMany({
       where: {
@@ -1339,6 +1374,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       select: {
@@ -1436,7 +1472,7 @@ export class ReportsService {
    * Top Products - Best selling products by revenue
    */
   async getTopProducts(tenantId: string, query: ReportQueryDto, limit = 5) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     const products = await this.prisma.orderItem.groupBy({
       by: ['productId'],
@@ -1449,6 +1485,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       _sum: {
@@ -1493,7 +1530,7 @@ export class ReportsService {
    * GET /reports/customers
    */
   async getCustomersReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     // Count total customers for the tenant
     const totalCustomers = await this.prisma.customer.count({
@@ -1508,6 +1545,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
       customerId: { not: null }, // Only orders with customers
     };
 
@@ -1579,6 +1617,7 @@ export class ReportsService {
       from,
       to,
       branchId,
+      shiftId,
       search,
       sortBy,
       sortDir = 'desc',
@@ -1624,6 +1663,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         };
 
         // Aggregate all orders
@@ -1700,7 +1740,7 @@ export class ReportsService {
    * GET /reports/financials
    */
   async getFinancialsReport(tenantId: string, query: ReportQueryDto) {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     // Build where clause for completed orders
     const orderWhere: Prisma.OrderWhereInput = {
@@ -1711,6 +1751,7 @@ export class ReportsService {
         lte: to,
       },
       ...(branchId && { branchId }),
+      ...(shiftId && { shiftId }),
     };
 
     // 1. Get total revenue (COMPLETED orders only)
@@ -1733,6 +1774,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
       },
       include: {
         payments: true,
@@ -1740,7 +1782,10 @@ export class ReportsService {
     });
 
     const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
-      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const totalPaid = order.payments.reduce(
+        (pSum, payment) => pSum + Number(payment.amount),
+        0,
+      );
       return sum + totalPaid;
     }, 0);
 
@@ -1756,6 +1801,7 @@ export class ReportsService {
           lte: to,
         },
         ...(branchId && { branchId }),
+        ...(shiftId && { shiftId }),
       },
       _sum: {
         total: true,
@@ -1766,7 +1812,10 @@ export class ReportsService {
 
     // Get PARTIALLY_PAID debts (only the unpaid portion)
     const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
-      const totalPaid = order.payments.reduce((pSum, payment) => pSum + Number(payment.amount), 0);
+      const totalPaid = order.payments.reduce(
+        (pSum, payment) => pSum + Number(payment.amount),
+        0,
+      );
       const unpaid = Number(order.total) - totalPaid;
       return sum + unpaid;
     }, 0);
@@ -1849,14 +1898,14 @@ export class ReportsService {
   /**
    * Products with Profit - Returns products with revenue, cost, profit, margin
    * GET /reports/financials/products
-   * 
+   *
    * Follows same pattern as getTopProductsReportList but includes cost/profit
    */
   async getProductsWithProfit(
     tenantId: string,
     query: ReportQueryDto,
   ): Promise<ProductProfitRow[]> {
-    const { from, to, branchId, limit = 5 } = query;
+    const { from, to, branchId, shiftId, limit = 5 } = query;
 
     // Group order items by product (same pattern as top products)
     const groupedProducts = await this.prisma.orderItem.groupBy({
@@ -1870,6 +1919,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       _sum: {
@@ -1941,7 +1991,7 @@ export class ReportsService {
     tenantId: string,
     query: ReportQueryDto,
   ): Promise<CategoryRevenueRow[]> {
-    const { from, to, branchId } = query;
+    const { from, to, branchId, shiftId } = query;
 
     // Get all order items with product category and cost
     const orderItems = await this.prisma.orderItem.findMany({
@@ -1954,6 +2004,7 @@ export class ReportsService {
             lte: to,
           },
           ...(branchId && { branchId }),
+          ...(shiftId && { shiftId }),
         },
       },
       select: {
@@ -2019,4 +2070,3 @@ export class ReportsService {
     return results;
   }
 }
-

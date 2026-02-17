@@ -42,6 +42,8 @@ model Tenant {
   loyaltyProgram      LoyaltyProgram?
   loyaltyAccounts     LoyaltyAccount[]
   loyaltyTransactions LoyaltyTransaction[]
+  refunds             Refund[]
+  cashMovements       CashMovement[]
 }
 
 model Currency {
@@ -87,6 +89,10 @@ model User {
   transfersApproved   Transfer[]           @relation("TransferApprovals")
   transfersRequested  Transfer[]           @relation("TransferRequests")
   loyaltyTransactions LoyaltyTransaction[] @relation("UserLoyaltyTransactions")
+  payments            Payment[]
+  shiftsClosedBy      Shift[]              @relation("ShiftClosedBy")
+  shiftsApprovedBy    Shift[]              @relation("ShiftApprovedBy")
+  cashMovements       CashMovement[]
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
@@ -109,21 +115,25 @@ model Branch {
   transfersTo      Transfer[]         @relation("TransfersTo")
   products         Product[]
   purchaseOrders   PurchaseOrder[]
+  refunds          Refund[]
+  cashMovements    CashMovement[]
 }
 
 model POSDevice {
-  id       String    @id @default(cuid())
-  tenantId String
-  branchId String
-  name     String
-  token    String    @unique
-  lastSync DateTime?
-  isActive Boolean   @default(true)
-  isKDS    Boolean   @default(false)
-  orders   Order[]
-  branch   Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  shifts   Shift[]
+  id            String         @id @default(cuid())
+  tenantId      String
+  branchId      String
+  name          String
+  token         String         @unique
+  lastSync      DateTime?
+  isActive      Boolean        @default(true)
+  isKDS         Boolean        @default(false)
+  orders        Order[]
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shifts        Shift[]
+  payments      Payment[]
+  cashMovements CashMovement[]
 }
 
 model Category {
@@ -297,18 +307,35 @@ model TransferItem {
 }
 
 model Refund {
-  id                    String               @id @default(cuid())
+  id                    String   @id @default(cuid())
   orderId               String?
-  totalAmount           Decimal              @default(0) @db.Decimal(10, 2)
+  totalAmount           Decimal  @default(0) @db.Decimal(10, 2)
   reason                String?
-  refundedAt            DateTime             @default(now())
-  manualRefund          Boolean              @default(false)
+  refundedAt            DateTime @default(now())
+  manualRefund          Boolean  @default(false)
   paymentMethod         String?
-  loyaltyPointsRestored Int                  @default(0)
-  loyaltyPointsReversed Int                  @default(0)
-  order                 Order?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  refundItems           RefundItem[]
-  loyaltyTransactions   LoyaltyTransaction[] @relation("RefundLoyaltyTransactions")
+  loyaltyPointsRestored Int      @default(0)
+  loyaltyPointsReversed Int      @default(0)
+
+  // Shift attribution (optional for backward compatibility)
+  tenantId       String?
+  branchId       String?
+  shiftId        String?
+  deviceId       String?
+  userId         String?
+  idempotencyKey String?
+
+  order               Order?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refundItems         RefundItem[]
+  refundPayments      RefundPayment[]
+  loyaltyTransactions LoyaltyTransaction[] @relation("RefundLoyaltyTransactions")
+  shift               Shift?               @relation(fields: [shiftId], references: [id])
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch              Branch?              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([shiftId])
+  @@index([tenantId, refundedAt])
 }
 
 model RefundItem {
@@ -327,6 +354,58 @@ model RefundItem {
   @@index([orderItemId])
   @@index([productId])
   @@index([refundId])
+}
+
+model RefundPayment {
+  id           String        @id @default(cuid())
+  refundId     String
+  method       PaymentMethod
+  amount       Decimal       @db.Decimal(10, 2)
+  currencyCode String?
+  exchangeRate Decimal?      @db.Decimal(18, 6)
+
+  // Attribution
+  shiftId  String?
+  deviceId String?
+  userId   String?
+
+  createdAt DateTime @default(now())
+
+  refund Refund @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  shift  Shift? @relation(fields: [shiftId], references: [id])
+
+  @@index([refundId])
+  @@index([shiftId])
+}
+
+//
+// ---------- CASH MOVEMENT LEDGER ----------
+//
+model CashMovement {
+  id             String                     @id @default(cuid())
+  tenantId       String
+  branchId       String
+  shiftId        String
+  deviceId       String?
+  userId         String
+  type           CashMovementType
+  amount         Decimal                    @db.Decimal(10, 2)
+  reason         String?
+  referenceId    String? // orderId, refundId, or paymentId
+  referenceType  CashMovementReferenceType? // Normalized reference type
+  idempotencyKey String?
+  createdAt      DateTime                   @default(now())
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  shift  Shift      @relation(fields: [shiftId], references: [id])
+  device POSDevice? @relation(fields: [deviceId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([shiftId, type])
+  @@index([tenantId, branchId, createdAt])
+  @@index([referenceId, referenceType])
 }
 
 //
@@ -500,8 +579,22 @@ model Payment {
   exchangeRate  Decimal?
   transactionId String?
   paidAt        DateTime      @default(now())
-  currency      Currency?     @relation(fields: [currencyCode], references: [code])
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Shift attribution (optional for backward compatibility)
+  shiftId        String?
+  deviceId       String?
+  userId         String?
+  idempotencyKey String?
+
+  currency Currency?  @relation(fields: [currencyCode], references: [code])
+  order    Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shift    Shift?     @relation(fields: [shiftId], references: [id])
+  device   POSDevice? @relation(fields: [deviceId], references: [id])
+  user     User?      @relation(fields: [userId], references: [id])
+
+  @@unique([orderId, idempotencyKey])
+  @@index([shiftId])
+  @@index([orderId])
 }
 
 model Customer {
@@ -668,13 +761,63 @@ model Shift {
   difference Decimal?    @db.Decimal(10, 2)
   status     ShiftStatus @default(OPEN)
   notes      String?
-  orders     Order[]
-  branch     Branch      @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  device     POSDevice?  @relation(fields: [deviceId], references: [id])
-  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user       User        @relation(fields: [userId], references: [id])
+
+  // Close-related fields (populated at shift close)
+  closedById      String?
+  closeMode       ShiftCloseMode?
+  closeResult     ShiftCloseResult?
+  varianceAmount  Decimal?          @db.Decimal(10, 2)
+  variancePercent Decimal?          @db.Decimal(10, 4)
+  approvedById    String?
+  approvalNote    String?
+
+  orders           Order[]
+  payments         Payment[]
+  refunds          Refund[]
+  cashMovements    CashMovement[]
+  refundPayments   RefundPayment[]
+  paymentSummaries ShiftPaymentSummary[]
+  reportSnapshot   ShiftReportSnapshot?
+  branch           Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  device           POSDevice?            @relation(fields: [deviceId], references: [id])
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User                  @relation(fields: [userId], references: [id])
+  closedBy         User?                 @relation("ShiftClosedBy", fields: [closedById], references: [id])
+  approvedBy       User?                 @relation("ShiftApprovedBy", fields: [approvedById], references: [id])
 
   @@index([tenantId, branchId, status])
+  @@index([tenantId, deviceId, status])
+}
+
+//
+// ---------- SHIFT PAYMENT SUMMARY ----------
+//
+model ShiftPaymentSummary {
+  id           String        @id @default(cuid())
+  shiftId      String
+  method       PaymentMethod
+  salesCount   Int           @default(0)
+  salesTotal   Decimal       @default(0) @db.Decimal(10, 2)
+  refundsCount Int           @default(0)
+  refundsTotal Decimal       @default(0) @db.Decimal(10, 2)
+  netTotal     Decimal       @default(0) @db.Decimal(10, 2)
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, method])
+  @@index([shiftId])
+}
+
+//
+// ---------- SHIFT REPORT SNAPSHOT (Z-REPORT) ----------
+//
+model ShiftReportSnapshot {
+  id        String   @id @default(cuid())
+  shiftId   String   @unique
+  payload   Json // Full Z-report JSON snapshot
+  createdAt DateTime @default(now())
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 }
 
 enum UserRole {
@@ -741,6 +884,37 @@ enum ModifierType {
 enum ShiftStatus {
   OPEN
   CLOSED
+}
+
+enum CashMovementReferenceType {
+  PAYMENT
+  REFUND
+  ORDER
+  SHIFT
+  MANUAL
+}
+
+enum CashMovementType {
+  CASH_IN // Manual cash deposit into drawer
+  CASH_OUT // Manual cash withdrawal from drawer
+  CASH_SALE // Cash received from sale payment
+  CASH_CHANGE // Change given back to customer
+  CASH_REFUND_OUT // Cash returned to customer for refund
+  CASH_REFUND_CORRECTION // Cash correction for refund of non-cash payment
+  OPENING_CASH // Starting cash for shift
+}
+
+enum ShiftCloseMode {
+  NORMAL // Cashier sees expected before counting
+  BLIND // Cashier counts first, then sees expected
+}
+
+enum ShiftCloseResult {
+  BALANCED // Variance within threshold
+  OVER // More cash than expected
+  SHORT // Less cash than expected
+  APPROVED // Manager approved despite variance
+  NEEDS_APPROVAL // Variance exceeds threshold, awaiting approval
 }
 
 enum TransferStatus {

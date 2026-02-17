@@ -1511,8 +1511,7 @@ export class OrdersService {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async sendToKitchen(tenantId: string, orderId: string, _userId: string) {
+  async sendToKitchen(tenantId: string, orderId: string) {
     return this.prisma.$transaction(
       async (tx) => {
         const order = await tx.order.findFirst({

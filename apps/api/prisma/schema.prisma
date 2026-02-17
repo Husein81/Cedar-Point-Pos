@@ -42,6 +42,7 @@ model Tenant {
   loyaltyProgram      LoyaltyProgram?
   loyaltyAccounts     LoyaltyAccount[]
   loyaltyTransactions LoyaltyTransaction[]
+  offers              Offer[]
   refunds             Refund[]
   cashMovements       CashMovement[]
 }
@@ -206,9 +207,16 @@ model Product {
 
 model Offer {
   id          String       @id @default(cuid())
+  tenantId    String
   name        String
   basePrice   Decimal      @default(0) @db.Decimal(10, 2)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   offerGroups OfferGroup[]
+
+  @@index([tenantId])
 }
 
 model OfferGroup {
@@ -216,8 +224,10 @@ model OfferGroup {
   offerId         String
   name            String
   freeItemsCount  Int              @default(0)
-  offer           Offer            @relation(fields: [offerId], references: [id])
+  offer           Offer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
   offerGroupItems OfferGroupItem[]
+
+  @@index([offerId])
 }
 
 model OfferGroupItem {
@@ -225,8 +235,10 @@ model OfferGroupItem {
   offerGroupId String
   productId    String
   extraPrice   Decimal    @default(0) @db.Decimal(10, 2)
-  offerGroup   OfferGroup @relation(fields: [offerGroupId], references: [id])
+  offerGroup   OfferGroup @relation(fields: [offerGroupId], references: [id], onDelete: Cascade)
   product      Product    @relation(fields: [productId], references: [id])
+
+  @@unique([offerGroupId, productId])
 }
 
 model Inventory {

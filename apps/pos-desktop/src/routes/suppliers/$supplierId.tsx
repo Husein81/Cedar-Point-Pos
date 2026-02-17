@@ -1,0 +1,165 @@
+import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
+import { Avatar, Button, DataTable, Icon, Shad } from "@repo/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { SupplierInfo } from "@/components/supplier/SupplierInfo";
+import { getPurchaseOrderColumns } from "@/config/supplierColumn";
+
+export const Route = createFileRoute("/suppliers/$supplierId")({
+  component: RouteComponent,
+  staticData: {
+    breadcrumb: "Supplier Details",
+  },
+});
+
+const getInitials = (name: string) => {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+interface StatCard {
+  title: string;
+  value: string | number;
+  icon: string;
+}
+
+function RouteComponent() {
+  const { supplierId } = Route.useParams();
+  const { data: supplier, isLoading } = useSupplier(supplierId);
+  const { data: purchaseOrdersResponse, isLoading: purchaseOrdersLoading } =
+    useSupplierPurchaseOrders(supplierId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <p className="text-gray-500">Loading supplier...</p>
+      </div>
+    );
+  }
+
+  if (!supplier) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <p className="text-gray-500 mb-4">Supplier not found</p>
+        <Link to="/suppliers">
+          <Button variant="outline">
+            <Icon name="ArrowLeft" className="h-4 w-4 mr-2" />
+            Back to Suppliers
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const stats: StatCard[] = [
+    {
+      title: "Total Purchase Orders",
+      value: supplier.totalOrders,
+      icon: "ShoppingCart",
+    },
+    {
+      title: "Total Spent",
+      value: `$${supplier.totalPurchaseAmount.toFixed(2)}`,
+      icon: "DollarSign",
+    },
+    {
+      title: "Avg. Purchase Value",
+      value: `$${supplier.averagePurchaseValue.toFixed(2)}`,
+      icon: "TrendingUp",
+    },
+    {
+      title: "Last Purchase",
+      value: supplier.lastPurchaseDate
+        ? new Date(supplier.lastPurchaseDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "—",
+      icon: "Calendar",
+    },
+  ];
+
+  return (
+    <div className="space-y-6 pt-4">
+      <div className="flex items-center gap-4">
+        <Link to="/suppliers">
+          <Button variant="ghost" size="icon">
+            <Icon name="ArrowLeft" className="h-4 w-4" />
+          </Button>
+        </Link>
+
+        <div className="flex items-center gap-4 flex-1">
+          <Avatar
+            fallback={getInitials(supplier.name)}
+            className="h-16 w-16 text-xl bg-primary/10 text-primary border-2 border-background shadow-sm"
+          />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {supplier.name}
+            </h1>
+            <div className="flex items-center gap-3 text-muted-foreground mt-1 text-sm">
+              {supplier.companyName && (
+                <div className="flex items-center gap-1.5">
+                  <Icon name="Building2" className="h-3.5 w-3.5" />
+                  {supplier.companyName}
+                </div>
+              )}
+              {supplier.phone && (
+                <div className="flex items-center gap-1.5">
+                  <Icon name="Phone" className="h-3.5 w-3.5" />
+                  {supplier.phone}
+                </div>
+              )}
+              {supplier.email && (
+                <div className="flex items-center gap-1.5">
+                  <Icon name="Mail" className="h-3.5 w-3.5" />
+                  {supplier.email}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Shad.Card key={stat.title}>
+            <Shad.CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Shad.CardTitle className="text-sm font-medium">
+                {stat.title}
+              </Shad.CardTitle>
+              <Icon name={stat.icon} className="h-4 w-4 text-muted-foreground" />
+            </Shad.CardHeader>
+            <Shad.CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+            </Shad.CardContent>
+          </Shad.Card>
+        ))}
+      </div>
+
+      <SupplierInfo supplier={supplier} />
+
+      <div className="border-t pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Purchase Order History</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {purchaseOrdersResponse?.pagination?.totalCount || 0} total
+              purchase orders
+            </p>
+          </div>
+        </div>
+
+        <DataTable
+          columns={getPurchaseOrderColumns()}
+          data={purchaseOrdersResponse?.data ?? []}
+          isLoading={purchaseOrdersLoading}
+        />
+      </div>
+    </div>
+  );
+}

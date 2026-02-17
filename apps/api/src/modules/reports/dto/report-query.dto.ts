@@ -111,6 +111,7 @@ export const ALLOWED_SORT_FIELDS = {
   paymentTransactions: ['paidAt', 'amount', 'method'],
   inventoryMovements: ['createdAt', 'changeType', 'adjustment'],
   topProducts: ['revenue', 'qtySold', 'productName'],
+  loyaltyTransactions: ['createdAt', 'type', 'points', 'direction'],
 } as const;
 
 /**

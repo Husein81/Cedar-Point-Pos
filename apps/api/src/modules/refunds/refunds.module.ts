@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { RefundsService } from './refunds.service.js';
 import { RefundsController } from './refunds.controller.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
+import { LoyaltyModule } from '../loyalty/loyalty.module.js';
 import { ShiftsModule } from '../shifts/shifts.module.js';
 
 @Module({
-  imports: [InventoryModule, ShiftsModule],
+  imports: [InventoryModule, LoyaltyModule, ShiftsModule],
   controllers: [RefundsController],
   providers: [RefundsService],
   exports: [RefundsService],

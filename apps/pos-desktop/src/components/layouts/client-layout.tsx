@@ -13,8 +13,10 @@ type DrawerContextType = {
 
 const DrawerContext = createContext<DrawerContextType | undefined>(undefined);
 
+export const useOptionalDrawer = () => useContext(DrawerContext);
+
 export const useDrawer = () => {
-  const context = useContext(DrawerContext);
+  const context = useOptionalDrawer();
   if (!context) {
     throw new Error("useDrawer must be used within ClientLayout");
   }

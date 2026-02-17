@@ -116,6 +116,32 @@ export interface CategoryRevenueRow {
   profit: number;
 }
 
+export interface LoyaltySummaryRow {
+  totalAccounts: number;
+  totalPointsInCirculation: number;
+  totalLifetimeEarned: number;
+  totalLifetimeRedeemed: number;
+  totalLifetimeRestored: number;
+  totalLifetimeReversed: number;
+  totalLifetimeAdjusted: number;
+  transactionsInPeriod: number;
+}
+
+export interface LoyaltyTransactionRow {
+  id: string;
+  createdAt: Date;
+  type: string;
+  direction: string;
+  points: number;
+  moneyAmount: number | null;
+  balanceAfter: number;
+  reason: string | null;
+  customer: { id: string; name: string } | null;
+  order: { id: string; orderNumber: string | null } | null;
+  refund: { id: string } | null;
+  actorUser: { id: string; name: string } | null;
+}
+
 // ============================================================
 // Helper Functions
 // ============================================================
@@ -2068,5 +2094,126 @@ export class ReportsService {
     results.sort((a, b) => b.revenue - a.revenue);
 
     return results;
+  }
+
+  // ============================================================
+  // LOYALTY REPORT ENDPOINTS
+  // ============================================================
+
+  /**
+   * Loyalty Summary - Aggregate loyalty metrics
+   * GET /reports/loyalty
+   */
+  async getLoyaltySummary(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<LoyaltySummaryRow> {
+    const { from, to } = query;
+
+    // Aggregate across all loyalty accounts for this tenant
+    const accountAgg = await this.prisma.loyaltyAccount.aggregate({
+      where: { tenantId },
+      _sum: {
+        pointsBalance: true,
+        lifetimeEarned: true,
+        lifetimeRedeemed: true,
+        lifetimeRestored: true,
+        lifetimeReversed: true,
+        lifetimeAdjusted: true,
+      },
+      _count: { id: true },
+    });
+
+    // Count transactions in period
+    const txCount = await this.prisma.loyaltyTransaction.count({
+      where: {
+        tenantId,
+        createdAt: { gte: from, lte: to },
+      },
+    });
+
+    return {
+      totalAccounts: accountAgg._count.id,
+      totalPointsInCirculation: accountAgg._sum.pointsBalance ?? 0,
+      totalLifetimeEarned: accountAgg._sum.lifetimeEarned ?? 0,
+      totalLifetimeRedeemed: accountAgg._sum.lifetimeRedeemed ?? 0,
+      totalLifetimeRestored: accountAgg._sum.lifetimeRestored ?? 0,
+      totalLifetimeReversed: accountAgg._sum.lifetimeReversed ?? 0,
+      totalLifetimeAdjusted: accountAgg._sum.lifetimeAdjusted ?? 0,
+      transactionsInPeriod: txCount,
+    };
+  }
+
+  /**
+   * Loyalty Transactions List - Paginated ledger entries
+   * GET /reports/loyalty/transactions
+   */
+  async getLoyaltyTransactionsList(
+    tenantId: string,
+    query: ReportQueryDto,
+  ): Promise<PaginatedResponse<LoyaltyTransactionRow>> {
+    const {
+      from,
+      to,
+      sortBy,
+      sortDir = 'desc',
+      page = 1,
+      pageSize = 25,
+    } = query;
+
+    validateSortBy(
+      sortBy,
+      ALLOWED_SORT_FIELDS.loyaltyTransactions,
+      'loyalty transactions',
+    );
+
+    const where: Prisma.LoyaltyTransactionWhereInput = {
+      tenantId,
+      createdAt: { gte: from, lte: to },
+    };
+
+    const [totalItems, rows] = await Promise.all([
+      this.prisma.loyaltyTransaction.count({ where }),
+      this.prisma.loyaltyTransaction.findMany({
+        where,
+        select: {
+          id: true,
+          createdAt: true,
+          type: true,
+          direction: true,
+          points: true,
+          moneyAmount: true,
+          balanceAfter: true,
+          reason: true,
+          customer: { select: { id: true, name: true } },
+          order: { select: { id: true, orderNumber: true } },
+          refund: { select: { id: true } },
+          actorUser: { select: { id: true, name: true } },
+        },
+        orderBy: { [sortBy || 'createdAt']: sortDir },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    const data: LoyaltyTransactionRow[] = rows.map((r) => ({
+      id: r.id,
+      createdAt: r.createdAt,
+      type: r.type,
+      direction: r.direction,
+      points: r.points,
+      moneyAmount: r.moneyAmount ? Number(r.moneyAmount) : null,
+      balanceAfter: r.balanceAfter,
+      reason: r.reason,
+      customer: r.customer,
+      order: r.order,
+      refund: r.refund,
+      actorUser: r.actorUser,
+    }));
+
+    return {
+      data,
+      meta: buildPaginationMeta(totalItems, page, pageSize),
+    };
   }
 }

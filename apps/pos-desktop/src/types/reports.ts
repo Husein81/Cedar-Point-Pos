@@ -300,6 +300,42 @@ export interface CategoryRevenueRow {
   profit: number;
 }
 
+// ============================================================
+// Loyalty Report Types
+// ============================================================
+
+/**
+ * Loyalty Summary Row - for /reports/loyalty
+ */
+export interface LoyaltySummaryData {
+  totalAccounts: number;
+  totalPointsInCirculation: number;
+  totalLifetimeEarned: number;
+  totalLifetimeRedeemed: number;
+  totalLifetimeRestored: number;
+  totalLifetimeReversed: number;
+  totalLifetimeAdjusted: number;
+  transactionsInPeriod: number;
+}
+
+/**
+ * Loyalty Transaction Row - for /reports/loyalty/transactions table
+ */
+export interface LoyaltyTransactionReportRow {
+  id: string;
+  createdAt: string;
+  type: string;
+  direction: string;
+  points: number;
+  moneyAmount: number | null;
+  balanceAfter: number;
+  reason: string | null;
+  customer: { id: string; name: string } | null;
+  order: { id: string; orderNumber: string | null } | null;
+  refund: { id: string } | null;
+  actorUser: { id: string; name: string } | null;
+}
+
 /**
  * Payments Report Summary Data - for /reports/payments
  */

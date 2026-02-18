@@ -90,6 +90,8 @@ const RefundHistorySchema = z.object({
   totalAmount: z.number().nonnegative(),
   reason: z.string().nullable(),
   isPartialRefund: z.boolean().optional(),
+  loyaltyPointsRestored: z.number().optional(),
+  loyaltyPointsReversed: z.number().optional(),
   items: z.array(RefundHistoryItemSchema),
 });
 export type RefundHistory = z.infer<typeof RefundHistorySchema>;

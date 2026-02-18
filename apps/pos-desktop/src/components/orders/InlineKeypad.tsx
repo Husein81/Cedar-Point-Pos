@@ -10,6 +10,10 @@ import {
   useUpdateOrderStatus,
   useAddItemToOrder,
 } from "@/hooks/useOrder";
+import {
+  useLoyaltyProgram,
+  useCustomerLoyaltyAccount,
+} from "@/hooks/useLoyalty";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useKeypadStore } from "@/store/keypadStore";
@@ -95,6 +99,14 @@ export const InlineKeypad = () => {
   const total = subtotal - discount + shippingFee + vat;
   const paidAmount = order?.paidAmount ?? 0;
   const remainingTotal = Math.max(0, total - paidAmount);
+
+  // Loyalty data
+  const { data: loyaltyProgram } = useLoyaltyProgram();
+  const { data: loyaltyAccount } = useCustomerLoyaltyAccount(
+    order?.customerId ?? null,
+  );
+  // Eligible base for loyalty discount = subtotal - orderDiscount (excl. VAT/shipping)
+  const loyaltyEligibleBase = Math.max(0, subtotal - discount);
 
   const deliveryNeedsCustomer =
     order?.type === OrderType.DELIVERY && !order?.customerId;
@@ -459,7 +471,11 @@ export const InlineKeypad = () => {
   --------------------------------------------- */
 
   const handlePaymentConfirm = useCallback(
-    async (payments: PaymentEntry[], sendToKitchenFirst = false) => {
+    async (
+      payments: PaymentEntry[],
+      sendToKitchenFirst = false,
+      loyalty?: { redeemPoints: number },
+    ) => {
       await withPaymentLock(async () => {
         if (isProcessing || payments.length === 0) return;
 
@@ -535,6 +551,7 @@ export const InlineKeypad = () => {
               currencyCode: p.currencyCode,
               exchangeRate: p.exchangeRate,
             })),
+            loyalty,
           });
 
           if (!result) return;
@@ -548,10 +565,43 @@ export const InlineKeypad = () => {
             clearOrder();
           }
 
-          toast.success("Payment processed successfully");
+          // Surface backend-applied loyalty values if redeemed
+          if (
+            result.loyaltyRedeemedPoints &&
+            result.loyaltyRedeemedPoints > 0
+          ) {
+            toast.success(
+              `Payment processed — ${Number(result.loyaltyRedeemedPoints).toLocaleString()} pts redeemed ($${Number(result.loyaltyRedeemedAmount || 0).toFixed(2)} discount)`,
+            );
+          } else {
+            toast.success("Payment processed successfully");
+          }
         } catch (error: any) {
-          const message =
-            error.response?.data?.message || error.message || "Payment failed";
+          const raw = error.response?.data?.message || error.message || "";
+          const lower = raw.toLowerCase();
+
+          let message: string;
+          if (lower.includes("insufficient") && lower.includes("point")) {
+            message =
+              "Insufficient loyalty points — please reduce redemption amount";
+          } else if (lower.includes("loyalty") && lower.includes("disabled")) {
+            message = "Loyalty program is currently disabled";
+          } else if (
+            lower.includes("loyalty") &&
+            lower.includes("not configured")
+          ) {
+            message = "Loyalty program is not configured for this tenant";
+          } else if (
+            lower.includes("underpay") ||
+            lower.includes("underpaid")
+          ) {
+            message = "Payment amount is insufficient after reconciliation";
+          } else if (lower.includes("surplus") || lower.includes("overpay")) {
+            message = "Payment surplus detected — refund may be required";
+          } else {
+            message = raw || "Payment failed";
+          }
+
           console.error("Payment failed:", error);
           toast.error(message);
         } finally {
@@ -591,6 +641,10 @@ export const InlineKeypad = () => {
         total={remainingTotal}
         onConfirm={handlePaymentConfirm}
         hasUnsentItems={hasUnsentItems}
+        loyaltyProgram={loyaltyProgram}
+        loyaltyAccount={loyaltyAccount}
+        customerId={order?.customerId}
+        eligibleBase={loyaltyEligibleBase}
       />,
     );
   };
@@ -931,7 +985,7 @@ export const InlineKeypad = () => {
 
   return (
     <Shad.Collapsible
-      open={isOpen}
+      open={isOpen && !!order && order?.items.length > 0}
       onOpenChange={(open) => !open && closeKeypad()}
     >
       <Shad.CollapsibleContent className="border-t border-border bg-background">

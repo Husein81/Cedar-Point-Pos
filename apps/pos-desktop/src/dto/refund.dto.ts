@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { OrderStatus, PaymentMethod } from "@repo/types";
 import { z } from "zod";
 
 const CreateRefundItemSchema = z.object({
@@ -7,10 +7,22 @@ const CreateRefundItemSchema = z.object({
 });
 export type CreateRefundItemDto = z.infer<typeof CreateRefundItemSchema>;
 
+const RefundPaymentSchema = z.object({
+  method: z.nativeEnum(PaymentMethod),
+  amount: z.number().positive(),
+  currencyCode: z.string().optional(),
+  exchangeRate: z.number().positive().optional(),
+});
+export type RefundPaymentDto = z.infer<typeof RefundPaymentSchema>;
+
 const CreateRefundSchema = z.object({
   orderId: z.string(),
   reason: z.string().optional(),
   items: z.array(CreateRefundItemSchema),
+  refundPayments: z.array(RefundPaymentSchema).optional(),
+  shiftId: z.string().optional(),
+  deviceId: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 });
 export type CreateRefundDto = z.infer<typeof CreateRefundSchema>;
 

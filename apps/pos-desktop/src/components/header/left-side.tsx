@@ -1,6 +1,9 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
-import { Button } from "@repo/ui";
+import { useBranchStore } from "@/store/branchStore";
+import { useShiftStore } from "@/store/shiftStore";
+import { useCurrentShift } from "@/hooks/useShifts";
+import { Badge, Button } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import logo from "/assets/logo.png";
 import { useEffect, useState } from "react";
@@ -11,7 +14,15 @@ const LeftSide = () => {
   const navigate = useNavigate();
 
   const { user, isAuthenticated } = useAuthStore();
+  const { branchId } = useBranchStore();
+  const { currentDeviceId } = useShiftStore();
   const drawer = useOptionalDrawer();
+
+  const { data: currentShift } = useCurrentShift(
+    currentDeviceId ?? undefined,
+    branchId ?? undefined,
+  );
+  const isShiftOpen = currentShift?.status === "OPEN";
 
   const logoutMutation = useLogout();
 
@@ -68,6 +79,15 @@ const LeftSide = () => {
       <div className="text-xs text-muted-foreground font-mono">
         {currentTime}
       </div>
+      {isAuthenticated && (
+        <Badge
+          variant={isShiftOpen ? "default" : "secondary"}
+          className="text-[10px] px-2 py-0.5 cursor-pointer"
+          onClick={() => navigate({ to: "/shifts" })}
+        >
+          {isShiftOpen ? "Shift Open" : "No Shift"}
+        </Badge>
+      )}
     </div>
   );
 };

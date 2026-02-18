@@ -70,6 +70,13 @@ export const PaymentDto = z.object({
 });
 export type PaymentDto = z.infer<typeof PaymentDto>;
 
+export interface ProcessPaymentBody {
+  payments: PaymentDto[];
+  shiftId?: string;
+  deviceId?: string;
+  idempotencyKey?: string;
+}
+
 export interface OrderFilters extends QueryParams {
   status?: OrderStatus;
   branchId?: string;

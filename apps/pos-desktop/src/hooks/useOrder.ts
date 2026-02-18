@@ -5,7 +5,7 @@ import {
   AddItemDto,
   CreateOrderDto,
   OrderFilters,
-  PaymentDto,
+  ProcessPaymentBody,
 } from "@/dto/order.dto";
 import type { Order, OrderStatus } from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,8 +50,21 @@ export const useProcessPayment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, payments }: { id: string; payments: PaymentDto[] }) =>
-      ordersApi.processPayment(id, { payments }),
+    mutationFn: ({
+      id,
+      payments,
+      shiftId,
+      deviceId,
+      idempotencyKey,
+    }: {
+      id: string;
+    } & ProcessPaymentBody) =>
+      ordersApi.processPayment(id, {
+        payments,
+        shiftId,
+        deviceId,
+        idempotencyKey,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
@@ -211,9 +224,8 @@ export const useTableSelectorTransferOrder = () => {
   const queryClient = useQueryClient();
   const { loadOrder, closeTab } = useOrderStore();
   const closeModal = useModalStore((state) => state.closeModal);
-  const [conflict, setConflict] = useState<TableSelectorTransferConflict | null>(
-    null,
-  );
+  const [conflict, setConflict] =
+    useState<TableSelectorTransferConflict | null>(null);
 
   const mutation = useMutation<Order, any, TableSelectorTransferVariables>({
     mutationFn: ({ orderId, targetTableId, mergeIntoOrderId }) =>
@@ -225,7 +237,8 @@ export const useTableSelectorTransferOrder = () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
 
-      const targetDisplayName = variables.targetTableDisplayName ?? "selected table";
+      const targetDisplayName =
+        variables.targetTableDisplayName ?? "selected table";
       const isMerge = !!variables.mergeIntoOrderId;
 
       if (isMerge) {

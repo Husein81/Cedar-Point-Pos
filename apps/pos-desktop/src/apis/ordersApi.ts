@@ -5,7 +5,7 @@ import {
   AssignTableDto,
   CreateOrderDto,
   OrderFilters,
-  PaymentDto,
+  ProcessPaymentBody,
   UpdateItemDiscountDto,
   UpdateOrderDiscountDto,
   UpdateOrderStatusDto,
@@ -36,7 +36,7 @@ export const ordersApi = {
   // Process single or batch payment for an order
   processPayment: async (
     id: string,
-    data: PaymentDto[] | PaymentDto | { payments: PaymentDto[] },
+    data: ProcessPaymentBody,
   ): Promise<Order> => {
     const response = await api.post(`/orders/${id}/payment`, data);
     return response.data;
@@ -118,33 +118,33 @@ export const ordersApi = {
     return response.data;
   },
 
-// Get active (unpaid) order for a specific table
-getActiveOrderByTableId: async (tableId: string): Promise<Order | null> => {
-  const response = await api.get(`/orders/table/${tableId}/active`);
-  return response.data;
-},
+  // Get active (unpaid) order for a specific table
+  getActiveOrderByTableId: async (tableId: string): Promise<Order | null> => {
+    const response = await api.get(`/orders/table/${tableId}/active`);
+    return response.data;
+  },
 
-// Transfer order to a different table (optionally merge into existing order)
-transferOrderToTable: async (
-  id: string,
-  targetTableId: string,
-  mergeIntoOrderId?: string,
-): Promise<Order> => {
-  const response = await api.patch(`/orders/${id}/transfer-table`, {
-    targetTableId,
-    ...(mergeIntoOrderId ? { mergeIntoOrderId } : {}),
-  });
-  return response.data;
-},
+  // Transfer order to a different table (optionally merge into existing order)
+  transferOrderToTable: async (
+    id: string,
+    targetTableId: string,
+    mergeIntoOrderId?: string,
+  ): Promise<Order> => {
+    const response = await api.patch(`/orders/${id}/transfer-table`, {
+      targetTableId,
+      ...(mergeIntoOrderId ? { mergeIntoOrderId } : {}),
+    });
+    return response.data;
+  },
 
-// Merge source order into target order (same table)
-mergeOrders: async (
-  targetOrderId: string,
-  sourceOrderId: string,
-): Promise<Order> => {
-  const response = await api.post(`/orders/${targetOrderId}/merge`, {
-    sourceOrderId,
-  });
-  return response.data;
-},
+  // Merge source order into target order (same table)
+  mergeOrders: async (
+    targetOrderId: string,
+    sourceOrderId: string,
+  ): Promise<Order> => {
+    const response = await api.post(`/orders/${targetOrderId}/merge`, {
+      sourceOrderId,
+    });
+    return response.data;
+  },
 };

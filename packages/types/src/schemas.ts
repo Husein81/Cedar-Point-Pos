@@ -15,13 +15,13 @@ import {
   PurchaseOrderStatus,
   ShiftCloseMode,
   ShiftCloseResult,
+  ShiftScheduleStatus,
   ShiftStatus,
   SortOrder,
   TableStatus,
   TransferStatus,
   UserRole,
 } from "./enums";
-import { ca } from "zod/locales";
 
 // Tenant
 export const TenantSchema = z.object({
@@ -571,8 +571,29 @@ export const ShiftSchema = z.object({
   variancePercent: decimal.nullable().optional(),
   approvedById: cuid.nullable().optional(),
   approvalNote: z.string().nullable().optional(),
+  // Schedule linkage
+  scheduleId: cuid.nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
+
+// ShiftSchedule (Planned Shifts)
+export const ShiftScheduleSchema = z.object({
+  id: cuid,
+  tenantId: cuid,
+  branchId: cuid,
+  userId: cuid,
+  deviceId: cuid.nullable().optional(),
+  date: isoDate,
+  startTime: isoDate,
+  endTime: isoDate,
+  notes: z.string().nullable().optional(),
+  status: z.enum(ShiftScheduleStatus).default("DRAFT"),
+  publishedAt: isoDate.nullable().optional(),
+  publishedById: cuid.nullable().optional(),
+  createdAt: isoDate,
+  updatedAt: isoDate,
+});
+export type ShiftSchedule = z.infer<typeof ShiftScheduleSchema>;
 
 // RefundPayment
 export const RefundPaymentSchema = z.object({

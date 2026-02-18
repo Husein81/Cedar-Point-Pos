@@ -130,6 +130,15 @@ export const ShiftCloseResult = {
 export type ShiftCloseResult =
   (typeof ShiftCloseResult)[keyof typeof ShiftCloseResult];
 
+export const ShiftScheduleStatus = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED",
+  STARTED: "STARTED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type ShiftScheduleStatus =
+  (typeof ShiftScheduleStatus)[keyof typeof ShiftScheduleStatus];
+
 export const LoyaltyEnrollmentMode = {
   AUTO: "AUTO",
   MANUAL: "MANUAL",

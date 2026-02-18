@@ -33,6 +33,7 @@ model Tenant {
   suppliers           Supplier[]
   purchaseOrders      PurchaseOrder[]
   shifts              Shift[]
+  shiftSchedules      ShiftSchedule[]
   transfers           Transfer[]
   settings            Json? // feature flags, tax rates, etc.
   modifiers           Modifier[]
@@ -94,6 +95,8 @@ model User {
   shiftsClosedBy      Shift[]              @relation("ShiftClosedBy")
   shiftsApprovedBy    Shift[]              @relation("ShiftApprovedBy")
   cashMovements       CashMovement[]
+  shiftSchedules      ShiftSchedule[]
+  schedulesPublished  ShiftSchedule[]      @relation("SchedulePublishedBy")
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
@@ -111,6 +114,7 @@ model Branch {
   inventory        Inventory[] // Inventory is tracked at the Branch level
   orders           Order[]
   shifts           Shift[]
+  shiftSchedules   ShiftSchedule[]
   inventoryHistory InventoryHistory[]
   transfersFrom    Transfer[]         @relation("TransfersFrom")
   transfersTo      Transfer[]         @relation("TransfersTo")
@@ -121,20 +125,21 @@ model Branch {
 }
 
 model POSDevice {
-  id            String         @id @default(cuid())
-  tenantId      String
-  branchId      String
-  name          String
-  token         String         @unique
-  lastSync      DateTime?
-  isActive      Boolean        @default(true)
-  isKDS         Boolean        @default(false)
-  orders        Order[]
-  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  shifts        Shift[]
-  payments      Payment[]
-  cashMovements CashMovement[]
+  id             String          @id @default(cuid())
+  tenantId       String
+  branchId       String
+  name           String
+  token          String          @unique
+  lastSync       DateTime?
+  isActive       Boolean         @default(true)
+  isKDS          Boolean         @default(false)
+  orders         Order[]
+  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shifts         Shift[]
+  shiftSchedules ShiftSchedule[]
+  payments       Payment[]
+  cashMovements  CashMovement[]
 }
 
 model Category {
@@ -789,6 +794,7 @@ model Shift {
   cashMovements    CashMovement[]
   refundPayments   RefundPayment[]
   paymentSummaries ShiftPaymentSummary[]
+  scheduleId       String?               @unique
   reportSnapshot   ShiftReportSnapshot?
   branch           Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
   device           POSDevice?            @relation(fields: [deviceId], references: [id])
@@ -796,6 +802,7 @@ model Shift {
   user             User                  @relation(fields: [userId], references: [id])
   closedBy         User?                 @relation("ShiftClosedBy", fields: [closedById], references: [id])
   approvedBy       User?                 @relation("ShiftApprovedBy", fields: [approvedById], references: [id])
+  schedule         ShiftSchedule?        @relation(fields: [scheduleId], references: [id])
 
   @@index([tenantId, branchId, status])
   @@index([tenantId, deviceId, status])
@@ -830,6 +837,38 @@ model ShiftReportSnapshot {
   createdAt DateTime @default(now())
 
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+}
+
+//
+// ---------- SHIFT SCHEDULE (Planned Shifts) ----------
+//
+model ShiftSchedule {
+  id            String              @id @default(cuid())
+  tenantId      String
+  branchId      String
+  userId        String // Assigned employee
+  deviceId      String? // Optional device assignment
+  date          DateTime            @db.Date // Schedule date (no time)
+  startTime     DateTime // Planned start (full timestamp)
+  endTime       DateTime // Planned end (full timestamp)
+  notes         String?
+  status        ShiftScheduleStatus @default(DRAFT)
+  publishedAt   DateTime?
+  publishedById String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id])
+  device      POSDevice? @relation(fields: [deviceId], references: [id])
+  publishedBy User?      @relation("SchedulePublishedBy", fields: [publishedById], references: [id])
+  shift       Shift? // One runtime shift per schedule (1:1)
+
+  @@unique([tenantId, userId, date, startTime])
+  @@index([tenantId, branchId, date])
+  @@index([tenantId, userId, date])
+  @@index([tenantId, status])
 }
 
 enum UserRole {
@@ -927,6 +966,13 @@ enum ShiftCloseResult {
   SHORT // Less cash than expected
   APPROVED // Manager approved despite variance
   NEEDS_APPROVAL // Variance exceeds threshold, awaiting approval
+}
+
+enum ShiftScheduleStatus {
+  DRAFT // Not yet visible to staff
+  PUBLISHED // Visible to assigned staff
+  STARTED // Runtime shift opened from this schedule
+  CANCELLED // Schedule revoked
 }
 
 enum TransferStatus {

@@ -22,20 +22,36 @@ import {
   CashMovementReferenceType,
   UserRole,
 } from '@repo/types';
+import { ShiftScheduleService } from './shift-schedule.service.js';
 
 @Injectable()
 export class ShiftsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scheduleService: ShiftScheduleService,
+  ) {}
 
   /**
    * Open a new shift for a specific device.
    * Enforces one open shift per device using a Serializable transaction.
    */
   async openShift(tenantId: string, userId: string, dto: OpenShiftDto) {
-    const { branchId, deviceId, startCash } = dto;
+    const { branchId, deviceId, startCash, scheduleId } = dto;
 
     return this.prisma.$transaction(
       async (tx) => {
+        // Issue #3: Validate schedule INSIDE the transaction for atomicity
+        if (scheduleId) {
+          await this.scheduleService.validateForOpen(
+            scheduleId,
+            tenantId,
+            userId,
+            branchId,
+            deviceId,
+            tx,
+          );
+        }
+
         // Validate branch belongs to tenant
         const branch = await tx.branch.findFirst({
           where: { id: branchId, tenantId, isDeleted: false },
@@ -71,7 +87,7 @@ export class ShiftsService {
           });
         }
 
-        // Create the shift
+        // Create the shift (unique constraint on scheduleId prevents duplicates)
         const shift = await tx.shift.create({
           data: {
             tenantId,
@@ -80,6 +96,7 @@ export class ShiftsService {
             deviceId,
             startCash,
             status: ShiftStatus.OPEN,
+            ...(scheduleId && { scheduleId }),
           },
           include: {
             branch: { select: { id: true, name: true } },
@@ -87,6 +104,11 @@ export class ShiftsService {
             user: { select: { id: true, name: true } },
           },
         });
+
+        // Issue #3: Conditional update — PUBLISHED → STARTED exactly once
+        if (scheduleId) {
+          await this.scheduleService.markStarted(scheduleId, tenantId, tx);
+        }
 
         // Create opening cash movement
         if (startCash > 0) {

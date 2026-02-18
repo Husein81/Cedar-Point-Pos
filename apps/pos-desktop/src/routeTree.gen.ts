@@ -27,6 +27,7 @@ import { Route as ModifiersIndexRouteImport } from './routes/modifiers/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
+import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
@@ -131,6 +132,11 @@ const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
   path: '/categories/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SuppliersSupplierIdRoute = SuppliersSupplierIdRouteImport.update({
+  id: '/suppliers/$supplierId',
+  path: '/suppliers/$supplierId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
   id: '/settings/currencies',
   path: '/settings/currencies',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/invoices': typeof InvoicesIndexRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
   '/invoices': typeof InvoicesIndexRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
     | '/invoices'
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
     | '/invoices'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
     | '/invoices/'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
+  SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/suppliers/$supplierId': {
+      id: '/suppliers/$supplierId'
+      path: '/suppliers/$supplierId'
+      fullPath: '/suppliers/$supplierId'
+      preLoaderRoute: typeof SuppliersSupplierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/currencies': {
       id: '/settings/currencies'
       path: '/settings/currencies'
@@ -689,6 +709,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsProductIdRoute: ProductsProductIdRoute,
   SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
+  SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,

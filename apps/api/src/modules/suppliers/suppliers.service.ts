@@ -199,6 +199,11 @@ export class SuppliersService {
       // Operational stats
       totalOrders: supplier._count.purchaseOrders,
       totalPurchaseAmount: Math.round(totalPurchaseAmount * 100) / 100,
+      averagePurchaseValue:
+        completedOrders.length > 0
+          ? Math.round((totalPurchaseAmount / completedOrders.length) * 100) /
+            100
+          : 0,
       lastPurchaseDate,
       lastPurchaseAmount:
         lastPurchaseAmount !== null

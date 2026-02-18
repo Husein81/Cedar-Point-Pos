@@ -1,0 +1,119 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+@layer theme {
+  :root {
+
+    /* ================= DARK (DEFAULT POS MODE) ================= */
+    @variant dark {
+
+      /* Base */
+      --color-background: rgb(3 17 40);
+      --color-foreground: rgb(241 245 249);
+      --color-text: rgb(241 245 249);
+
+      --color-card: rgb(15 23 42);
+      --color-card-foreground: rgb(241 245 249);
+
+      --color-popover: rgb(15 23 42);
+      --color-popover-foreground: rgb(241 245 249);
+
+      /* Brand */
+      --color-primary: rgb(93 158 255);
+      --color-primary-foreground: rgb(3 17 40);
+
+      --color-accent: rgb(82 95 249);
+      --color-accent-foreground: rgb(241 245 249);
+
+      --color-secondary: rgb(30 41 59);
+      --color-secondary-foreground: rgb(241 245 249);
+
+      --color-muted: rgb(30 41 59);
+      --color-muted-foreground: rgb(148 163 184);
+
+      /* Status */
+      --color-success: rgb(22 163 74);
+      --color-success-foreground: rgb(241 245 249);
+
+      --color-warning: rgb(202 138 4);
+      --color-warning-foreground: rgb(3 17 40);
+
+      --color-info: rgb(59 130 246);
+      --color-info-foreground: rgb(3 17 40);
+
+      --color-destructive: rgb(185 28 28);
+      --color-destructive-foreground: rgb(241 245 249);
+
+      /* Borders */
+      --color-border: rgb(51 65 85);
+      --color-input: rgb(51 65 85);
+      --color-ring: rgb(93 158 255);
+
+      /* Sidebar */
+      --color-sidebar: rgb(2 12 28);
+      --color-sidebar-foreground: rgb(241 245 249);
+      --color-sidebar-primary: rgb(82 95 249);
+      --color-sidebar-primary-foreground: rgb(241 245 249);
+      --color-sidebar-accent: rgb(93 158 255);
+      --color-sidebar-accent-foreground: rgb(3 17 40);
+      --color-sidebar-border: rgb(51 65 85);
+      --color-sidebar-ring: rgb(82 95 249);
+    }
+
+    /* ================= LIGHT (ADMIN DASHBOARD) ================= */
+    @variant light {
+
+      /* Base */
+      --color-background: rgb(247 249 252);
+      --color-foreground: rgb(26 32 44);
+      --color-text: rgb(26 32 44);
+
+      --color-card: rgb(255 255 255);
+      --color-card-foreground: rgb(26 32 44);
+
+      --color-popover: rgb(255 255 255);
+      --color-popover-foreground: rgb(26 32 44);
+
+      /* Brand */
+      --color-primary: rgb(82 95 249);
+      --color-primary-foreground: rgb(255 255 255);
+
+      --color-accent: rgb(82 95 249);
+      --color-accent-foreground: rgb(240 242 247);
+
+      --color-secondary: rgb(233 236 242);
+      --color-secondary-foreground: rgb(51 65 85);
+
+      --color-muted: rgb(240 242 247);
+      --color-muted-foreground: rgb(100 116 139);
+
+      /* Status */
+      --color-success: rgb(34 197 94);
+      --color-success-foreground: rgb(255 255 255);
+
+      --color-warning: rgb(234 179 8);
+      --color-warning-foreground: rgb(26 32 44);
+
+      --color-info: rgb(59 130 246);
+      --color-info-foreground: rgb(26 32 44);
+
+      --color-destructive: rgb(239 68 68);
+      --color-destructive-foreground: rgb(255 255 255);
+
+      /* Borders */
+      --color-border: rgb(226 232 240);
+      --color-input: rgb(226 232 240);
+      --color-ring: rgb(82 95 249);
+
+      /* Sidebar */
+      --color-sidebar: rgb(245 247 250);
+      --color-sidebar-foreground: rgb(26 32 44);
+      --color-sidebar-primary: rgb(82 95 249);
+      --color-sidebar-primary-foreground: rgb(255 255 255);
+      --color-sidebar-accent: rgb(26 32 44);
+      --color-sidebar-accent-foreground: rgb(26 32 44);
+      --color-sidebar-border: rgb(226 232 240);
+      --color-sidebar-ring: rgb(82 95 249);
+    }
+  }
+}

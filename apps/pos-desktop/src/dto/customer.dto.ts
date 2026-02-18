@@ -1,55 +1,70 @@
-export type CustomerSummary = {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-};
+import { z } from "zod";
+import { OrderStatus, OrderType } from "@repo/types";
 
-export type CustomerDetails = CustomerSummary & {
-  address: string | null;
-  createdAt: string;
-  orderCount: number;
-};
+const CustomerSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+});
+export type CustomerSummary = z.infer<typeof CustomerSummarySchema>;
 
-export type CustomerFullDetails = CustomerDetails & {
-  updatedAt: string;
-  totalRevenue: number;
-  lastOrderAt: string | null;
-  averageOrderValue: number;
-  loyalty?: {
-    pointsBalance: number;
-    lifetimeEarned: number;
-    lifetimeRedeemed: number;
-    lifetimeRestored: number;
-    lifetimeReversed: number;
-    lifetimeAdjusted: number;
-  };
-};
+const CustomerDetailsSchema = CustomerSummarySchema.extend({
+  address: z.string().nullable(),
+  createdAt: z.string(),
+  orderCount: z.number(),
+});
+export type CustomerDetails = z.infer<typeof CustomerDetailsSchema>;
 
-export type CustomerOrder = {
-  id: string;
-  orderNumber: string | null;
-  type: string;
-  status: string;
-  subtotal: string;
-  total: string;
-  discount: string | null;
-  createdAt: string;
-  completedAt: string | null;
-  branch: {
-    id: string;
-    name: string;
-  };
-  payments: Array<{
-    id: string;
-    method: string;
-    amount: string;
-  }>;
-};
+const CustomerFullDetailsSchema = CustomerDetailsSchema.extend({
+  updatedAt: z.string(),
+  totalRevenue: z.number(),
+  lastOrderAt: z.string().nullable(),
+  averageOrderValue: z.number(),
+  loyalty: z
+    .object({
+      pointsBalance: z.number(),
+      lifetimeEarned: z.number(),
+      lifetimeRedeemed: z.number(),
+      lifetimeRestored: z.number(),
+      lifetimeReversed: z.number(),
+      lifetimeAdjusted: z.number(),
+    })
+    .optional(),
+});
 
-export type CreateCustomerDto = {
-  name: string;
-  phone: string;
-  email?: string | null;
-  address?: string | null;
-};
+export type CustomerFullDetails = z.infer<
+  typeof CustomerFullDetailsSchema
+>;
+
+const CustomerOrderSchema = z.object({
+  id: z.string(),
+  orderNumber: z.string().nullable(),
+  status: z.nativeEnum(OrderStatus),
+  type: z.nativeEnum(OrderType),
+  subtotal: z.string(),
+  total: z.string(),
+  discount: z.string().nullable(),
+  createdAt: z.string(),
+  completedAt: z.string().nullable(),
+  branch: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+  payments: z.array(
+    z.object({
+      id: z.string(),
+      method: z.string(),
+      amount: z.string(),
+    })
+  ),
+});
+export type CustomerOrder = z.infer<typeof CustomerOrderSchema>;
+
+const CreateCustomerSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  email: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+});
+export type CreateCustomerDto = z.infer<typeof CreateCustomerSchema>;

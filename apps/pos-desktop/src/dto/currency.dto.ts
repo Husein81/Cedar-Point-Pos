@@ -1,19 +1,26 @@
-// ==========================================
-// DTOs for Currency Operations
-// ==========================================
+import { z } from "zod";
 
-export interface CreateTenantCurrencyDto {
-  currencyCode: string;
-  exchangeRate: number | string;
-  isActive?: boolean;
-}
+const CreateTenantCurrencySchema = z.object({
+  currencyCode: z.string(),
+  exchangeRate: z.union([z.number(), z.string()]),
+  isActive: z.boolean().optional(),
+});
+export type CreateTenantCurrencyDto = z.infer<
+  typeof CreateTenantCurrencySchema
+>;
 
-export interface UpdateTenantCurrencyDto {
-  exchangeRate?: number | string;
-  isActive?: boolean;
-}
+const UpdateTenantCurrencySchema = z.object({
+  exchangeRate: z.union([z.number(), z.string()]).optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateTenantCurrencyDto = z.infer<
+  typeof UpdateTenantCurrencySchema
+>;
 
-export interface SetBaseCurrencyResponse {
-  id: string;
-  baseCurrencyCode: string;
-}
+const SetBaseCurrencyResponseSchema = z.object({
+  id: z.string(),
+  baseCurrencyCode: z.string(),
+});
+export type SetBaseCurrencyResponse = z.infer<
+  typeof SetBaseCurrencyResponseSchema
+>;

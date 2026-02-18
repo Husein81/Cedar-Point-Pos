@@ -10,6 +10,7 @@ import {
   LoyaltyDirection,
   LoyaltyTransactionType,
   OrderStatus,
+  ShiftStatus,
 } from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
@@ -39,6 +40,33 @@ export class RefundsService {
     private readonly loyaltyService: LoyaltyService,
     private readonly shiftsService: ShiftsService,
   ) {}
+
+  private isIdempotencyUniqueError(error: unknown): boolean {
+    if (
+      !(
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+    ) {
+      return false;
+    }
+
+    const target = (error.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) {
+      return target.includes('idempotencyKey');
+    }
+    if (typeof target === 'string') {
+      return target.includes('idempotencyKey');
+    }
+    return false;
+  }
+
+  private async findIdempotentRefund(tenantId: string, idempotencyKey: string) {
+    return this.prisma.refund.findFirst({
+      where: { tenantId, idempotencyKey },
+      include: { refundItems: true },
+    });
+  }
 
   /**
    * Get orders eligible for refund
@@ -250,10 +278,10 @@ export class RefundsService {
 
     // ── Idempotency check (tenant-scoped) ───────────────────────────────
     if (dto.idempotencyKey) {
-      const existing = await this.prisma.refund.findFirst({
-        where: { tenantId, idempotencyKey: dto.idempotencyKey },
-        include: { refundItems: true },
-      });
+      const existing = await this.findIdempotentRefund(
+        tenantId,
+        dto.idempotencyKey,
+      );
       if (existing) {
         return existing; // Return cached result for idempotent retry
       }
@@ -284,11 +312,14 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    // if (!['COMPLETED'].includes(order.status)) {
-    //   throw new BadRequestException(
-    //     `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
-    //   );
-    // }
+    if (
+      order.status !== OrderStatus.COMPLETED &&
+      order.status !== OrderStatus.PARTIALLY_REFUNDED
+    ) {
+      throw new BadRequestException(
+        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED or PARTIALLY_REFUNDED orders can be refunded.`,
+      );
+    }
 
     if (!order.branchId) {
       throw new BadRequestException('Order must have a branch assigned');
@@ -297,6 +328,33 @@ export class RefundsService {
     // ── Resolve shift context (best-effort, with order branchId) ──────────
     let resolvedShiftId = dto.shiftId || null;
     let resolvedDeviceId = dto.deviceId || null;
+
+    if (resolvedShiftId) {
+      const shift = await this.prisma.shift.findFirst({
+        where: { id: resolvedShiftId, tenantId },
+        select: { branchId: true, deviceId: true, status: true },
+      });
+      if (!shift) {
+        throw new NotFoundException('Shift not found');
+      }
+      if (shift.branchId !== order.branchId) {
+        throw new BadRequestException(
+          'Shift does not belong to the order branch',
+        );
+      }
+      if (
+        resolvedDeviceId &&
+        shift.deviceId &&
+        shift.deviceId !== resolvedDeviceId
+      ) {
+        throw new BadRequestException('Device does not match the shift device');
+      }
+      if (shift.status !== ShiftStatus.OPEN) {
+        throw new BadRequestException(
+          'Cannot process refund on a closed shift',
+        );
+      }
+    }
 
     if (!resolvedShiftId) {
       try {
@@ -372,8 +430,8 @@ export class RefundsService {
     }
 
     // ✅ OPTIMIZED: Short transaction with retry logic (minimal lock time)
-    const maxRetries = 3;
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const createdRefund = await this.prisma.$transaction(
           async (tx) => {
@@ -382,6 +440,35 @@ export class RefundsService {
               tx,
               items.map((i) => i.orderItemId),
             );
+
+            if (resolvedShiftId) {
+              const shift = await tx.shift.findFirst({
+                where: { id: resolvedShiftId, tenantId },
+                select: { branchId: true, deviceId: true, status: true },
+              });
+              if (!shift) {
+                throw new NotFoundException('Shift not found');
+              }
+              if (shift.branchId !== order.branchId) {
+                throw new BadRequestException(
+                  'Shift does not belong to the order branch',
+                );
+              }
+              if (
+                resolvedDeviceId &&
+                shift.deviceId &&
+                shift.deviceId !== resolvedDeviceId
+              ) {
+                throw new BadRequestException(
+                  'Device does not match the shift device',
+                );
+              }
+              if (shift.status !== ShiftStatus.OPEN) {
+                throw new BadRequestException(
+                  'Cannot process refund on a closed shift',
+                );
+              }
+            }
 
             // Quick validation inside transaction
             for (const item of items) {
@@ -591,10 +678,7 @@ export class RefundsService {
               _customerId: order.customerId,
             };
           },
-          {
-            maxWait: 5000,
-            timeout: 10000,
-          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
 
         // ── Post-commit: Loyalty ledger entries ────────────────
@@ -645,6 +729,7 @@ export class RefundsService {
         }
 
         // Strip internal flags
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { _customerId, ...result } = createdRefund;
         return result;
       } catch (error) {
@@ -655,20 +740,31 @@ export class RefundsService {
           throw error;
         }
 
-        console.error(
-          `Refund transaction attempt ${attempt + 1} failed:`,
-          error,
-        );
-
-        if (attempt === maxRetries - 1) {
-          throw new Error(
-            `Transaction failed after ${maxRetries} retries: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        if (dto.idempotencyKey && this.isIdempotencyUniqueError(error)) {
+          const existing = await this.findIdempotentRefund(
+            tenantId,
+            dto.idempotencyKey,
           );
+          if (existing) {
+            return existing;
+          }
         }
+
+        const isPrismaConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isPrismaConflict && attempt < MAX_RETRIES) {
+          await new Promise((r) =>
+            setTimeout(r, 50 * Math.pow(3, attempt - 1)),
+          );
+          continue;
+        }
+
+        throw error;
       }
     }
 
-    throw new Error('Transaction failed after retries');
+    throw new BadRequestException('Failed to create refund after retries');
   }
 
   /**

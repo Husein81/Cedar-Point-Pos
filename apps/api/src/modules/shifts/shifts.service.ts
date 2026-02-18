@@ -31,6 +31,26 @@ export class ShiftsService {
     private readonly scheduleService: ShiftScheduleService,
   ) {}
 
+  private isIdempotencyUniqueError(error: unknown): boolean {
+    if (
+      !(
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+    ) {
+      return false;
+    }
+
+    const target = (error.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) {
+      return target.includes('idempotencyKey');
+    }
+    if (typeof target === 'string') {
+      return target.includes('idempotencyKey');
+    }
+    return false;
+  }
+
   /**
    * Open a new shift for a specific device.
    * Enforces one open shift per device using a Serializable transaction.
@@ -206,23 +226,35 @@ export class ShiftsService {
       );
     }
 
-    // Create the cash movement
-    const cashMovement = await this.prisma.cashMovement.create({
-      data: {
-        tenantId,
-        branchId: shift.branchId,
-        shiftId,
-        deviceId: shift.deviceId,
-        userId,
-        type,
-        amount,
-        reason: reason || null,
-        referenceType: CashMovementReferenceType.MANUAL,
-        ...(idempotencyKey && { idempotencyKey }),
-      },
-    });
+    try {
+      // Create the cash movement
+      const cashMovement = await this.prisma.cashMovement.create({
+        data: {
+          tenantId,
+          branchId: shift.branchId,
+          shiftId,
+          deviceId: shift.deviceId,
+          userId,
+          type,
+          amount,
+          reason: reason || null,
+          referenceType: CashMovementReferenceType.MANUAL,
+          ...(idempotencyKey && { idempotencyKey }),
+        },
+      });
 
-    return cashMovement;
+      return cashMovement;
+    } catch (error) {
+      if (idempotencyKey && this.isIdempotencyUniqueError(error)) {
+        const existing = await this.prisma.cashMovement.findFirst({
+          where: { tenantId, idempotencyKey },
+        });
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -745,14 +777,33 @@ export class ShiftsService {
 
     const shift = await this.prisma.shift.findFirst({
       where: { id: shiftId, tenantId },
+      select: { closedById: true, status: true, closeResult: true },
     });
 
     if (!shift) throw new NotFoundException('Shift not found');
 
-    if (
-      shift.status !== ShiftStatus.CLOSED ||
-      shift.closeResult !== ShiftCloseResult.NEEDS_APPROVAL
-    ) {
+    if (shift.status !== ShiftStatus.CLOSED) {
+      throw new BadRequestException(
+        'This shift does not require approval or has already been approved',
+      );
+    }
+
+    if (shift.closeResult === ShiftCloseResult.APPROVED) {
+      const approved = await this.prisma.shift.findFirst({
+        where: { id: shiftId, tenantId },
+        include: {
+          branch: { select: { id: true, name: true } },
+          device: { select: { id: true, name: true } },
+          user: { select: { id: true, name: true } },
+          closedBy: { select: { id: true, name: true } },
+          approvedBy: { select: { id: true, name: true } },
+        },
+      });
+      if (!approved) throw new NotFoundException('Shift not found');
+      return approved;
+    }
+
+    if (shift.closeResult !== ShiftCloseResult.NEEDS_APPROVAL) {
       throw new BadRequestException(
         'This shift does not require approval or has already been approved',
       );
@@ -763,13 +814,45 @@ export class ShiftsService {
       throw new ForbiddenException('Cannot approve your own shift close');
     }
 
-    const updated = await this.prisma.shift.update({
-      where: { id: shiftId },
+    const updateResult = await this.prisma.shift.updateMany({
+      where: {
+        id: shiftId,
+        tenantId,
+        status: ShiftStatus.CLOSED,
+        closeResult: ShiftCloseResult.NEEDS_APPROVAL,
+      },
       data: {
         closeResult: ShiftCloseResult.APPROVED,
         approvedById: approverUserId,
         approvalNote: dto.approvalNote || null,
       },
+    });
+
+    if (updateResult.count === 0) {
+      const current = await this.prisma.shift.findFirst({
+        where: { id: shiftId, tenantId },
+        include: {
+          branch: { select: { id: true, name: true } },
+          device: { select: { id: true, name: true } },
+          user: { select: { id: true, name: true } },
+          closedBy: { select: { id: true, name: true } },
+          approvedBy: { select: { id: true, name: true } },
+        },
+      });
+      if (!current) throw new NotFoundException('Shift not found');
+      if (
+        current.status === ShiftStatus.CLOSED &&
+        current.closeResult === ShiftCloseResult.APPROVED
+      ) {
+        return current;
+      }
+      throw new BadRequestException(
+        'This shift does not require approval or has already been approved',
+      );
+    }
+
+    const updated = await this.prisma.shift.findFirst({
+      where: { id: shiftId, tenantId },
       include: {
         branch: { select: { id: true, name: true } },
         device: { select: { id: true, name: true } },
@@ -778,6 +861,8 @@ export class ShiftsService {
         approvedBy: { select: { id: true, name: true } },
       },
     });
+
+    if (!updated) throw new NotFoundException('Shift not found');
 
     return updated;
   }

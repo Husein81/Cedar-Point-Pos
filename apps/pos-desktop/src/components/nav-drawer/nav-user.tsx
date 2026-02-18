@@ -62,6 +62,16 @@ const NavUser = () => {
           <Appearance />
         </Shad.DropdownMenuItem>
         <Shad.DropdownMenuSeparator />
+        <Shad.DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            navigate({ to: "/settings" });
+          }}
+        >
+          <Icon name="Settings" className="mr-2" />
+          <span>Settings</span>
+        </Shad.DropdownMenuItem>
+        <Shad.DropdownMenuSeparator />
 
         <Shad.DropdownMenuItem
           className="hover:bg-destructive hover:text-gray-200"

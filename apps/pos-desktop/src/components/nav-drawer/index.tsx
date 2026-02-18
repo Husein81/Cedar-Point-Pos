@@ -37,7 +37,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
           {/* Header */}
           <Shad.DrawerHeader className="border-b">
             <Shad.DrawerTitle className="text-lg font-semibold">
-              Pointverse POS
+              CedarPoint POS
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>
 
@@ -101,26 +101,6 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                 </Shad.Collapsible>
               ))}
             </div>
-            {/* Settings */}
-            <Shad.DialogFooter className="p-2 border-t w-full">
-              <Link
-                to="/settings"
-                className="w-full"
-                onClick={() => handleNavigation("/settings")}
-              >
-                <Button
-                  variant="ghost"
-                  className={cn("w-full flex justify-start", {
-                    "bg-primary text-primary-foreground":
-                      pathname === "/settings" ||
-                      pathname.startsWith("/settings/"),
-                  })}
-                >
-                  <Icon name="Settings" className="w-4 h-4" />
-                  <span>Settings</span>
-                </Button>
-              </Link>
-            </Shad.DialogFooter>
             <Shad.ScrollBar />
           </Shad.ScrollArea>
 

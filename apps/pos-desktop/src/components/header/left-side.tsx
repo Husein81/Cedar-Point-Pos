@@ -60,9 +60,9 @@ const LeftSide = () => {
       ) : undefined}
 
       <div className="flex items-center">
-        <img src={logo} alt="point verse" width={24} height={24} />
+        <img src={logo} alt="cedar point" width={24} height={24} />
         <h2 className="text-sm font-semibold text-text">
-          Point <span className="text-primary">Verse</span>
+          Cedar <span className="text-primary">Point</span>
         </h2>
       </div>
       <div className="text-xs text-muted-foreground font-mono">

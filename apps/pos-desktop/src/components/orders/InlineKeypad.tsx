@@ -985,7 +985,7 @@ export const InlineKeypad = () => {
 
   return (
     <Shad.Collapsible
-      open={isOpen}
+      open={isOpen && !!order && order?.items.length > 0}
       onOpenChange={(open) => !open && closeKeypad()}
     >
       <Shad.CollapsibleContent className="border-t border-border bg-background">

@@ -1,17 +1,6 @@
-import { Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 
 type DecimalInput = Prisma.Decimal | string | number;
-
-/**
- * Centralised Decimal-safe math for loyalty calculations.
- *
- * Rules (from spec):
- *   - Currency amounts: 2 decimal places
- *   - Points: integer only
- *   - All conversions: floor
- *   - Refund proportional math: floor and monotonic
- *   - No floating-point arithmetic allowed
- */
 export class LoyaltyMath {
   // ───────────────────── helpers ─────────────────────
 

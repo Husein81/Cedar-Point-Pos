@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTable, Button, Icon } from "@repo/ui";
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useShifts } from "@/hooks/useShifts";
 import {
   useFinancialsReport,
   useProductsWithProfit,
@@ -45,6 +46,16 @@ function FinancialsReportPage() {
   } = useReportPageState();
 
   const { data: branches = [] } = useBranches();
+
+  const { data: shiftsData } = useShifts({ limit: 50 });
+  const shiftOptions = useMemo(
+    () =>
+      (shiftsData?.data ?? []).map((s) => ({
+        id: s.id,
+        label: `${new Date(s.startTime).toLocaleDateString()} (${s.status})`,
+      })),
+    [shiftsData],
+  );
 
   // Fetch financials summary
   const { data: financialsData, isLoading: isSummaryLoading } =
@@ -287,6 +298,7 @@ function FinancialsReportPage() {
         onDatePresetChange={handleDatePresetChange}
         hideOrderType={true}
         hidePaymentMethod={true}
+        shifts={shiftOptions}
       />
 
       {/* Summary Cards */}

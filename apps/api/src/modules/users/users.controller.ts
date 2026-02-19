@@ -3,10 +3,18 @@ import type { Request } from 'express';
 import { UserRole } from '@repo/types';
 import { UsersService } from './users.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  getUsers(@Req() req: Request) {
+    const { tenantId } = req.user as { tenantId: string };
+    return this.usersService.getUsersByTenant(tenantId);
+  }
 
   @Get('/:id')
   getUserProfile(@Req() req: Request) {

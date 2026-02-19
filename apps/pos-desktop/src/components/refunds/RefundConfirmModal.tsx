@@ -1,5 +1,6 @@
 import { Button, Icon, Shad } from "@repo/ui";
 import { RefundCartItem } from "@/store/refundStore";
+import type { PaymentMethod } from "@repo/types";
 
 interface RefundConfirmModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface RefundConfirmModalProps {
   items: RefundCartItem[];
   total: number;
   reason: string;
+  paymentMethod: PaymentMethod;
   isProcessing: boolean;
   isFullRefund: boolean;
 }
@@ -23,6 +25,7 @@ export const RefundConfirmModal = ({
   items,
   total,
   reason,
+  paymentMethod,
   isProcessing,
   isFullRefund,
 }: RefundConfirmModalProps) => {
@@ -107,6 +110,16 @@ export const RefundConfirmModal = ({
               <p className="text-sm mt-1">{reason}</p>
             </div>
           )}
+
+          {/* Payment Method */}
+          <div>
+            <span className="text-xs font-medium text-muted-foreground uppercase">
+              Refund Method
+            </span>
+            <p className="text-sm mt-1 font-medium capitalize">
+              {paymentMethod.toLowerCase()}
+            </p>
+          </div>
 
           {/* Total */}
           <div className="pt-2 border-t">

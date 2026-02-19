@@ -5,6 +5,7 @@ import { DataTable, Badge, Button, Icon } from "@repo/ui";
 import { SummaryGrid } from "@/components/reports";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useShifts } from "@/hooks/useShifts";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {
   usePaymentTransactionsReport,
@@ -55,6 +56,16 @@ function PaymentsReportPage() {
   } = useReportPageState("today");
 
   const { data: branches = [] } = useBranches();
+
+  const { data: shiftsData } = useShifts({ limit: 50 });
+  const shiftOptions = useMemo(
+    () =>
+      (shiftsData?.data ?? []).map((s) => ({
+        id: s.id,
+        label: `${new Date(s.startTime).toLocaleDateString()} (${s.status})`,
+      })),
+    [shiftsData],
+  );
 
   const mapToPaymentTransactionPdf = useCallback(
     (row: PaymentTransactionRow): PaymentTransactionRowPdf => {
@@ -252,7 +263,7 @@ function PaymentsReportPage() {
     } finally {
       setIsExporting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -265,6 +276,7 @@ function PaymentsReportPage() {
         isLoading={isLoading}
         datePreset={datePreset}
         onDatePresetChange={handleDatePresetChange}
+        shifts={shiftOptions}
       />
 
       {summaryData && (
@@ -290,50 +302,50 @@ function PaymentsReportPage() {
         />
       )}
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Payment Transactions</h2>
-              <p className="text-sm text-muted-foreground">
-                {meta.totalItems} transactions found
-              </p>
-            </div>
-            <Button
-              onClick={handleExportPdf}
-              disabled={rows.length === 0 || isExporting}
-              variant="outline"
-              isSubmitting={isExporting}
-            >
-              <Icon name="FileDown" className="mr-2 h-4 w-4" />
-              Export PDF
-            </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Payment Transactions</h2>
+            <p className="text-sm text-muted-foreground">
+              {meta.totalItems} transactions found
+            </p>
           </div>
-          <DataTable
-            columns={columns}
-            data={rows}
-            isLoading={isLoading}
-            onRefetch={() => refetch()}
-            search={{
-              term: searchTerm,
-              onTermChange: (t) => {
-                setSearchTerm(t);
-                setPage(1);
-              },
-              keys: ["method" as keyof PaymentTransactionRow],
-            }}
-            pagination={{
-              rows: meta.totalItems,
-              page,
-              pageSize,
-              totalPages: meta.totalPages,
-              onPageChange: setPage,
-              onPageSizeChange: (s) => {
-                setPageSize(s);
-                setPage(1);
-              },
-            }}
-          />
+          <Button
+            onClick={handleExportPdf}
+            disabled={rows.length === 0 || isExporting}
+            variant="outline"
+            isSubmitting={isExporting}
+          >
+            <Icon name="FileDown" className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
         </div>
+        <DataTable
+          columns={columns}
+          data={rows}
+          isLoading={isLoading}
+          onRefetch={() => refetch()}
+          search={{
+            term: searchTerm,
+            onTermChange: (t) => {
+              setSearchTerm(t);
+              setPage(1);
+            },
+            keys: ["method" as keyof PaymentTransactionRow],
+          }}
+          pagination={{
+            rows: meta.totalItems,
+            page,
+            pageSize,
+            totalPages: meta.totalPages,
+            onPageChange: setPage,
+            onPageSizeChange: (s) => {
+              setPageSize(s);
+              setPage(1);
+            },
+          }}
+        />
+      </div>
     </div>
   );
 }

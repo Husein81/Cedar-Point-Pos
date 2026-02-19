@@ -20,25 +20,67 @@ import type {
 
 // ── Close Preview Response ───────────────────────────────────────────────────
 export interface ClosePreviewResponse {
-  expectedCash: number;
-  countedCash?: number;
-  difference?: number;
-  variancePercent?: number;
-  closeMode: string;
+  shiftId: string;
+  startCash: number;
+  expectedCash: number | null;
+  countedCash: number | null;
+  varianceAmount: number | null;
+  variancePercent: number | null;
+  cashBreakdown: Record<string, number> | null;
+  paymentSummary: Array<{
+    method: string;
+    salesCount: number;
+    salesTotal: number;
+    refundsCount: number;
+    refundsTotal: number;
+    netTotal: number;
+  }>;
   needsApproval: boolean;
+  hasWarning: boolean;
+  thresholds: {
+    warningPercent: number;
+    approvalRequiredPercent: number;
+  };
 }
 
 // ── X Report Response ────────────────────────────────────────────────────────
 export interface XReportResponse {
+  type: string;
   shiftId: string;
+  status: string;
   startTime: string;
+  currentTime: string;
+  branch: { id: string; name: string };
+  device: { id: string; name: string };
+  cashier: { id: string; name: string };
   startCash: number;
-  totalSales: number;
-  totalRefunds: number;
-  totalCashIn: number;
-  totalCashOut: number;
   expectedCash: number;
-  movements: CashMovement[];
+  countedCash: number | null;
+  varianceAmount: number;
+  variancePercent: number;
+  cashBreakdown: Record<string, number>;
+  paymentSummary: Array<{
+    method: string;
+    salesCount: number;
+    salesTotal: number;
+    refundsCount: number;
+    refundsTotal: number;
+    netTotal: number;
+  }>;
+  orders: {
+    byStatus: Array<{ status: string; count: number }>;
+    totalCount: number;
+  };
+  refunds: {
+    count: number;
+    total: number;
+  };
+  totals: {
+    grossSales: number;
+    totalRefunds: number;
+    netSales: number;
+  };
+  generatedAt: string;
 }
 
 export const shiftsApi = {
@@ -175,8 +217,8 @@ export const shiftsApi = {
   // Publish schedules (bulk)
   publishSchedules: async (
     data: PublishScheduleDto,
-  ): Promise<ShiftSchedule[]> => {
-    const response = await api.post<ShiftSchedule[]>(
+  ): Promise<{ published: number; ids: string[] }> => {
+    const response = await api.post<{ published: number; ids: string[] }>(
       "/shifts/schedules/publish",
       data,
     );
@@ -186,8 +228,8 @@ export const shiftsApi = {
   // Unpublish schedules (bulk)
   unpublishSchedules: async (
     data: PublishScheduleDto,
-  ): Promise<ShiftSchedule[]> => {
-    const response = await api.post<ShiftSchedule[]>(
+  ): Promise<{ unpublished: number; ids: string[] }> => {
+    const response = await api.post<{ unpublished: number; ids: string[] }>(
       "/shifts/schedules/unpublish",
       data,
     );

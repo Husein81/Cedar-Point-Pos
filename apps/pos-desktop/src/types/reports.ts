@@ -21,6 +21,7 @@ export interface ReportsFilterState {
   userId?: string;
   search?: string;
   categoryId?: string;
+  shiftId?: string;
 }
 
 /**

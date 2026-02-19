@@ -1,5 +1,6 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useShifts } from "@/hooks/useShifts";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useDebtsOrdersList, useReportsDebts } from "@/hooks/useReports";
 import type {
@@ -53,6 +54,16 @@ function DebtsReportPage() {
   } = useReportPageState();
 
   const { data: branches = [] } = useBranches();
+
+  const { data: shiftsData } = useShifts({ limit: 50 });
+  const shiftOptions = useMemo(
+    () =>
+      (shiftsData?.data ?? []).map((s) => ({
+        id: s.id,
+        label: `${new Date(s.startTime).toLocaleDateString()} (${s.status})`,
+      })),
+    [shiftsData],
+  );
 
   // Mapper function to transform DebtOrderRow to DebtsOrderRowPdf
   const mapToDebtOrderPdf = useCallback(
@@ -267,6 +278,7 @@ function DebtsReportPage() {
         isLoading={isLoading}
         datePreset={datePreset}
         onDatePresetChange={handleDatePresetChange}
+        shifts={shiftOptions}
       />
 
       {/* Debts Summary Section */}

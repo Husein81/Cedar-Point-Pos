@@ -17,9 +17,11 @@ import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CurrenciesRouteImport } from './routes/currencies'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ShiftsRouteRouteImport } from './routes/shifts/route'
 import { Route as ReportsRouteRouteImport } from './routes/reports/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
+import { Route as ShiftsIndexRouteImport } from './routes/shifts/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
@@ -28,6 +30,9 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
+import { Route as ShiftsSchedulesRouteImport } from './routes/shifts/schedules'
+import { Route as ShiftsMySchedulesRouteImport } from './routes/shifts/my-schedules'
+import { Route as ShiftsShiftIdRouteImport } from './routes/shifts/$shiftId'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
@@ -82,6 +87,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShiftsRouteRoute = ShiftsRouteRouteImport.update({
+  id: '/shifts',
+  path: '/shifts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRouteRoute = ReportsRouteRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -96,6 +106,11 @@ const SuppliersIndexRoute = SuppliersIndexRouteImport.update({
   id: '/suppliers/',
   path: '/suppliers/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ShiftsIndexRoute = ShiftsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShiftsRouteRoute,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
@@ -136,6 +151,21 @@ const SuppliersSupplierIdRoute = SuppliersSupplierIdRouteImport.update({
   id: '/suppliers/$supplierId',
   path: '/suppliers/$supplierId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ShiftsSchedulesRoute = ShiftsSchedulesRouteImport.update({
+  id: '/schedules',
+  path: '/schedules',
+  getParentRoute: () => ShiftsRouteRoute,
+} as any)
+const ShiftsMySchedulesRoute = ShiftsMySchedulesRouteImport.update({
+  id: '/my-schedules',
+  path: '/my-schedules',
+  getParentRoute: () => ShiftsRouteRoute,
+} as any)
+const ShiftsShiftIdRoute = ShiftsShiftIdRouteImport.update({
+  id: '/$shiftId',
+  path: '/$shiftId',
+  getParentRoute: () => ShiftsRouteRoute,
 } as any)
 const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
   id: '/settings/currencies',
@@ -206,6 +236,7 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reports': typeof ReportsRouteRouteWithChildren
+  '/shifts': typeof ShiftsRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
@@ -227,6 +258,9 @@ export interface FileRoutesByFullPath {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/shifts/$shiftId': typeof ShiftsShiftIdRoute
+  '/shifts/my-schedules': typeof ShiftsMySchedulesRoute
+  '/shifts/schedules': typeof ShiftsSchedulesRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -235,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/shifts/': typeof ShiftsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -261,6 +296,9 @@ export interface FileRoutesByTo {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/shifts/$shiftId': typeof ShiftsShiftIdRoute
+  '/shifts/my-schedules': typeof ShiftsMySchedulesRoute
+  '/shifts/schedules': typeof ShiftsSchedulesRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -269,12 +307,14 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/shifts': typeof ShiftsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/reports': typeof ReportsRouteRouteWithChildren
+  '/shifts': typeof ShiftsRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
@@ -296,6 +336,9 @@ export interface FileRoutesById {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/shifts/$shiftId': typeof ShiftsShiftIdRoute
+  '/shifts/my-schedules': typeof ShiftsMySchedulesRoute
+  '/shifts/schedules': typeof ShiftsSchedulesRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -304,6 +347,7 @@ export interface FileRoutesById {
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/shifts/': typeof ShiftsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRouteTypes {
@@ -311,6 +355,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/reports'
+    | '/shifts'
     | '/auth'
     | '/currencies'
     | '/dashboard'
@@ -332,6 +377,9 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/shifts/$shiftId'
+    | '/shifts/my-schedules'
+    | '/shifts/schedules'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -340,6 +388,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/settings'
+    | '/shifts/'
     | '/suppliers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -366,6 +415,9 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/shifts/$shiftId'
+    | '/shifts/my-schedules'
+    | '/shifts/schedules'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -374,11 +426,13 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/settings'
+    | '/shifts'
     | '/suppliers'
   id:
     | '__root__'
     | '/'
     | '/reports'
+    | '/shifts'
     | '/auth'
     | '/currencies'
     | '/dashboard'
@@ -400,6 +454,9 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/shifts/$shiftId'
+    | '/shifts/my-schedules'
+    | '/shifts/schedules'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -408,12 +465,14 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/products/'
     | '/settings/'
+    | '/shifts/'
     | '/suppliers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ReportsRouteRoute: typeof ReportsRouteRouteWithChildren
+  ShiftsRouteRoute: typeof ShiftsRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CurrenciesRoute: typeof CurrenciesRoute
   DashboardRoute: typeof DashboardRoute
@@ -497,6 +556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shifts': {
+      id: '/shifts'
+      path: '/shifts'
+      fullPath: '/shifts'
+      preLoaderRoute: typeof ShiftsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -517,6 +583,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/suppliers'
       preLoaderRoute: typeof SuppliersIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/shifts/': {
+      id: '/shifts/'
+      path: '/'
+      fullPath: '/shifts/'
+      preLoaderRoute: typeof ShiftsIndexRouteImport
+      parentRoute: typeof ShiftsRouteRoute
     }
     '/settings/': {
       id: '/settings/'
@@ -573,6 +646,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/suppliers/$supplierId'
       preLoaderRoute: typeof SuppliersSupplierIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/shifts/schedules': {
+      id: '/shifts/schedules'
+      path: '/schedules'
+      fullPath: '/shifts/schedules'
+      preLoaderRoute: typeof ShiftsSchedulesRouteImport
+      parentRoute: typeof ShiftsRouteRoute
+    }
+    '/shifts/my-schedules': {
+      id: '/shifts/my-schedules'
+      path: '/my-schedules'
+      fullPath: '/shifts/my-schedules'
+      preLoaderRoute: typeof ShiftsMySchedulesRouteImport
+      parentRoute: typeof ShiftsRouteRoute
+    }
+    '/shifts/$shiftId': {
+      id: '/shifts/$shiftId'
+      path: '/$shiftId'
+      fullPath: '/shifts/$shiftId'
+      preLoaderRoute: typeof ShiftsShiftIdRouteImport
+      parentRoute: typeof ShiftsRouteRoute
     }
     '/settings/currencies': {
       id: '/settings/currencies'
@@ -692,9 +786,28 @@ const ReportsRouteRouteWithChildren = ReportsRouteRoute._addFileChildren(
   ReportsRouteRouteChildren,
 )
 
+interface ShiftsRouteRouteChildren {
+  ShiftsShiftIdRoute: typeof ShiftsShiftIdRoute
+  ShiftsMySchedulesRoute: typeof ShiftsMySchedulesRoute
+  ShiftsSchedulesRoute: typeof ShiftsSchedulesRoute
+  ShiftsIndexRoute: typeof ShiftsIndexRoute
+}
+
+const ShiftsRouteRouteChildren: ShiftsRouteRouteChildren = {
+  ShiftsShiftIdRoute: ShiftsShiftIdRoute,
+  ShiftsMySchedulesRoute: ShiftsMySchedulesRoute,
+  ShiftsSchedulesRoute: ShiftsSchedulesRoute,
+  ShiftsIndexRoute: ShiftsIndexRoute,
+}
+
+const ShiftsRouteRouteWithChildren = ShiftsRouteRoute._addFileChildren(
+  ShiftsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ReportsRouteRoute: ReportsRouteRouteWithChildren,
+  ShiftsRouteRoute: ShiftsRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CurrenciesRoute: CurrenciesRoute,
   DashboardRoute: DashboardRoute,

@@ -15,6 +15,7 @@ import { useBranchStore } from "@/store/branchStore";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
+import { useShiftStore } from "@/store/shiftStore";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -71,6 +72,7 @@ export const InlineKeypad = () => {
 
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
+  const { currentShiftId, currentDeviceId } = useShiftStore();
 
   const isRestaurant = user?.tenant?.businessType === BusinessType.RESTAURANT;
 
@@ -463,6 +465,14 @@ export const InlineKeypad = () => {
       await withPaymentLock(async () => {
         if (isProcessing || payments.length === 0) return;
 
+        // Guard: require active shift + device context
+        if (!currentShiftId || !currentDeviceId) {
+          toast.error(
+            "No active shift. Please open a shift before processing payments.",
+          );
+          return;
+        }
+
         const active = getActiveOrder();
         if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
         if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
@@ -535,6 +545,9 @@ export const InlineKeypad = () => {
               currencyCode: p.currencyCode,
               exchangeRate: p.exchangeRate,
             })),
+            ...(currentShiftId ? { shiftId: currentShiftId } : {}),
+            ...(currentDeviceId ? { deviceId: currentDeviceId } : {}),
+            idempotencyKey: crypto.randomUUID(),
           });
 
           if (!result) return;
@@ -569,6 +582,8 @@ export const InlineKeypad = () => {
       closeModal,
       closeTab,
       createOrder,
+      currentDeviceId,
+      currentShiftId,
       getActiveOrder,
       getOrCreateOrderId,
       isLoadedOrder,

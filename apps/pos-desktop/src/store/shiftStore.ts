@@ -9,6 +9,7 @@ type State = {
 type Actions = {
   setCurrentShiftId: (shiftId: string) => void;
   setCurrentDeviceId: (deviceId: string) => void;
+  clearCurrentDeviceId: () => void;
   setShiftContext: (shiftId: string, deviceId: string) => void;
   clearShiftContext: () => void;
 };
@@ -25,6 +26,9 @@ export const useShiftStore = create<State & Actions>()(
       },
       setCurrentDeviceId: (deviceId: string) => {
         set(() => ({ currentDeviceId: deviceId }));
+      },
+      clearCurrentDeviceId: () => {
+        set(() => ({ currentDeviceId: null }));
       },
       setShiftContext: (shiftId: string, deviceId: string) => {
         set(() => ({ currentShiftId: shiftId, currentDeviceId: deviceId }));

@@ -1,11 +1,14 @@
 import { useRefundStore } from "@/store/refundStore";
-import { Button, Empty, Icon, Shad, Textarea } from "@repo/ui";
+import { useShiftStore } from "@/store/shiftStore";
+import { PaymentMethod } from "@repo/types";
+import { Button, cn, Empty, Icon, Shad, Textarea } from "@repo/ui";
 import { useState } from "react";
 import { CartItem } from "./CartItem";
 import { RefundConfirmModal } from "./RefundConfirmModal";
 import { RefundHistoryPanel } from "./RefundHistoryPanel";
 import { useCreateRefund } from "@/hooks/useRefund";
 import { OrderHeader } from "./RefundOrderHeader";
+import { toast } from "sonner";
 
 type Props = {
   onRefundComplete: () => void;
@@ -18,7 +21,9 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
     selectedOrderError,
     refundCartItems,
     refundReason,
+    refundPaymentMethod,
     setRefundReason,
+    setRefundPaymentMethod,
     setRefundQuantity,
     toggleItemSelection,
     selectAllItems,
@@ -31,6 +36,8 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
     refundHistory,
   } = useRefundStore();
 
+  const { currentShiftId, currentDeviceId } = useShiftStore();
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const createRefundMutation = useCreateRefund();
@@ -41,6 +48,14 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
   const handleProcessRefund = async () => {
     if (!selectedOrderId || !canProcessRefund()) return;
 
+    // Guard: require active shift + device context
+    if (!currentShiftId || !currentDeviceId) {
+      toast.error(
+        "No active shift. Please open a shift before processing refunds.",
+      );
+      return;
+    }
+
     try {
       await createRefundMutation.mutateAsync({
         orderId: selectedOrderId,
@@ -49,6 +64,15 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
           orderItemId: item.orderItemId,
           quantity: item.refundQuantity,
         })),
+        refundPayments: [
+          {
+            method: refundPaymentMethod,
+            amount: refundTotal,
+          },
+        ],
+        ...(currentShiftId ? { shiftId: currentShiftId } : {}),
+        ...(currentDeviceId ? { deviceId: currentDeviceId } : {}),
+        idempotencyKey: crypto.randomUUID(),
       });
 
       setShowConfirmModal(false);
@@ -219,6 +243,51 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
           />
         </div>
 
+        {/* Payment Method Selector */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Refund Method
+          </label>
+          <div className="flex gap-2">
+            {(
+              [
+                {
+                  value: "CASH" as PaymentMethod,
+                  label: "Cash",
+                  icon: "Banknote",
+                },
+                {
+                  value: "CARD" as PaymentMethod,
+                  label: "Card",
+                  icon: "CreditCard",
+                },
+                {
+                  value: "ONLINE" as PaymentMethod,
+                  label: "Online",
+                  icon: "Smartphone",
+                },
+              ] as const
+            ).map((method) => (
+              <Button
+                key={method.value}
+                variant={
+                  refundPaymentMethod === method.value ? "default" : "outline"
+                }
+                size="sm"
+                className={cn(
+                  "flex-1",
+                  refundPaymentMethod === method.value &&
+                    "ring-2 ring-primary/20",
+                )}
+                onClick={() => setRefundPaymentMethod(method.value)}
+              >
+                <Icon name={method.icon} className="w-4 h-4" />
+                {method.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {/* Refund Total Card */}
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
@@ -299,6 +368,7 @@ export const RefundCart = ({ onRefundComplete }: Props) => {
         items={selectedItems}
         total={refundTotal}
         reason={refundReason}
+        paymentMethod={refundPaymentMethod}
         isProcessing={processStatus === "processing"}
         isFullRefund={isFullRefund()}
       />

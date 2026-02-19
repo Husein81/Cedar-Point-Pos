@@ -1,14 +1,10 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
-import { Avatar, Badge, Button, Separator, Shad } from "@repo/ui";
+import { useBranchStore } from "@/store/branchStore";
+import { useShiftStore } from "@/store/shiftStore";
+import { useCurrentShift } from "@/hooks/useShifts";
+import { Avatar, Badge, Button, Icon, Separator, Shad } from "@repo/ui";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  Plus,
-  ShoppingCart,
-  CreditCard,
-  FileBarChart,
-  ChevronDown,
-} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: RouteComponent,
@@ -17,13 +13,16 @@ export const Route = createFileRoute("/")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { branchId } = useBranchStore();
+  const { currentDeviceId } = useShiftStore();
   const logout = useLogout();
 
-  // TODO:mock state (replace later)
-  const shift = {
-    status: "OPEN",
-    openedAt: "09:12 AM",
-  };
+  const { data: currentShift } = useCurrentShift(
+    currentDeviceId ?? undefined,
+    branchId ?? undefined,
+  );
+
+  const isShiftOpen = currentShift?.status === "OPEN";
 
   const today = {
     orders: 42,
@@ -64,10 +63,11 @@ function RouteComponent() {
         {/* CENTER — SHIFT + TIME */}
         <div className="flex items-center gap-4">
           <Badge
-            variant={shift.status === "OPEN" ? "default" : "destructive"}
-            className="px-3 py-1 text-xs"
+            variant={isShiftOpen ? "default" : "destructive"}
+            className="px-3 py-1 text-xs cursor-pointer"
+            onClick={() => navigate({ to: "/shifts" })}
           >
-            {shift.status === "OPEN" ? "Shift Open" : "Shift Closed"}
+            {isShiftOpen ? "Shift Open" : "No Active Shift"}
           </Badge>
 
           <div className="text-sm text-muted-foreground">{currentTime}</div>
@@ -77,17 +77,21 @@ function RouteComponent() {
         <Shad.DropdownMenu>
           <Shad.DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
-              <ChevronDown className="h-5 w-5" />
+              <Icon name="ChevronDown" className="h-5 w-5" />
             </Button>
           </Shad.DropdownMenuTrigger>
 
           <Shad.DropdownMenuContent align="end" className="w-44">
-            <Shad.DropdownMenuItem>Close Shift</Shad.DropdownMenuItem>
+            <Shad.DropdownMenuItem onClick={() => navigate({ to: "/shifts" })}>
+              <Icon name="Clock" className="h-4 w-4 mr-2" />
+              {isShiftOpen ? "Manage Shift" : "Open Shift"}
+            </Shad.DropdownMenuItem>
 
             <Shad.DropdownMenuItem
               onClick={handleLogout}
               className="text-destructive"
             >
+              <Icon name="LogOut" className="h-4 w-4 mr-2" />
               Logout
             </Shad.DropdownMenuItem>
           </Shad.DropdownMenuContent>
@@ -95,6 +99,29 @@ function RouteComponent() {
       </div>
 
       <Separator />
+
+      {/* =====================
+          SHIFT CTA
+      ===================== */}
+      {!isShiftOpen && (
+        <Shad.Card className="border-dashed border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/10">
+          <Shad.CardContent className="flex items-center justify-between pt-6">
+            <div className="flex items-center gap-3">
+              <Icon name="AlertCircle" className="h-6 w-6 text-amber-500" />
+              <div>
+                <p className="font-medium">No active shift</p>
+                <p className="text-sm text-muted-foreground">
+                  Open a shift to start processing transactions
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => navigate({ to: "/shifts" })}>
+              <Icon name="Play" className="h-4 w-4 mr-2" />
+              Open Shift
+            </Button>
+          </Shad.CardContent>
+        </Shad.Card>
+      )}
 
       {/* =====================
           PRIMARY ACTIONS
@@ -111,7 +138,7 @@ function RouteComponent() {
               className="w-full"
               onClick={() => navigate({ to: "/orders" })}
             >
-              <Plus className="mr-2 h-5 w-5" />
+              <Icon name="Plus" className="mr-2 h-5 w-5" />
               New Sale
             </Button>
           </Shad.CardContent>
@@ -129,7 +156,7 @@ function RouteComponent() {
               className="w-full"
               onClick={() => navigate({ to: "/orders" })}
             >
-              <ShoppingCart className="mr-2 h-5 w-5" />
+              <Icon name="ShoppingCart" className="mr-2 h-5 w-5" />
               Open Orders
             </Button>
           </Shad.CardContent>
@@ -169,7 +196,7 @@ function RouteComponent() {
       {/* =====================
           QUICK SHORTCUTS
       ===================== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Button
           onClick={() =>
             navigate({
@@ -179,18 +206,35 @@ function RouteComponent() {
           variant="outline"
           className="h-14"
         >
-          <ShoppingCart className="mr-2 h-5 w-5" />
+          <Icon name="ShoppingCart" className="mr-2 h-5 w-5" />
           Orders
         </Button>
 
-        <Button variant="outline" className="h-14">
-          <CreditCard className="mr-2 h-5 w-5" />
+        <Button
+          variant="outline"
+          className="h-14"
+          onClick={() => navigate({ to: "/payments" })}
+        >
+          <Icon name="CreditCard" className="mr-2 h-5 w-5" />
           Payments
         </Button>
 
+        <Button
+          variant="outline"
+          className="h-14"
+          onClick={() => navigate({ to: "/shifts" })}
+        >
+          <Icon name="Clock" className="mr-2 h-5 w-5" />
+          Shifts
+        </Button>
+
         {user?.role !== "CASHIER" && (
-          <Button variant="outline" className="h-14">
-            <FileBarChart className="mr-2 h-5 w-5" />
+          <Button
+            variant="outline"
+            className="h-14"
+            onClick={() => navigate({ to: "/reports" })}
+          >
+            <Icon name="FileBarChart" className="mr-2 h-5 w-5" />
             Reports
           </Button>
         )}

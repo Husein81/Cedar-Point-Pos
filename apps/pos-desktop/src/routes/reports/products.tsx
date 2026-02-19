@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button } from "@repo/ui";
-import { FileDown } from "lucide-react";
+import { DataTable, Badge, Button, Icon } from "@repo/ui";
 import { ReportsFilterBar } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
+import { useShifts } from "@/hooks/useShifts";
 import { useCategories } from "@/hooks/useCategory";
 import { useTopProductsReportList } from "@/hooks/useReports";
 import { useReportPageState } from "@/hooks/useReportPageState";
@@ -44,6 +44,16 @@ function ProductsReportPage() {
   } = useReportPageState();
 
   const { data: branches = [] } = useBranches();
+
+  const { data: shiftsData } = useShifts({ limit: 50 });
+  const shiftOptions = useMemo(
+    () =>
+      (shiftsData?.data ?? []).map((s) => ({
+        id: s.id,
+        label: `${new Date(s.startTime).toLocaleDateString()} (${s.status})`,
+      })),
+    [shiftsData],
+  );
   const { data: categories = [] } = useCategories();
 
   const mapToTopProductPdf = useCallback(
@@ -221,6 +231,7 @@ function ProductsReportPage() {
         hideOrderType={true}
         showCategory={true}
         categories={categories}
+        shifts={shiftOptions}
       />
 
       <div className="space-y-4">
@@ -236,7 +247,7 @@ function ProductsReportPage() {
             disabled={rows.length === 0 || isExporting}
             variant="outline"
           >
-            <FileDown className="mr-2 h-4 w-4" />
+            <Icon name="FileDown" className="mr-2 h-4 w-4" />
             {isExporting ? "Exporting..." : "Export PDF"}
           </Button>
         </div>

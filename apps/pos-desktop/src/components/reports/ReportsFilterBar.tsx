@@ -14,8 +14,10 @@ type ReportsFilterBarProps = {
   onDatePresetChange: (preset: DateRangePreset) => void;
   hideOrderType?: boolean;
   hidePaymentMethod?: boolean;
+  hideShiftFilter?: boolean;
   showCategory?: boolean;
   categories?: { id: string; name: string }[];
+  shifts?: { id: string; label: string }[];
 };
 
 export const ReportsFilterBar = ({
@@ -29,8 +31,10 @@ export const ReportsFilterBar = ({
   onDatePresetChange,
   hideOrderType = false,
   hidePaymentMethod = false,
+  hideShiftFilter = false,
   showCategory = false,
   categories = [],
+  shifts = [],
 }: ReportsFilterBarProps) => {
   const showBranchSelector = branches.length > 1;
   const showCustomDateInputs = datePreset === "custom";
@@ -134,6 +138,27 @@ export const ReportsFilterBar = ({
             }
             className="w-35"
             options={PAYMENT_METHODS}
+          />
+        )}
+
+        {/* Shift Selector */}
+        {!hideShiftFilter && shifts.length > 0 && (
+          <Select
+            value={filters.shiftId || "all"}
+            onChange={(opt) =>
+              onFiltersChange({
+                shiftId:
+                  opt.value === "all" ? undefined : (opt.value as string),
+              })
+            }
+            className="w-40"
+            options={[
+              { value: "all", label: "All Shifts" },
+              ...shifts.map((shift) => ({
+                value: shift.id,
+                label: shift.label,
+              })),
+            ]}
           />
         )}
 

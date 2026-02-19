@@ -12,6 +12,20 @@ import { Prisma } from '../../generated/prisma/client.js';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async getUsersByTenant(tenantId: string) {
+    return this.prisma.user.findMany({
+      where: { tenantId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async getUserProfile(userId: string): Promise<Omit<User, 'password'>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

@@ -5,7 +5,9 @@ import { ShiftsController } from './shifts.controller.js';
 import { ShiftsService } from './shifts.service.js';
 
 @Module({
-  controllers: [ShiftsController, ShiftScheduleController],
+  // Register schedules controller first so `/shifts/schedules` routes
+  // are not shadowed by `ShiftsController` dynamic `GET /shifts/:id`.
+  controllers: [ShiftScheduleController, ShiftsController],
   providers: [ShiftsService, ShiftScheduleService],
   exports: [ShiftsService, ShiftScheduleService],
 })

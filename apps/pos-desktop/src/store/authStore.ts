@@ -2,6 +2,7 @@ import type { User } from "@repo/types";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useBranchStore } from "./branchStore";
+import { useShiftStore } from "./shiftStore";
 
 type State = {
   user: Omit<User, "password"> | null;
@@ -42,6 +43,7 @@ export const useAuthStore = create<State & Actions>()(
       clearUser: () => {
         localStorage.removeItem(TOKEN_KEY);
         useBranchStore.getState().clearBranchId();
+        useShiftStore.getState().clearShiftContext();
         set(() => ({
           user: null,
           token: null,
@@ -55,6 +57,7 @@ export const useAuthStore = create<State & Actions>()(
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
+        useShiftStore.getState().clearShiftContext();
         set(() => ({
           user: null,
           token: null,

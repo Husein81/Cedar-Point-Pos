@@ -1,36 +1,23 @@
-import { Body, Controller, Get, Post, Put, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Query, Req } from '@nestjs/common';
 
 import type { Request } from 'express';
 import { DevicesService } from './devices.service.js';
-
-type CreateDeviceBody = {
-  name: string;
-  branchId: string;
-  isKDS?: boolean;
-};
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('devices')
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Get()
-  getDevices(
-    @Req() request: Request,
-    @Query('branchId') branchId?: string,
-  ) {
+  getDevices(@Req() request: Request, @Query('branchId') branchId?: string) {
     const { tenantId } = request.user as { tenantId: string };
     return this.devicesService.getDevices(tenantId, branchId);
   }
 
-  @Post()
-  createDevice(@Req() request: Request, @Body() body: CreateDeviceBody) {
-    const { tenantId } = request.user as { tenantId: string };
-    return this.devicesService.createDevice(tenantId, body);
-  }
-
   @Post('register')
-  registerDevice(@Req() request: Request, @Body() body: CreateDeviceBody) {
+  registerDevice(@Req() request: Request) {
     const { tenantId } = request.user as { tenantId: string };
+    const body = request.body as Prisma.POSDeviceUncheckedCreateInput;
     return this.devicesService.registerDevice(tenantId, body);
   }
 

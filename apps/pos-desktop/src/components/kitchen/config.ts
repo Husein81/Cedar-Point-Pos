@@ -29,6 +29,10 @@ export const getStatusColor = (status: OrderStatus): string => {
       return "bg-orange-100 text-orange-800 border-orange-200";
     case OrderStatus.READY:
       return "bg-green-100 text-green-800 border-green-200";
+    case OrderStatus.PAID:
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    case OrderStatus.PARTIALLY_PAID:
+      return "bg-amber-100 text-amber-800 border-amber-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }
@@ -44,6 +48,10 @@ export const getStatusIcon = (status: OrderStatus): string => {
       return "ChefHat";
     case OrderStatus.READY:
       return "CircleCheck";
+    case OrderStatus.PAID:
+      return "Wallet";
+    case OrderStatus.PARTIALLY_PAID:
+      return "WalletCards";
     default:
       return "Clock";
   }
@@ -90,6 +98,16 @@ export const getActionButtonStatus = (
       return {
         nextStatus: OrderStatus.COMPLETED,
         buttonLabel: "Complete Order",
+      };
+    case OrderStatus.PAID:
+      return {
+        nextStatus: OrderStatus.COMPLETED,
+        buttonLabel: "Complete Order",
+      };
+    case OrderStatus.PARTIALLY_PAID:
+      return {
+        nextStatus: null,
+        buttonLabel: "Awaiting Full Payment",
       };
     case OrderStatus.FULLY_REFUNDED:
       return {

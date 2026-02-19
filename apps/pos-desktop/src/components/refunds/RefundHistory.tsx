@@ -30,7 +30,7 @@ export const RefundHistory = ({ orderId }: Props) => {
 
   const totalRefunded = refunds.reduce(
     (sum: number, r: any) => sum + Number(r.totalAmount),
-    0
+    0,
   );
 
   return (
@@ -105,6 +105,31 @@ export const RefundHistory = ({ orderId }: Props) => {
                   {refund.reason && (
                     <div className="pt-2 border-t text-muted-foreground">
                       Reason: {refund.reason}
+                    </div>
+                  )}
+
+                  {/* Loyalty Points */}
+                  {(refund.loyaltyPointsRestored > 0 ||
+                    refund.loyaltyPointsReversed > 0) && (
+                    <div className="pt-2 border-t space-y-1">
+                      {refund.loyaltyPointsRestored > 0 && (
+                        <div className="flex items-center gap-1.5 text-green-600">
+                          <Icon name="Award" className="w-3 h-3" />
+                          <span>
+                            {refund.loyaltyPointsRestored.toLocaleString()} pts
+                            restored
+                          </span>
+                        </div>
+                      )}
+                      {refund.loyaltyPointsReversed > 0 && (
+                        <div className="flex items-center gap-1.5 text-amber-600">
+                          <Icon name="Award" className="w-3 h-3" />
+                          <span>
+                            {refund.loyaltyPointsReversed.toLocaleString()} pts
+                            reversed
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

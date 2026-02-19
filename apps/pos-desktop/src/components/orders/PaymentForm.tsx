@@ -5,6 +5,7 @@ import { PaymentMethod } from "@repo/types";
 import { formatPrice, generateQuickCashAmounts } from "./config";
 import { useModalStore } from "@/store/modalStore";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
+import type { LoyaltyProgram, LoyaltyAccount } from "@/dto/loyalty.dto";
 
 // Payment entry for split payments
 export type PaymentEntry = {
@@ -18,8 +19,20 @@ export type PaymentEntry = {
 
 type Props = {
   total: number;
-  onConfirm: (payments: PaymentEntry[], sendToKitchenFirst?: boolean) => void;
+  onConfirm: (
+    payments: PaymentEntry[],
+    sendToKitchenFirst?: boolean,
+    loyalty?: { redeemPoints: number },
+  ) => void;
   hasUnsentItems?: boolean;
+  /** Loyalty program config — undefined means not loaded or not available */
+  loyaltyProgram?: LoyaltyProgram;
+  /** Customer loyalty account — undefined when no customer or account not loaded */
+  loyaltyAccount?: LoyaltyAccount;
+  /** Whether a customer is attached to the order */
+  customerId?: string | null;
+  /** Eligible base for loyalty discount (subtotal - orderDiscount, excl. VAT/shipping) */
+  eligibleBase?: number;
 };
 
 const PAYMENT_METHODS: {
@@ -32,10 +45,50 @@ const PAYMENT_METHODS: {
   { value: "ONLINE", label: "Online", icon: "Smartphone" },
 ];
 
+// ===== Loyalty estimate (client preview) =====
+
+function estimateLoyaltyDiscount(
+  redeemPoints: number,
+  program: LoyaltyProgram | undefined,
+  eligibleBase: number,
+): { appliedDiscount: number; appliedPoints: number } {
+  if (
+    !program ||
+    !program.isEnabled ||
+    !program.redeemPointsStep ||
+    !program.redeemCurrencyPerStep ||
+    program.maxRedeemPercent == null ||
+    redeemPoints <= 0
+  ) {
+    return { appliedDiscount: 0, appliedPoints: 0 };
+  }
+
+  if (redeemPoints < (program.minRedeemPoints || 0)) {
+    return { appliedDiscount: 0, appliedPoints: 0 };
+  }
+
+  const blockCount = Math.floor(redeemPoints / program.redeemPointsStep);
+  const requestedDiscount = blockCount * program.redeemCurrencyPerStep;
+  const maxDiscountByPercent = (eligibleBase * program.maxRedeemPercent) / 100;
+  const appliedDiscount =
+    Math.floor(
+      Math.min(requestedDiscount, maxDiscountByPercent, eligibleBase) * 100,
+    ) / 100;
+  const appliedPoints =
+    Math.floor(appliedDiscount / program.redeemCurrencyPerStep) *
+    program.redeemPointsStep;
+
+  return { appliedDiscount, appliedPoints };
+}
+
 export const PaymentForm = ({
   total,
   onConfirm,
   hasUnsentItems = false,
+  loyaltyProgram,
+  loyaltyAccount,
+  customerId,
+  eligibleBase = 0,
 }: Props) => {
   const { closeModal } = useModalStore();
 
@@ -43,6 +96,19 @@ export const PaymentForm = ({
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
   const [givenAmount, setGivenAmount] = useState<string>("");
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
+
+  // ===== LOYALTY STATE =====
+  const [redeemPointsInput, setRedeemPointsInput] = useState<string>("");
+  const redeemPointsValue = parseInt(redeemPointsInput, 10) || 0;
+
+  const loyaltyEstimate = useMemo(
+    () =>
+      estimateLoyaltyDiscount(redeemPointsValue, loyaltyProgram, eligibleBase),
+    [redeemPointsValue, loyaltyProgram, eligibleBase],
+  );
+
+  // Payable total adjusted by loyalty discount
+  const payableTotal = Math.max(0, total - loyaltyEstimate.appliedDiscount);
 
   // Fetch active currencies for payment
   const { data: activeCurrencies = [], isLoading: isLoadingCurrencies } =
@@ -96,8 +162,8 @@ export const PaymentForm = ({
     return payments.reduce((sum, p) => sum + p.amountInBase, 0);
   }, [payments]);
 
-  // Remaining to pay (in base currency)
-  const remainingInBase = Math.max(0, total - totalPaidInBase);
+  // Remaining to pay (in base currency) — uses loyalty-adjusted payable total
+  const remainingInBase = Math.max(0, payableTotal - totalPaidInBase);
 
   // Remaining displayed in current currency
   const remainingInCurrency = remainingInBase * exchangeRate;
@@ -135,6 +201,7 @@ export const PaymentForm = ({
     setSelectedMethod("CASH");
     setPayments([]);
     setGivenAmount("");
+    setRedeemPointsInput("");
   }, [total]);
 
   // Pre-fill when currency changes
@@ -187,13 +254,21 @@ export const PaymentForm = ({
   const handleConfirm = () => {
     if (!isFullyPaid || payments.length === 0 || isConfirming) return;
     setIsConfirming(true);
-    onConfirm(payments, false);
+    const loyalty =
+      loyaltyEstimate.appliedPoints > 0
+        ? { redeemPoints: loyaltyEstimate.appliedPoints }
+        : undefined;
+    onConfirm(payments, false, loyalty);
   };
 
   const handlePayAndSend = () => {
     if (!isFullyPaid || payments.length === 0 || isConfirming) return;
     setIsConfirming(true);
-    onConfirm(payments, true);
+    const loyalty =
+      loyaltyEstimate.appliedPoints > 0
+        ? { redeemPoints: loyaltyEstimate.appliedPoints }
+        : undefined;
+    onConfirm(payments, true, loyalty);
   };
 
   // ===== LOADING STATE =====
@@ -248,6 +323,119 @@ export const PaymentForm = ({
             </p>
           </div>
         </div>
+
+        {/* ===== LOYALTY REDEMPTION ===== */}
+        {loyaltyProgram?.isEnabled && (
+          <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg space-y-3">
+            <div className="flex items-center gap-2">
+              <Icon
+                name="Award"
+                className="w-4 h-4 text-purple-600 dark:text-purple-400"
+              />
+              <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                Loyalty Points
+              </span>
+            </div>
+
+            {!customerId ? (
+              <p className="text-xs text-purple-600 dark:text-purple-400 italic">
+                Select a customer to redeem loyalty points
+              </p>
+            ) : !loyaltyAccount || loyaltyAccount.pointsBalance <= 0 ? (
+              <p className="text-xs text-purple-600 dark:text-purple-400">
+                No points available for this customer
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-purple-700 dark:text-purple-300">
+                    Available
+                  </span>
+                  <span className="font-mono font-medium text-purple-800 dark:text-purple-200">
+                    {loyaltyAccount.pointsBalance.toLocaleString()} pts
+                  </span>
+                </div>
+
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs text-purple-700 dark:text-purple-300">
+                      Redeem Points
+                    </label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={loyaltyAccount.pointsBalance}
+                      step={loyaltyProgram.redeemPointsStep || 1}
+                      value={redeemPointsInput}
+                      onChange={(e) => setRedeemPointsInput(e.target.value)}
+                      placeholder={`Min ${loyaltyProgram.minRedeemPoints || 0}`}
+                      className="h-9 text-sm font-mono"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 text-xs"
+                    onClick={() =>
+                      setRedeemPointsInput(String(loyaltyAccount.pointsBalance))
+                    }
+                  >
+                    Max
+                  </Button>
+                  {redeemPointsValue > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 text-xs text-destructive"
+                      onClick={() => setRedeemPointsInput("")}
+                    >
+                      <Icon name="X" className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Validation messages */}
+                {redeemPointsValue > 0 &&
+                  redeemPointsValue > loyaltyAccount.pointsBalance && (
+                    <p className="text-xs text-destructive">
+                      Exceeds available balance
+                    </p>
+                  )}
+                {redeemPointsValue > 0 &&
+                  loyaltyProgram.minRedeemPoints > 0 &&
+                  redeemPointsValue < loyaltyProgram.minRedeemPoints && (
+                    <p className="text-xs text-destructive">
+                      Minimum {loyaltyProgram.minRedeemPoints} points required
+                    </p>
+                  )}
+
+                {/* Applied estimate */}
+                {loyaltyEstimate.appliedDiscount > 0 && (
+                  <div className="flex items-center justify-between py-2 px-3 bg-purple-100 dark:bg-purple-900/30 rounded-md">
+                    <div className="flex items-center gap-1.5">
+                      <Icon
+                        name="Sparkles"
+                        className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"
+                      />
+                      <span className="text-xs font-medium text-purple-800 dark:text-purple-200">
+                        Est. Discount
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                        − ${formatPrice(loyaltyEstimate.appliedDiscount)}
+                      </span>
+                      <p className="text-[10px] text-purple-500">
+                        {loyaltyEstimate.appliedPoints} pts · preview
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* ===== PAYMENTS ADDED ===== */}
         {payments.length > 0 && (

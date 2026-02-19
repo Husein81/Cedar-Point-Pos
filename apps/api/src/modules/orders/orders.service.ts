@@ -149,6 +149,8 @@ export class OrdersService {
       SENT_TO_KITCHEN: [OrderStatus.IN_PROGRESS],
       IN_PROGRESS: [OrderStatus.READY],
       READY: [OrderStatus.COMPLETED],
+      PAID: [OrderStatus.COMPLETED],
+      PARTIALLY_PAID: [OrderStatus.COMPLETED],
       COMPLETED: [],
       CANCELLED: [],
     };
@@ -564,6 +566,7 @@ export class OrdersService {
           tableId: true,
           branchId: true,
           total: true,
+          loyaltyRedeemedAmount: true,
           tenant: { select: { businessType: true } },
           payments: { select: { amount: true } },
         },
@@ -578,12 +581,16 @@ export class OrdersService {
       );
 
       // Guard: order must be fully paid before marking COMPLETED
+      // totalDue accounts for loyalty redemption discount
       if (nextStatus === OrderStatus.COMPLETED) {
         const totalPaid = order.payments.reduce(
           (sum, p) => sum.add(p.amount),
           new Prisma.Decimal(0),
         );
-        if (totalPaid.lt(order.total)) {
+        const loyaltyDiscount =
+          order.loyaltyRedeemedAmount ?? new Prisma.Decimal(0);
+        const totalDue = order.total.sub(loyaltyDiscount);
+        if (totalPaid.lt(totalDue)) {
           throw new BadRequestException(
             'Order cannot be completed: payment has not been fully settled',
           );

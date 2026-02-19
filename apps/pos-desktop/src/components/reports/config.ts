@@ -43,6 +43,12 @@ export const REPORT_CARDS = [
     description: "Profit, taxes & margins",
     icon: "ChartLine",
   },
+  {
+    path: "/reports/loyalty",
+    title: "Loyalty",
+    description: "Points activity & transactions",
+    icon: "Award",
+  },
 ] as const;
 
 export const DATE_PRESETS: { value: DateRangePreset; label: string }[] = [

@@ -1,5 +1,5 @@
 {
-  "name": "point-verse",
+  "name": "cedar-point",
   "private": true,
   "scripts": {
     "build": "turbo run build",

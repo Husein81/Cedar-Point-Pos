@@ -1,8 +1,12 @@
-import { cn, Separator } from "@repo/ui";
+import { cn, Icon, Separator } from "@repo/ui";
 import { formatPrice } from "./config";
 import { useOrderStore } from "@/store/orderStore";
 import { useKeypadStore } from "@/store/keypadStore";
 import { OrderType } from "@repo/types";
+import {
+  useLoyaltyProgram,
+  useCustomerLoyaltyAccount,
+} from "@/hooks/useLoyalty";
 
 const Row = ({
   label,
@@ -56,6 +60,17 @@ const OrderSummary = () => {
   const shippingFee = order?.shippingFee || 0;
   const vatAmount = getVATAmount();
   const isDelivery = order?.type === OrderType.DELIVERY;
+
+  // Loyalty info
+  const { data: loyaltyProgram } = useLoyaltyProgram();
+  const { data: loyaltyAccount } = useCustomerLoyaltyAccount(
+    order?.customerId ?? null,
+  );
+  const showLoyaltyHint =
+    loyaltyProgram?.isEnabled &&
+    !!order?.customerId &&
+    !!loyaltyAccount &&
+    loyaltyAccount.pointsBalance > 0;
 
   const subtotalAfterDiscountAndShipping =
     subtotalAfterItemDiscounts - orderDiscount + shippingFee;
@@ -118,6 +133,16 @@ const OrderSummary = () => {
       </div>
 
       <Separator />
+
+      {/* Loyalty points available */}
+      {showLoyaltyHint && (
+        <div className="flex items-center gap-1.5 px-2 py-1">
+          <Icon name="Award" className="w-3.5 h-3.5 text-purple-500" />
+          <span className="text-xs text-purple-600 dark:text-purple-400">
+            {loyaltyAccount.pointsBalance.toLocaleString()} pts available
+          </span>
+        </div>
+      )}
 
       <div className="flex justify-between items-center px-2 ">
         <span className="text-sm font-semibold">Total Due</span>

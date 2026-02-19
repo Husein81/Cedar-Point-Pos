@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OrderStatus, OrderType } from "@repo/types";
 
 const CustomerSummarySchema = z.object({
   id: z.string(),
@@ -20,14 +21,27 @@ const CustomerFullDetailsSchema = CustomerDetailsSchema.extend({
   totalRevenue: z.number(),
   lastOrderAt: z.string().nullable(),
   averageOrderValue: z.number(),
+  loyalty: z
+    .object({
+      pointsBalance: z.number(),
+      lifetimeEarned: z.number(),
+      lifetimeRedeemed: z.number(),
+      lifetimeRestored: z.number(),
+      lifetimeReversed: z.number(),
+      lifetimeAdjusted: z.number(),
+    })
+    .optional(),
 });
-export type CustomerFullDetails = z.infer<typeof CustomerFullDetailsSchema>;
+
+export type CustomerFullDetails = z.infer<
+  typeof CustomerFullDetailsSchema
+>;
 
 const CustomerOrderSchema = z.object({
   id: z.string(),
   orderNumber: z.string().nullable(),
-  type: z.string(),
-  status: z.string(),
+  status: z.nativeEnum(OrderStatus),
+  type: z.nativeEnum(OrderType),
   subtotal: z.string(),
   total: z.string(),
   discount: z.string().nullable(),

@@ -28,11 +28,13 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
+import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
 import { Route as ReportsProductsRouteImport } from './routes/reports/products'
 import { Route as ReportsPaymentsRouteImport } from './routes/reports/payments'
+import { Route as ReportsLoyaltyRouteImport } from './routes/reports/loyalty'
 import { Route as ReportsInventoryRouteImport } from './routes/reports/inventory'
 import { Route as ReportsFinancialsRouteImport } from './routes/reports/financials'
 import { Route as ReportsDebtsRouteImport } from './routes/reports/debts'
@@ -137,6 +139,11 @@ const SuppliersSupplierIdRoute = SuppliersSupplierIdRouteImport.update({
   path: '/suppliers/$supplierId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsLoyaltyRoute = SettingsLoyaltyRouteImport.update({
+  id: '/settings/loyalty',
+  path: '/settings/loyalty',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
   id: '/settings/currencies',
   path: '/settings/currencies',
@@ -160,6 +167,11 @@ const ReportsProductsRoute = ReportsProductsRouteImport.update({
 const ReportsPaymentsRoute = ReportsPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
+  getParentRoute: () => ReportsRouteRoute,
+} as any)
+const ReportsLoyaltyRoute = ReportsLoyaltyRouteImport.update({
+  id: '/loyalty',
+  path: '/loyalty',
   getParentRoute: () => ReportsRouteRoute,
 } as any)
 const ReportsInventoryRoute = ReportsInventoryRouteImport.update({
@@ -222,11 +234,13 @@ export interface FileRoutesByFullPath {
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
+  '/reports/loyalty': typeof ReportsLoyaltyRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -256,11 +270,13 @@ export interface FileRoutesByTo {
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
+  '/reports/loyalty': typeof ReportsLoyaltyRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -291,11 +307,13 @@ export interface FileRoutesById {
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
   '/reports/inventory': typeof ReportsInventoryRoute
+  '/reports/loyalty': typeof ReportsLoyaltyRoute
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -327,11 +345,13 @@ export interface FileRouteTypes {
     | '/reports/debts'
     | '/reports/financials'
     | '/reports/inventory'
+    | '/reports/loyalty'
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -361,11 +381,13 @@ export interface FileRouteTypes {
     | '/reports/debts'
     | '/reports/financials'
     | '/reports/inventory'
+    | '/reports/loyalty'
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -395,11 +417,13 @@ export interface FileRouteTypes {
     | '/reports/debts'
     | '/reports/financials'
     | '/reports/inventory'
+    | '/reports/loyalty'
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -428,6 +452,7 @@ export interface RootRouteChildren {
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
+  SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
   SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -574,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuppliersSupplierIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/loyalty': {
+      id: '/settings/loyalty'
+      path: '/settings/loyalty'
+      fullPath: '/settings/loyalty'
+      preLoaderRoute: typeof SettingsLoyaltyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/currencies': {
       id: '/settings/currencies'
       path: '/settings/currencies'
@@ -607,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/reports/payments'
       preLoaderRoute: typeof ReportsPaymentsRouteImport
+      parentRoute: typeof ReportsRouteRoute
+    }
+    '/reports/loyalty': {
+      id: '/reports/loyalty'
+      path: '/loyalty'
+      fullPath: '/reports/loyalty'
+      preLoaderRoute: typeof ReportsLoyaltyRouteImport
       parentRoute: typeof ReportsRouteRoute
     }
     '/reports/inventory': {
@@ -673,6 +712,7 @@ interface ReportsRouteRouteChildren {
   ReportsDebtsRoute: typeof ReportsDebtsRoute
   ReportsFinancialsRoute: typeof ReportsFinancialsRoute
   ReportsInventoryRoute: typeof ReportsInventoryRoute
+  ReportsLoyaltyRoute: typeof ReportsLoyaltyRoute
   ReportsPaymentsRoute: typeof ReportsPaymentsRoute
   ReportsProductsRoute: typeof ReportsProductsRoute
   ReportsSalesRoute: typeof ReportsSalesRoute
@@ -683,6 +723,7 @@ const ReportsRouteRouteChildren: ReportsRouteRouteChildren = {
   ReportsDebtsRoute: ReportsDebtsRoute,
   ReportsFinancialsRoute: ReportsFinancialsRoute,
   ReportsInventoryRoute: ReportsInventoryRoute,
+  ReportsLoyaltyRoute: ReportsLoyaltyRoute,
   ReportsPaymentsRoute: ReportsPaymentsRoute,
   ReportsProductsRoute: ReportsProductsRoute,
   ReportsSalesRoute: ReportsSalesRoute,
@@ -709,6 +750,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsProductIdRoute: ProductsProductIdRoute,
   SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
+  SettingsLoyaltyRoute: SettingsLoyaltyRoute,
   SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,

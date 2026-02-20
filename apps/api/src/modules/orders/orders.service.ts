@@ -19,7 +19,9 @@ import { InventoryDeductionService } from '../inventory/inventory-deduction.serv
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from '../tables/table-status.service.js';
+import { OffersService } from '../offers/offers.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
+import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
 
 // Extended QueryParams for order-specific filtering
@@ -44,6 +46,7 @@ export class OrdersService {
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly tableStatusService: TableStatusService,
     private readonly loyaltyService: LoyaltyService,
+    private readonly offersService: OffersService,
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -2177,5 +2180,135 @@ export class OrdersService {
 
   private money(value: number): number {
     return Math.round(value * 100) / 100;
+  }
+
+  // ─── Offer → Order Integration ───
+
+  /**
+   * Add items from an offer selection to an existing order.
+   *
+   * The server computes authoritative pricing via OffersService.pricePreview().
+   * Each selected product becomes its own OrderItem. The offer's basePrice is
+   * distributed proportionally across all selected items, and each item's
+   * extraPrice (minus any free-item discount) is added on top.
+   *
+   * Notes field on each order item records the offer origin for auditability.
+   */
+  async addOfferItemsToOrder(
+    tenantId: string,
+    orderId: string,
+    dto: AddOfferItemsDto,
+  ) {
+    // 1. Validate order is in editable state
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: {
+        status: true,
+        tenant: { select: { businessType: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const isRestaurant = order.tenant.businessType === BusinessType.RESTAURANT;
+    if (isRestaurant) {
+      const editableStatuses = new Set<OrderStatus>([
+        OrderStatus.DRAFT,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.CONFIRMED,
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.PAID,
+        OrderStatus.PARTIALLY_PAID,
+      ]);
+      if (!editableStatuses.has(order.status)) {
+        throw new BadRequestException(
+          'Cannot add offer items: order is not in an editable state',
+        );
+      }
+    } else if (order.status !== OrderStatus.DRAFT) {
+      throw new BadRequestException(
+        'Cannot add offer items: order must be in DRAFT state',
+      );
+    }
+
+    // 2. Get authoritative pricing from OffersService
+    const preview = await this.offersService.pricePreview(tenantId, {
+      offerId: dto.offerId,
+      selections: dto.selections,
+    });
+
+    if (!preview.isValid) {
+      throw new BadRequestException({
+        message: 'Offer selection is invalid',
+        errors: preview.validationErrors,
+      });
+    }
+
+    // 3. Calculate per-item pricing
+    //    basePrice is distributed proportionally across all selected items.
+    //    Each item's final unitPrice = (basePriceShare) + extraPrice - freeDiscount
+    const allItems: Array<{
+      productId: string;
+      productName: string;
+      unitPrice: number;
+    }> = [];
+
+    // Collect all items from preview
+    const totalSelections = preview.groups.reduce(
+      (sum, g) => sum + g.items.length,
+      0,
+    );
+
+    if (totalSelections === 0) {
+      throw new BadRequestException('No valid items in offer selection');
+    }
+
+    // Distribute basePrice evenly across all selected items
+    const basePricePerItem = this.round(preview.basePrice / totalSelections);
+    // Handle rounding remainder — add to the first item
+    let basePriceRemainder = this.round(
+      preview.basePrice - basePricePerItem * totalSelections,
+    );
+
+    for (const group of preview.groups) {
+      for (const item of group.items) {
+        const freeDiscount = item.isFree ? item.extraPrice : 0;
+        let unitPrice = this.round(
+          basePricePerItem + item.extraPrice - freeDiscount,
+        );
+
+        // Add rounding remainder to first item
+        if (basePriceRemainder !== 0) {
+          unitPrice = this.round(unitPrice + basePriceRemainder);
+          basePriceRemainder = 0;
+        }
+
+        allItems.push({
+          productId: item.productId,
+          productName: item.productName,
+          unitPrice: Math.max(0, unitPrice),
+        });
+      }
+    }
+
+    // 4. Create OrderItems inside a transaction
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of allItems) {
+        const subtotal = this.round(item.unitPrice * 1); // quantity = 1 per offer item
+        await tx.orderItem.create({
+          data: {
+            orderId,
+            productId: item.productId,
+            quantity: 1,
+            unitPrice: new Prisma.Decimal(item.unitPrice),
+            subtotal: new Prisma.Decimal(subtotal),
+            total: new Prisma.Decimal(subtotal),
+            notes: `Offer: ${preview.offerName}`,
+          },
+        });
+      }
+    });
+
+    // 5. Recalculate order totals (VAT, discount, loyalty)
+    return this.recalculateOrderTotals(tenantId, orderId);
   }
 }

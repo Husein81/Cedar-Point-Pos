@@ -101,6 +101,14 @@ export const sidebarSections: SidebarSection[] = [
         roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {
+        label: "Offers",
+        icon: "BadgePercent",
+        href: "/offers",
+        tooltip: "Manage Offers",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
+      },
+      {
         label: "Kitchen",
         icon: "ChefHat",
         href: "/kitchen",

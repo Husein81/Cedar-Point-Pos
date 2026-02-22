@@ -1,6 +1,6 @@
-import { Button, Input, Label, Rn } from "@/components/ui";
+import { useForm } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,10 +10,9 @@ import {
   View,
 } from "react-native";
 
-import { FieldInfo } from "@/components/form/field-info";
+import { InputField } from "@/components/form";
+import { Button } from "@/components/ui";
 import { useSignIn } from "@/hooks/use-auth";
-import { useForm } from "@tanstack/react-form";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { THEME } from "@/lib/theme";
 import { useThemeStore } from "@/store/theme";
 
@@ -28,103 +27,89 @@ export default function SignInScreen() {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      const { username, password } = value;
-      if (!username || !password) return;
-      try {
-        await signIn.mutateAsync({ username, password });
-      } catch (error) {
-        console.error(error);
-      }
+      if (!value.username || !value.password) return;
+      await signIn.mutateAsync(value);
     },
   });
+
+  useEffect(() => {
+    if (signIn.isSuccess) {
+      router.replace("/");
+    }
+  }, [signIn.isSuccess, router]);
 
   const placeholderColor = isDark
     ? THEME.dark.mutedForeground
     : THEME.light.mutedForeground;
-  const errorMessage =
-    signIn.error instanceof Error ? signIn.error.message : "Sign in failed";
-
-  React.useEffect(() => {
-    if (signIn.isSuccess) {
-      router.replace("/");
-    }
-  }, [router, signIn.isSuccess]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View className="flex-1 bg-background">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        className="bg-background"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView contentContainerClassName="items-center flex-1 justify-center p-4">
-          <Rn.Card className="w-full mx-auto">
-            <Rn.CardHeader className="items-center">
-              <Rn.CardTitle className="text-2xl">CedarPoint</Rn.CardTitle>
-              <Rn.CardDescription>
-                Enter your credentials to sign in
-              </Rn.CardDescription>
-            </Rn.CardHeader>
-            <Rn.CardContent className="gap-4">
-              <form.Field name="username">
-                {(field) => (
-                  <View className="gap-2">
-                    <Label htmlFor={field.name} nativeID="username">
-                      Username
-                    </Label>
-                    <Input
-                      placeholder="Enter username"
-                      placeholderTextColor={placeholderColor}
-                      value={field.state.value}
-                      onChangeText={field.handleChange}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    <FieldInfo field={field} />
-                  </View>
-                )}
-              </form.Field>
-              <form.Field name="password">
-                {(field) => (
-                  <View className="gap-2">
-                    <Label htmlFor={field.name} nativeID="password">
-                      Password
-                    </Label>
-                    <Input
-                      placeholder="Enter password"
-                      placeholderTextColor={placeholderColor}
-                      value={field.state.value}
-                      onChangeText={field.handleChange}
-                      secureTextEntry
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    <FieldInfo field={field} />
-                  </View>
-                )}
-              </form.Field>
-              {signIn.isError ? (
-                <Text className="text-sm text-destructive">{errorMessage}</Text>
-              ) : null}
-            </Rn.CardContent>
-            <Rn.CardFooter>
-              <Button
-                className="w-full"
-                onPress={() => form.handleSubmit()}
-                disabled={signIn.isPending}
-              >
-                <Text className="text-white">
-                  {signIn.isPending ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    "Sign In"
-                  )}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            justifyContent: "space-between",
+            paddingHorizontal: 24,
+            paddingTop: 100,
+            paddingBottom: 40,
+            gap: 32,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="items-center gap-3">
+            <Text className="text-5xl font-bold tracking-tight text-primary">
+              Cedar Point
+            </Text>
+            <Text className="text-muted-foreground text-base text-center">
+              Sign in to continue
+            </Text>
+          </View>
+
+          <View className="gap-6 mt-12">
+            <form.Field name="username">
+              {(field) => (
+                <InputField
+                  label="Username"
+                  field={field}
+                  placeholder="Enter username"
+                  placeholderColor={placeholderColor}
+                />
+              )}
+            </form.Field>
+
+            <form.Field name="password">
+              {(field) => (
+                <InputField
+                  label="Password"
+                  field={field}
+                  type="password"
+                  placeholder="Enter password"
+                  placeholderColor={placeholderColor}
+                />
+              )}
+            </form.Field>
+          </View>
+
+          <View>
+            <Button
+              onPress={() => form.handleSubmit()}
+              disabled={signIn.isPending}
+              className="h-14 rounded-xl w-full"
+            >
+              {signIn.isPending ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-white font-semibold text-base">
+                  Sign In
                 </Text>
-              </Button>
-            </Rn.CardFooter>
-          </Rn.Card>
+              )}
+            </Button>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

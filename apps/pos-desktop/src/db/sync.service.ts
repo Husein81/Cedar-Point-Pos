@@ -165,6 +165,14 @@ async function pullProducts(
                 | "SINGLE"
                 | "MULTIPLE",
               isDeleted: Boolean(group.isDeleted ?? false),
+              modifiers: Array.isArray(group.modifiers)
+                ? group.modifiers.map((modifier: any) => ({
+                    id: modifier.id as string,
+                    name: modifier.name as string,
+                    price: String(modifier.price),
+                    groupId: group.id as string,
+                  }))
+                : [],
             })),
           } as ProductDocument;
         }

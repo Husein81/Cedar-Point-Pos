@@ -35,7 +35,11 @@ const SignIn = () => {
       <div className="w-full max-w-md">
         {/* Mobile brand */}
         <div className="md:hidden flex flex-col items-center mb-8">
-          <img src={logo} alt="Logo" className="size-20 mb-3" />
+          <img
+            src={logo}
+            alt="Logo"
+            className="invert dark:invert-0 size-20 mb-3"
+          />
           <h1 className="text-2xl font-bold">
             Cedar<span className="text-primary">Point</span>
           </h1>

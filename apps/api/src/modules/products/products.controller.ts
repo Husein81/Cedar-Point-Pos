@@ -1,4 +1,13 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -33,22 +42,21 @@ export class ProductsController {
   }
 
   @Get(':id')
-  getProduct(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Product ID is required');
-    }
+  getProduct(@Param('id') id: string) {
     return this.productsService.getProductById(id);
   }
 
   @Post()
-  createProduct(@Req() req: Request) {
-    const body = req.body as Prisma.ProductCreateInput & {
+  createProduct(
+    @Req() req: Request,
+    @Body()
+    body: Prisma.ProductCreateInput & {
       branchId?: string;
       imageUrl?: string;
       categoryId?: string;
       subcategoryId?: string;
-    };
+    },
+  ) {
     const { tenantId } = req.user as { tenantId: string };
 
     // Extract fields from body - remove tenantId and branchId (they'll be handled as relations)
@@ -67,18 +75,16 @@ export class ProductsController {
   }
 
   @Put(':id')
-  updateProduct(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Product ID is required');
-    }
-    const body = req.body as Prisma.ProductUpdateInput & {
+  updateProduct(
+    @Param('id') id: string,
+    @Body()
+    body: Prisma.ProductUpdateInput & {
       branchId?: string;
       imageUrl?: string;
       categoryId?: string;
       subcategoryId?: string;
-    };
-
+    },
+  ) {
     // Handle relations and imageUrl update explicitly
     const {
       imageUrl,
@@ -99,22 +105,13 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  deleteProduct(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Product ID is required');
-    }
+  deleteProduct(@Param('id') id: string) {
     return this.productsService.deleteProduct(id);
   }
 
   @Get(':id/modifiers')
-  getModifiersByProduct(@Req() req: Request) {
-    const { id: productId } = req.params;
+  getModifiersByProduct(@Req() req: Request, @Param('id') productId: string) {
     const { tenantId } = req.user as { tenantId: string };
-
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
 
     if (!tenantId) {
       throw new Error('Tenant ID is required');

@@ -1,4 +1,14 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { SuppliersService } from './suppliers.service.js';
@@ -27,12 +37,15 @@ export class SuppliersController {
    * Search suppliers by name, company, or phone
    */
   @Get('search')
-  async searchSuppliers(@Req() req: Request) {
+  async searchSuppliers(
+    @Req() req: Request,
+    @Query('query') query?: string,
+    @Query('limit') limit?: string,
+  ) {
     const { tenantId } = req.user as { tenantId: string };
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    const { query, limit } = req.query as { query?: string; limit?: string };
 
     return await this.suppliersService.searchSuppliers(
       tenantId,
@@ -45,11 +58,7 @@ export class SuppliersController {
    * Get a single supplier with operational stats
    */
   @Get(':id')
-  getSupplier(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Supplier ID is required');
-    }
+  getSupplier(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     return this.suppliersService.getSupplier(tenantId, id);
   }
@@ -58,11 +67,7 @@ export class SuppliersController {
    * Get purchase orders for a specific supplier
    */
   @Get(':id/purchase-orders')
-  getSupplierPurchaseOrders(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Supplier ID is required');
-    }
+  getSupplierPurchaseOrders(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     const query = req.query as QueryParams;
     return this.suppliersService.getSupplierPurchaseOrders(tenantId, id, query);
@@ -72,8 +77,10 @@ export class SuppliersController {
    * Create a new supplier
    */
   @Post()
-  createSupplier(@Req() req: Request) {
-    const body = req.body as {
+  createSupplier(
+    @Req() req: Request,
+    @Body()
+    body: {
       name: string;
       companyName?: string | null;
       phone?: string | null;
@@ -81,8 +88,8 @@ export class SuppliersController {
       address?: string | null;
       category?: string | null;
       notes?: string | null;
-    };
-      
+    },
+  ) {
     const { tenantId } = req.user as { tenantId: string };
     return this.suppliersService.createSupplier(tenantId, body);
   }
@@ -91,13 +98,11 @@ export class SuppliersController {
    * Update an existing supplier
    */
   @Put(':id')
-  updateSupplier(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Supplier ID is required');
-    }
-    const { tenantId } = req.user as { tenantId: string };
-    const body = req.body as {
+  updateSupplier(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body()
+    body: {
       name?: string;
       companyName?: string | null;
       phone?: string | null;
@@ -106,7 +111,9 @@ export class SuppliersController {
       category?: string | null;
       notes?: string | null;
       currentBalance?: number;
-    };
+    },
+  ) {
+    const { tenantId } = req.user as { tenantId: string };
     return this.suppliersService.updateSupplier(tenantId, id, body);
   }
 
@@ -114,11 +121,7 @@ export class SuppliersController {
    * Delete a supplier (soft delete)
    */
   @Delete(':id')
-  deleteSupplier(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Supplier ID is required');
-    }
+  deleteSupplier(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     return this.suppliersService.deleteSupplier(tenantId, id);
   }

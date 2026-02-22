@@ -1,5 +1,4 @@
-import { Controller, Delete, Get, Put, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
 import { UserRole } from '@repo/types';
 import { UsersService } from './users.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -9,56 +8,37 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('/:id')
-  getUserProfile(@Req() req: Request) {
-    const { id } = req.params;
-
-    if (!id) {
-      throw new Error('User ID is required');
-    }
-
+  getUserProfile(@Param('id') id: string) {
     return this.usersService.getUserProfile(id);
   }
 
   @Put('/:id')
-  updateUserProfile(@Req() req: Request) {
-    const { id } = req.params;
-    const data = req.body as Prisma.UserUpdateInput;
-    if (!id) {
-      throw new Error('User ID is required');
-    }
+  updateUserProfile(
+    @Param('id') id: string,
+    @Body() data: Prisma.UserUpdateInput,
+  ) {
     return this.usersService.updateProfile(id, data);
   }
 
   @Put('/:id/role')
-  updateUserRole(@Req() req: Request) {
-    const { id } = req.params;
-    const { role } = req.body as { role: UserRole };
-    if (!id) {
-      throw new Error('User ID is required');
-    }
-    return this.usersService.updateProfile(id, { role });
+  updateUserRole(@Param('id') id: string, @Body() body: { role: UserRole }) {
+    return this.usersService.updateProfile(id, { role: body.role });
   }
 
   @Put('/:id/change-password')
-  changePassword(@Req() req: Request) {
-    const { id } = req.params;
-    const { oldPassword, newPassword } = req.body as {
-      oldPassword: string;
-      newPassword: string;
-    };
-
-    if (!id) {
-      throw new Error('User ID is required');
-    }
-    return this.usersService.changePassword(id, oldPassword, newPassword);
+  changePassword(
+    @Param('id') id: string,
+    @Body() body: { oldPassword: string; newPassword: string },
+  ) {
+    return this.usersService.changePassword(
+      id,
+      body.oldPassword,
+      body.newPassword,
+    );
   }
 
   @Delete('/:id')
-  deleteUser(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('User ID is required');
-    }
+  deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
 }

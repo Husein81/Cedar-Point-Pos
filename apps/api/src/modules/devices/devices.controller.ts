@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
 
 import type { Request } from 'express';
 import { DevicesService } from './devices.service.js';
@@ -9,32 +9,25 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Post('register')
-  registerDevice(@Req() request: Request) {
+  registerDevice(
+    @Req() request: Request,
+    @Body() body: Prisma.POSDeviceUncheckedCreateInput,
+  ) {
     const { tenantId } = request.user as { tenantId: string };
-    const body = request.body as Prisma.POSDeviceUncheckedCreateInput;
     return this.devicesService.registerDevice(tenantId, body);
   }
 
   @Put('update-active/:id')
-  updateActiveDevice(@Req() request: Request) {
-    const deviceId = request.params.id;
-
-    if (!deviceId) {
-      throw new Error('Device ID is required');
-    }
-
-    const { isActive } = request.body as { isActive: boolean };
-    return this.devicesService.updateActiveDevice(deviceId, isActive);
+  updateActiveDevice(
+    @Param('id') id: string,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.devicesService.updateActiveDevice(id, body.isActive);
   }
 
   @Put('update-kds-flag/:id')
-  updateKdsFlag(@Req() request: Request) {
-    const deviceId = request.params.id;
-    if (!deviceId) {
-      throw new Error('Device ID is required');
-    }
-    const { isKDS } = request.body as { isKDS: boolean };
-    return this.devicesService.updateKdsFlag(deviceId, isKDS);
+  updateKdsFlag(@Param('id') id: string, @Body() body: { isKDS: boolean }) {
+    return this.devicesService.updateKdsFlag(id, body.isKDS);
   }
 
   @Get('validate-token')

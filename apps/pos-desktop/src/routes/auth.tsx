@@ -23,10 +23,12 @@ function RouteComponent() {
     <div className="w-full h-screen grid grid-cols-1 md:grid-cols-3 bg-background">
       {/* LEFT / BRAND */}
       <div className="hidden md:flex flex-col gap-2 justify-center border-r items-center px-6">
-        <img src={logo} alt="Logo" className="size-40" />
+        <div className="bg-primary rounded-md p-2">
+          <img src={logo} alt="Logo" className="size-40" />
+        </div>
 
         <h1 className="text-3xl font-bold tracking-tight text-center">
-          Cedar<span className="text-primary">Point</span>
+          Cedar <span className="text-primary">Point</span>
         </h1>
 
         <p className="text-muted-foreground text-center max-w-sm">

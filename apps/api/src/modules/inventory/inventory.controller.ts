@@ -165,8 +165,8 @@ export class InventoryController {
       userId: string;
     };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId: req.params.branchId as string,
+      productId: req.params.productId as string,
     };
 
     return this.inventoryService.getInventoryHistory(
@@ -190,8 +190,8 @@ export class InventoryController {
       userId: string;
     };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId: req.params.branchId as string,
+      productId: req.params.productId as string,
     };
     return this.inventoryService.getInventoryHistory(
       user.tenantId,
@@ -208,8 +208,8 @@ export class InventoryController {
   async getInventoryHistoryByProduct(@Req() req: Request) {
     const user = req.user as { tenantId: string };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId: req.params.branchId as string,
+      productId: req.params.productId as string,
     };
     const query = req.query as QueryParams & {
       startDate?: string;

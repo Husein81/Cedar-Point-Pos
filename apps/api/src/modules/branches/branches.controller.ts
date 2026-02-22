@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { BranchesService } from './branches.service.js';
@@ -18,8 +26,7 @@ export class BranchesController {
 
   @Roles('ADMIN', 'MANAGER')
   @Post()
-  createBranch(@Req() req: Request) {
-    const body = req.body as Prisma.BranchCreateInput;
+  createBranch(@Req() req: Request, @Body() body: Prisma.BranchCreateInput) {
     const { tenantId } = req.user as { tenantId: string };
     return this.branchesService.createBranch({
       ...body,
@@ -29,40 +36,26 @@ export class BranchesController {
 
   @Roles('ADMIN', 'MANAGER')
   @Post('/:id')
-  updateBranch(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Branch ID is required');
-    }
-    const body = req.body as Prisma.BranchUpdateInput;
+  updateBranch(
+    @Param('id') id: string,
+    @Body() body: Prisma.BranchUpdateInput,
+  ) {
     return this.branchesService.updateBranch(id, body);
   }
 
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
-  deleteBranch(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Branch ID is required');
-    }
+  deleteBranch(@Param('id') id: string) {
     return this.branchesService.deleteBranch(id);
   }
 
   @Get('/:id')
-  getBranchById(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Branch ID is required');
-    }
+  getBranchById(@Param('id') id: string) {
     return this.branchesService.getBranchById(id);
   }
 
   @Get('/tenant/:tenantId')
-  getBranchesByTenantId(@Req() req: Request) {
-    const { tenantId } = req.params;
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
+  getBranchesByTenantId(@Param('tenantId') tenantId: string) {
     return this.branchesService.getBranchesByTenantId(tenantId);
   }
 }

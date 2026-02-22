@@ -1,4 +1,14 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -25,12 +35,15 @@ export class CustomersController {
    * Search customers by name or phone
    */
   @Get('search')
-  async searchCustomers(@Req() req: Request) {
+  async searchCustomers(
+    @Req() req: Request,
+    @Query('query') query?: string,
+    @Query('limit') limit?: string,
+  ) {
     const { tenantId } = req.user as { tenantId: string };
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
-    const { query, limit } = req.query as { query?: string; limit?: string };
 
     return await this.customersService.searchCustomers(
       tenantId,
@@ -40,49 +53,37 @@ export class CustomersController {
   }
 
   @Get(':id')
-  getCustomer(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Customer ID is required');
-    }
+  getCustomer(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     return this.customersService.getCustomer(tenantId, id);
   }
 
   @Get(':id/orders')
-  getCustomerOrders(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Customer ID is required');
-    }
+  getCustomerOrders(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     const query = req.query as QueryParams;
     return this.customersService.getCustomerOrders(tenantId, id, query);
   }
 
   @Post()
-  createCustomer(@Req() req: Request) {
-    const body = req.body as Prisma.CustomerCreateInput;
+  createCustomer(
+    @Req() req: Request,
+    @Body() body: Prisma.CustomerCreateInput,
+  ) {
     const { tenantId } = req.user as { tenantId: string };
     return this.customersService.createCustomer(tenantId, body);
   }
 
   @Put(':id')
-  updateCustomer(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Customer ID is required');
-    }
-    const body = req.body as Prisma.CustomerUpdateInput;
+  updateCustomer(
+    @Param('id') id: string,
+    @Body() body: Prisma.CustomerUpdateInput,
+  ) {
     return this.customersService.updateCustomer(id, body);
   }
 
   @Delete(':id')
-  deleteCustomer(@Req() req: Request) {
-    const { id } = req.params;
-    if (!id) {
-      throw new Error('Customer ID is required');
-    }
+  deleteCustomer(@Param('id') id: string) {
     return this.customersService.deleteCustomer(id);
   }
 }

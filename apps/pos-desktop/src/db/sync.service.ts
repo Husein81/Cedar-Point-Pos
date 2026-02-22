@@ -1,5 +1,5 @@
 import { api } from "@/apis/api";
-import { getDatabase } from "./database";
+import { getDatabase } from "@/db/database";
 import {
   categoryService,
   subcategoryService,
@@ -12,6 +12,7 @@ import type {
   SubcategoryDocument,
   ProductDocument,
 } from "./types";
+import { Product } from "@repo/types";
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const LAST_PULLED_AT_KEY = "pos_last_pulled_at";
@@ -39,7 +40,6 @@ function mapServerCategory(raw: Record<string, unknown>): CategoryDocument {
     description: (raw.description as string | null) ?? null,
     colorId: (raw.colorId as string | null) ?? null,
     isDeleted: Boolean(raw.isDeleted ?? false),
-    // Server Category model lacks createdAt/updatedAt – use pull timestamp.
     createdAt: (raw.createdAt as string | undefined) ?? ts,
     updatedAt: (raw.updatedAt as string | undefined) ?? ts,
     isSynced: true,
@@ -84,16 +84,12 @@ function mapServerProduct(raw: Record<string, unknown>): ProductDocument {
     isDeleted: Boolean(raw.isDeleted ?? false),
     isModifiable: Boolean(raw.isModifiable ?? false),
     createdAt: ts,
-    // Products lack updatedAt on the server – use createdAt as proxy.
     updatedAt: (raw.updatedAt as string | undefined) ?? ts,
     isSynced: true,
     isLocalOnly: false,
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PULL  (server → local)
-// ─────────────────────────────────────────────────────────────────────────────
 async function pullCategories(tenantId?: string): Promise<void> {
   const params: Record<string, string> = {};
   if (tenantId) params.tenantId = tenantId;
@@ -102,7 +98,6 @@ async function pullCategories(tenantId?: string): Promise<void> {
     Record<string, unknown>[] | { data: Record<string, unknown>[] }
   >("/categories", { params });
 
-  // Handle both direct array and paginated response
   const categoriesData = Array.isArray(response.data)
     ? response.data
     : (response.data.data ?? []);
@@ -135,17 +130,15 @@ async function pullProducts(
   if (branchId) params.branchId = branchId;
 
   const response = await api.get<
-    Record<string, unknown>[] | { data: Record<string, unknown>[] }
+    Record<string, Product>[] | { data: Record<string, Product>[] }
   >("/products", { params });
 
-  // Handle both direct array and paginated response
   const productsData = Array.isArray(response.data)
     ? response.data
     : (response.data.data ?? []);
 
   const products = productsData.map(mapServerProduct);
 
-  // For modifiable products, fetch and embed modifiers
   const productsWithModifiers = await Promise.all(
     products.map(async (product) => {
       if (!product.isModifiable) {
@@ -165,17 +158,15 @@ async function pullProducts(
           return {
             ...product,
             modifierGroups: modifierGroups.map((group: any) => ({
-              id: group.id,
-              name: group.name,
-              type: group.type,
-              modifiers: (group.modifiers ?? []).map((mod: any) => ({
-                id: mod.id,
-                name: mod.name,
-                price: String(mod.price ?? "0"),
-                groupId: mod.groupId ?? group.id,
-              })),
+              id: group.id as string,
+              tenantId: product.tenantId,
+              name: group.name as string,
+              type: (group.type as string).toUpperCase() as
+                | "SINGLE"
+                | "MULTIPLE",
+              isDeleted: Boolean(group.isDeleted ?? false),
             })),
-          };
+          } as ProductDocument;
         }
 
         return product;
@@ -194,9 +185,6 @@ async function pullProducts(
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUSH  (local → server)
-// ─────────────────────────────────────────────────────────────────────────────
 async function pushCategories(): Promise<void> {
   const db = await getDatabase();
   const unsynced = await db.categories
@@ -299,9 +287,6 @@ async function pushProducts(): Promise<void> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC API
-// ─────────────────────────────────────────────────────────────────────────────
 export interface SyncOptions {
   tenantId?: string;
   branchId?: string;
@@ -365,11 +350,6 @@ export async function push(): Promise<SyncResult> {
   }
 }
 
-/**
- * Syncs categories for the current user's tenant and branch.
- * Fetches categories from the server and adds them to IndexedDB.
- * Uses the tenant ID from the authenticated user and optionally the branch ID.
- */
 export async function syncCategoriesForCurrentTenant(): Promise<SyncResult> {
   if (!isOnline()) {
     console.info("[SyncService] Offline – skipping category sync.");
@@ -403,9 +383,6 @@ export async function syncCategoriesForCurrentTenant(): Promise<SyncResult> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AUTO-SYNC
-// ─────────────────────────────────────────────────────────────────────────────
 let _pullIntervalId: ReturnType<typeof setInterval> | null = null;
 let _onlineHandler: (() => void) | null = null;
 

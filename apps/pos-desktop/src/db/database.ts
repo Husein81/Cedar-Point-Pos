@@ -13,7 +13,9 @@ import type { PosDatabase } from "./types";
 let storage = getRxStorageDexie();
 
 if (process.env.NODE_ENV === "development") {
-  storage = wrappedValidateAjvStorage({ storage });
+  storage = wrappedValidateAjvStorage({
+    storage: storage as unknown as ReturnType<typeof getRxStorageDexie>,
+  }) as any;
   addRxPlugin(RxDBDevModePlugin);
 }
 addRxPlugin(RxDBQueryBuilderPlugin);

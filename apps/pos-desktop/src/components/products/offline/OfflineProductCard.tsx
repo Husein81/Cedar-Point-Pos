@@ -37,13 +37,6 @@ export function OfflineProductCard({
           <h3 className="font-semibold text-sm line-clamp-2 text-foreground">
             {product.name}
           </h3>
-          {(product.sku || product.barcode) && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {product.sku && `SKU: ${product.sku}`}
-              {product.sku && product.barcode && " • "}
-              {product.barcode && `${product.barcode}`}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center justify-between">

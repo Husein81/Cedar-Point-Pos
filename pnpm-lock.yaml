@@ -16734,7 +16734,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.0.4
       '@types/keyv': 3.1.4
-      '@types/node': 24.10.4
+      '@types/node': 22.19.3
       '@types/responselike': 1.0.3
 
   '@types/clone@2.1.4': {}
@@ -16816,7 +16816,7 @@ snapshots:
 
   '@types/fs-extra@9.0.13':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 22.19.3
 
   '@types/graceful-fs@4.1.9':
     dependencies:
@@ -16856,7 +16856,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 22.19.3
 
   '@types/lodash@4.17.23': {}
 
@@ -16904,7 +16904,7 @@ snapshots:
 
   '@types/plist@3.0.5':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 22.19.3
       xmlbuilder: 15.1.1
     optional: true
 
@@ -16939,7 +16939,7 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 22.19.3
 
   '@types/send@0.17.6':
     dependencies:

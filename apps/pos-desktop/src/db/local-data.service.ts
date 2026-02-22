@@ -1,13 +1,3 @@
-/**
- * local-data.service.ts
- *
- * Provides typed CRUD helpers for all three local collections.
- * All writes mark the document as `synced: false` so the sync
- * service knows what to push to the server.
- *
- * Reads always come from RxDB (never directly from Supabase).
- */
-
 import { getDatabase } from "./database";
 import type {
   CategoryDocument,
@@ -18,12 +8,6 @@ import type {
   ProductRxDoc,
 } from "./types";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Generate a CUID (collision-resistant unique identifier).
- * Format: 'c' + 25+ random base36 characters, matching the pattern ^c[0-9a-z]{24,}$
- */
 export function generateLocalId(): string {
   let id = "c";
   // Generate 26 more characters to ensure we meet the minimum 24+ requirement
@@ -37,9 +21,6 @@ function now(): string {
   return new Date().toISOString();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CATEGORIES
-// ─────────────────────────────────────────────────────────────────────────────
 export const categoryService = {
   async findAll(tenantId?: string): Promise<CategoryDocument[]> {
     const db = await getDatabase();
@@ -233,9 +214,6 @@ export const subcategoryService = {
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PRODUCTS
-// ─────────────────────────────────────────────────────────────────────────────
 export interface ProductFilter {
   branchId?: string;
   categoryId?: string;

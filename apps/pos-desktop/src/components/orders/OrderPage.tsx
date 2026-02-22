@@ -103,7 +103,7 @@ export function OrderPage({
       {/* Main layout - takes remaining height */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         <div className="flex-1 p-4 min-h-0 overflow-hidden">
-          <OfflineProductBrowser isOrderMode={true} />
+          <OfflineProductBrowser />
         </div>
 
         <Separator orientation="vertical" className="hidden md:block" />

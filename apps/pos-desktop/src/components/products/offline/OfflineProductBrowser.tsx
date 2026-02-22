@@ -21,11 +21,7 @@ import { Button, cn, Empty, Icon, Input, SButton, Shad } from "@repo/ui";
 import { OfflineModifierModal } from "./OfflineModifierModal";
 import { OfflineProductCard } from "./OfflineProductCard";
 
-type Props = {
-  isOrderMode?: boolean;
-};
-
-export function OfflineProductBrowser({ isOrderMode = false }: Props) {
+export function OfflineProductBrowser() {
   const { user } = useAuthStore();
   const tenantId = user?.tenantId;
 
@@ -117,25 +113,23 @@ export function OfflineProductBrowser({ isOrderMode = false }: Props) {
     [],
   );
 
-  const handleAddToOrder = useCallback(
-    (product: ProductDocument, modifiers?: SelectedModifier[]) => {
-      if (!isOrderMode) return;
-
-      addItem({
-        productId: product.id,
-        name: product.name,
-        price: Number(product.price) || 0,
-        quantity: 1,
-        imageUrl: product.imageUrl || undefined,
-        modifiers: modifiers?.map((m) => ({
-          modifierId: m.modifierId,
-          name: m.name,
-          price: m.price,
-        })),
-      });
-    },
-    [addItem, isOrderMode],
-  );
+  const handleAddToOrder = (
+    product: ProductDocument,
+    modifiers?: SelectedModifier[],
+  ) => {
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+      quantity: 1,
+      imageUrl: product.imageUrl || undefined,
+      modifiers: modifiers?.map((m) => ({
+        modifierId: m.modifierId,
+        name: m.name,
+        price: m.price,
+      })),
+    });
+  };
 
   const handleShowModifiers = (product: ProductDocument) => {
     if (!tenantId) return;

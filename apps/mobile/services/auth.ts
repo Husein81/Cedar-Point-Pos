@@ -5,7 +5,6 @@ interface LoginResponse {
 }
 export const authService = {
   signIn: async (data: { username: string; password: string }) => {
-    console.log("AuthService.signIn called with:", data);
     return await apiRequest<LoginResponse>("/auth/sign-in", {
       method: "POST",
       data,

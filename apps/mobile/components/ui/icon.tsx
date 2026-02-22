@@ -1,34 +1,24 @@
-import { cn } from "@/lib/utils";
-import type { LucideIcon, LucideProps } from "lucide-react-native";
-import { withUniwind } from "uniwind";
+import * as Icons from "lucide-react-native";
+import { LucideProps } from "lucide-react-native";
+import { Pressable } from "react-native";
 
-type IconProps = LucideProps & {
-  as: LucideIcon;
-};
-
-function IconImpl({ as: IconComponent, ...props }: IconProps) {
-  return <IconComponent {...props} />;
+interface IconProps extends LucideProps {
+  name: string;
+  className?: string;
+  onPress?: () => void;
 }
 
-const StyledIcon = withUniwind(IconImpl, {
-  size: {
-    fromClassName: "className",
-    styleProperty: "width",
-  },
-  color: {
-    fromClassName: "className",
-    styleProperty: "color",
-  },
-});
-
-function Icon({ as: IconComponent, className, ...props }: IconProps) {
+export const Icon = ({ name, color, size, className, onPress }: IconProps) => {
+  const iconMap = Icons as unknown as Record<string, React.ComponentType<LucideProps>>;
+  const LucideIcon = iconMap[name] as React.ComponentType<LucideProps> | undefined;
+  if (!LucideIcon) {
+    throw new Error(
+      `Icon "${name}" does not exist in lucide-react-native library.`,
+    );
+  }
   return (
-    <StyledIcon
-      as={IconComponent}
-      className={cn("text-foreground size-5", className)}
-      {...props}
-    />
+    <Pressable className={className} onPress={onPress}>
+      <LucideIcon color={color} size={size} />
+    </Pressable>
   );
-}
-
-export { Icon };
+};

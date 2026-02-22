@@ -5,9 +5,9 @@ import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { View } from "react-native";
 import "react-native-reanimated";
 import "../global.css";
+import { THEME } from "@/lib/theme";
 
 function RootLayoutNav() {
   const { isAuthenticated } = useAuthStore();
@@ -33,7 +33,12 @@ export default function RootLayout() {
   return (
     <Provider>
       <RootLayoutNav />
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar
+        style={"auto"}
+        backgroundColor={
+          isDark ? THEME.dark.background : THEME.light.background
+        }
+      />
       <PortalHost />
     </Provider>
   );

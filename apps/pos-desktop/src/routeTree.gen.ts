@@ -242,14 +242,14 @@ export interface FileRoutesByFullPath {
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
-  '/categories': typeof CategoriesIndexRoute
-  '/customers': typeof CustomersIndexRoute
-  '/invoices': typeof InvoicesIndexRoute
-  '/modifiers': typeof ModifiersIndexRoute
-  '/orders': typeof OrdersIndexRoute
-  '/products': typeof ProductsIndexRoute
-  '/settings': typeof SettingsIndexRoute
-  '/suppliers': typeof SuppliersIndexRoute
+  '/categories/': typeof CategoriesIndexRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/invoices/': typeof InvoicesIndexRoute
+  '/modifiers/': typeof ModifiersIndexRoute
+  '/orders/': typeof OrdersIndexRoute
+  '/products/': typeof ProductsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
+  '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -353,14 +353,14 @@ export interface FileRouteTypes {
     | '/settings/currencies'
     | '/settings/loyalty'
     | '/suppliers/$supplierId'
-    | '/categories'
-    | '/customers'
-    | '/invoices'
-    | '/modifiers'
-    | '/orders'
-    | '/products'
-    | '/settings'
-    | '/suppliers'
+    | '/categories/'
+    | '/customers/'
+    | '/invoices/'
+    | '/modifiers/'
+    | '/orders/'
+    | '/products/'
+    | '/settings/'
+    | '/suppliers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -539,56 +539,56 @@ declare module '@tanstack/react-router' {
     '/suppliers/': {
       id: '/suppliers/'
       path: '/suppliers'
-      fullPath: '/suppliers'
+      fullPath: '/suppliers/'
       preLoaderRoute: typeof SuppliersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
       id: '/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/': {
       id: '/products/'
       path: '/products'
-      fullPath: '/products'
+      fullPath: '/products/'
       preLoaderRoute: typeof ProductsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders/': {
       id: '/orders/'
       path: '/orders'
-      fullPath: '/orders'
+      fullPath: '/orders/'
       preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modifiers/': {
       id: '/modifiers/'
       path: '/modifiers'
-      fullPath: '/modifiers'
+      fullPath: '/modifiers/'
       preLoaderRoute: typeof ModifiersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invoices/': {
       id: '/invoices/'
       path: '/invoices'
-      fullPath: '/invoices'
+      fullPath: '/invoices/'
       preLoaderRoute: typeof InvoicesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers/': {
       id: '/customers/'
       path: '/customers'
-      fullPath: '/customers'
+      fullPath: '/customers/'
       preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/categories/': {
       id: '/categories/'
       path: '/categories'
-      fullPath: '/categories'
+      fullPath: '/categories/'
       preLoaderRoute: typeof CategoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }

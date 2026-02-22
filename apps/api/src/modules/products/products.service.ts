@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -157,6 +158,19 @@ export class ProductsService {
 
       return result;
     } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          const model = error.meta?.model as string | undefined;
+          const relation = error.meta?.relation as string | undefined;
+          const label =
+            model ?? (relation ? relation.replace(/ToProduct$/, '') : null);
+          throw new UnprocessableEntityException(
+            label
+              ? `${label} not found – cannot create product with this relation.`
+              : 'A related record was not found. Please verify the provided IDs.',
+          );
+        }
+      }
       console.error('Error creating product:', error);
       throw new InternalServerErrorException('Failed to create product');
     }
@@ -170,6 +184,23 @@ export class ProductsService {
       });
       return result;
     } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          const model = error.meta?.model as string | undefined;
+          const relation = error.meta?.relation as string | undefined;
+          // P2025 on the product itself means it wasn't found
+          if (!relation && model === 'Product') {
+            throw new NotFoundException(`Product '${id}' not found`);
+          }
+          const label =
+            model ?? (relation ? relation.replace(/ToProduct$/, '') : null);
+          throw new UnprocessableEntityException(
+            label
+              ? `${label} not found – cannot update product with this relation.`
+              : 'A related record was not found. Please verify the provided IDs.',
+          );
+        }
+      }
       console.error('Error updating product:', error);
       throw new InternalServerErrorException('Failed to update product');
     }

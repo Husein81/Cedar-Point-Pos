@@ -28,7 +28,7 @@ const config: ForgeConfig = {
       },
     }),
     new MakerSquirrel({
-      name: "Pointverse",
+      name: "CedarPointPOS",
       iconUrl:
         "https://github.com/Husein81/Pointverse/tree/main/apps/pos-desktop/public/assets/icon.ico",
       setupIcon: "./public/assets/icon.ico",

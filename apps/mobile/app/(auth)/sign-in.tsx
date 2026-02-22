@@ -60,7 +60,7 @@ export default function SignInScreen() {
         <ScrollView contentContainerClassName="items-center flex-1 justify-center p-4">
           <Rn.Card className="w-full mx-auto">
             <Rn.CardHeader className="items-center">
-              <Rn.CardTitle className="text-2xl">Pointverse</Rn.CardTitle>
+              <Rn.CardTitle className="text-2xl">CedarPoint</Rn.CardTitle>
               <Rn.CardDescription>
                 Enter your credentials to sign in
               </Rn.CardDescription>

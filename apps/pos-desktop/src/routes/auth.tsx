@@ -26,7 +26,7 @@ function RouteComponent() {
         <img src={logo} alt="Logo" className="size-40" />
 
         <h1 className="text-3xl font-bold tracking-tight text-center">
-          Point<span className="text-primary">Verse</span>
+          Cedar<span className="text-primary">Point</span>
         </h1>
 
         <p className="text-muted-foreground text-center max-w-sm">

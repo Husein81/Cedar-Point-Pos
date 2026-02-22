@@ -80,6 +80,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                           })
                           .map((item) => (
                             <Button
+                              key={item.href}
                               variant="ghost"
                               className={cn(
                                 "flex justify-start w-full",

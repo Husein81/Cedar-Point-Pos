@@ -1,6 +1,6 @@
 import { OrderCart } from "@/components/orders/OrderCart";
 import { OrderTabs } from "@/components/orders/OrderTabs";
-import { ProductGrid } from "@/components/orders/ProductGrid";
+import { OfflineProductBrowser } from "@/components/products/offline";
 import { Separator, Button, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useOrderStore } from "@/store/orderStore";
@@ -36,12 +36,9 @@ export function OrderPage({
     : (order?.tableId ?? tableId);
   const activeTableName = order?.tableName ?? null;
 
-  // Use useLayoutEffect to switch/create the table tab synchronously
-  // before the browser paints, preventing the stale-table flash.
   const tableInitRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (tableId && tableName) {
-      // Only re-run if the target table actually changed
       if (tableInitRef.current !== tableId) {
         tableInitRef.current = tableId;
         createTabWithTable(tableId, tableName);
@@ -51,8 +48,6 @@ export function OrderPage({
     }
   }, [tableId, tableName, createTabWithTable]);
 
-  // For new takeaway orders, ensure the active tab is clean.
-  // Skip this for loaded orders — their state was already hydrated by loadOrder.
   useEffect(() => {
     if (!showBackToTables || isLoadedOrder) return;
 
@@ -81,7 +76,6 @@ export function OrderPage({
 
   return (
     <div className="fixed top-10 inset-x-0 bottom-8 flex flex-col bg-background">
-      {/* Header with back button for table/takeaway flows */}
       {(activeTableId || showBackToTables) && (
         <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b bg-muted/20">
           <div className="flex items-center gap-4">
@@ -104,16 +98,12 @@ export function OrderPage({
         </div>
       )}
 
-      {/* Tabs - fixed at top (Hide when in specific table mode to avoid confusion, or keep specialized?) 
-          User asked for Odoo style which focuses on the table. Only show tabs if NOT in table mode.
-      */}
       {!activeTableId && <OrderTabs className="shrink-0 px-4 pt-2" />}
 
       {/* Main layout - takes remaining height */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-        {/* Left: Product selection - scrollable */}
         <div className="flex-1 p-4 min-h-0 overflow-hidden">
-          <ProductGrid />
+          <OfflineProductBrowser isOrderMode={true} />
         </div>
 
         <Separator orientation="vertical" className="hidden md:block" />

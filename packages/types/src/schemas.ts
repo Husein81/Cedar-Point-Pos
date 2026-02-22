@@ -316,6 +316,14 @@ export const ModifierGroupSchema = z.object({
   name: z.string(),
   type: z.enum(ModifierType),
   isDeleted: z.boolean().default(false),
+  modifiers: z.array(
+    z.object({
+      id: cuid,
+      name: z.string(),
+      price: decimal,
+      groupId: cuid,
+    }),
+  ),
 });
 export type ModifierGroup = z.infer<typeof ModifierGroupSchema>;
 
@@ -468,7 +476,10 @@ export const CustomerSchema = z.object({
   address: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
-  loyaltyAccount: z.lazy(() => LoyaltyAccountSchema).nullable().optional(),
+  loyaltyAccount: z
+    .lazy(() => LoyaltyAccountSchema)
+    .nullable()
+    .optional(),
 });
 export type Customer = z.infer<typeof CustomerSchema>;
 

@@ -29,6 +29,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@firebase/util",
       "@nestjs/core",
       "@parcel/watcher",
       "@prisma/engines",
@@ -38,9 +39,14 @@
       "electron-winstaller",
       "esbuild",
       "prisma",
+      "protobufjs",
+      "rxdb",
       "sharp",
       "unrs-resolver",
       "ws"
-    ]
+    ],
+    "overrides": {
+      "dexie": "4.3.0"
+    }
   }
 }

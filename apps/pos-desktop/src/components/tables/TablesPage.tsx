@@ -26,10 +26,15 @@ import { useAuthStore } from "@/store/authStore";
 type ActiveView = "dine-in" | "orders";
 
 export function TablesPage() {
-  const { isHighLevelUser } = useAuthStore();
+  const { user, isHighLevelUser } = useAuthStore();
   const { branchId } = useBranchStore();
   const { openModal } = useModalStore();
   const navigate = useNavigate();
+
+  // Redirect retail tenants away from tables page
+  if (user?.tenant?.businessType === "RETAIL") {
+    navigate({ to: "/orders" });
+  }
 
   // Data fetching
   const {
@@ -149,15 +154,15 @@ export function TablesPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() =>
-                navigate({
-                  to: "/orders",
-                  search: { orderType: "dine_in" },
-                })
-              }
-            >
+          <Button
+            size="sm"
+            onClick={() =>
+              navigate({
+                to: "/orders",
+                search: { orderType: "dine_in" },
+              })
+            }
+          >
             <Icon name="Plus" className="h-4 w-4 mr-2" />
             New Order
           </Button>

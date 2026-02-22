@@ -17,7 +17,7 @@ const NavUser = () => {
 
   return (
     <Shad.DropdownMenu>
-      <Shad.DropdownMenuTrigger>
+      <Shad.DropdownMenuTrigger asChild>
         <SButton
           variant={"ghost"}
           className="flex w-full  items-center justify-between text-muted-foreground gap-2 cursor-pointer "

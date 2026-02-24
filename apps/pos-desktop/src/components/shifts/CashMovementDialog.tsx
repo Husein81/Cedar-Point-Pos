@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { Button, Icon, Input, Shad } from "@repo/ui";
 import { useCreateCashMovement } from "@/hooks/useShifts";
+import type { CashMovementDialogProps } from "@/dto/shift.dto";
 import { toast } from "sonner";
-
-interface CashMovementDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  shiftId: string;
-}
 
 export const CashMovementDialog = ({
   isOpen,

@@ -2,87 +2,26 @@ import type {
   CashMovement,
   PaginationResponse,
   Shift,
-  ShiftSchedule,
 } from "@repo/types";
 import { api } from "./api";
 import type {
   ApproveCloseDto,
+  ClosePreviewResponse,
   ClosePreviewDto,
   CloseShiftDto,
   CreateCashMovementDto,
   CreateScheduleDto,
   OpenShiftDto,
+  PaginatedShiftScheduleResponse,
   PublishScheduleDto,
   ScheduleFilters,
+  ShiftScheduleWithRelations,
   ShiftFilters,
   UpdateScheduleDto,
+  XReportResponse,
 } from "@/dto/shift.dto";
 
 // ── Close Preview Response ───────────────────────────────────────────────────
-export interface ClosePreviewResponse {
-  shiftId: string;
-  startCash: number;
-  expectedCash: number | null;
-  countedCash: number | null;
-  varianceAmount: number | null;
-  variancePercent: number | null;
-  cashBreakdown: Record<string, number> | null;
-  paymentSummary: Array<{
-    method: string;
-    salesCount: number;
-    salesTotal: number;
-    refundsCount: number;
-    refundsTotal: number;
-    netTotal: number;
-  }>;
-  needsApproval: boolean;
-  hasWarning: boolean;
-  thresholds: {
-    warningPercent: number;
-    approvalRequiredPercent: number;
-  };
-}
-
-// ── X Report Response ────────────────────────────────────────────────────────
-export interface XReportResponse {
-  type: string;
-  shiftId: string;
-  status: string;
-  startTime: string;
-  currentTime: string;
-  branch: { id: string; name: string };
-  device: { id: string; name: string };
-  cashier: { id: string; name: string };
-  startCash: number;
-  expectedCash: number;
-  countedCash: number | null;
-  varianceAmount: number;
-  variancePercent: number;
-  cashBreakdown: Record<string, number>;
-  paymentSummary: Array<{
-    method: string;
-    salesCount: number;
-    salesTotal: number;
-    refundsCount: number;
-    refundsTotal: number;
-    netTotal: number;
-  }>;
-  orders: {
-    byStatus: Array<{ status: string; count: number }>;
-    totalCount: number;
-  };
-  refunds: {
-    count: number;
-    total: number;
-  };
-  totals: {
-    grossSales: number;
-    totalRefunds: number;
-    netSales: number;
-  };
-  generatedAt: string;
-}
-
 export const shiftsApi = {
   // ── Shift Lifecycle ──────────────────────────────────────────────────────
 
@@ -166,8 +105,8 @@ export const shiftsApi = {
   // List all schedules (admin/manager)
   getSchedules: async (
     filters?: ScheduleFilters,
-  ): Promise<PaginationResponse<ShiftSchedule>> => {
-    const response = await api.get<PaginationResponse<ShiftSchedule>>(
+  ): Promise<PaginatedShiftScheduleResponse> => {
+    const response = await api.get<PaginatedShiftScheduleResponse>(
       "/shifts/schedules",
       { params: filters },
     );
@@ -177,8 +116,8 @@ export const shiftsApi = {
   // Get my schedules (cashier's own view)
   getMySchedules: async (
     filters?: ScheduleFilters,
-  ): Promise<PaginationResponse<ShiftSchedule>> => {
-    const response = await api.get<PaginationResponse<ShiftSchedule>>(
+  ): Promise<PaginatedShiftScheduleResponse> => {
+    const response = await api.get<PaginatedShiftScheduleResponse>(
       "/shifts/schedules/me",
       { params: filters },
     );
@@ -186,14 +125,21 @@ export const shiftsApi = {
   },
 
   // Get schedule by ID
-  getSchedule: async (id: string): Promise<ShiftSchedule> => {
-    const response = await api.get<ShiftSchedule>(`/shifts/schedules/${id}`);
+  getSchedule: async (id: string): Promise<ShiftScheduleWithRelations> => {
+    const response = await api.get<ShiftScheduleWithRelations>(
+      `/shifts/schedules/${id}`,
+    );
     return response.data;
   },
 
   // Create a schedule
-  createSchedule: async (data: CreateScheduleDto): Promise<ShiftSchedule> => {
-    const response = await api.post<ShiftSchedule>("/shifts/schedules", data);
+  createSchedule: async (
+    data: CreateScheduleDto,
+  ): Promise<ShiftScheduleWithRelations> => {
+    const response = await api.post<ShiftScheduleWithRelations>(
+      "/shifts/schedules",
+      data,
+    );
     return response.data;
   },
 
@@ -201,8 +147,8 @@ export const shiftsApi = {
   updateSchedule: async (
     id: string,
     data: UpdateScheduleDto,
-  ): Promise<ShiftSchedule> => {
-    const response = await api.patch<ShiftSchedule>(
+  ): Promise<ShiftScheduleWithRelations> => {
+    const response = await api.patch<ShiftScheduleWithRelations>(
       `/shifts/schedules/${id}`,
       data,
     );

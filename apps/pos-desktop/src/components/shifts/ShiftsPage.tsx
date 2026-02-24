@@ -12,7 +12,7 @@ import { ShiftXReportPanel } from "./ShiftXReportPanel";
 import { ShiftHistoryTable } from "./ShiftHistoryTable";
 import { getShiftStatusVariant, SHIFT_STATUS_LABELS } from "./config";
 import type { ShiftFilters } from "@/dto/shift.dto";
-import type { ShiftStatus } from "@repo/types";
+import { ShiftStatus } from "@repo/types";
 import Heading from "@/components/heading";
 import { toast } from "sonner";
 
@@ -30,6 +30,12 @@ const formatCurrency = (value: number | string | null | undefined) => {
   if (value === null || value === undefined) return "-";
   return `$${Number(value).toFixed(2)}`;
 };
+
+const SHIFT_HISTORY_STATUS_OPTIONS = [
+  { value: "all", label: "All Statuses" },
+  { value: ShiftStatus.OPEN, label: "Open" },
+  { value: ShiftStatus.CLOSED, label: "Closed" },
+];
 
 export const ShiftsPage = () => {
   const { branchId } = useBranchStore();
@@ -131,7 +137,7 @@ export const ShiftsPage = () => {
               )}
               {currentDeviceId &&
               currentShift &&
-              currentShift.status === "OPEN" ? (
+              currentShift.status === ShiftStatus.OPEN ? (
                 <>
                   <Button
                     variant="outline"
@@ -186,7 +192,7 @@ export const ShiftsPage = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => clearCurrentDeviceId()}
-                disabled={!!currentShift && currentShift.status === "OPEN"}
+                disabled={!!currentShift && currentShift.status === ShiftStatus.OPEN}
               >
                 <Icon name="X" className="h-3 w-3 mr-1" />
                 Change
@@ -220,7 +226,7 @@ export const ShiftsPage = () => {
         )}
 
         {/* Current Shift Card */}
-        {currentShift && currentShift.status === "OPEN" && (
+        {currentShift && currentShift.status === ShiftStatus.OPEN && (
           <Shad.Card className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -266,18 +272,15 @@ export const ShiftsPage = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Icon name="Filter" className="h-4 w-4 text-muted-foreground" />
-                <select
-                  className="rounded-md border px-3 py-1.5 text-sm"
+                <Select
                   value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
+                  onChange={(opt) => {
+                    setStatusFilter(opt.value);
                     setPage(1);
                   }}
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="OPEN">Open</option>
-                  <option value="CLOSED">Closed</option>
-                </select>
+                  options={SHIFT_HISTORY_STATUS_OPTIONS}
+                  className="w-40"
+                />
               </div>
             </div>
 

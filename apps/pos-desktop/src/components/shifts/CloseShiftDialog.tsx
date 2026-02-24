@@ -2,15 +2,12 @@ import { useState } from "react";
 import { Button, Icon, Input, Shad } from "@repo/ui";
 import { useClosePreview, useCloseShift } from "@/hooks/useShifts";
 import { useShiftStore } from "@/store/shiftStore";
-import type { ClosePreviewResponse } from "@/apis/shiftsApi";
+import type {
+  ClosePreviewResponse,
+  CloseShiftDialogProps,
+} from "@/dto/shift.dto";
 import type { ShiftCloseMode } from "@repo/types";
 import { toast } from "sonner";
-
-interface CloseShiftDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  shiftId: string;
-}
 
 export const CloseShiftDialog = ({
   isOpen,

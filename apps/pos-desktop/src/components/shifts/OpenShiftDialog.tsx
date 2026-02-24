@@ -3,13 +3,8 @@ import { Button, Icon, Input, Shad } from "@repo/ui";
 import { useOpenShift } from "@/hooks/useShifts";
 import { useBranchStore } from "@/store/branchStore";
 import { useShiftStore } from "@/store/shiftStore";
+import type { OpenShiftDialogProps } from "@/dto/shift.dto";
 import { toast } from "sonner";
-
-interface OpenShiftDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  deviceId: string;
-}
 
 export const OpenShiftDialog = ({
   isOpen,

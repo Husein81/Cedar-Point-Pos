@@ -9,8 +9,11 @@ import {
 } from "@/hooks/useShiftSchedules";
 import { ShiftScheduleFormDialog } from "./ShiftScheduleFormDialog";
 import { ShiftSchedulesTable } from "./ShiftSchedulesTable";
-import type { ShiftSchedule, ShiftScheduleStatus } from "@repo/types";
-import type { ScheduleFilters } from "@/dto/shift.dto";
+import type { ShiftScheduleStatus } from "@repo/types";
+import type {
+  ScheduleFilters,
+  ShiftScheduleWithRelations,
+} from "@/dto/shift.dto";
 import { toast } from "sonner";
 import Heading from "@/components/heading";
 
@@ -34,10 +37,10 @@ export const ShiftSchedulesPage = () => {
 
   // Dialog state
   const [formOpen, setFormOpen] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<ShiftSchedule | null>(
-    null,
-  );
-  const [deleteTarget, setDeleteTarget] = useState<ShiftSchedule | null>(null);
+  const [editingSchedule, setEditingSchedule] =
+    useState<ShiftScheduleWithRelations | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<ShiftScheduleWithRelations | null>(null);
 
   // Selection state for bulk actions
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -63,7 +66,7 @@ export const ShiftSchedulesPage = () => {
     setFormOpen(true);
   };
 
-  const handleEdit = (schedule: ShiftSchedule) => {
+  const handleEdit = (schedule: ShiftScheduleWithRelations) => {
     setEditingSchedule(schedule);
     setFormOpen(true);
   };
@@ -119,6 +122,29 @@ export const ShiftSchedulesPage = () => {
       await unpublishSchedules.mutateAsync({ ids: selectedIds });
       toast.success(`Unpublished ${selectedIds.length} schedule(s)`);
       setSelectedIds([]);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unpublish failed";
+      toast.error(message);
+    }
+  };
+
+  const handlePublishOne = async (id: string) => {
+    try {
+      await publishSchedules.mutateAsync({ ids: [id] });
+      toast.success("Schedule published");
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Publish failed";
+      toast.error(message);
+    }
+  };
+
+  const handleUnpublishOne = async (id: string) => {
+    try {
+      await unpublishSchedules.mutateAsync({ ids: [id] });
+      toast.success("Schedule unpublished");
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Unpublish failed";
@@ -213,6 +239,8 @@ export const ShiftSchedulesPage = () => {
           onSearchChange={setSearchTerm}
           onEdit={handleEdit}
           onDelete={(schedule) => setDeleteTarget(schedule)}
+          onPublish={handlePublishOne}
+          onUnpublish={handleUnpublishOne}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}

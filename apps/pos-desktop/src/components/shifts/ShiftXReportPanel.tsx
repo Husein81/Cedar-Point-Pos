@@ -1,9 +1,6 @@
 import { Icon, Shad, Skeleton } from "@repo/ui";
 import { useXReport } from "@/hooks/useShifts";
-
-interface ShiftXReportPanelProps {
-  shiftId: string;
-}
+import type { ShiftXReportPanelProps } from "@/dto/shift.dto";
 
 const formatCurrency = (value: number) => {
   return `$${value.toFixed(2)}`;

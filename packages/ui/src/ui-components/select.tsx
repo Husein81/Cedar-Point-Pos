@@ -19,6 +19,7 @@ type Props = {
   disabled?: boolean;
   className?: string;
   side?: "top" | "right" | "bottom" | "left" | undefined;
+  position?: "item-aligned" | "popper";
 };
 
 function Select({
@@ -29,6 +30,7 @@ function Select({
   label,
   className,
   side,
+  position,
   disabled,
 }: Props) {
   return (
@@ -48,9 +50,10 @@ function Select({
       </Shad.SelectTrigger>
       <Shad.SelectContent
         side={side}
-        className="w-(--radix-select-trigger-width)"
+        position={position}
+        className="w-(--radix-select-trigger-width) max-h-72"
       >
-        <Shad.ScrollArea>
+        <Shad.ScrollArea className="max-h-72">
           <Shad.SelectGroup>
             {label && <Shad.SelectLabel>{label}</Shad.SelectLabel>}
             {options.length > 0 ? (

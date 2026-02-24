@@ -1,206 +1,226 @@
-import { useMemo } from "react";
-import { Badge, Icon, Shad } from "@repo/ui";
+import { useMemo, useState } from "react";
+import { Button, Icon, Skeleton, Shad, cn } from "@repo/ui";
 import { useMySchedules } from "@/hooks/useShiftSchedules";
 import { useBranchStore } from "@/store/branchStore";
-import type { ShiftScheduleStatus } from "@repo/types";
+import type {
+  ScheduleFilters,
+  ShiftScheduleWithRelations,
+} from "@/dto/shift.dto";
 import Heading from "@/components/heading";
+import { MySchedulesWeekView } from "./MySchedulesWeekView";
+import { MySchedulesListView } from "./MySchedulesListView";
+import { MyScheduleDetailsDialog } from "./MyScheduleDetailsDialog";
+import { formatWeekRangeDate } from "./scheduleUi";
 
-const SCHEDULE_STATUS_VARIANTS: Record<
-  ShiftScheduleStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  DRAFT: "secondary",
-  PUBLISHED: "default",
-  STARTED: "outline",
-  CANCELLED: "destructive",
+type ViewMode = "calendar" | "list";
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 };
 
-const SCHEDULE_STATUS_LABELS: Record<ShiftScheduleStatus, string> = {
-  DRAFT: "Draft",
-  PUBLISHED: "Published",
-  STARTED: "Started",
-  CANCELLED: "Cancelled",
+const getStartOfWeek = (date: Date) => {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+  return start;
 };
-
-const formatDate = (date: string | Date) =>
-  new Date(date).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-const formatTime = (date: string | Date) =>
-  new Date(date).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
 export const MyShiftSchedulesPanel = () => {
   const { branchId } = useBranchStore();
-  const { data, isLoading } = useMySchedules({
-    branchId: branchId ?? undefined,
-    limit: 50,
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
+  const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
+  const [selectedSchedule, setSelectedSchedule] =
+    useState<ShiftScheduleWithRelations | null>(null);
+
+  const weekStart = useMemo(() => getStartOfWeek(weekAnchor), [weekAnchor]);
+  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
+
+  const filters = useMemo<ScheduleFilters>(
+    () => ({
+      branchId: branchId ?? undefined,
+      limit: 100,
+      ...(viewMode === "calendar" && {
+        from: weekStart,
+        to: weekEnd,
+      }),
+    }),
+    [branchId, viewMode, weekStart, weekEnd],
+  );
+
+  const { data, isLoading, isFetching, isError, refetch } = useMySchedules(
+    filters,
+  );
 
   const schedules = useMemo(() => data?.data ?? [], [data]);
 
-  const upcoming = useMemo(
-    () =>
-      schedules
-        .filter(
-          (s) => s.status === "PUBLISHED" && new Date(s.date) >= new Date(),
-        )
-        .sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        ),
-    [schedules],
-  );
+  const upcoming = useMemo(() => {
+    const now = Date.now();
 
-  const past = useMemo(
-    () =>
-      schedules
-        .filter(
-          (s) => s.status !== "PUBLISHED" || new Date(s.date) < new Date(),
-        )
-        .sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        ),
-    [schedules],
-  );
+    return schedules
+      .filter((schedule) => new Date(schedule.startTime).getTime() >= now)
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
+  }, [schedules]);
+
+  const pastOther = useMemo(() => {
+    const now = Date.now();
+
+    return schedules
+      .filter(
+        (schedule) =>
+          new Date(schedule.startTime).getTime() < now ||
+          (schedule.status !== "PUBLISHED" && schedule.status !== "STARTED"),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+      );
+  }, [schedules]);
+
+  const handleOpenDetails = (schedule: ShiftScheduleWithRelations) =>
+    setSelectedSchedule(schedule);
 
   return (
-    <div className="pt-4">
-      <div className="mx-auto space-y-6">
-        <Heading
-          title="My Schedules"
-          subtitle="View your assigned shift schedules"
-          href="/shifts"
-        />
+    <div className="fixed inset-x-0 top-12 bottom-8 flex flex-col bg-background">
+      <div className="flex-1 min-h-0 px-6 py-4">
+        <div className="mx-auto flex h-full flex-col gap-6">
+          <Heading
+            title="My Schedules"
+            subtitle="View your assigned shift schedules"
+            href="/shifts"
+          />
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Icon
-              name="Loader2"
-              className="h-6 w-6 animate-spin text-muted-foreground"
-            />
-          </div>
-        ) : schedules.length === 0 ? (
-          <Shad.Card className="p-8 text-center">
-            <Icon
-              name="CalendarX2"
-              className="h-12 w-12 mx-auto text-muted-foreground mb-3"
-            />
-            <p className="text-muted-foreground">
-              No schedules assigned to you yet.
-            </p>
+          <Shad.Card className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={viewMode === "calendar" ? "default" : "outline"}
+                  onClick={() => setViewMode("calendar")}
+                >
+                  <Icon name="CalendarDays" className="h-4 w-4 mr-1" />
+                  Calendar
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  onClick={() => setViewMode("list")}
+                >
+                  List
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {viewMode === "calendar" ? (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm">Week</Button>
+                      <Button size="sm" variant="outline" disabled>
+                        Month
+                      </Button>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWeekAnchor((prev) => addDays(prev, -7))}
+                    >
+                      <Icon name="ChevronLeft" className="h-4 w-4" />
+                    </Button>
+
+                    <p className="text-sm font-medium min-w-[180px] text-center">
+                      {formatWeekRangeDate(weekStart)} -{" "}
+                      {formatWeekRangeDate(weekEnd)}
+                    </p>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWeekAnchor((prev) => addDays(prev, 7))}
+                    >
+                      <Icon name="ChevronRight" className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : null}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                >
+                  <Icon
+                    name="RefreshCw"
+                    className={cn("h-4 w-4 mr-1", isFetching && "animate-spin")}
+                  />
+                  Refresh
+                </Button>
+              </div>
+            </div>
           </Shad.Card>
-        ) : (
-          <>
-            {/* Upcoming Schedules */}
-            {upcoming.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Icon name="CalendarCheck" className="h-5 w-5" />
-                  Upcoming
-                </h2>
-                <div className="grid gap-3">
-                  {upcoming.map((schedule) => (
-                    <Shad.Card key={schedule.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Icon
-                              name="Clock"
-                              className="h-5 w-5 text-primary"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {formatDate(String(schedule.date))}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatTime(String(schedule.startTime))} –{" "}
-                              {formatTime(String(schedule.endTime))}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant={
-                            SCHEDULE_STATUS_VARIANTS[
-                              schedule.status as ShiftScheduleStatus
-                            ] ?? "secondary"
-                          }
-                        >
-                          {SCHEDULE_STATUS_LABELS[
-                            schedule.status as ShiftScheduleStatus
-                          ] ?? schedule.status}
-                        </Badge>
-                      </div>
-                      {schedule.notes && (
-                        <p className="mt-2 text-sm text-muted-foreground pl-[52px]">
-                          {schedule.notes}
-                        </p>
-                      )}
-                    </Shad.Card>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Past / Other Schedules */}
-            {past.length > 0 && (
+          <div className="flex-1 min-h-0">
+            {isLoading ? (
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Icon name="CalendarDays" className="h-5 w-5" />
-                  Past & Other
-                </h2>
-                <div className="grid gap-3">
-                  {past.map((schedule) => (
-                    <Shad.Card key={schedule.id} className="p-4 opacity-75">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <Icon
-                              name="Clock"
-                              className="h-5 w-5 text-muted-foreground"
-                            />
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {formatDate(String(schedule.date))}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatTime(String(schedule.startTime))} –{" "}
-                              {formatTime(String(schedule.endTime))}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant={
-                            SCHEDULE_STATUS_VARIANTS[
-                              schedule.status as ShiftScheduleStatus
-                            ] ?? "secondary"
-                          }
-                        >
-                          {SCHEDULE_STATUS_LABELS[
-                            schedule.status as ShiftScheduleStatus
-                          ] ?? schedule.status}
-                        </Badge>
-                      </div>
-                      {schedule.notes && (
-                        <p className="mt-2 text-sm text-muted-foreground pl-[52px]">
-                          {schedule.notes}
-                        </p>
-                      )}
-                    </Shad.Card>
-                  ))}
-                </div>
+                <Shad.Card className="p-4">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-4 w-60" />
+                  </div>
+                </Shad.Card>
+                <Shad.Card className="p-4">
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Skeleton key={index} className="h-16 w-full" />
+                    ))}
+                  </div>
+                </Shad.Card>
               </div>
+            ) : isError ? (
+              <Shad.Card className="p-8">
+                <div className="text-center space-y-3">
+                  <Icon
+                    name="CircleAlert"
+                    className="h-10 w-10 text-destructive mx-auto"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Failed to load schedules.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => refetch()}>
+                    <Icon name="RefreshCw" className="h-4 w-4 mr-1" />
+                    Retry
+                  </Button>
+                </div>
+              </Shad.Card>
+            ) : viewMode === "calendar" ? (
+              <MySchedulesWeekView
+                schedules={schedules}
+                weekStart={weekStart}
+                onOpenDetails={handleOpenDetails}
+              />
+            ) : (
+              <Shad.ScrollArea className="h-full pr-1">
+                <MySchedulesListView
+                  upcoming={upcoming}
+                  pastOther={pastOther}
+                  onOpenDetails={handleOpenDetails}
+                />
+                <Shad.ScrollBar />
+              </Shad.ScrollArea>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
+
+      <MyScheduleDetailsDialog
+        open={!!selectedSchedule}
+        schedule={selectedSchedule}
+        onClose={() => setSelectedSchedule(null)}
+      />
     </div>
   );
 };

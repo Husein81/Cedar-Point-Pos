@@ -3,6 +3,7 @@ import { Badge, Button, Icon, Shad, Skeleton } from "@repo/ui";
 import { useShift, useApproveClose } from "@/hooks/useShifts";
 import { useAuthStore } from "@/store/authStore";
 import { ShiftXReportPanel } from "./ShiftXReportPanel";
+import type { ShiftDetailPanelProps } from "@/dto/shift.dto";
 import {
   getShiftStatusVariant,
   getShiftCloseResultVariant,
@@ -10,10 +11,6 @@ import {
   SHIFT_CLOSE_RESULT_LABELS,
 } from "./config";
 import { toast } from "sonner";
-
-interface ShiftDetailPanelProps {
-  shiftId: string;
-}
 
 const formatDateTime = (date: string) => {
   return new Date(date).toLocaleString("en-US", {

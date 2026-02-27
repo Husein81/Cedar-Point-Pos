@@ -37,6 +37,8 @@ export class InventoryTransactionService {
       changeType,
       quantity,
       reason,
+      referenceId,
+      referenceType,
       minStock,
       allowNegativeStock = false,
     } = input;
@@ -112,7 +114,9 @@ export class InventoryTransactionService {
               beforeMinStock: new Prisma.Decimal(beforeMinStock),
               afterMinStock: new Prisma.Decimal(afterMinStock),
             }),
-            reason,
+            reason: this.buildReason(reason, referenceType, referenceId),
+            ...(referenceId && { referenceId }),
+            ...(referenceType && { referenceType }),
           },
         });
 
@@ -173,7 +177,7 @@ export class InventoryTransactionService {
   /**
    * Helper: Execute transaction within an existing Prisma transaction
    */
-  private async executeTransactionInTx(
+  async executeTransactionInTx(
     tx: Prisma.TransactionClient,
     input: InventoryTransactionInput,
   ): Promise<TransactionResult> {
@@ -256,6 +260,8 @@ export class InventoryTransactionService {
             afterMinStock: new Prisma.Decimal(afterMinStock),
           }),
         reason: this.buildReason(reason, referenceType, referenceId),
+        ...(referenceId && { referenceId }),
+        ...(referenceType && { referenceType }),
       },
     });
 
@@ -317,6 +323,7 @@ export class InventoryTransactionService {
 
       case 'REFUND':
       case 'TRANSFER_IN':
+      case 'PURCHASE_ORDER_RECEIVE':
         // Add back to stock
         afterStock = beforeStock + quantity;
         adjustment = quantity;

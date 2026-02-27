@@ -10,14 +10,13 @@ import {
   OrderStatus,
   OrderType,
   PaymentMethod,
-  PurchaseOrderStatus,
+  PurchaseOrderItemType,
   ShiftStatus,
   SortOrder,
   TableStatus,
   TransferStatus,
   UserRole,
 } from "./enums";
-import { ca } from "zod/locales";
 
 // Tenant
 export const TenantSchema = z.object({
@@ -163,34 +162,6 @@ export const ProductSchema = z.object({
     .optional(),
 });
 export type Product = z.infer<typeof ProductSchema>;
-
-// Offer / OfferGroup / OfferGroupItem
-export const OfferSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  name: z.string(),
-  basePrice: decimal,
-  isActive: z.boolean().default(true),
-  createdAt: isoDate,
-  updatedAt: isoDate,
-});
-export type Offer = z.infer<typeof OfferSchema>;
-
-export const OfferGroupSchema = z.object({
-  id: cuid,
-  offerId: cuid,
-  name: z.string(),
-  freeItemsCount: z.number().int().nonnegative().default(0),
-});
-export type OfferGroup = z.infer<typeof OfferGroupSchema>;
-
-export const OfferGroupItemSchema = z.object({
-  id: cuid,
-  offerGroupId: cuid,
-  productId: cuid,
-  extraPrice: decimal.default("0"),
-});
-export type OfferGroupItem = z.infer<typeof OfferGroupItemSchema>;
 
 // Inventory
 export const InventorySchema = z.object({
@@ -514,7 +485,9 @@ export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
 export const PurchaseOrderItemSchema = z.object({
   id: cuid,
   purchaseOrderId: cuid,
-  productId: cuid,
+  itemType: z.enum(PurchaseOrderItemType),
+  productId: cuid.nullable(),
+  itemName: z.string(),
   quantity: decimal,
   unitCost: decimal,
   totalCost: decimal,
@@ -524,7 +497,9 @@ export const PurchaseOrderItemSchema = z.object({
     name: true,
     sku: true,
     barcode: true,
-  }).optional(),
+  })
+    .nullable()
+    .optional(),
 });
 export type PurchaseOrderItem = z.infer<typeof PurchaseOrderItemSchema>;
 

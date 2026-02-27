@@ -17,6 +17,7 @@ export const InventoryChangeType = {
   MANUAL_ADJUST: "MANUAL_ADJUST", // Manual adjustment
   TRANSFER_OUT: "TRANSFER_OUT", // Stock transferred to another branch
   TRANSFER_IN: "TRANSFER_IN", // Stock received from another branch
+  PURCHASE_ORDER_RECEIVE: "PURCHASE_ORDER_RECEIVE", // Stock received from purchase order
 } as const;
 export type InventoryChangeType =
   (typeof InventoryChangeType)[keyof typeof InventoryChangeType];
@@ -132,3 +133,10 @@ export const PurchaseOrderStatus = {
 } as const;
 export type PurchaseOrderStatus =
   (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus];
+
+export const PurchaseOrderItemType = {
+  PRODUCT: "PRODUCT",
+  CUSTOM: "CUSTOM",
+} as const;
+export type PurchaseOrderItemType =
+  (typeof PurchaseOrderItemType)[keyof typeof PurchaseOrderItemType];

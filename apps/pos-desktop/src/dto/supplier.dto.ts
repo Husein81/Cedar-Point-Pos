@@ -1,3 +1,4 @@
+import { PurchaseOrderItemType } from "@repo/types";
 import { z } from "zod";
 
 const SupplierSummarySchema = z.object({
@@ -49,15 +50,19 @@ const SupplierPurchaseOrderSchema = z.object({
   items: z.array(
     z.object({
       id: z.string(),
+      itemType: z.enum(PurchaseOrderItemType),
+      productId: z.string().nullable(),
+      itemName: z.string(),
       quantity: z.string(),
       unitCost: z.string(),
       totalCost: z.string(),
+      notes: z.string().nullable().optional(),
       product: z.object({
         id: z.string(),
         name: z.string(),
         sku: z.string().nullable(),
         barcode: z.string().nullable(),
-      }),
+      }).nullable().optional(),
     })
   ),
 });

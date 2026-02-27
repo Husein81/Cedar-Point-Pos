@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
-import { QueryParams } from '@repo/types';
+import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
+import { Roles } from '../common/decorators/roles.decorator.js';
 import { SuppliersService } from './suppliers.service.js';
 
 @Controller('suppliers')
@@ -11,6 +12,7 @@ export class SuppliersController {
    * Get paginated list of suppliers
    */
   @Get('paginated')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getSuppliersPaginated(
     @Req() req: Request & { user: { tenantId: string } },
   ) {
@@ -27,6 +29,7 @@ export class SuppliersController {
    * Search suppliers by name, company, or phone
    */
   @Get('search')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async searchSuppliers(@Req() req: Request) {
     const { tenantId } = req.user as { tenantId: string };
     if (!tenantId) {
@@ -45,6 +48,7 @@ export class SuppliersController {
    * Get a single supplier with operational stats
    */
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   getSupplier(@Req() req: Request) {
     const { id } = req.params;
     if (!id) {
@@ -58,6 +62,7 @@ export class SuppliersController {
    * Get purchase orders for a specific supplier
    */
   @Get(':id/purchase-orders')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   getSupplierPurchaseOrders(@Req() req: Request) {
     const { id } = req.params;
     if (!id) {
@@ -72,6 +77,7 @@ export class SuppliersController {
    * Create a new supplier
    */
   @Post()
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createSupplier(@Req() req: Request) {
     const body = req.body as {
       name: string;
@@ -91,6 +97,7 @@ export class SuppliersController {
    * Update an existing supplier
    */
   @Put(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateSupplier(@Req() req: Request) {
     const { id } = req.params;
     if (!id) {
@@ -114,6 +121,7 @@ export class SuppliersController {
    * Delete a supplier (soft delete)
    */
   @Delete(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteSupplier(@Req() req: Request) {
     const { id } = req.params;
     if (!id) {

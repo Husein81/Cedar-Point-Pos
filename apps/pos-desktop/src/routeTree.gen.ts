@@ -21,6 +21,7 @@ import { Route as ReportsRouteRouteImport } from './routes/reports/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as PurchaseOrdersIndexRouteImport } from './routes/purchase-orders/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as ModifiersIndexRouteImport } from './routes/modifiers/index'
@@ -39,6 +40,7 @@ import { Route as ReportsInventoryRouteImport } from './routes/reports/inventory
 import { Route as ReportsFinancialsRouteImport } from './routes/reports/financials'
 import { Route as ReportsDebtsRouteImport } from './routes/reports/debts'
 import { Route as ReportsCustomersRouteImport } from './routes/reports/customers'
+import { Route as PurchaseOrdersPurchaseOrderIdRouteImport } from './routes/purchase-orders/$purchaseOrderId'
 import { Route as ProductsProductIdRouteImport } from './routes/products/$productId'
 import { Route as InvoicesOrderIdRouteImport } from './routes/invoices/$orderId'
 import { Route as CustomersCustomerIdRouteImport } from './routes/customers/$customerId'
@@ -102,6 +104,11 @@ const SuppliersIndexRoute = SuppliersIndexRouteImport.update({
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PurchaseOrdersIndexRoute = PurchaseOrdersIndexRouteImport.update({
+  id: '/purchase-orders/',
+  path: '/purchase-orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsIndexRoute = ProductsIndexRouteImport.update({
@@ -194,6 +201,12 @@ const ReportsCustomersRoute = ReportsCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => ReportsRouteRoute,
 } as any)
+const PurchaseOrdersPurchaseOrderIdRoute =
+  PurchaseOrdersPurchaseOrderIdRouteImport.update({
+    id: '/purchase-orders/$purchaseOrderId',
+    path: '/purchase-orders/$purchaseOrderId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   id: '/products/$productId',
   path: '/products/$productId',
@@ -230,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/purchase-orders/$purchaseOrderId': typeof PurchaseOrdersPurchaseOrderIdRoute
   '/reports/customers': typeof ReportsCustomersRoute
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
@@ -248,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/modifiers': typeof ModifiersIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
+  '/purchase-orders': typeof PurchaseOrdersIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
@@ -266,6 +281,7 @@ export interface FileRoutesByTo {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/purchase-orders/$purchaseOrderId': typeof PurchaseOrdersPurchaseOrderIdRoute
   '/reports/customers': typeof ReportsCustomersRoute
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
@@ -284,6 +300,7 @@ export interface FileRoutesByTo {
   '/modifiers': typeof ModifiersIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
+  '/purchase-orders': typeof PurchaseOrdersIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
@@ -303,6 +320,7 @@ export interface FileRoutesById {
   '/customers/$customerId': typeof CustomersCustomerIdRoute
   '/invoices/$orderId': typeof InvoicesOrderIdRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/purchase-orders/$purchaseOrderId': typeof PurchaseOrdersPurchaseOrderIdRoute
   '/reports/customers': typeof ReportsCustomersRoute
   '/reports/debts': typeof ReportsDebtsRoute
   '/reports/financials': typeof ReportsFinancialsRoute
@@ -321,6 +339,7 @@ export interface FileRoutesById {
   '/modifiers/': typeof ModifiersIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
+  '/purchase-orders/': typeof PurchaseOrdersIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
@@ -341,6 +360,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/invoices/$orderId'
     | '/products/$productId'
+    | '/purchase-orders/$purchaseOrderId'
     | '/reports/customers'
     | '/reports/debts'
     | '/reports/financials'
@@ -359,6 +379,7 @@ export interface FileRouteTypes {
     | '/modifiers'
     | '/orders'
     | '/products'
+    | '/purchase-orders'
     | '/settings'
     | '/suppliers'
   fileRoutesByTo: FileRoutesByTo
@@ -377,6 +398,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/invoices/$orderId'
     | '/products/$productId'
+    | '/purchase-orders/$purchaseOrderId'
     | '/reports/customers'
     | '/reports/debts'
     | '/reports/financials'
@@ -395,6 +417,7 @@ export interface FileRouteTypes {
     | '/modifiers'
     | '/orders'
     | '/products'
+    | '/purchase-orders'
     | '/settings'
     | '/suppliers'
   id:
@@ -413,6 +436,7 @@ export interface FileRouteTypes {
     | '/customers/$customerId'
     | '/invoices/$orderId'
     | '/products/$productId'
+    | '/purchase-orders/$purchaseOrderId'
     | '/reports/customers'
     | '/reports/debts'
     | '/reports/financials'
@@ -431,6 +455,7 @@ export interface FileRouteTypes {
     | '/modifiers/'
     | '/orders/'
     | '/products/'
+    | '/purchase-orders/'
     | '/settings/'
     | '/suppliers/'
   fileRoutesById: FileRoutesById
@@ -450,6 +475,7 @@ export interface RootRouteChildren {
   CustomersCustomerIdRoute: typeof CustomersCustomerIdRoute
   InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
+  PurchaseOrdersPurchaseOrderIdRoute: typeof PurchaseOrdersPurchaseOrderIdRoute
   SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
   SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
@@ -460,6 +486,7 @@ export interface RootRouteChildren {
   ModifiersIndexRoute: typeof ModifiersIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
+  PurchaseOrdersIndexRoute: typeof PurchaseOrdersIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
 }
@@ -548,6 +575,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchase-orders/': {
+      id: '/purchase-orders/'
+      path: '/purchase-orders'
+      fullPath: '/purchase-orders'
+      preLoaderRoute: typeof PurchaseOrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/': {
@@ -676,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsCustomersRouteImport
       parentRoute: typeof ReportsRouteRoute
     }
+    '/purchase-orders/$purchaseOrderId': {
+      id: '/purchase-orders/$purchaseOrderId'
+      path: '/purchase-orders/$purchaseOrderId'
+      fullPath: '/purchase-orders/$purchaseOrderId'
+      preLoaderRoute: typeof PurchaseOrdersPurchaseOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/$productId': {
       id: '/products/$productId'
       path: '/products/$productId'
@@ -748,6 +789,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersCustomerIdRoute: CustomersCustomerIdRoute,
   InvoicesOrderIdRoute: InvoicesOrderIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
+  PurchaseOrdersPurchaseOrderIdRoute: PurchaseOrdersPurchaseOrderIdRoute,
   SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
   SettingsLoyaltyRoute: SettingsLoyaltyRoute,
@@ -758,6 +800,7 @@ const rootRouteChildren: RootRouteChildren = {
   ModifiersIndexRoute: ModifiersIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
+  PurchaseOrdersIndexRoute: PurchaseOrdersIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,
 }

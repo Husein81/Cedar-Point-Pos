@@ -406,6 +406,21 @@ export class SuppliersService {
         throw new NotFoundException('Supplier not found');
       }
 
+      // Block delete if supplier has active purchase orders
+      const activePOs = await this.prisma.purchaseOrder.count({
+        where: {
+          supplierId: id,
+          tenantId,
+          status: { notIn: ['CANCELLED', 'RECEIVED'] },
+        },
+      });
+
+      if (activePOs > 0) {
+        throw new BadRequestException(
+          `Cannot delete supplier with ${activePOs} active purchase order(s)`,
+        );
+      }
+
       // Soft delete by setting isActive to false
       const result = await this.prisma.supplier.update({
         where: { id },

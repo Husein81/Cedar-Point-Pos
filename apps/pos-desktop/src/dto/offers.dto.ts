@@ -84,68 +84,83 @@ export type AddOfferItemsDto = z.infer<typeof AddOfferItemsSchema>;
 
 // ─── Response Types ───
 
-export type OfferGroupItemProduct = {
-  id: string;
-  name: string;
-  price: number;
-};
+export const OfferGroupItemProductSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  price: z.number(),
+});
+export type OfferGroupItemProduct = z.infer<
+  typeof OfferGroupItemProductSchema
+>;
 
-export type OfferGroupItem = {
-  id: string;
-  offerId: string;
-  offerGroupId: string;
-  productId: string;
-  extraPrice: number;
-  product: OfferGroupItemProduct;
-};
+export const OfferGroupItemSchema = z.object({
+  id: z.string(),
+  offerId: z.string(),
+  offerGroupId: z.string(),
+  productId: z.string(),
+  extraPrice: z.number(),
+  product: OfferGroupItemProductSchema,
+});
+export type OfferGroupItem = z.infer<typeof OfferGroupItemSchema>;
 
-export type OfferGroup = {
-  id: string;
-  offerId: string;
-  name: string;
-  freeItemsCount: number;
-  offerGroupItems: OfferGroupItem[];
-};
+export const OfferGroupSchema = z.object({
+  id: z.string(),
+  offerId: z.string(),
+  name: z.string(),
+  freeItemsCount: z.number(),
+  offerGroupItems: z.array(OfferGroupItemSchema),
+});
+export type OfferGroup = z.infer<typeof OfferGroupSchema>;
 
-export type Offer = {
-  id: string;
-  tenantId: string;
-  name: string;
-  basePrice: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  offerGroups: OfferGroup[];
-  _count?: {
-    offerGroups: number;
-  };
-};
+export const OfferSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  name: z.string(),
+  basePrice: z.number(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  offerGroups: z.array(OfferGroupSchema),
+  _count: z
+    .object({
+      offerGroups: z.number(),
+    })
+    .optional(),
+});
+export type Offer = z.infer<typeof OfferSchema>;
 
-export type PricePreviewGroupItem = {
-  productId: string;
-  productName: string;
-  extraPrice: number;
-  isFree: boolean;
-};
+export const PricePreviewGroupItemSchema = z.object({
+  productId: z.string(),
+  productName: z.string(),
+  extraPrice: z.number(),
+  isFree: z.boolean(),
+});
+export type PricePreviewGroupItem = z.infer<
+  typeof PricePreviewGroupItemSchema
+>;
 
-export type PricePreviewGroup = {
-  groupId: string;
-  groupName: string;
-  freeItemsCount: number;
-  items: PricePreviewGroupItem[];
-  groupExtras: number;
-  freeDiscount: number;
-};
+export const PricePreviewGroupSchema = z.object({
+  groupId: z.string(),
+  groupName: z.string(),
+  freeItemsCount: z.number(),
+  items: z.array(PricePreviewGroupItemSchema),
+  groupExtras: z.number(),
+  freeDiscount: z.number(),
+});
+export type PricePreviewGroup = z.infer<typeof PricePreviewGroupSchema>;
 
-export type PricePreviewResponse = {
-  offerId: string;
-  offerName: string;
-  isActive: boolean;
-  basePrice: number;
-  groups: PricePreviewGroup[];
-  totalExtras: number;
-  totalFreeDiscount: number;
-  finalTotal: number;
-  isValid: boolean;
-  validationErrors: string[];
-};
+export const PricePreviewResponseSchema = z.object({
+  offerId: z.string(),
+  offerName: z.string(),
+  isActive: z.boolean(),
+  basePrice: z.number(),
+  groups: z.array(PricePreviewGroupSchema),
+  totalExtras: z.number(),
+  totalFreeDiscount: z.number(),
+  finalTotal: z.number(),
+  isValid: z.boolean(),
+  validationErrors: z.array(z.string()),
+});
+export type PricePreviewResponse = z.infer<
+  typeof PricePreviewResponseSchema
+>;

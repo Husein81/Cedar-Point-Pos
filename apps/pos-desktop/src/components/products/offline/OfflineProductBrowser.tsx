@@ -1,7 +1,7 @@
 import { useDatabaseContext } from "@/components/provider/DatabaseProvider";
 import { useColors } from "@/hooks/useColor";
-import { useLocalCategories } from "@/hooks/useLocalCategories";
-import { useLocalProductsSearch } from "@/hooks/useLocalProducts";
+import { useLocalCategories } from "@/hooks/offline/useLocalCategories";
+import { useLocalProductsSearch } from "@/hooks/offline/useLocalProducts";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";

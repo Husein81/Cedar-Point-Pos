@@ -1,17 +1,8 @@
-/**
- * useLocalCategories.ts
- *
- * Reactive hooks for the local `categories` collection.
- * All reads are served from RxDB – UI updates automatically when data changes.
- */
-
 import { useEffect, useState, useCallback } from "react";
 import type { Subscription } from "rxjs";
 import { categoryService } from "@/db/local-data.service";
 import { syncService } from "@/db/sync.service";
 import type { CategoryDocument } from "@/db/types";
-
-// ─── useCategories ────────────────────────────────────────────────────────────
 
 interface UseCategoriesOptions {
   tenantId?: string;
@@ -22,12 +13,15 @@ interface UseCategoriesResult {
   isLoading: boolean;
   error: unknown | null;
 }
+interface UseCategoryResult {
+  category: CategoryDocument | null;
+  isLoading: boolean;
+  error: unknown | null;
+}
 
-/**
- * Subscribe to all non-deleted categories.
- * The list auto-updates whenever the local collection changes.
- */
-export function useLocalCategories(options: UseCategoriesOptions = {}): UseCategoriesResult {
+export function useLocalCategories(
+  options: UseCategoriesOptions = {},
+): UseCategoriesResult {
   const [categories, setCategories] = useState<CategoryDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
@@ -68,14 +62,6 @@ export function useLocalCategories(options: UseCategoriesOptions = {}): UseCateg
   }, [tenantId]);
 
   return { categories, isLoading, error };
-}
-
-// ─── useCategory ──────────────────────────────────────────────────────────────
-
-interface UseCategoryResult {
-  category: CategoryDocument | null;
-  isLoading: boolean;
-  error: unknown | null;
 }
 
 export function useLocalCategory(id: string | null): UseCategoryResult {
@@ -125,15 +111,21 @@ export function useLocalCategory(id: string | null): UseCategoryResult {
   return { category, isLoading, error };
 }
 
-// ─── Mutations ────────────────────────────────────────────────────────────────
-
 export function useCreateCategory() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
   const createCategory = useCallback(
     async (
-      data: Omit<CategoryDocument, "id" | "createdAt" | "updatedAt" | "isSynced" | "isLocalOnly" | "isDeleted">
+      data: Omit<
+        CategoryDocument,
+        | "id"
+        | "createdAt"
+        | "updatedAt"
+        | "isSynced"
+        | "isLocalOnly"
+        | "isDeleted"
+      >,
     ): Promise<CategoryDocument | null> => {
       setIsLoading(true);
       setError(null);
@@ -149,7 +141,7 @@ export function useCreateCategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   return { createCategory, isLoading, error };
@@ -162,7 +154,9 @@ export function useUpdateCategory() {
   const updateCategory = useCallback(
     async (
       id: string,
-      patch: Partial<Omit<CategoryDocument, "id" | "createdAt" | "isSynced" | "isLocalOnly">>
+      patch: Partial<
+        Omit<CategoryDocument, "id" | "createdAt" | "isSynced" | "isLocalOnly">
+      >,
     ): Promise<boolean> => {
       setIsLoading(true);
       setError(null);
@@ -177,7 +171,7 @@ export function useUpdateCategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   return { updateCategory, isLoading, error };

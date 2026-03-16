@@ -1,4 +1,4 @@
-import { ModifierGroup } from "@repo/types";
+import type { ModifierGroup, TableStatus } from "@repo/types";
 import type { RxCollection, RxDatabase, RxDocument } from "rxdb";
 
 export interface SyncMeta {
@@ -45,21 +45,49 @@ export interface ProductDocument extends SyncMeta {
   modifierGroups?: ModifierGroup[];
 }
 
+export interface FloorDocument extends SyncMeta {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  name: string;
+  order: number;
+  isDeleted: boolean;
+}
+
+export interface TableDocument extends SyncMeta {
+  id: string;
+  tableNumber: number;
+  tenantId: string;
+  branchId: string;
+  floorId?: string | null;
+  name: string;
+  capacity: number;
+  status: TableStatus;
+  isActive: boolean;
+  isDeleted: boolean;
+}
+
 // ─── RxDocument Types ─────────────────────────────────────────────────────────
 export type CategoryRxDoc = RxDocument<CategoryDocument>;
 export type SubcategoryRxDoc = RxDocument<SubcategoryDocument>;
 export type ProductRxDoc = RxDocument<ProductDocument>;
+export type FloorRxDoc = RxDocument<FloorDocument>;
+export type TableRxDoc = RxDocument<TableDocument>;
 
 // ─── Collection Types ─────────────────────────────────────────────────────────
 export type CategoryCollection = RxCollection<CategoryDocument>;
 export type SubcategoryCollection = RxCollection<SubcategoryDocument>;
 export type ProductCollection = RxCollection<ProductDocument>;
+export type FloorCollection = RxCollection<FloorDocument>;
+export type TableCollection = RxCollection<TableDocument>;
 
 // ─── Database Type ────────────────────────────────────────────────────────────
 export interface PosCollections {
   categories: CategoryCollection;
   subcategories: SubcategoryCollection;
   products: ProductCollection;
+  floors: FloorCollection;
+  tables: TableCollection;
 }
 
 export type PosDatabase = RxDatabase<PosCollections>;

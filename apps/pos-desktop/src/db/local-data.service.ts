@@ -3,9 +3,13 @@ import type {
   CategoryDocument,
   SubcategoryDocument,
   ProductDocument,
+  FloorDocument,
+  TableDocument,
   CategoryRxDoc,
   SubcategoryRxDoc,
   ProductRxDoc,
+  FloorRxDoc,
+  TableRxDoc,
 } from "./types";
 
 export function generateLocalId(): string {
@@ -324,5 +328,128 @@ export const productService = {
       if (serverUpdated < localUpdated) return;
     }
     await db.products.upsert({ ...data, isSynced: true, isLocalOnly: false });
+  },
+};
+
+export interface FloorFilter {
+  branchId?: string;
+}
+
+export const floorService = {
+  async findAll(filter?: FloorFilter): Promise<FloorDocument[]> {
+    const db = await getDatabase();
+    const selector: Record<string, unknown> = {
+      isDeleted: { $eq: false },
+    };
+    if (filter?.branchId) selector.branchId = { $eq: filter.branchId };
+
+    const docs = await db.floors
+      .find({
+        selector,
+        sort: [{ order: "asc" }, { name: "asc" }],
+      })
+      .exec();
+
+    return docs.map((d) => d.toJSON() as FloorDocument);
+  },
+
+  async findAll$(filter?: FloorFilter) {
+    const db = await getDatabase();
+    const selector: Record<string, unknown> = {
+      isDeleted: { $eq: false },
+    };
+    if (filter?.branchId) selector.branchId = { $eq: filter.branchId };
+
+    return db.floors
+      .find({
+        selector,
+        sort: [{ order: "asc" }, { name: "asc" }],
+      })
+      .$;
+  },
+
+  async findById(id: string): Promise<FloorRxDoc | null> {
+    const db = await getDatabase();
+    return db.floors.findOne(id).exec();
+  },
+
+  async upsertFromServer(data: FloorDocument): Promise<void> {
+    const db = await getDatabase();
+    const existing = await db.floors.findOne(data.id).exec();
+    if (existing) {
+      const localUpdated = new Date(existing.updatedAt).getTime();
+      const serverUpdated = new Date(data.updatedAt).getTime();
+      if (serverUpdated < localUpdated) return;
+    }
+
+    await db.floors.upsert({
+      ...data,
+      isSynced: true,
+      isLocalOnly: false,
+    });
+  },
+};
+
+export interface TableFilter {
+  branchId?: string;
+  floorId?: string;
+}
+
+export const tableService = {
+  async findAll(filter?: TableFilter): Promise<TableDocument[]> {
+    const db = await getDatabase();
+    const selector: Record<string, unknown> = {
+      isDeleted: { $eq: false },
+      isActive: { $eq: true },
+    };
+    if (filter?.branchId) selector.branchId = { $eq: filter.branchId };
+    if (filter?.floorId) selector.floorId = { $eq: filter.floorId };
+
+    const docs = await db.tables
+      .find({
+        selector,
+        sort: [{ tableNumber: "asc" }],
+      })
+      .exec();
+
+    return docs.map((d) => d.toJSON() as TableDocument);
+  },
+
+  async findAll$(filter?: TableFilter) {
+    const db = await getDatabase();
+    const selector: Record<string, unknown> = {
+      isDeleted: { $eq: false },
+      isActive: { $eq: true },
+    };
+    if (filter?.branchId) selector.branchId = { $eq: filter.branchId };
+    if (filter?.floorId) selector.floorId = { $eq: filter.floorId };
+
+    return db.tables
+      .find({
+        selector,
+        sort: [{ tableNumber: "asc" }],
+      })
+      .$;
+  },
+
+  async findById(id: string): Promise<TableRxDoc | null> {
+    const db = await getDatabase();
+    return db.tables.findOne(id).exec();
+  },
+
+  async upsertFromServer(data: TableDocument): Promise<void> {
+    const db = await getDatabase();
+    const existing = await db.tables.findOne(data.id).exec();
+    if (existing) {
+      const localUpdated = new Date(existing.updatedAt).getTime();
+      const serverUpdated = new Date(data.updatedAt).getTime();
+      if (serverUpdated < localUpdated) return;
+    }
+
+    await db.tables.upsert({
+      ...data,
+      isSynced: true,
+      isLocalOnly: false,
+    });
   },
 };

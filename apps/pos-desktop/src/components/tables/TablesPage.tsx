@@ -1,10 +1,9 @@
 import { Button, Empty, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
-import { Activity, useCallback, useMemo, useState } from "react";
+import { Activity, useMemo, useState } from "react";
 
 // Hooks
-import { useFloorsByBranch } from "@/hooks/useFloor";
-import { useTablesByBranch, useTableStats } from "@/hooks/useTable";
+import { useLocalFloors, useLocalTables } from "@/hooks/offline";
 import { useBranchStore } from "@/store/branchStore";
 
 // Components
@@ -38,23 +37,77 @@ export function TablesPage() {
 
   // Data fetching
   const {
-    data: tables = [],
+    floors: localFloors,
+    isLoading: isLoadingFloors,
+    refetch: refetchFloors,
+  } = useLocalFloors(branchId ?? undefined);
+  const {
+    tables: localTables,
     isLoading: isLoadingTables,
     refetch: refetchTables,
-  } = useTablesByBranch();
-  const { data: floors = [], isLoading: isLoadingFloors } = useFloorsByBranch();
-  const { data: stats } = useTableStats();
+  } = useLocalTables(branchId ?? undefined);
+
+  const tableCountByFloor = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const table of localTables) {
+      if (!table.floorId) continue;
+      counts.set(table.floorId, (counts.get(table.floorId) ?? 0) + 1);
+    }
+    return counts;
+  }, [localTables]);
+
+  const floors = useMemo<FloorWithTableCount[]>(
+    () =>
+      localFloors.map((floor) => ({
+        ...floor,
+        createdAt: new Date(floor.createdAt),
+        updatedAt: new Date(floor.updatedAt),
+        _count: {
+          tables: tableCountByFloor.get(floor.id) ?? 0,
+        },
+      })),
+    [localFloors, tableCountByFloor],
+  );
+
+  const floorMap = useMemo(
+    () => new Map(localFloors.map((floor) => [floor.id, floor])),
+    [localFloors],
+  );
+
+  const tables = useMemo<TableWithFloor[]>(
+    () =>
+      localTables.map((table) => {
+        const floor = table.floorId ? floorMap.get(table.floorId) : undefined;
+        return {
+          ...table,
+          floor: floor
+            ? {
+                id: floor.id,
+                name: floor.name,
+              }
+            : null,
+        };
+      }),
+    [localTables, floorMap],
+  );
+
+  const stats = useMemo(
+    () => ({
+      total: localTables.length,
+      available: localTables.filter((table) => table.status === "AVAILABLE")
+        .length,
+      occupied: localTables.filter((table) => table.status === "OCCUPIED")
+        .length,
+      reserved: localTables.filter((table) => table.status === "RESERVED")
+        .length,
+    }),
+    [localTables],
+  );
 
   // UI State
   const [activeView, setActiveView] = useState<ActiveView>("dine-in");
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
 
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const [deleteTarget, setDeleteTarget] = useState<{
-    type: "table" | "floor";
-    item: TableWithFloor | FloorWithTableCount;
-  } | null>(null);
   const [filters, setFilters] = useState<TableFiltersType>({
     search: "",
     status: "ALL",
@@ -95,23 +148,9 @@ export function TablesPage() {
     return result;
   }, [tables, selectedFloorId, filters]);
 
-  // Delete handlers
-  const handleDeleteClick = (
-    type: "table" | "floor",
-    item: TableWithFloor | FloorWithTableCount,
-  ) => {
-    setDeleteTarget({ type, item });
-    setIsDeleteModalOpen(true);
-  };
-
   const handleAddTable = () => {
     openModal("Add Table", <TableForm />);
   };
-
-  const handleDeleteFloor = useCallback(
-    (floor: FloorWithTableCount) => handleDeleteClick("floor", floor),
-    [],
-  );
 
   // No branch selected
   if (!branchId) {
@@ -172,7 +211,10 @@ export function TablesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => refetchTables()}
+                  onClick={() => {
+                    void refetchFloors();
+                    void refetchTables();
+                  }}
                 >
                   <Icon name="RefreshCw" className="h-4 w-4 mr-2" />
                   Refresh
@@ -197,7 +239,6 @@ export function TablesPage() {
             floors={floors}
             selectedFloorId={selectedFloorId}
             onSelectFloor={setSelectedFloorId}
-            onDeleteFloor={handleDeleteFloor}
             isLoading={isLoadingFloors}
           />
 

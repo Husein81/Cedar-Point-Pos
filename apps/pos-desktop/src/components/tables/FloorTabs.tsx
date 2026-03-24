@@ -2,7 +2,7 @@ import { Button, Icon, Badge, cn, Skeleton } from "@repo/ui";
 import type { FloorWithTableCount } from "@/dto/tables.dto";
 import { useModalStore } from "@/store/modalStore";
 import { FloorForm } from "./FloorForm";
-import { useDeleteFloor } from "@/hooks/useFloor";
+import { useLocalDeleteFloor } from "@/hooks/offline";
 import { AlertDialog } from "../common";
 import { Activity } from "react";
 import { useAuthStore } from "@/store/authStore";
@@ -24,7 +24,7 @@ export function FloorTabs({
   const { isHighLevelUser } = useAuthStore();
   const { openModal } = useModalStore();
 
-  const deleteFloorMutation = useDeleteFloor();
+  const deleteFloorMutation = useLocalDeleteFloor();
 
   const handleAddFloor = () => openModal("Add New Floor", <FloorForm />);
   const handleEditFloor = (floor: FloorWithTableCount) =>
@@ -123,7 +123,7 @@ export function FloorTabs({
                     : "hover:bg-accent",
                 )}
                 title={`Delete Floor "${floor.name}"?`}
-                description="Deleting this floor will unassign all tables associated with it. This action cannot be undone."
+                description="Deleting this floor will remove it and its tables from the local layout. This action cannot be undone."
                 onConfirm={() => deleteFloorMutation.mutate(floor.id)}
               />
             </div>

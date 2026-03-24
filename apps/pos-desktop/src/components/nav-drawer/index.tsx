@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/authStore";
 import type { BusinessType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { Link, useLocation } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
 import NavUser from "./nav-user";

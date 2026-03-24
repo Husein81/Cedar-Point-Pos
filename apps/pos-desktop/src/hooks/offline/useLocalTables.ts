@@ -1,12 +1,22 @@
-import { floorService, tableService } from "@/db/local-data.service";
-import type { FloorDocument, TableDocument } from "@/db/types";
-import { supabase } from "@/lib/supabse";
 import { api } from "@/apis/api";
+import { floorService, tableService } from "@/db/service";
+import { syncService } from "@/db/sync.service";
+import type { FloorDocument, TableDocument } from "@/db/types";
+import type {
+  CreateFloorDto,
+  CreateTableDto,
+  UpdateFloorDto,
+  UpdateTableDto,
+} from "@/dto/tables.dto";
+import { useAuthStore } from "@/store/authStore";
+import { useBranchStore } from "@/store/branchStore";
+import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 import type { Subscription } from "rxjs";
 import type { TableStatus } from "@repo/types";
+import { toast } from "sonner";
 
-type SupabaseRow = Record<string, unknown>;
+type ApiRow = Record<string, unknown>;
 
 interface UseLocalFloorsResult {
   floors: FloorDocument[];
@@ -23,12 +33,26 @@ interface UseLocalTablesResult {
 }
 
 const branchSyncInFlight = new Map<string, Promise<void>>();
-let canUseSupabaseForTables: boolean | null = null;
 
-type SyncSourceError = Error & {
-  status?: number;
-  code?: string;
-};
+function requireTenantId(tenantId?: string | null): string {
+  if (!tenantId) {
+    throw new Error("Tenant is required to manage local floors and tables");
+  }
+
+  return tenantId;
+}
+
+function requireBranchId(branchId?: string | null): string {
+  if (!branchId) {
+    throw new Error("Branch is required to manage local floors and tables");
+  }
+
+  return branchId;
+}
+
+function queueSync(): void {
+  syncService.push().catch(console.error);
+}
 
 function normalizeStatus(status: unknown): TableStatus {
   if (status === "OCCUPIED" || status === "RESERVED") {
@@ -37,7 +61,7 @@ function normalizeStatus(status: unknown): TableStatus {
   return "AVAILABLE";
 }
 
-function mapServerFloor(raw: SupabaseRow): FloorDocument {
+function mapServerFloor(raw: ApiRow): FloorDocument {
   const ts = new Date().toISOString();
   return {
     id: String(raw.id ?? ""),
@@ -53,7 +77,7 @@ function mapServerFloor(raw: SupabaseRow): FloorDocument {
   };
 }
 
-function mapServerTable(raw: SupabaseRow): TableDocument {
+function mapServerTable(raw: ApiRow): TableDocument {
   const ts = new Date().toISOString();
   const capacity = Number(raw.capacity ?? 4);
 
@@ -75,54 +99,24 @@ function mapServerTable(raw: SupabaseRow): TableDocument {
   };
 }
 
-async function fetchBranchRows(
-  tableNames: string[],
-  select: string,
-  branchId: string,
-  orderBy: Array<{ column: string; ascending?: boolean }> = [],
-): Promise<SupabaseRow[]> {
-  let lastError: SyncSourceError | null = null;
-
-  for (const tableName of tableNames) {
-    let query: any = supabase
-      .from(tableName)
-      .select(select)
-      .eq("branchId", branchId);
-    for (const sort of orderBy) {
-      query = query.order(sort.column, { ascending: sort.ascending ?? true });
-    }
-
-    const { data, error, status } = await query;
-    if (!error) return (data ?? []) as SupabaseRow[];
-
-    const mappedError = new Error(error.message) as SyncSourceError;
-    mappedError.status = typeof status === "number" ? status : undefined;
-    mappedError.code = error.code ?? undefined;
-    lastError = mappedError;
-
-    // Permission/auth issues should not keep trying table-name variants.
-    if (status === 401 || status === 403) {
-      throw mappedError;
-    }
+function normalizeSyncError(error: unknown): Error {
+  if (error instanceof Error) {
+    return error;
   }
 
-  throw (
-    lastError ??
-    (new Error(`Failed fetching ${tableNames.join("/")}`) as SyncSourceError)
-  );
-}
-
-function shouldFallbackToApi(error: unknown): boolean {
   if (error && typeof error === "object") {
-    const status = (error as { status?: unknown }).status;
-    return status === 401 || status === 403 || status === 404;
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message) {
+      return new Error(message);
+    }
   }
-  return false;
+
+  return new Error("Failed to sync local table data");
 }
 
 async function fetchBranchRowsFromApi(branchId: string): Promise<{
-  floorRows: SupabaseRow[];
-  tableRows: SupabaseRow[];
+  floorRows: ApiRow[];
+  tableRows: ApiRow[];
 }> {
   const [floorsResponse, tablesResponse] = await Promise.all([
     api.get<Record<string, unknown>[]>(`/floors/branch/${branchId}`),
@@ -130,45 +124,13 @@ async function fetchBranchRowsFromApi(branchId: string): Promise<{
   ]);
 
   return {
-    floorRows: (floorsResponse.data ?? []) as SupabaseRow[],
-    tableRows: (tablesResponse.data ?? []) as SupabaseRow[],
+    floorRows: (floorsResponse.data ?? []) as ApiRow[],
+    tableRows: (tablesResponse.data ?? []) as ApiRow[],
   };
 }
 
 async function doSyncTablesBranch(branchId: string): Promise<void> {
-  let floorRows: SupabaseRow[] = [];
-  let tableRows: SupabaseRow[] = [];
-
-  if (canUseSupabaseForTables === false) {
-    ({ floorRows, tableRows } = await fetchBranchRowsFromApi(branchId));
-  } else {
-    try {
-      [floorRows, tableRows] = await Promise.all([
-        fetchBranchRows(
-          ["Floor", "floors", "floor"],
-          "id,tenantId,branchId,name,order,isDeleted,createdAt,updatedAt",
-          branchId,
-          [
-            { column: "order", ascending: true },
-            { column: "name", ascending: true },
-          ],
-        ),
-        fetchBranchRows(
-          ["Table", "tables", "table"],
-          "id,tableNumber,tenantId,branchId,floorId,name,capacity,status,isActive,isDeleted,createdAt,updatedAt",
-          branchId,
-          [{ column: "tableNumber", ascending: true }],
-        ),
-      ]);
-      canUseSupabaseForTables = true;
-    } catch (error) {
-      if (!shouldFallbackToApi(error)) {
-        throw error;
-      }
-      canUseSupabaseForTables = false;
-      ({ floorRows, tableRows } = await fetchBranchRowsFromApi(branchId));
-    }
-  }
+  const { floorRows, tableRows } = await fetchBranchRowsFromApi(branchId);
 
   await Promise.all(
     floorRows
@@ -211,7 +173,7 @@ export function useLocalFloors(branchId?: string): UseLocalFloorsResult {
       setError(null);
       await syncBranchTables(branchId);
     } catch (err) {
-      setError(err);
+      setError(normalizeSyncError(err));
     }
   }, [branchId]);
 
@@ -237,13 +199,13 @@ export function useLocalFloors(branchId?: string): UseLocalFloorsResult {
             setIsLoading(false);
           },
           error(err) {
-            setError(err);
+            setError(normalizeSyncError(err));
             setIsLoading(false);
           },
         });
       } catch (err) {
         if (!cancelled) {
-          setError(err);
+          setError(normalizeSyncError(err));
           setIsLoading(false);
         }
       }
@@ -277,7 +239,7 @@ export function useLocalTables(
       setError(null);
       await syncBranchTables(branchId);
     } catch (err) {
-      setError(err);
+      setError(normalizeSyncError(err));
     }
   }, [branchId]);
 
@@ -306,13 +268,13 @@ export function useLocalTables(
             setIsLoading(false);
           },
           error(err) {
-            setError(err);
+            setError(normalizeSyncError(err));
             setIsLoading(false);
           },
         });
       } catch (err) {
         if (!cancelled) {
-          setError(err);
+          setError(normalizeSyncError(err));
           setIsLoading(false);
         }
       }
@@ -329,4 +291,181 @@ export function useLocalTables(
   }, [refetch]);
 
   return { tables, isLoading, error, refetch };
+}
+
+export function useLocalCreateFloor() {
+  const { user } = useAuthStore();
+  const { branchId: activeBranchId } = useBranchStore();
+
+  return useMutation<FloorDocument, Error, CreateFloorDto>({
+    mutationFn: async (data) => {
+      const tenantId = requireTenantId(user?.tenantId);
+      const branchId = requireBranchId(data.branchId ?? activeBranchId);
+      const doc = await floorService.create({
+        tenantId,
+        branchId,
+        name: data.name.trim(),
+        order: data.order ?? 0,
+      });
+
+      queueSync();
+      return doc;
+    },
+    onSuccess: (data) => {
+      toast.success(`Floor "${data.name}" created `);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create floor  ");
+    },
+  });
+}
+
+export function useLocalUpdateFloor() {
+  return useMutation<
+    FloorDocument,
+    Error,
+    { id: string; data: UpdateFloorDto }
+  >({
+    mutationFn: async ({ id, data }) => {
+      const doc = await floorService.update(id, {
+        ...(data.name !== undefined ? { name: data.name.trim() } : {}),
+        ...(data.order !== undefined ? { order: data.order } : {}),
+      });
+
+      if (!doc) {
+        throw new Error("Floor not found");
+      }
+
+      queueSync();
+      return doc.toJSON() as FloorDocument;
+    },
+    onSuccess: (data) => {
+      toast.success(`Floor "${data.name}" updated `);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update floor  ");
+    },
+  });
+}
+
+export function useLocalDeleteFloor() {
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      await floorService.softDelete(id);
+      queueSync();
+    },
+    onSuccess: () => {
+      toast.success("Floor deleted  ");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete floor  ");
+    },
+  });
+}
+
+export function useLocalCreateTable() {
+  const { user } = useAuthStore();
+  const { branchId: activeBranchId } = useBranchStore();
+
+  return useMutation<TableDocument, Error, CreateTableDto>({
+    mutationFn: async (data) => {
+      const tenantId = requireTenantId(user?.tenantId);
+      const branchId = requireBranchId(data.branchId ?? activeBranchId);
+      const normalizedFloorId = data.floorId?.trim() || null;
+      const doc = await tableService.create({
+        tableNumber: data.tableNumber,
+        tenantId,
+        branchId,
+        floorId: normalizedFloorId,
+        name: data.name.trim(),
+        capacity: data.capacity ?? 4,
+        status: "AVAILABLE",
+        isActive: true,
+      });
+
+      queueSync();
+      return doc;
+    },
+    onSuccess: (data) => {
+      toast.success(`Table "${data.name}" created`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create table  ");
+    },
+  });
+}
+
+export function useLocalUpdateTable() {
+  return useMutation<
+    TableDocument,
+    Error,
+    { id: string; data: UpdateTableDto }
+  >({
+    mutationFn: async ({ id, data }) => {
+      const normalizedFloorId =
+        data.floorId === undefined
+          ? undefined
+          : data.floorId?.trim()
+            ? data.floorId
+            : null;
+
+      const doc = await tableService.update(id, {
+        ...(data.tableNumber !== undefined
+          ? { tableNumber: data.tableNumber }
+          : {}),
+        ...(data.name !== undefined ? { name: data.name.trim() } : {}),
+        ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
+        ...(data.floorId !== undefined ? { floorId: normalizedFloorId } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      });
+
+      if (!doc) {
+        throw new Error("Table not found");
+      }
+
+      queueSync();
+      return doc.toJSON() as TableDocument;
+    },
+    onSuccess: (data) => {
+      toast.success(`Table "${data.name}" updated`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update table  ");
+    },
+  });
+}
+
+export function useLocalUpdateTableStatus() {
+  return useMutation<TableDocument, Error, { id: string; status: TableStatus }>(
+    {
+      mutationFn: async ({ id, status }) => {
+        const doc = await tableService.updateStatus(id, status);
+
+        if (!doc) {
+          throw new Error("Table not found");
+        }
+
+        queueSync();
+        return doc.toJSON() as TableDocument;
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to update table status");
+      },
+    },
+  );
+}
+
+export function useLocalDeleteTable() {
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      await tableService.softDelete(id);
+      queueSync();
+    },
+    onSuccess: () => {
+      toast.success("Table deleted  ");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete table  ");
+    },
+  });
 }

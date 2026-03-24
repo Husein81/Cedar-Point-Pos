@@ -40,12 +40,10 @@ export const categorySchema: RxJsonSchema<CategoryDocument> = {
       format: "date-time",
       maxLength: 30,
     },
-    /** true = record is in sync with the server */
     isSynced: {
       type: "boolean",
       default: false,
     },
-    /** true = was created locally and has never been pushed to the server */
     isLocalOnly: {
       type: "boolean",
       default: false,

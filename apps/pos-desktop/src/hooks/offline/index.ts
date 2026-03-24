@@ -24,4 +24,14 @@ export {
   useUpdateSubcategory,
 } from "./useLocalSubcategories";
 
-export { useLocalFloors, useLocalTables } from "./useLocalTables";
+export {
+  useLocalCreateFloor,
+  useLocalCreateTable,
+  useLocalDeleteFloor,
+  useLocalDeleteTable,
+  useLocalFloors,
+  useLocalTables,
+  useLocalUpdateFloor,
+  useLocalUpdateTable,
+  useLocalUpdateTableStatus,
+} from "./useLocalTables";

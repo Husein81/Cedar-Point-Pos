@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import type { Subscription } from "rxjs";
-import { subcategoryService } from "@/db/local-data.service";
+import { subcategoryService } from "@/db/service";
 import { syncService } from "@/db/sync.service";
 import type { SubcategoryDocument } from "@/db/types";
 
@@ -25,7 +25,9 @@ interface UseSubcategoriesResult {
 /**
  * Subscribe to all non-deleted subcategories, optionally filtered by categoryId.
  */
-export function useLocalSubcategories(options: UseSubcategoriesOptions = {}): UseSubcategoriesResult {
+export function useLocalSubcategories(
+  options: UseSubcategoriesOptions = {},
+): UseSubcategoriesResult {
   const [subcategories, setSubcategories] = useState<SubcategoryDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
@@ -43,7 +45,9 @@ export function useLocalSubcategories(options: UseSubcategoriesOptions = {}): Us
 
         sub = observable.subscribe({
           next(docs) {
-            setSubcategories(docs.map((d) => d.toJSON() as SubcategoryDocument));
+            setSubcategories(
+              docs.map((d) => d.toJSON() as SubcategoryDocument),
+            );
             setIsLoading(false);
           },
           error(err) {
@@ -77,7 +81,9 @@ interface UseSubcategoryResult {
 }
 
 export function useLocalSubcategory(id: string | null): UseSubcategoryResult {
-  const [subcategory, setSubcategory] = useState<SubcategoryDocument | null>(null);
+  const [subcategory, setSubcategory] = useState<SubcategoryDocument | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
 
@@ -131,7 +137,15 @@ export function useCreateSubcategory() {
 
   const createSubcategory = useCallback(
     async (
-      data: Omit<SubcategoryDocument, "id" | "createdAt" | "updatedAt" | "isSynced" | "isLocalOnly" | "isDeleted">
+      data: Omit<
+        SubcategoryDocument,
+        | "id"
+        | "createdAt"
+        | "updatedAt"
+        | "isSynced"
+        | "isLocalOnly"
+        | "isDeleted"
+      >,
     ): Promise<SubcategoryDocument | null> => {
       setIsLoading(true);
       setError(null);
@@ -146,7 +160,7 @@ export function useCreateSubcategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   return { createSubcategory, isLoading, error };
@@ -159,7 +173,12 @@ export function useUpdateSubcategory() {
   const updateSubcategory = useCallback(
     async (
       id: string,
-      patch: Partial<Omit<SubcategoryDocument, "id" | "createdAt" | "isSynced" | "isLocalOnly">>
+      patch: Partial<
+        Omit<
+          SubcategoryDocument,
+          "id" | "createdAt" | "isSynced" | "isLocalOnly"
+        >
+      >,
     ): Promise<boolean> => {
       setIsLoading(true);
       setError(null);
@@ -174,7 +193,7 @@ export function useUpdateSubcategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   return { updateSubcategory, isLoading, error };
@@ -184,20 +203,23 @@ export function useDeleteSubcategory() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
-  const deleteSubcategory = useCallback(async (id: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await subcategoryService.softDelete(id);
-      syncService.push().catch(console.error);
-      return true;
-    } catch (err) {
-      setError(err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const deleteSubcategory = useCallback(
+    async (id: string): Promise<boolean> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        await subcategoryService.softDelete(id);
+        syncService.push().catch(console.error);
+        return true;
+      } catch (err) {
+        setError(err);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   return { deleteSubcategory, isLoading, error };
 }

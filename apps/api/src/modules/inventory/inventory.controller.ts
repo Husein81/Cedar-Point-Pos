@@ -13,6 +13,8 @@ import { InventoryService } from './inventory.service.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import type { Request } from 'express';
 import { InventoryChangeType, QueryParams, UserRole } from '@repo/types';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 @Controller('inventory')
 export class InventoryController {
@@ -20,13 +22,12 @@ export class InventoryController {
   @Get('low-stock')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getLowStock(
-    @Req() req: Request,
+    @CurrentTenant() tenantId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('branchId') branchId?: string,
   ) {
-    const user = req.user as { tenantId: string };
-    return this.inventoryService.getLowStockByTenant(user.tenantId, {
+    return this.inventoryService.getLowStockByTenant(tenantId, {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       branchId,
@@ -39,41 +40,46 @@ export class InventoryController {
   @Get(':branchId/low-stock')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   async getLowStockByBranch(
+    @CurrentTenant() tenantId: string,
     @Param('branchId') branchId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.inventoryService.getLowStockByBranch(branchId, {
+    return this.inventoryService.getLowStockByBranch(tenantId, branchId, {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
   }
 
   @Get(':branchId')
-  async getInventory(@Req() req: Request, @Param('branchId') branchId: string) {
+  async getInventory(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+  ) {
     const query = req.query as QueryParams;
 
-    return this.inventoryService.getInventoryByBranch(branchId, query);
+    return this.inventoryService.getInventoryByBranch(tenantId, branchId, query);
   }
 
   @Get(':branchId/product/:productId')
   async getInventoryItem(
+    @CurrentTenant() tenantId: string,
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
   ) {
-    return this.inventoryService.getInventoryItem(branchId, productId);
+    return this.inventoryService.getInventoryItem(tenantId, branchId, productId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @Put(':branchId/product/:productId')
   async setStock(
-    @Req() req: Request,
+    @CurrentUser() user: { tenantId: string; id: string },
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('stock', ParseFloatPipe) stock: number,
     @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.setStock(
       user.tenantId,
       branchId,
@@ -87,13 +93,12 @@ export class InventoryController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @Post(':branchId/product/:productId/adjust')
   adjustStock(
-    @Req() req: Request,
+    @CurrentUser() user: { tenantId: string; id: string },
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('adjustment') adjustment: number,
     @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.adjustStock(
       user.tenantId,
       branchId,
@@ -110,13 +115,12 @@ export class InventoryController {
   @Put(':branchId/product/:productId/min-stock')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async setMinStock(
-    @Req() req: Request,
+    @CurrentUser() user: { tenantId: string; id: string },
     @Param('branchId') branchId: string,
     @Param('productId') productId: string,
     @Body('minStock', ParseFloatPipe) minStock: number,
     @Body('reason') reason?: string,
   ) {
-    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.setMinStock(
       user.tenantId,
       branchId,
@@ -133,7 +137,7 @@ export class InventoryController {
   @Post(':branchId/min-stock/bulk')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async bulkSetMinStock(
-    @Req() req: Request,
+    @CurrentUser() user: { tenantId: string; id: string },
     @Param('branchId') branchId: string,
     @Body()
     body: {
@@ -141,7 +145,6 @@ export class InventoryController {
       reason?: string;
     },
   ) {
-    const user = req.user as { tenantId: string; id: string };
     return this.inventoryService.bulkSetMinStock(
       user.tenantId,
       branchId,
@@ -156,8 +159,10 @@ export class InventoryController {
    */
   @Get('history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getInventoryHistory(@Req() req: Request) {
-    const user = req.user as { tenantId: string };
+  async getInventoryHistory(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+  ) {
     const query = req.query as QueryParams & {
       changeType?: InventoryChangeType;
       startDate?: string;
@@ -170,7 +175,7 @@ export class InventoryController {
     };
 
     return this.inventoryService.getInventoryHistory(
-      user.tenantId,
+      tenantId,
       params,
       query,
     );
@@ -181,8 +186,10 @@ export class InventoryController {
    */
   @Get(':branchId/history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByBranch(@Req() req: Request) {
-    const user = req.user as { tenantId: string };
+  async getInventoryHistoryByBranch(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+  ) {
     const query = req.query as QueryParams & {
       changeType?: InventoryChangeType;
       startDate?: string;
@@ -194,7 +201,7 @@ export class InventoryController {
       productId: req.params.productId as string,
     };
     return this.inventoryService.getInventoryHistory(
-      user.tenantId,
+      tenantId,
       params,
       query,
     );
@@ -205,8 +212,10 @@ export class InventoryController {
    */
   @Get(':branchId/product/:productId/history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByProduct(@Req() req: Request) {
-    const user = req.user as { tenantId: string };
+  async getInventoryHistoryByProduct(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+  ) {
     const params = {
       branchId: req.params.branchId as string,
       productId: req.params.productId as string,
@@ -218,7 +227,7 @@ export class InventoryController {
       userId: string;
     };
     return this.inventoryService.getInventoryHistory(
-      user.tenantId,
+      tenantId,
       params,
       query,
     );

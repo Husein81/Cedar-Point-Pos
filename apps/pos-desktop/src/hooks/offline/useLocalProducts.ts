@@ -1,8 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Subscription } from "rxjs";
-import { productService, type ProductFilter } from "@/db/local-data.service";
+import {
+  productService,
+} from "@/db/service";
 import { syncService } from "@/db/sync.service";
 import type { ProductDocument } from "@/db/types";
+import { ProductFilter } from "@/db/service/product.service";
 
 interface UseProductsResult {
   products: ProductDocument[];

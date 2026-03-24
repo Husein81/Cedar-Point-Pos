@@ -4,7 +4,8 @@ import {
   categoryService,
   subcategoryService,
   productService,
-} from "./local-data.service";
+} from "./service/local-data.service";
+import { localOrderService } from "./service/order.service";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import type {
@@ -295,6 +296,10 @@ async function pushProducts(): Promise<void> {
   }
 }
 
+async function pushOrders(): Promise<void> {
+  await localOrderService.syncPendingToSupabase();
+}
+
 export interface SyncOptions {
   tenantId?: string;
   branchId?: string;
@@ -321,6 +326,7 @@ export async function initialSync(
     await pushCategories();
     await pushSubcategories();
     await pushProducts();
+    await pushOrders();
 
     console.info("[SyncService] Initial sync complete.");
     return { success: true };
@@ -351,6 +357,7 @@ export async function push(): Promise<SyncResult> {
     await pushCategories();
     await pushSubcategories();
     await pushProducts();
+    await pushOrders();
     return { success: true };
   } catch (err) {
     console.error("[SyncService] Push failed:", err);

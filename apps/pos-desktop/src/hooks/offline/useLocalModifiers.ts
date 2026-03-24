@@ -1,4 +1,4 @@
-import { productService } from "@/db/local-data.service";
+import { productService } from "@/db/service";
 import { ModifierGroup } from "@repo/types";
 import { useEffect, useState } from "react";
 

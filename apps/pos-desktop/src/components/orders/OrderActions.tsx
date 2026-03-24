@@ -46,7 +46,6 @@ const ItemNoteContent = ({
 
   return (
     <div className="max-w-sm mx-auto flex flex-col gap-3">
-      {/* Quick Chips */}
       <div className="flex flex-wrap gap-1.5">
         {NOTE_CHIPS.map((chip) => (
           <Button
@@ -61,7 +60,6 @@ const ItemNoteContent = ({
         ))}
       </div>
 
-      {/* Free-text */}
       <Textarea
         placeholder="Add a note for this item..."
         value={note}
@@ -239,7 +237,6 @@ const OrderActions = () => {
         VAT 11%
       </Button>
 
-      {/* Shipping Fee — Delivery only */}
       {isDelivery && (
         <>
           <div className="h-8 w-px bg-border mx-0.5" />
@@ -260,7 +257,6 @@ const OrderActions = () => {
         </>
       )}
 
-      {/* Item Note — only when an item is selected */}
       {itemId && (
         <>
           <div className="h-8 w-px bg-border mx-0.5" />
@@ -311,4 +307,5 @@ const OrderActions = () => {
     </div>
   );
 };
+
 export default OrderActions;

@@ -5,7 +5,7 @@ export {
   subcategoryService,
   productService,
   generateLocalId,
-} from "./local-data.service";
+} from "./service";
 
 export {
   syncService,
@@ -21,9 +21,13 @@ export type {
   SubcategoryDocument,
   ProductDocument,
   SyncMeta,
+  OrderDocument,
+  OrderItemDocument,
+  OrderItemModifierDocument,
   PosDatabase,
   PosCollections,
   CategoryRxDoc,
   SubcategoryRxDoc,
   ProductRxDoc,
+  OrderRxDoc,
 } from "./types";

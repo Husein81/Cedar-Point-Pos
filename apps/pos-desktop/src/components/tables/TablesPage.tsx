@@ -30,12 +30,10 @@ export function TablesPage() {
   const { openModal } = useModalStore();
   const navigate = useNavigate();
 
-  // Redirect retail tenants away from tables page
   if (user?.tenant?.businessType === "RETAIL") {
     navigate({ to: "/orders" });
   }
 
-  // Data fetching
   const {
     floors: localFloors,
     isLoading: isLoadingFloors,
@@ -104,7 +102,6 @@ export function TablesPage() {
     [localTables],
   );
 
-  // UI State
   const [activeView, setActiveView] = useState<ActiveView>("dine-in");
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
 
@@ -114,16 +111,13 @@ export function TablesPage() {
     floorId: "ALL",
   });
 
-  // Filter tables by floor, status, and search
   const filteredTables = useMemo(() => {
     let result = tables;
 
-    // Filter by selected floor tab
     if (selectedFloorId !== null) {
       result = result.filter((table) => table.floorId === selectedFloorId);
     }
 
-    // Filter by search query
     if (filters.search) {
       const search = filters.search.toLowerCase();
       result = result.filter(
@@ -133,14 +127,12 @@ export function TablesPage() {
       );
     }
 
-    // Filter by status
     if (filters.status !== "ALL") {
       result = result.filter(
         (table) => table.status === (filters.status as string),
       );
     }
 
-    // Filter by floor filter (different from floor tab selection)
     if (filters.floorId !== "ALL") {
       result = result.filter((table) => table.floorId === filters.floorId);
     }
@@ -152,7 +144,6 @@ export function TablesPage() {
     openModal("Add Table", <TableForm />);
   };
 
-  // No branch selected
   if (!branchId) {
     return (
       <Empty
@@ -231,10 +222,8 @@ export function TablesPage() {
 
       {activeView === "dine-in" ? (
         <>
-          {/* Stats Cards */}
           <TablesStatsCards stats={stats} />
 
-          {/* Floor Tabs */}
           <FloorTabs
             floors={floors}
             selectedFloorId={selectedFloorId}
@@ -242,65 +231,17 @@ export function TablesPage() {
             isLoading={isLoadingFloors}
           />
 
-          {/* Filters */}
           <TableFilters
             filters={filters}
             onFiltersChange={setFilters}
             floors={floors.map((f) => ({ id: f.id, name: f.name }))}
           />
 
-          {/* Table Grid */}
           <TableGrid tables={filteredTables} isLoading={isLoadingTables} />
         </>
       ) : (
-        /* Orders Tab Content */
         <OngoingOrdersList />
       )}
-
-      {/* Delete Confirmation Dialog */}
-      {/* <Shad.AlertDialog
-        open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-      >
-        <Shad.AlertDialogContent>
-          <Shad.AlertDialogHeader>
-            <Shad.AlertDialogTitle>
-              Delete {deleteTarget?.type === "table" ? "Table" : "Floor"}?
-            </Shad.AlertDialogTitle>
-            <Shad.AlertDialogDescription>
-              {deleteTarget?.type === "table" ? (
-                <>
-                  This will remove table "
-                  {(deleteTarget?.item as TableWithFloor)?.name}" from your
-                  restaurant layout. This action cannot be undone.
-                </>
-              ) : (
-                <>
-                  This will delete floor "
-                  {(deleteTarget?.item as FloorWithTableCount)?.name}". All
-                  tables on this floor will be unassigned but not deleted. This
-                  action cannot be undone.
-                </>
-              )}
-            </Shad.AlertDialogDescription>
-          </Shad.AlertDialogHeader>
-          <Shad.AlertDialogFooter>
-            <Shad.AlertDialogCancel disabled={isDeletePending}>
-              Cancel
-            </Shad.AlertDialogCancel>
-            <Shad.AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeletePending}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
-            >
-              {isDeletePending && (
-                <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
-            </Shad.AlertDialogAction>
-          </Shad.AlertDialogFooter>
-        </Shad.AlertDialogContent>
-      </Shad.AlertDialog> */}
     </div>
   );
 }

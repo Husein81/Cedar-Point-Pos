@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Subscription } from "rxjs";
-import { categoryService } from "@/db/local-data.service";
+import { categoryService } from "@/db/service";
 import { syncService } from "@/db/sync.service";
 import type { CategoryDocument } from "@/db/types";
 

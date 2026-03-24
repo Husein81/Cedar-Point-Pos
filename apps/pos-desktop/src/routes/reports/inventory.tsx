@@ -185,7 +185,7 @@ function InventoryReportPage() {
   );
 
   const rows = data?.data ?? [];
-  const meta = data?.meta ?? {
+  const pagination = data?.pagination ?? {
     page: 1,
     pageSize: 25,
     totalItems: 0,
@@ -252,7 +252,7 @@ function InventoryReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Inventory Movements</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} movements found
+              {pagination.totalItems} movements found
             </p>
           </div>
           <Button
@@ -278,10 +278,10 @@ function InventoryReportPage() {
             keys: ["changeType" as keyof InventoryMovementRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: pagination.totalItems,
             page,
             pageSize,
-            totalPages: meta.totalPages,
+            totalPages: pagination.totalPages,
             onPageChange: setPage,
             onPageSizeChange: (s) => {
               setPageSize(s);

@@ -6,11 +6,10 @@ import {
   Param,
   Post,
   Put,
-  Req,
 } from '@nestjs/common';
-import { User, UserRole } from '@repo/types';
-import type { Request } from 'express';
+import { UserRole } from '@repo/types';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { ColorService } from './color.service.js';
 import type { CreateColorDto, UpdateColorDto } from './dto/color.dto.js';
 
@@ -19,52 +18,36 @@ export class ColorController {
   constructor(private readonly colorService: ColorService) {}
 
   @Get()
-  getColors(@Req() req: Request) {
-    const user = req.user as User;
-    if (!user.tenantId) {
-      throw new Error('Tenant ID is required');
-    }
-    return this.colorService.getColors(user.tenantId);
+  getColors(@CurrentTenant() tenantId: string) {
+    return this.colorService.getColors(tenantId);
   }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  createColor(@Req() req: Request, @Body() data: CreateColorDto) {
-    const user = req.user as User;
-    if (!user.tenantId) {
-      throw new Error('Tenant ID is required');
-    }
+  createColor(@CurrentTenant() tenantId: string, @Body() data: CreateColorDto) {
     return this.colorService.createColor({
       ...data,
-      tenantId: user.tenantId,
+      tenantId,
     });
   }
 
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateColor(
-    @Req() req: Request,
+    @CurrentTenant() tenantId: string,
     @Param('id') id: string,
     @Body() data: UpdateColorDto,
   ) {
-    const user = req.user as User;
-    if (!user.tenantId) {
-      throw new Error('Tenant ID is required');
-    }
     return this.colorService.updateColor({
       ...data,
       id,
-      tenantId: user.tenantId,
+      tenantId,
     });
   }
 
   @Delete(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  deleteColor(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as User;
-    if (!user.tenantId) {
-      throw new Error('Tenant ID is required');
-    }
-    return this.colorService.deleteColor(user.tenantId, id);
+  deleteColor(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.colorService.deleteColor(tenantId, id);
   }
 }

@@ -262,7 +262,7 @@ function FinancialsReportPage() {
     }));
 
     await exportFinancialsReportPdf({
-      tenantName: "PointVerse", // TODO: Get from tenant context
+      tenantName: "CedarPoint", // TODO: Get from tenant context
       branchName: selectedBranch?.name,
       dateRange: dateRangeStr,
       summary,

@@ -1,5 +1,8 @@
 import type { TableWithFloor } from "@/dto/tables.dto";
-import { useDeleteTable, useUpdateTableStatus } from "@/hooks/useTable";
+import {
+  useLocalDeleteTable,
+  useLocalUpdateTableStatus,
+} from "@/hooks/offline";
 import { useModalStore } from "@/store/modalStore";
 import { TableStatus } from "@repo/types";
 import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
@@ -20,9 +23,9 @@ export function TableCard({ table }: TableCardProps) {
   const status = (table.status as TableStatus) || "AVAILABLE";
   const navigate = useNavigate();
 
-  const deleteTableMutation = useDeleteTable();
+  const deleteTableMutation = useLocalDeleteTable();
 
-  const updateStatusMutation = useUpdateTableStatus();
+  const updateStatusMutation = useLocalUpdateTableStatus();
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isActiveOrdersOpen, setIsActiveOrdersOpen] = useState(false);
 

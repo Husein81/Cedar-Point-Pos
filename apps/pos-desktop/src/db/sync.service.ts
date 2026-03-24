@@ -1,19 +1,14 @@
 import { api } from "@/apis/api";
 import { getDatabase } from "@/db/database";
-import {
-  categoryService,
-  subcategoryService,
-  productService,
-} from "./service/local-data.service";
-import { localOrderService } from "./service/order.service";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
+import { Product } from "@repo/types";
+import { categoryService, productService, subcategoryService } from "./service";
 import type {
   CategoryDocument,
-  SubcategoryDocument,
   ProductDocument,
+  SubcategoryDocument,
 } from "./types";
-import { Product } from "@repo/types";
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const LAST_PULLED_AT_KEY = "pos_last_pulled_at";
@@ -297,7 +292,7 @@ async function pushProducts(): Promise<void> {
 }
 
 async function pushOrders(): Promise<void> {
-  await localOrderService.syncPendingToSupabase();
+  //TODO: Implement order syncing logic similar to categories and products
 }
 
 export interface SyncOptions {

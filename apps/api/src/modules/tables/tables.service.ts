@@ -20,9 +20,6 @@ export class TablesService {
     private readonly tableStatusService: TableStatusService,
   ) {}
 
-  /**
-   * Centralized error handler to eliminate code duplication
-   */
   private handleError(error: unknown, context: string): never {
     if (
       error instanceof BadRequestException ||
@@ -154,6 +151,7 @@ export class TablesService {
 
         return tx.table.create({
           data: {
+            id: String(data.id),
             tableNumber: data.tableNumber,
             name: data.name,
             capacity: data.capacity,
@@ -252,10 +250,6 @@ export class TablesService {
     }
   }
 
-  /**
-   * Update table status (AVAILABLE, OCCUPIED, RESERVED)
-   * Blocks manual release to AVAILABLE if active orders exist.
-   */
   async updateTableStatus(
     id: string,
     data: UpdateTableStatusDto,
@@ -290,9 +284,6 @@ export class TablesService {
     }
   }
 
-  /**
-   * Returns all active orders for a given table.
-   */
   async getActiveOrdersByTable(tableId: string, tenantId: string) {
     const table = await this.prisma.table.findFirst({
       where: { id: tableId, tenantId, isDeleted: false },
@@ -321,24 +312,30 @@ export class TablesService {
           throw new NotFoundException('Table not found');
         }
 
-        const activeOrdersCount = await tx.order.count({
-          where: {
-            tableId: id,
-            status: {
-              in: ['DRAFT', 'PENDING', 'CONFIRMED'],
-            },
-          },
-        });
+        const hasActiveOrders = await this.tableStatusService.hasActiveOrders(
+          id,
+          tenantId,
+          tx,
+        );
 
-        if (activeOrdersCount > 0) {
+        if (hasActiveOrders) {
           throw new BadRequestException(
             'Cannot delete table with active orders. Please complete or cancel all orders first.',
           );
         }
 
-        return tx.table.update({
+        await tx.order.updateMany({
+          where: {
+            tenantId,
+            tableId: id,
+          },
+          data: {
+            tableId: null,
+          },
+        });
+
+        return tx.table.delete({
           where: { id },
-          data: { isDeleted: true },
         });
       });
     } catch (error) {

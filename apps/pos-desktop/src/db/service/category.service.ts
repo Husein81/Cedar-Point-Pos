@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { getDatabase } from "../database";
-import { CategoryDocument, CategoryRxDoc } from "../types";
+import type { CategoryDocument, CategoryRxDoc } from "../types";
 import { generateLocalId } from "./local-data.service";
 
 export const categoryService = {
@@ -95,7 +95,6 @@ export const categoryService = {
     if (existing) {
       const localUpdated = new Date(existing.updatedAt).getTime();
       const serverUpdated = new Date(data.updatedAt).getTime();
-      // Server data only wins if it is newer or equal.
       if (serverUpdated < localUpdated) return;
     }
 

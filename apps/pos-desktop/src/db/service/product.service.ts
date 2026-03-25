@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { getDatabase } from "../database";
-import { ProductDocument, ProductRxDoc } from "../types";
+import type { ProductDocument, ProductRxDoc } from "../types";
 import { generateLocalId } from "./local-data.service";
 
 export type ProductFilter = {
@@ -93,7 +93,11 @@ export const productService = {
     const db = await getDatabase();
     const doc = await db.products.findOne(id).exec();
     if (!doc) return null;
-    await doc.patch({ ...patch, updatedAt: _.now().toLocaleString(), isSynced: false });
+    await doc.patch({
+      ...patch,
+      updatedAt: _.now().toLocaleString(),
+      isSynced: false,
+    });
     return doc;
   },
 
@@ -101,7 +105,11 @@ export const productService = {
     const db = await getDatabase();
     const doc = await db.products.findOne(id).exec();
     if (!doc) return;
-    await doc.patch({ isDeleted: true, updatedAt: _.now().toLocaleString(), isSynced: false });
+    await doc.patch({
+      isDeleted: true,
+      updatedAt: _.now().toLocaleString(),
+      isSynced: false,
+    });
   },
 
   async upsertFromServer(data: ProductDocument): Promise<void> {
@@ -112,6 +120,10 @@ export const productService = {
       const serverUpdated = new Date(data.updatedAt).getTime();
       if (serverUpdated < localUpdated) return;
     }
-    await db.products.upsert({ ...data, isSynced: true, isLocalOnly: false });
+    await db.products.upsert({
+      ...data,
+      isSynced: true,
+      isLocalOnly: false,
+    });
   },
 };

@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { OrderStatus } from "@repo/types";
 import { getDatabase } from "../database";
 import type { OrderDocument } from "../types";
@@ -39,6 +40,32 @@ export async function listActiveLocalOrdersByTableIds(
         tableIds.includes(order.tableId) &&
         ACTIVE_LOCAL_ORDER_STATUSES.has(order.status),
     );
+}
+
+export async function clearLocalOrderTableAssignments(
+  tableIds: string[],
+): Promise<void> {
+  if (!tableIds.length) {
+    return;
+  }
+
+  const db = await getDatabase();
+  const docs = await db.orders.find().exec();
+  const ts = _.now().toLocaleString();
+
+  const matchingDocs = docs.filter(
+    (doc) => !!doc.tableId && tableIds.includes(doc.tableId),
+  );
+
+  await Promise.all(
+    matchingDocs.map((doc) =>
+      doc.patch({
+        tableId: null,
+        updatedAt: ts,
+        isSynced: false,
+      }),
+    ),
+  );
 }
 
 export async function ensureUniqueFloorName(

@@ -82,8 +82,7 @@ export class FloorsController {
   }
 
   /**
-   * Soft delete a floor (Admin/Manager only)
-   * Tables on this floor will be unassigned
+   * Permanently delete a floor and its tables (Admin/Manager only)
    */
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')

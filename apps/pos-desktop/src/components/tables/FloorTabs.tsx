@@ -123,7 +123,7 @@ export function FloorTabs({
                     : "hover:bg-accent",
                 )}
                 title={`Delete Floor "${floor.name}"?`}
-                description="Deleting this floor will remove it and its tables from the local layout. This action cannot be undone."
+                description="Deleting this floor will permanently remove it and its tables. This action cannot be undone."
                 onConfirm={() => deleteFloorMutation.mutate(floor.id)}
               />
             </div>

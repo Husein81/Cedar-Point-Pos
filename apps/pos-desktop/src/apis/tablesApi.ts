@@ -87,7 +87,7 @@ export const tablesApi = {
   },
 
   /**
-   * Delete a table (soft delete)
+   * Delete a table permanently
    */
   deleteTable: async (id: string): Promise<void> => {
     await api.delete(`/tables/${id}`);

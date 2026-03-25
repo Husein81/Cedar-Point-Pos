@@ -1,7 +1,8 @@
 import _ from "lodash";
 import { getDatabase } from "../database";
-import { TableDocument, TableRxDoc } from "../types";
+import type { TableDocument, TableRxDoc } from "../types";
 import {
+  clearLocalOrderTableAssignments,
   ensureUniqueTableNumber,
   ensureValidFloorAssignment,
   generateLocalId,
@@ -12,6 +13,24 @@ import { TableStatus } from "@repo/types";
 export interface TableFilter {
   branchId?: string;
   floorId?: string;
+}
+
+async function getTableDeleteContext(id: string) {
+  const db = await getDatabase();
+  const doc = await db.tables.findOne(id).exec();
+
+  if (!doc) {
+    return null;
+  }
+
+  const activeOrders = await listActiveLocalOrdersByTableIds([id]);
+  if (activeOrders.length > 0) {
+    throw new Error(
+      "Cannot delete table with active orders. Please complete or cancel all orders first.",
+    );
+  }
+
+  return { doc };
 }
 
 export const tableService = {
@@ -152,26 +171,19 @@ export const tableService = {
     return doc;
   },
 
-  async softDelete(id: string): Promise<void> {
-    const db = await getDatabase();
-    const doc = await db.tables.findOne(id).exec();
+  async ensureDeletable(id: string): Promise<TableDocument | null> {
+    const context = await getTableDeleteContext(id);
+    return context ? (context.doc.toJSON() as TableDocument) : null;
+  },
 
-    if (!doc) {
+  async delete(id: string): Promise<void> {
+    const context = await getTableDeleteContext(id);
+    if (!context) {
       return;
     }
 
-    const activeOrders = await listActiveLocalOrdersByTableIds([id]);
-    if (activeOrders.length > 0) {
-      throw new Error(
-        "Cannot delete table with active orders. Please complete or cancel all orders first.",
-      );
-    }
-
-    await doc.patch({
-      isDeleted: true,
-      updatedAt: _.now().toLocaleString(),
-      isSynced: false,
-    });
+    await clearLocalOrderTableAssignments([id]);
+    await context.doc.remove();
   },
 
   async upsertFromServer(data: TableDocument): Promise<void> {

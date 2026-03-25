@@ -1,4 +1,6 @@
 import { api } from "@/apis/api";
+import { floorsApi } from "@/apis/floorsApi";
+import { tablesApi } from "@/apis/tablesApi";
 import { floorService, tableService } from "@/db/service";
 import { syncService } from "@/db/sync.service";
 import type { FloorDocument, TableDocument } from "@/db/types";
@@ -18,19 +20,19 @@ import { toast } from "sonner";
 
 type ApiRow = Record<string, unknown>;
 
-interface UseLocalFloorsResult {
+type FloorsResponse = {
   floors: FloorDocument[];
   isLoading: boolean;
   error: unknown | null;
   refetch: () => Promise<void>;
-}
+};
 
-interface UseLocalTablesResult {
+type TablesResponse = {
   tables: TableDocument[];
   isLoading: boolean;
   error: unknown | null;
   refetch: () => Promise<void>;
-}
+};
 
 const branchSyncInFlight = new Map<string, Promise<void>>();
 
@@ -162,7 +164,7 @@ async function syncBranchTables(branchId: string): Promise<void> {
   await syncPromise;
 }
 
-export function useLocalFloors(branchId?: string): UseLocalFloorsResult {
+export function useLocalFloors(branchId?: string): FloorsResponse {
   const [floors, setFloors] = useState<FloorDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
@@ -227,7 +229,7 @@ export function useLocalFloors(branchId?: string): UseLocalFloorsResult {
 export function useLocalTables(
   branchId?: string,
   floorId?: string | null,
-): UseLocalTablesResult {
+): TablesResponse {
   const [tables, setTables] = useState<TableDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
@@ -351,8 +353,16 @@ export function useLocalUpdateFloor() {
 export function useLocalDeleteFloor() {
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      await floorService.softDelete(id);
-      queueSync();
+      const floor = await floorService.ensureDeletable(id);
+      if (!floor) {
+        return;
+      }
+
+      if (!floor.isLocalOnly) {
+        await floorsApi.deleteFloor(id);
+      }
+
+      await floorService.delete(id);
     },
     onSuccess: () => {
       toast.success("Floor deleted  ");
@@ -458,8 +468,16 @@ export function useLocalUpdateTableStatus() {
 export function useLocalDeleteTable() {
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      await tableService.softDelete(id);
-      queueSync();
+      const table = await tableService.ensureDeletable(id);
+      if (!table) {
+        return;
+      }
+
+      if (!table.isLocalOnly) {
+        await tablesApi.deleteTable(id);
+      }
+
+      await tableService.delete(id);
     },
     onSuccess: () => {
       toast.success("Table deleted  ");

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { getDatabase } from "../database";
-import { SubcategoryDocument, SubcategoryRxDoc } from "../types";
+import type { SubcategoryDocument, SubcategoryRxDoc } from "../types";
 import { generateLocalId } from "./local-data.service";
 
 export const subcategoryService = {

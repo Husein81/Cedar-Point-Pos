@@ -1,7 +1,8 @@
 import _ from "lodash";
 import { getDatabase } from "../database";
-import { FloorDocument, FloorRxDoc } from "../types";
+import type { FloorDocument, FloorRxDoc } from "../types";
 import {
+  clearLocalOrderTableAssignments,
   ensureUniqueFloorName,
   generateLocalId,
   listActiveLocalOrdersByTableIds,
@@ -9,6 +10,42 @@ import {
 
 export interface FloorFilter {
   branchId?: string;
+}
+
+async function getFloorDeleteContext(id: string) {
+  const db = await getDatabase();
+  const floor = await db.floors.findOne(id).exec();
+
+  if (!floor) {
+    return null;
+  }
+
+  const tables = await db.tables
+    .find({
+      selector: {
+        floorId: { $eq: id },
+      },
+    })
+    .exec();
+
+  const activeOrders = await listActiveLocalOrdersByTableIds(
+    tables.map((table) => table.id),
+  );
+
+  if (activeOrders.length > 0) {
+    const blockedTables = tables
+      .filter((table) =>
+        activeOrders.some((order) => order.tableId === table.id),
+      )
+      .map((table) => `"${table.name}"`)
+      .join(", ");
+
+    throw new Error(
+      `Cannot delete floor "${floor.name}": tables [${blockedTables}] have active orders. Please complete or cancel orders first.`,
+    );
+  }
+
+  return { floor, tables };
 }
 
 export const floorService = {
@@ -104,57 +141,22 @@ export const floorService = {
     return doc;
   },
 
-  async softDelete(id: string): Promise<void> {
-    const db = await getDatabase();
-    const floor = await db.floors.findOne(id).exec();
+  async ensureDeletable(id: string): Promise<FloorDocument | null> {
+    const context = await getFloorDeleteContext(id);
+    return context ? (context.floor.toJSON() as FloorDocument) : null;
+  },
 
-    if (!floor) {
+  async delete(id: string): Promise<void> {
+    const context = await getFloorDeleteContext(id);
+    if (!context) {
       return;
     }
 
-    const tables = await db.tables
-      .find({
-        selector: {
-          floorId: { $eq: id },
-          isDeleted: { $eq: false },
-        },
-      })
-      .exec();
+    const tableIds = context.tables.map((table) => table.id);
+    await clearLocalOrderTableAssignments(tableIds);
 
-    const activeOrders = await listActiveLocalOrdersByTableIds(
-      tables.map((table) => table.id),
-    );
-
-    if (activeOrders.length > 0) {
-      const blockedTables = tables
-        .filter((table) =>
-          activeOrders.some((order) => order.tableId === table.id),
-        )
-        .map((table) => `"${table.name}"`)
-        .join(", ");
-
-      throw new Error(
-        `Cannot delete floor "${floor.name}": tables [${blockedTables}] have active orders. Please complete or cancel orders first.`,
-      );
-    }
-
-    const ts = _.now().toLocaleString();
-
-    await Promise.all(
-      tables.map((table) =>
-        table.patch({
-          isDeleted: true,
-          updatedAt: ts,
-          isSynced: false,
-        }),
-      ),
-    );
-
-    await floor.patch({
-      isDeleted: true,
-      updatedAt: ts,
-      isSynced: false,
-    });
+    await Promise.all(context.tables.map((table) => table.remove()));
+    await context.floor.remove();
   },
 
   async upsertFromServer(data: FloorDocument): Promise<void> {

@@ -8,9 +8,10 @@ import { z } from 'zod';
  * DTO for creating a new table
  */
 export const createTableDto = z.object({
+    id: z.string().max(128, 'Invalid table ID').optional(),
     tableNumber: z.number().int().positive('Table number must be a positive integer'),
     branchId: z.string().cuid('Invalid branch ID'),
-    floorId: z.string().cuid('Invalid floor ID').optional(),
+    floorId: z.string().max(128, 'Invalid floor ID').optional(),
     name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
     capacity: z.number().int().positive('Capacity must be positive').default(4),
 });
@@ -21,7 +22,7 @@ export type CreateTableDto = z.infer<typeof createTableDto>;
  */
 export const updateTableDto = z.object({
     tableNumber: z.number().int().positive('Table number must be a positive integer').optional(),
-    floorId: z.string().cuid('Invalid floor ID').nullable().optional(),
+    floorId: z.string().max(128, 'Invalid floor ID').nullable().optional(),
     name: z.string().min(1, 'Name is required').max(100, 'Name too long').optional(),
     capacity: z.number().int().positive('Capacity must be positive').optional(),
     isActive: z.boolean().optional(),
@@ -46,6 +47,7 @@ export type UpdateTableStatusDto = z.infer<typeof updateTableStatusDto>;
  * DTO for creating a new floor
  */
 export const createFloorDto = z.object({
+    id: z.string().max(128, 'Invalid floor ID').optional(),
     branchId: z.string().cuid('Invalid branch ID'),
     name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
     order: z.number().int().min(0, 'Order must be non-negative').default(0),

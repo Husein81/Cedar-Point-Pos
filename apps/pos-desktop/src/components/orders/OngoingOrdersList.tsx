@@ -68,20 +68,14 @@ const STATUS_BADGE_CONFIG: Record<
   },
 };
 
-type Props = {
-  className?: string;
-};
-
-export function OngoingOrdersList({ className }: Props) {
+export function OngoingOrdersList() {
   const navigate = useNavigate();
   const { branchId } = useBranchStore();
   const { loadOrder } = useOrderStore();
 
-  // Local filter state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  // Fetch ongoing orders from API
   const { data, isLoading } = useOrders({
     branchId: branchId || undefined,
     status: statusFilter !== "ALL" ? (statusFilter as OrderStatus) : undefined,
@@ -89,7 +83,6 @@ export function OngoingOrdersList({ className }: Props) {
 
   const orders = data?.data ?? [];
 
-  // Filter to ongoing statuses only + search
   const filteredOrders = useMemo(() => {
     let result = orders.filter((o) =>
       ONGOING_STATUSES.includes(o.status as OrderStatus),
@@ -120,7 +113,6 @@ export function OngoingOrdersList({ className }: Props) {
           search: {
             tableId: tableId || undefined,
             ...(tableName ? { tableName } : {}),
-            // If no table, mark as loaded so the route guard won't redirect
             orderType: tableId ? undefined : "loaded",
           },
         });
@@ -137,7 +129,7 @@ export function OngoingOrdersList({ className }: Props) {
   );
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4")}>
       {/* Filters Row */}
       <div className="flex flex-wrap gap-3 items-end">
         {/* Search */}
@@ -180,7 +172,6 @@ export function OngoingOrdersList({ className }: Props) {
         )}
       </div>
 
-      {/* Orders List */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -211,10 +202,6 @@ export function OngoingOrdersList({ className }: Props) {
     </div>
   );
 }
-
-// =====================
-// Order Card
-// =====================
 
 function OrderCard({
   order,

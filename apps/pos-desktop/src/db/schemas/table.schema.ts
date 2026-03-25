@@ -1,7 +1,7 @@
 import type { RxJsonSchema } from "rxdb";
-import type { CategoryDocument } from "../types";
+import type { TableDocument } from "../types";
 
-export const categorySchema: RxJsonSchema<CategoryDocument> = {
+export const tableSchema: RxJsonSchema<TableDocument> = {
   version: 1,
   primaryKey: "id",
   type: "object",
@@ -10,21 +10,40 @@ export const categorySchema: RxJsonSchema<CategoryDocument> = {
       type: "string",
       maxLength: 128,
     },
+    tableNumber: {
+      type: "number",
+      multipleOf: 1,
+      minimum: 0,
+    },
     tenantId: {
       type: "string",
       maxLength: 128,
     },
+    branchId: {
+      type: "string",
+      maxLength: 128,
+    },
+    floorId: {
+      type: ["string", "null"],
+    },
     name: {
       type: "string",
     },
-    code: {
-      type: ["string", "null"],
+    capacity: {
+      type: "number",
+      multipleOf: 1,
+      minimum: 1,
+      default: 4,
     },
-    description: {
-      type: ["string", "null"],
+    status: {
+      type: "string",
+      maxLength: 32,
+      enum: ["AVAILABLE", "OCCUPIED", "RESERVED"],
+      default: "AVAILABLE",
     },
-    colorId: {
-      type: ["string", "null"],
+    isActive: {
+      type: "boolean",
+      default: true,
     },
     isDeleted: {
       type: "boolean",
@@ -51,13 +70,26 @@ export const categorySchema: RxJsonSchema<CategoryDocument> = {
   },
   required: [
     "id",
+    "tableNumber",
     "tenantId",
+    "branchId",
     "name",
+    "capacity",
+    "status",
+    "isActive",
     "isDeleted",
     "createdAt",
     "updatedAt",
     "isSynced",
     "isLocalOnly",
   ],
-  indexes: ["isSynced", "isDeleted", "updatedAt", "tenantId"],
+  indexes: [
+    "branchId",
+    "tenantId",
+    "status",
+    "isDeleted",
+    "isActive",
+    "isSynced",
+    "updatedAt",
+  ],
 };

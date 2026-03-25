@@ -41,7 +41,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "Husein81",
-          name: "Pointverse",
+          name: "CedarPoint",
         },
         prerelease: false,
         draft: false,

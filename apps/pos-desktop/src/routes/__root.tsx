@@ -2,7 +2,6 @@ import { Modal, UnderConstruction } from "@/components/common";
 import MainLayout from "@/components/layouts/main-layout";
 import { Shad } from "@repo/ui";
 import { createRootRoute } from "@tanstack/react-router";
-import Footer from "../components/footer";
 import Providers from "../components/providers";
 
 export const Route = createRootRoute({
@@ -17,7 +16,6 @@ function RootLayout() {
         <MainLayout />
         <Shad.ScrollBar />
       </Shad.ScrollArea>
-      <Footer />
       <Modal />
     </Providers>
   );

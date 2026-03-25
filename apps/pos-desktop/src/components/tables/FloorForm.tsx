@@ -8,7 +8,7 @@ import type {
 } from "@/dto/tables.dto";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
-import { useCreateFloor, useUpdateFloor } from "@/hooks/useFloor";
+import { useLocalCreateFloor, useLocalUpdateFloor } from "@/hooks/offline";
 
 interface FloorFormProps {
   floor?: FloorWithTableCount;
@@ -18,8 +18,8 @@ export function FloorForm({ floor }: FloorFormProps) {
   const { closeModal } = useModalStore();
   const { branchId } = useBranchStore();
 
-  const createFloorMutation = useCreateFloor();
-  const updateFloorMutation = useUpdateFloor();
+  const createFloorMutation = useLocalCreateFloor();
+  const updateFloorMutation = useLocalUpdateFloor();
 
   const handleFloorSubmit = (data: CreateFloorDto | UpdateFloorDto) => {
     if (floor) {

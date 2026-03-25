@@ -10,13 +10,18 @@ import type { CreateInventoryHistoryDto } from './dto/inventory.dto.js';
 @Injectable()
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
-  async getInventoryByBranch(branchId: string, params: QueryParams) {
+  async getInventoryByBranch(
+    tenantId: string,
+    branchId: string,
+    params: QueryParams,
+  ) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
     const search = params.search;
     const skip = (page - 1) * limit;
 
     const where: Prisma.InventoryWhereInput = {
+      tenantId,
       branchId,
       ...(search && {
         product: {
@@ -47,13 +52,16 @@ export class InventoryService {
     };
   }
 
-  async getInventoryItem(branchId: string, productId: string) {
-    const item = await this.prisma.inventory.findUnique({
+  async getInventoryItem(
+    tenantId: string,
+    branchId: string,
+    productId: string,
+  ) {
+    const item = await this.prisma.inventory.findFirst({
       where: {
-        branchId_productId: {
-          branchId,
-          productId,
-        },
+        tenantId,
+        branchId,
+        productId,
       },
       include: { product: true },
     });
@@ -78,8 +86,8 @@ export class InventoryService {
     }
 
     // Validate product exists
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, tenantId, isDeleted: false },
     });
 
     if (!product) {
@@ -153,8 +161,8 @@ export class InventoryService {
     }
 
     // Validate product exists
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, tenantId, isDeleted: false },
     });
 
     if (!product) {
@@ -225,6 +233,7 @@ export class InventoryService {
    * Get products below minimum stock threshold for a specific branch
    */
   async getLowStockByBranch(
+    tenantId: string,
     branchId: string,
     params: { page?: number; limit?: number },
   ) {
@@ -234,6 +243,7 @@ export class InventoryService {
     // Get all inventory items with minStock > 0
     const allItems = await this.prisma.inventory.findMany({
       where: {
+        tenantId,
         branchId,
         minStock: { gt: 0 },
       },
@@ -352,12 +362,11 @@ export class InventoryService {
   ) {
     return await this.prisma.$transaction(
       async (tx) => {
-        const existing = await tx.inventory.findUnique({
+        const existing = await tx.inventory.findFirst({
           where: {
-            branchId_productId: {
-              branchId,
-              productId,
-            },
+            tenantId,
+            branchId,
+            productId,
           },
         });
 
@@ -423,6 +432,7 @@ export class InventoryService {
         // First, get existing inventory items
         const existingItems = await tx.inventory.findMany({
           where: {
+            tenantId,
             branchId,
             productId: { in: items.map((item) => item.productId) },
           },

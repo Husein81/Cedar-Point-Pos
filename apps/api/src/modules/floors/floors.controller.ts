@@ -6,11 +6,10 @@ import {
   Param,
   Post,
   Put,
-  Req,
   BadRequestException,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { FloorsService } from './floors.service.js';
 import { createFloorDto, updateFloorDto } from '../tables/dto/tables.dto.js';
 
@@ -22,27 +21,27 @@ export class FloorsController {
    * Get all floors for a branch with table counts
    */
   @Get('/branch/:branchId')
-  getFloorsByBranch(@Req() req: Request, @Param('branchId') branchId: string) {
-    const user = req.user as { tenantId: string };
-    return this.floorsService.getFloorsByBranch(branchId, user.tenantId);
+  getFloorsByBranch(
+    @CurrentTenant() tenantId: string,
+    @Param('branchId') branchId: string,
+  ) {
+    return this.floorsService.getFloorsByBranch(branchId, tenantId);
   }
 
   /**
    * Get a specific floor by ID
    */
   @Get('/:id')
-  getFloorById(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.floorsService.getFloorById(id, user.tenantId);
+  getFloorById(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.floorsService.getFloorById(id, tenantId);
   }
 
   /**
    * Get all tables for a floor
    */
   @Get('/:id/tables')
-  getTablesByFloor(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.floorsService.getTablesByFloor(id, user.tenantId);
+  getTablesByFloor(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.floorsService.getTablesByFloor(id, tenantId);
   }
 
   /**
@@ -50,8 +49,7 @@ export class FloorsController {
    */
   @Roles('ADMIN', 'MANAGER')
   @Post()
-  createFloor(@Req() req: Request, @Body() body: unknown) {
-    const user = req.user as { tenantId: string };
+  createFloor(@CurrentTenant() tenantId: string, @Body() body: unknown) {
     const parseResult = createFloorDto.safeParse(body);
 
     if (!parseResult.success) {
@@ -60,7 +58,7 @@ export class FloorsController {
       );
     }
 
-    return this.floorsService.createFloor(parseResult.data, user.tenantId);
+    return this.floorsService.createFloor(parseResult.data, tenantId);
   }
 
   /**
@@ -69,11 +67,10 @@ export class FloorsController {
   @Roles('ADMIN', 'MANAGER')
   @Put('/:id')
   updateFloor(
-    @Req() req: Request,
+    @CurrentTenant() tenantId: string,
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    const user = req.user as { tenantId: string };
     const parseResult = updateFloorDto.safeParse(body);
     if (!parseResult.success) {
       throw new BadRequestException(
@@ -81,17 +78,15 @@ export class FloorsController {
       );
     }
 
-    return this.floorsService.updateFloor(id, parseResult.data, user.tenantId);
+    return this.floorsService.updateFloor(id, parseResult.data, tenantId);
   }
 
   /**
-   * Soft delete a floor (Admin/Manager only)
-   * Tables on this floor will be unassigned
+   * Permanently delete a floor and its tables (Admin/Manager only)
    */
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
-  deleteFloor(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.floorsService.deleteFloor(id, user.tenantId);
+  deleteFloor(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.floorsService.deleteFloor(id, tenantId);
   }
 }

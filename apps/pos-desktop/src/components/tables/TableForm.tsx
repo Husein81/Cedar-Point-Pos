@@ -3,8 +3,11 @@ import type {
   TableWithFloor,
   UpdateTableDto,
 } from "@/dto/tables.dto";
-import { useFloorsByBranch } from "@/hooks/useFloor";
-import { useCreateTable, useUpdateTable } from "@/hooks/useTable";
+import {
+  useLocalCreateTable,
+  useLocalFloors,
+  useLocalUpdateTable,
+} from "@/hooks/offline";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
 import { Button, InputField, SelectField } from "@repo/ui";
@@ -17,10 +20,10 @@ interface TableFormProps {
 export function TableForm({ table }: TableFormProps) {
   const { branchId } = useBranchStore();
   const { closeModal } = useModalStore();
-  const { data: floors = [] } = useFloorsByBranch();
+  const { floors = [] } = useLocalFloors(branchId ?? undefined);
 
-  const createTableMutation = useCreateTable();
-  const updateTableMutation = useUpdateTable();
+  const createTableMutation = useLocalCreateTable();
+  const updateTableMutation = useLocalUpdateTable();
 
   const handleTableSubmit = (data: CreateTableDto | UpdateTableDto) => {
     if (table) {

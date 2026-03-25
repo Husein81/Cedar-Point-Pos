@@ -3,7 +3,7 @@ import { ProductDocument } from "@/db/types";
 import { SelectedModifier } from "@/types/modifiers";
 import { Button, cn, Empty, Icon } from "@repo/ui";
 import { useModalStore } from "@/store/modalStore";
-import { useLocalModifiers } from "@/hooks/useLocalModifiers";
+import { useLocalModifiers } from "@/hooks/offline/useLocalModifiers";
 import type { ModifierGroup } from "@repo/types";
 
 type Props = {

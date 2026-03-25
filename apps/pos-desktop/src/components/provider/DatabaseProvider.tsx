@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getDatabase, destroyDatabase } from "@/db/database";
+import { getDatabase } from "@/db/database";
 import { syncService } from "@/db/sync.service";
 import { useBranchStore } from "@/store/branchStore";
 import { useAuthStore } from "@/store/authStore";
@@ -90,13 +90,6 @@ export function DatabaseProvider({
       stopSyncRef.current = null;
     };
   }, [isReady, tenantId, branchId]);
-
-  // Destroy database on unmount (e.g., logout)
-  useEffect(() => {
-    return () => {
-      void destroyDatabase();
-    };
-  }, []);
 
   const triggerSync = async () => {
     setIsSyncing(true);

@@ -1,7 +1,7 @@
 import type { RxJsonSchema } from "rxdb";
-import type { CategoryDocument } from "../types";
+import type { FloorDocument } from "../types";
 
-export const categorySchema: RxJsonSchema<CategoryDocument> = {
+export const floorSchema: RxJsonSchema<FloorDocument> = {
   version: 1,
   primaryKey: "id",
   type: "object",
@@ -14,17 +14,18 @@ export const categorySchema: RxJsonSchema<CategoryDocument> = {
       type: "string",
       maxLength: 128,
     },
+    branchId: {
+      type: "string",
+      maxLength: 128,
+    },
     name: {
       type: "string",
     },
-    code: {
-      type: ["string", "null"],
-    },
-    description: {
-      type: ["string", "null"],
-    },
-    colorId: {
-      type: ["string", "null"],
+    order: {
+      type: "number",
+      multipleOf: 1,
+      minimum: 0,
+      default: 0,
     },
     isDeleted: {
       type: "boolean",
@@ -52,12 +53,14 @@ export const categorySchema: RxJsonSchema<CategoryDocument> = {
   required: [
     "id",
     "tenantId",
+    "branchId",
     "name",
+    "order",
     "isDeleted",
     "createdAt",
     "updatedAt",
     "isSynced",
     "isLocalOnly",
   ],
-  indexes: ["isSynced", "isDeleted", "updatedAt", "tenantId"],
+  indexes: ["branchId", "tenantId", "isDeleted", "isSynced", "updatedAt"],
 };

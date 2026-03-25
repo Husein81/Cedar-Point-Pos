@@ -100,12 +100,10 @@ export const InlineKeypad = () => {
   const paidAmount = order?.paidAmount ?? 0;
   const remainingTotal = Math.max(0, total - paidAmount);
 
-  // Loyalty data
   const { data: loyaltyProgram } = useLoyaltyProgram();
   const { data: loyaltyAccount } = useCustomerLoyaltyAccount(
     order?.customerId ?? null,
   );
-  // Eligible base for loyalty discount = subtotal - orderDiscount (excl. VAT/shipping)
   const loyaltyEligibleBase = Math.max(0, subtotal - discount);
 
   const deliveryNeedsCustomer =
@@ -125,10 +123,6 @@ export const InlineKeypad = () => {
 
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
-
-  /* ---------------------------------------------
-     Helpers
-  --------------------------------------------- */
 
   const parse = useCallback(
     (v: string) =>
@@ -176,7 +170,6 @@ export const InlineKeypad = () => {
       if (ctx === "DISCOUNT_FIXED") return "FIXED";
       if (ctx === "DISCOUNT_PERCENT") return "PERCENTAGE";
 
-      // fallback when ctx === "DISCOUNT"
       return (discountType as DiscountMode) || "PERCENTAGE";
     },
     [discountType],
@@ -285,21 +278,12 @@ export const InlineKeypad = () => {
     user?.tenantId,
   ]);
 
-  /**
-   * Checks if the active order was loaded from the server.
-   * Server-persisted orders have CUID IDs (no 'order-' prefix).
-   */
   const isLoadedOrder = useCallback((): boolean => {
     const active = getActiveOrder();
     if (!active) return false;
     return !active.id.startsWith("order-");
   }, [getActiveOrder]);
 
-  /**
-   * Returns the server order ID or creates a new order via API.
-   * For loaded orders, returns the existing server ID.
-   * For fresh orders, creates via createOrder API and returns the new ID.
-   */
   const getOrCreateOrderId = useCallback(async (): Promise<string | null> => {
     const active = getActiveOrder();
     if (!active) return null;
@@ -334,10 +318,6 @@ export const InlineKeypad = () => {
     }
   }, []);
 
-  /* ---------------------------------------------
-     Init / Context Reset
-  --------------------------------------------- */
-
   useEffect(() => {
     const formatted =
       config.decimals > 0 && currentValue !== 0
@@ -364,10 +344,6 @@ export const InlineKeypad = () => {
     setDiffBaseValue(null);
   }, [safeContext, itemId]);
 
-  /* ---------------------------------------------
-     LIVE UPDATE (debounced)
-  --------------------------------------------- */
-
   useEffect(() => {
     if (mode !== "APPEND") return;
     if (!validate()) return;
@@ -390,10 +366,6 @@ export const InlineKeypad = () => {
       clearTimeout(t);
     };
   }, [applyKeypadValue, clamp, mode, parse, validate, value]);
-
-  /* ---------------------------------------------
-     Input Handlers (UI behavior preserved)
-  --------------------------------------------- */
 
   const handleDigit = (digit: number) => {
     setValue((prev) => {
@@ -465,10 +437,6 @@ export const InlineKeypad = () => {
     setMode("REPLACE");
     setValue("0");
   };
-
-  /* ---------------------------------------------
-     Payment + Confirm Flows
-  --------------------------------------------- */
 
   const handlePaymentConfirm = useCallback(
     async (

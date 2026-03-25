@@ -1,20 +1,20 @@
-/**
- * useLocalProducts.ts
- *
- * Reactive hooks for the local `products` collection.
- * All reads come from RxDB – never from Supabase directly.
- */
-
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Subscription } from "rxjs";
-import { productService, type ProductFilter } from "@/db/local-data.service";
+import {
+  productService,
+} from "@/db/service";
 import { syncService } from "@/db/sync.service";
 import type { ProductDocument } from "@/db/types";
-
-// ─── useLocalProducts ─────────────────────────────────────────────────────────
+import { ProductFilter } from "@/db/service/product.service";
 
 interface UseProductsResult {
   products: ProductDocument[];
+  isLoading: boolean;
+  error: unknown | null;
+}
+
+interface UseProductResult {
+  product: ProductDocument | null;
   isLoading: boolean;
   error: unknown | null;
 }
@@ -70,7 +70,6 @@ export function useLocalProducts(
   return { products, isLoading, error };
 }
 
-// ─── useLocalProductsSearch ───────────────────────────────────────────────────
 export function useLocalProductsSearch(
   search: string,
   filter?: Omit<ProductFilter, "search">,
@@ -104,13 +103,6 @@ export function useLocalProductsSearch(
   }, [search, all]);
 
   return { products: filtered, isLoading, error };
-}
-
-// ─── useLocalProduct ──────────────────────────────────────────────────────────
-interface UseProductResult {
-  product: ProductDocument | null;
-  isLoading: boolean;
-  error: unknown | null;
 }
 
 export function useLocalProduct(id: string | null): UseProductResult {
@@ -159,8 +151,6 @@ export function useLocalProduct(id: string | null): UseProductResult {
 
   return { product, isLoading, error };
 }
-
-// ─── Mutations ────────────────────────────────────────────────────────────────
 
 export function useCreateProduct() {
   const [isLoading, setIsLoading] = useState(false);

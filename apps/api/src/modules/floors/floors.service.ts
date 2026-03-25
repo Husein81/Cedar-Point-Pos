@@ -124,6 +124,7 @@ export class FloorsService {
 
             return this.prisma.floor.create({
                 data: {
+                    id: data.id,
                     name: data.name,
                     order: data.order,
                     tenantId,
@@ -202,10 +203,8 @@ export class FloorsService {
     }
 
     /**
-     * Soft delete a floor and CASCADE DELETE all its tables
-     * Business Rule: Cannot delete if any table has active orders
-     * @throws NotFoundException if floor doesn't exist
-     * @throws BadRequestException if floor has tables with active orders
+     * Permanently delete a floor and its tables.
+     * Business Rule: Cannot delete if any table has active orders.
      */
     async deleteFloor(id: string, tenantId: string) {
         try {
@@ -219,7 +218,6 @@ export class FloorsService {
                     },
                     include: {
                         tables: {
-                            where: { isDeleted: false },
                             include: {
                                 orders: {
                                     where: {
@@ -259,23 +257,31 @@ export class FloorsService {
                     );
                 }
 
-                // 3. CASCADE DELETE: Soft delete all tables on this floor
-                await tx.table.updateMany({
-                    where: {
-                        floorId: id,
-                        isDeleted: false,
-                    },
-                    data: {
-                        isDeleted: true,
-                    },
-                });
+                const tableIds = floor.tables.map((table) => table.id);
 
-                // 4. Soft delete the floor
-                return tx.floor.update({
+                if (tableIds.length > 0) {
+                    await tx.order.updateMany({
+                        where: {
+                            tenantId,
+                            tableId: {
+                                in: tableIds,
+                            },
+                        },
+                        data: {
+                            tableId: null,
+                        },
+                    });
+
+                    await tx.table.deleteMany({
+                        where: {
+                            tenantId,
+                            floorId: id,
+                        },
+                    });
+                }
+
+                return tx.floor.delete({
                     where: { id },
-                    data: {
-                        isDeleted: true,
-                    },
                 });
             });
         } catch (error) {

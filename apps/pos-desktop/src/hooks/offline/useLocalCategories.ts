@@ -1,36 +1,32 @@
-/**
- * useLocalSubcategories.ts
- *
- * Reactive hooks for the local `subcategories` collection.
- */
-
 import { useEffect, useState, useCallback } from "react";
 import type { Subscription } from "rxjs";
-import { subcategoryService } from "@/db/local-data.service";
+import { categoryService } from "@/db/service";
 import { syncService } from "@/db/sync.service";
-import type { SubcategoryDocument } from "@/db/types";
+import type { CategoryDocument } from "@/db/types";
 
-// ─── useLocalSubcategories ────────────────────────────────────────────────────
-
-interface UseSubcategoriesOptions {
-  categoryId?: string;
+interface UseCategoriesOptions {
+  tenantId?: string;
 }
 
-interface UseSubcategoriesResult {
-  subcategories: SubcategoryDocument[];
+interface UseCategoriesResult {
+  categories: CategoryDocument[];
+  isLoading: boolean;
+  error: unknown | null;
+}
+interface UseCategoryResult {
+  category: CategoryDocument | null;
   isLoading: boolean;
   error: unknown | null;
 }
 
-/**
- * Subscribe to all non-deleted subcategories, optionally filtered by categoryId.
- */
-export function useLocalSubcategories(options: UseSubcategoriesOptions = {}): UseSubcategoriesResult {
-  const [subcategories, setSubcategories] = useState<SubcategoryDocument[]>([]);
+export function useLocalCategories(
+  options: UseCategoriesOptions = {},
+): UseCategoriesResult {
+  const [categories, setCategories] = useState<CategoryDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
 
-  const { categoryId } = options;
+  const { tenantId } = options;
 
   useEffect(() => {
     let sub: Subscription | undefined;
@@ -38,12 +34,12 @@ export function useLocalSubcategories(options: UseSubcategoriesOptions = {}): Us
 
     (async () => {
       try {
-        const observable = await subcategoryService.findAll$(categoryId);
+        const observable = await categoryService.findAll$(tenantId);
         if (cancelled) return;
 
         sub = observable.subscribe({
           next(docs) {
-            setSubcategories(docs.map((d) => d.toJSON() as SubcategoryDocument));
+            setCategories(docs.map((d) => d.toJSON() as CategoryDocument));
             setIsLoading(false);
           },
           error(err) {
@@ -63,27 +59,19 @@ export function useLocalSubcategories(options: UseSubcategoriesOptions = {}): Us
       cancelled = true;
       sub?.unsubscribe();
     };
-  }, [categoryId]);
+  }, [tenantId]);
 
-  return { subcategories, isLoading, error };
+  return { categories, isLoading, error };
 }
 
-// ─── useLocalSubcategory ──────────────────────────────────────────────────────
-
-interface UseSubcategoryResult {
-  subcategory: SubcategoryDocument | null;
-  isLoading: boolean;
-  error: unknown | null;
-}
-
-export function useLocalSubcategory(id: string | null): UseSubcategoryResult {
-  const [subcategory, setSubcategory] = useState<SubcategoryDocument | null>(null);
+export function useLocalCategory(id: string | null): UseCategoryResult {
+  const [category, setCategory] = useState<CategoryDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
     if (!id) {
-      setSubcategory(null);
+      setCategory(null);
       setIsLoading(false);
       return;
     }
@@ -96,9 +84,9 @@ export function useLocalSubcategory(id: string | null): UseSubcategoryResult {
         const db = await import("@/db/database").then((m) => m.getDatabase());
         if (cancelled) return;
 
-        sub = db.subcategories.findOne(id).$.subscribe({
+        sub = db.categories.findOne(id).$.subscribe({
           next(doc) {
-            setSubcategory(doc ? (doc.toJSON() as SubcategoryDocument) : null);
+            setCategory(doc ? (doc.toJSON() as CategoryDocument) : null);
             setIsLoading(false);
           },
           error(err) {
@@ -120,23 +108,30 @@ export function useLocalSubcategory(id: string | null): UseSubcategoryResult {
     };
   }, [id]);
 
-  return { subcategory, isLoading, error };
+  return { category, isLoading, error };
 }
 
-// ─── Mutations ────────────────────────────────────────────────────────────────
-
-export function useCreateSubcategory() {
+export function useCreateCategory() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
-  const createSubcategory = useCallback(
+  const createCategory = useCallback(
     async (
-      data: Omit<SubcategoryDocument, "id" | "createdAt" | "updatedAt" | "isSynced" | "isLocalOnly" | "isDeleted">
-    ): Promise<SubcategoryDocument | null> => {
+      data: Omit<
+        CategoryDocument,
+        | "id"
+        | "createdAt"
+        | "updatedAt"
+        | "isSynced"
+        | "isLocalOnly"
+        | "isDeleted"
+      >,
+    ): Promise<CategoryDocument | null> => {
       setIsLoading(true);
       setError(null);
       try {
-        const doc = await subcategoryService.create(data);
+        const doc = await categoryService.create(data);
+        // Optimistically push to server if online
         syncService.push().catch(console.error);
         return doc;
       } catch (err) {
@@ -146,25 +141,27 @@ export function useCreateSubcategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
-  return { createSubcategory, isLoading, error };
+  return { createCategory, isLoading, error };
 }
 
-export function useUpdateSubcategory() {
+export function useUpdateCategory() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
-  const updateSubcategory = useCallback(
+  const updateCategory = useCallback(
     async (
       id: string,
-      patch: Partial<Omit<SubcategoryDocument, "id" | "createdAt" | "isSynced" | "isLocalOnly">>
+      patch: Partial<
+        Omit<CategoryDocument, "id" | "createdAt" | "isSynced" | "isLocalOnly">
+      >,
     ): Promise<boolean> => {
       setIsLoading(true);
       setError(null);
       try {
-        await subcategoryService.update(id, patch);
+        await categoryService.update(id, patch);
         syncService.push().catch(console.error);
         return true;
       } catch (err) {
@@ -174,21 +171,21 @@ export function useUpdateSubcategory() {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
-  return { updateSubcategory, isLoading, error };
+  return { updateCategory, isLoading, error };
 }
 
-export function useDeleteSubcategory() {
+export function useDeleteCategory() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
 
-  const deleteSubcategory = useCallback(async (id: string): Promise<boolean> => {
+  const deleteCategory = useCallback(async (id: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
-      await subcategoryService.softDelete(id);
+      await categoryService.softDelete(id);
       syncService.push().catch(console.error);
       return true;
     } catch (err) {
@@ -199,5 +196,5 @@ export function useDeleteSubcategory() {
     }
   }, []);
 
-  return { deleteSubcategory, isLoading, error };
+  return { deleteCategory, isLoading, error };
 }

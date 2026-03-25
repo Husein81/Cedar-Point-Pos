@@ -1,23 +1,25 @@
 import { createRxDatabase, addRxPlugin } from "rxdb";
-import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { getRxStorageDexie, RxStorageDexie } from "rxdb/plugins/storage-dexie";
 import { RxDBQueryBuilderPlugin } from "rxdb/plugins/query-builder";
 import { RxDBUpdatePlugin } from "rxdb/plugins/update";
-import { RxDBDevModePlugin } from "rxdb/plugins/dev-mode";
 import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import { wrappedValidateAjvStorage } from "rxdb/plugins/validate-ajv";
 import { categorySchema } from "./schemas/category.schema";
 import { subcategorySchema } from "./schemas/subcategory.schema";
 import { productSchema } from "./schemas/product.schema";
+import { floorSchema } from "./schemas/floor.schema";
+import { tableSchema } from "./schemas/table.schema";
+import { orderSchema } from "./schemas/order.schema";
 import type { PosDatabase } from "./types";
 
-let storage = getRxStorageDexie();
+let storage: RxStorageDexie = getRxStorageDexie();
 
 if (process.env.NODE_ENV === "development") {
   storage = wrappedValidateAjvStorage({
-    storage: storage as unknown as ReturnType<typeof getRxStorageDexie>,
-  }) as any;
-  addRxPlugin(RxDBDevModePlugin);
+    storage,
+  }) as RxStorageDexie;
 }
+
 addRxPlugin(RxDBQueryBuilderPlugin);
 addRxPlugin(RxDBUpdatePlugin);
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -30,18 +32,21 @@ declare global {
 function getDbRef(): PosDatabase | undefined {
   return globalThis.__posDb;
 }
+
 function setDbRef(db: PosDatabase | null) {
   globalThis.__posDb = db ?? undefined;
 }
+
 function getInitPromise(): Promise<PosDatabase> | undefined {
   return globalThis.__posDbInitPromise;
 }
+
 function setInitPromise(p: Promise<PosDatabase> | null) {
   globalThis.__posDbInitPromise = p ?? undefined;
 }
 
 async function createDatabase(): Promise<PosDatabase> {
-  const db = await createRxDatabase({
+  const db: PosDatabase = await createRxDatabase({
     name: "pos_offline_db",
     storage,
     closeDuplicates: true,
@@ -64,12 +69,29 @@ async function createDatabase(): Promise<PosDatabase> {
       schema: productSchema,
       migrationStrategies: {
         1: (oldDoc) => oldDoc,
-        2: (oldDoc) => oldDoc,
+      },
+    },
+    floors: {
+      schema: floorSchema,
+      migrationStrategies: {
+        1: (oldDoc) => oldDoc,
+      },
+    },
+    tables: {
+      schema: tableSchema,
+      migrationStrategies: {
+        1: (oldDoc) => oldDoc,
+      },
+    },
+    orders: {
+      schema: orderSchema,
+      migrationStrategies: {
+        1: (oldDoc) => oldDoc,
       },
     },
   });
 
-  return db as unknown as PosDatabase;
+  return db;
 }
 
 export async function getDatabase(): Promise<PosDatabase> {
@@ -97,7 +119,7 @@ export async function getDatabase(): Promise<PosDatabase> {
 export async function destroyDatabase(): Promise<void> {
   const db = getDbRef();
   if (db) {
-    await (db as unknown as { destroy: () => Promise<boolean> }).destroy();
+    await db.destroy();
     setDbRef(null);
     setInitPromise(null);
   }
@@ -107,7 +129,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose(async () => {
     const db = getDbRef();
     if (db) {
-      await (db as unknown as { destroy: () => Promise<boolean> }).destroy();
+      await db.destroy();
       setDbRef(null);
     }
     setInitPromise(null);

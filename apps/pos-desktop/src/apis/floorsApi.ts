@@ -52,7 +52,7 @@ export const floorsApi = {
     },
 
     /**
-     * Delete a floor (soft delete)
+     * Delete a floor permanently
      */
     deleteFloor: async (id: string): Promise<void> => {
         await api.delete(`/floors/${id}`);

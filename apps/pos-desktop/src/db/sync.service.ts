@@ -1,18 +1,22 @@
 import { api } from "@/apis/api";
 import { getDatabase } from "@/db/database";
-import {
-  categoryService,
-  subcategoryService,
-  productService,
-} from "./local-data.service";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
+import { Product, TableStatus } from "@repo/types";
+import {
+  categoryService,
+  floorService,
+  productService,
+  subcategoryService,
+  tableService,
+} from "./service";
 import type {
   CategoryDocument,
-  SubcategoryDocument,
+  FloorDocument,
   ProductDocument,
+  SubcategoryDocument,
+  TableDocument,
 } from "./types";
-import { Product } from "@repo/types";
 
 const PULL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const LAST_PULLED_AT_KEY = "pos_last_pulled_at";
@@ -84,6 +88,53 @@ function mapServerProduct(raw: Record<string, unknown>): ProductDocument {
     isDeleted: Boolean(raw.isDeleted ?? false),
     isModifiable: Boolean(raw.isModifiable ?? false),
     createdAt: ts,
+    updatedAt: (raw.updatedAt as string | undefined) ?? ts,
+    isSynced: true,
+    isLocalOnly: false,
+  };
+}
+
+function normalizeTableStatus(status: unknown): TableStatus {
+  if (status === "OCCUPIED" || status === "RESERVED") {
+    return status;
+  }
+
+  return "AVAILABLE";
+}
+
+function mapServerFloor(raw: Record<string, unknown>): FloorDocument {
+  const ts = new Date().toISOString();
+
+  return {
+    id: String(raw.id ?? ""),
+    tenantId: String(raw.tenantId ?? ""),
+    branchId: String(raw.branchId ?? ""),
+    name: String(raw.name ?? ""),
+    order: Number(raw.order ?? 0),
+    isDeleted: Boolean(raw.isDeleted ?? false),
+    createdAt: (raw.createdAt as string | undefined) ?? ts,
+    updatedAt: (raw.updatedAt as string | undefined) ?? ts,
+    isSynced: true,
+    isLocalOnly: false,
+  };
+}
+
+function mapServerTable(raw: Record<string, unknown>): TableDocument {
+  const ts = new Date().toISOString();
+  const capacity = Number(raw.capacity ?? 4);
+
+  return {
+    id: String(raw.id ?? ""),
+    tableNumber: Number(raw.tableNumber ?? 0),
+    tenantId: String(raw.tenantId ?? ""),
+    branchId: String(raw.branchId ?? ""),
+    floorId: raw.floorId ? String(raw.floorId) : null,
+    name: String(raw.name ?? ""),
+    capacity: Number.isFinite(capacity) && capacity > 0 ? capacity : 4,
+    status: normalizeTableStatus(raw.status),
+    isActive: Boolean(raw.isActive ?? true),
+    isDeleted: Boolean(raw.isDeleted ?? false),
+    createdAt: (raw.createdAt as string | undefined) ?? ts,
     updatedAt: (raw.updatedAt as string | undefined) ?? ts,
     isSynced: true,
     isLocalOnly: false,
@@ -193,6 +244,34 @@ async function pullProducts(
   );
 }
 
+async function pullFloorsAndTables(branchId?: string): Promise<void> {
+  if (!branchId) {
+    return;
+  }
+
+  const [floorsResponse, tablesResponse] = await Promise.all([
+    api.get<Record<string, unknown>[]>(`/floors/branch/${branchId}`),
+    api.get<Record<string, unknown>[]>(`/tables/branch/${branchId}`),
+  ]);
+
+  const floorRows = (floorsResponse.data ?? []) as Record<string, unknown>[];
+  const tableRows = (tablesResponse.data ?? []) as Record<string, unknown>[];
+
+  await Promise.all(
+    floorRows
+      .map(mapServerFloor)
+      .filter((floor) => floor.id && floor.branchId)
+      .map((floor) => floorService.upsertFromServer(floor)),
+  );
+
+  await Promise.all(
+    tableRows
+      .map(mapServerTable)
+      .filter((table) => table.id && table.branchId)
+      .map((table) => tableService.upsertFromServer(table)),
+  );
+}
+
 async function pushCategories(): Promise<void> {
   const db = await getDatabase();
   const unsynced = await db.categories
@@ -295,6 +374,98 @@ async function pushProducts(): Promise<void> {
   }
 }
 
+async function pushFloors(): Promise<void> {
+  const db = await getDatabase();
+  const unsynced = await db.floors
+    .find({ selector: { isSynced: { $eq: false } } })
+    .exec();
+
+  for (const doc of unsynced) {
+    try {
+      let serverFloor: Record<string, unknown>;
+
+      if (doc.isLocalOnly) {
+        const response = await api.post<Record<string, unknown>>("/floors", {
+          id: doc.id,
+          branchId: doc.branchId,
+          name: doc.name,
+          order: doc.order,
+        });
+        serverFloor = response.data;
+      } else {
+        const response = await api.put<Record<string, unknown>>(
+          `/floors/${doc.id}`,
+          {
+            name: doc.name,
+            order: doc.order,
+          },
+        );
+        serverFloor = response.data;
+      }
+
+      await db.floors.upsert(mapServerFloor(serverFloor));
+    } catch (err) {
+      console.warn(`[SyncService] Failed to push floor ${doc.id}:`, err);
+    }
+  }
+}
+
+async function pushTables(): Promise<void> {
+  const db = await getDatabase();
+  const unsynced = await db.tables
+    .find({ selector: { isSynced: { $eq: false } } })
+    .exec();
+
+  for (const doc of unsynced) {
+    try {
+      let serverTable: Record<string, unknown>;
+
+      if (doc.isLocalOnly) {
+        const response = await api.post<Record<string, unknown>>("/tables", {
+          id: doc.id,
+          tableNumber: doc.tableNumber,
+          branchId: doc.branchId,
+          floorId: doc.floorId ?? undefined,
+          name: doc.name,
+          capacity: doc.capacity,
+        });
+        serverTable = response.data;
+      } else {
+        const response = await api.put<Record<string, unknown>>(
+          `/tables/${doc.id}`,
+          {
+            tableNumber: doc.tableNumber,
+            floorId: doc.floorId ?? null,
+            name: doc.name,
+            capacity: doc.capacity,
+            isActive: doc.isActive,
+          },
+        );
+        serverTable = response.data;
+      }
+
+      const mappedTable = mapServerTable(serverTable);
+      if (mappedTable.status !== doc.status) {
+        const statusResponse = await api.patch<Record<string, unknown>>(
+          `/tables/${doc.id}/status`,
+          {
+            status: doc.status,
+          },
+        );
+        serverTable = statusResponse.data;
+      }
+
+      await db.tables.upsert(mapServerTable(serverTable));
+    } catch (err) {
+      console.warn(`[SyncService] Failed to push table ${doc.id}:`, err);
+    }
+  }
+}
+
+async function pushOrders(): Promise<void> {
+  //TODO: Implement order syncing logic similar to categories and products
+}
+
 export interface SyncOptions {
   tenantId?: string;
   branchId?: string;
@@ -316,11 +487,15 @@ export async function initialSync(
   try {
     await pullCategories(options.tenantId);
     await pullProducts(options.tenantId, options.branchId);
+    await pullFloorsAndTables(options.branchId);
     setLastPulledAt(new Date());
 
     await pushCategories();
     await pushSubcategories();
     await pushProducts();
+    await pushFloors();
+    await pushTables();
+    await pushOrders();
 
     console.info("[SyncService] Initial sync complete.");
     return { success: true };
@@ -336,6 +511,7 @@ export async function pull(options: SyncOptions = {}): Promise<SyncResult> {
   try {
     await pullCategories(options.tenantId);
     await pullProducts(options.tenantId, options.branchId);
+    await pullFloorsAndTables(options.branchId);
     setLastPulledAt(new Date());
     return { success: true };
   } catch (err) {
@@ -351,6 +527,9 @@ export async function push(): Promise<SyncResult> {
     await pushCategories();
     await pushSubcategories();
     await pushProducts();
+    await pushFloors();
+    await pushTables();
+    await pushOrders();
     return { success: true };
   } catch (err) {
     console.error("[SyncService] Push failed:", err);

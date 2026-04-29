@@ -1,5 +1,6 @@
 import { Button } from "@repo/ui";
 import { Link } from "@tanstack/react-router";
+import { useLocale } from "./providers/locale-provider";
 
 type Props = {
   title: string;
@@ -9,9 +10,10 @@ type Props = {
 };
 
 const Heading = ({ title, subtitle, href, actions }: Props) => {
+  const { t, isRTL } = useLocale();
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Breadcrumbs */}
       {/* Header row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Left section */}
@@ -21,10 +23,10 @@ const Heading = ({ title, subtitle, href, actions }: Props) => {
               <Button
                 variant="ghost"
                 size="sm"
-                iconName="ArrowLeft"
+                iconName={isRTL ? "ArrowRight" : "ArrowLeft"}
                 className="mt-1"
               >
-                Go back
+                {t("Go back")}
               </Button>
             </Link>
           )}

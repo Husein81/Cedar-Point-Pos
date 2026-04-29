@@ -1,10 +1,13 @@
 import { useLogin } from "@/hooks/auth";
+import { useLocale } from "@/components/providers/locale-provider";
 import { Button, InputField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 import logo from "/assets/logo.png";
 
 const SignIn = () => {
   const login = useLogin();
+  const { t } = useLocale();
+
   const form = useForm({
     defaultValues: {
       username: "",
@@ -44,32 +47,32 @@ const SignIn = () => {
         {/* Card */}
         <div className="rounded-xl border space-y-4 bg-card p-6 shadow-sm">
           <h2 className="text-2xl font-semibold text-center mb-2">
-            Sign in to POS
+            {t("Sign in to POS")}
           </h2>
 
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Enter your username and Password to continue
+            {t("Enter your username and Password to continue")}
           </p>
 
           {/* USERNAME INPUT */}
           <form.Field name="username">
             {(field) => (
               <InputField
-                label="Username"
+                label={t("Username")}
                 id={field.name}
-                placeholder="Enter your username"
+                placeholder={t("Enter your username")}
                 field={field}
               />
             )}
           </form.Field>
 
-          {/* PIN INPUT */}
+          {/* PASSWORD INPUT */}
           <form.Field name="password">
             {(field) => (
               <InputField
-                label="Password"
+                label={t("Password")}
                 id={field.name}
-                placeholder="Enter your password"
+                placeholder={t("Enter your password")}
                 type="password"
                 field={field}
               />
@@ -88,14 +91,14 @@ const SignIn = () => {
                   isSubmitting={isSubmitting}
                   type="submit"
                 >
-                  Verify & Continue
+                  {t("Verify & Continue")}
                 </Button>
 
                 <Button
                   variant="link"
                   className="text-sm text-muted-foreground"
                 >
-                  Forgot Password?
+                  {t("Forgot Password?")}
                 </Button>
               </div>
             )}
@@ -104,7 +107,7 @@ const SignIn = () => {
 
         {/* Footer */}
         <p className="text-xs text-muted-foreground text-center mt-6">
-          Authorized staff access only.
+          {t("Authorized staff access only.")}
         </p>
       </div>
     </form>

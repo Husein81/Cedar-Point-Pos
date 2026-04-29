@@ -34,6 +34,14 @@ export const settingsSections: SettingsSection[] = [
     href: "/settings/loyalty",
     showFor: ["RETAIL", "RESTAURANT"],
   },
+  {
+    id: "language",
+    label: "Language",
+    description: "Switch between Arabic and English interface",
+    icon: "Languages",
+    href: "/settings/language",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
   // Future sections:
   // {
   //   id: "taxes",

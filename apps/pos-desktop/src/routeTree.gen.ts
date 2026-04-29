@@ -30,6 +30,7 @@ import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
 import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
+import { Route as SettingsLanguageRouteImport } from './routes/settings/language'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
@@ -150,6 +151,11 @@ const SettingsLoyaltyRoute = SettingsLoyaltyRouteImport.update({
   path: '/settings/loyalty',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsLanguageRoute = SettingsLanguageRouteImport.update({
+  id: '/settings/language',
+  path: '/settings/language',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
   id: '/settings/currencies',
   path: '/settings/currencies',
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/reports/sales': typeof ReportsSalesRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/language'
     | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories'
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/language'
     | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/reports/sales'
     | '/settings/colors'
     | '/settings/currencies'
+    | '/settings/language'
     | '/settings/loyalty'
     | '/suppliers/$supplierId'
     | '/categories/'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
+  SettingsLanguageRoute: typeof SettingsLanguageRoute
   SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
   SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsLoyaltyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/language': {
+      id: '/settings/language'
+      path: '/settings/language'
+      fullPath: '/settings/language'
+      preLoaderRoute: typeof SettingsLanguageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/currencies': {
       id: '/settings/currencies'
       path: '/settings/currencies'
@@ -770,6 +790,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsProductIdRoute: ProductsProductIdRoute,
   SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
+  SettingsLanguageRoute: SettingsLanguageRoute,
   SettingsLoyaltyRoute: SettingsLoyaltyRoute,
   SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,

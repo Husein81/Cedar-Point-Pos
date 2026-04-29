@@ -1,5 +1,6 @@
 import { cn, Icon, Shad } from "@repo/ui";
 import { Link } from "@tanstack/react-router";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { SettingsSection } from "./config";
 
 type Props = {
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export const SettingsSectionCard = ({ section, className }: Props) => {
+  const { t, isRTL } = useLocale();
+
   return (
     <Link to={section.href}>
       <Shad.Card
@@ -23,14 +26,14 @@ export const SettingsSectionCard = ({ section, className }: Props) => {
           </div>
           <div className="flex-1 space-y-1">
             <Shad.CardTitle className="text-base font-medium">
-              {section.label}
+              {t(section.label)}
             </Shad.CardTitle>
             <Shad.CardDescription className="text-sm">
-              {section.description}
+              {t(section.description)}
             </Shad.CardDescription>
           </div>
           <Icon
-            name="ChevronRight"
+            name={isRTL ? "ChevronLeft" : "ChevronRight"}
             className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors"
           />
         </Shad.CardHeader>

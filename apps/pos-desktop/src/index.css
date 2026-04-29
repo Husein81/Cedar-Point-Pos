@@ -86,3 +86,20 @@ html, body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Roboto', sans-serif;
 }
+
+/* Arabic RTL mode — use system Arabic-capable font stack */
+:root[dir="rtl"],
+:root[dir="rtl"] h1,
+:root[dir="rtl"] h2,
+:root[dir="rtl"] h3,
+:root[dir="rtl"] h4,
+:root[dir="rtl"] h5,
+:root[dir="rtl"] h6 {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, sans-serif;
+}
+
+:root[dir="rtl"] input,
+:root[dir="rtl"] textarea {
+  text-align: right;
+  direction: rtl;
+}

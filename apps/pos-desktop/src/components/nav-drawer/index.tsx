@@ -1,7 +1,8 @@
 import { useAuthStore } from "@/store/authStore";
+import { useLocale } from "@/components/providers/locale-provider";
 import type { BusinessType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { Link, useLocation } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
 import NavUser from "./nav-user";
@@ -15,6 +16,7 @@ type NavDrawerProps = {
 const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
   const pathname = useLocation().pathname;
   const { user } = useAuthStore();
+  const { t, isRTL } = useLocale();
   const navigate = useNavigate();
 
   const [toggle, setToggle] = useState<Record<string, boolean>>(
@@ -31,13 +33,17 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
   };
 
   return (
-    <Shad.Drawer open={open} onOpenChange={onOpenChange} direction="left">
+    <Shad.Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      direction={isRTL ? "right" : "left"}
+    >
       <Shad.DrawerContent className="h-full p-0">
         <div className="flex flex-col h-full">
           {/* Header */}
           <Shad.DrawerHeader className="border-b">
             <Shad.DrawerTitle className="text-lg font-semibold">
-              CedarPoint POS
+              {t("CedarPoint POS")}
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>
 
@@ -56,12 +62,14 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                   <div className="space-y-2">
                     <Shad.CollapsibleTrigger asChild>
                       <span className="flex justify-between items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                        <span>{section.label}</span>
+                        <span>{t(section.label)}</span>
                         <Icon
                           name={
                             toggle[section.label]
                               ? "ChevronDown"
-                              : "ChevronRight"
+                              : isRTL
+                                ? "ChevronLeft"
+                                : "ChevronRight"
                           }
                           className="w-4 h-4"
                         />
@@ -92,7 +100,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                               onClick={() => handleNavigation(item.href)}
                             >
                               <Icon name={item.icon} className="w-4 h-4" />
-                              <span>{item.label}</span>
+                              <span>{t(item.label)}</span>
                             </Button>
                           ))}
                       </div>

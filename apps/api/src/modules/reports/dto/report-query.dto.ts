@@ -23,6 +23,7 @@ export const reportQuerySchema = z
     // Optional filters
     branchId: z.string().cuid().optional(),
     userId: z.string().cuid().optional(),
+    shiftId: z.string().cuid().optional(),
 
     // Enum filters
     orderType: z

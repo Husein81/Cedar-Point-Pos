@@ -157,6 +157,10 @@ export class OrdersController {
       exchangeRate?: number;
       // Loyalty redemption (optional)
       loyalty?: { redeemPoints: number };
+      // Shift attribution (optional)
+      shiftId?: string;
+      deviceId?: string;
+      idempotencyKey?: string;
     },
   ) {
     const user = req.user as { tenantId: string; id: string };

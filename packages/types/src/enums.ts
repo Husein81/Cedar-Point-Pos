@@ -91,6 +91,54 @@ export const ShiftStatus = {
 } as const;
 export type ShiftStatus = (typeof ShiftStatus)[keyof typeof ShiftStatus];
 
+export const CashMovementType = {
+  CASH_IN: "CASH_IN",
+  CASH_OUT: "CASH_OUT",
+  CASH_SALE: "CASH_SALE",
+  CASH_CHANGE: "CASH_CHANGE",
+  CASH_REFUND_OUT: "CASH_REFUND_OUT",
+  CASH_REFUND_CORRECTION: "CASH_REFUND_CORRECTION",
+  OPENING_CASH: "OPENING_CASH",
+} as const;
+export type CashMovementType =
+  (typeof CashMovementType)[keyof typeof CashMovementType];
+
+export const CashMovementReferenceType = {
+  PAYMENT: "PAYMENT",
+  REFUND: "REFUND",
+  ORDER: "ORDER",
+  SHIFT: "SHIFT",
+  MANUAL: "MANUAL",
+} as const;
+export type CashMovementReferenceType =
+  (typeof CashMovementReferenceType)[keyof typeof CashMovementReferenceType];
+
+export const ShiftCloseMode = {
+  NORMAL: "NORMAL",
+  BLIND: "BLIND",
+} as const;
+export type ShiftCloseMode =
+  (typeof ShiftCloseMode)[keyof typeof ShiftCloseMode];
+
+export const ShiftCloseResult = {
+  BALANCED: "BALANCED",
+  OVER: "OVER",
+  SHORT: "SHORT",
+  APPROVED: "APPROVED",
+  NEEDS_APPROVAL: "NEEDS_APPROVAL",
+} as const;
+export type ShiftCloseResult =
+  (typeof ShiftCloseResult)[keyof typeof ShiftCloseResult];
+
+export const ShiftScheduleStatus = {
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED",
+  STARTED: "STARTED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type ShiftScheduleStatus =
+  (typeof ShiftScheduleStatus)[keyof typeof ShiftScheduleStatus];
+
 export const LoyaltyEnrollmentMode = {
   AUTO: "AUTO",
   MANUAL: "MANUAL",

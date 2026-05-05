@@ -48,11 +48,11 @@ export function ActiveOrderCard({
           {itemCount} item{itemCount !== 1 ? "s" : ""}
         </span>
         {order.customer && (
-          <span className="flex items-center gap-1">
-            <Icon name="User" className="h-3 w-3" />
-            {(order.customer as any).name}
-          </span>
-        )}
+            <span className="flex items-center gap-1">
+              <Icon name="User" className="h-3 w-3" />
+              {order.customer.name}
+            </span>
+          )}
         <span className="font-bold text-foreground ml-auto">
           ${total.toFixed(2)}
         </span>

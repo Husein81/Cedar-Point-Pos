@@ -1,4 +1,3 @@
-"use client";
 import { useForm } from "@tanstack/react-form";
 import { Button, InputField, Icon } from "@repo/ui";
 import type {

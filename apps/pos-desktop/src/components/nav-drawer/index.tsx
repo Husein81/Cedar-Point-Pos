@@ -1,11 +1,10 @@
 import { useAuthStore } from "@/store/authStore";
 import type { BusinessType } from "@repo/types";
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { Link, useLocation } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
 import NavUser from "./nav-user";
-import { useNavigate } from "@tanstack/react-router";
 
 type NavDrawerProps = {
   open: boolean;
@@ -48,7 +47,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
               {sidebarSections.map((section) => (
                 <Shad.Collapsible
                   open={toggle[section.label]}
-                  onOpenChange={(isOpen) =>
+                  onOpenChange={(isOpen:boolean) =>
                     setToggle((prev) => ({ ...prev, [section.label]: isOpen }))
                   }
                   key={section.label}
@@ -80,6 +79,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                           })
                           .map((item) => (
                             <Button
+                              key={item.href}
                               variant="ghost"
                               className={cn(
                                 "flex justify-start w-full",

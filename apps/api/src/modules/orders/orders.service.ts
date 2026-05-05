@@ -9,9 +9,12 @@ import {
   BusinessType,
   LoyaltyDirection,
   LoyaltyTransactionType,
+  CashMovementReferenceType,
+  CashMovementType,
   OrderStatus,
   OrderType,
   QueryParams,
+  ShiftStatus,
 } from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
@@ -50,6 +53,73 @@ export class OrdersService {
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
+  }
+
+  private isIdempotencyUniqueError(error: unknown): boolean {
+    if (
+      !(
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+    ) {
+      return false;
+    }
+
+    const target = (error.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) {
+      return target.includes('idempotencyKey');
+    }
+    if (typeof target === 'string') {
+      return target.includes('idempotencyKey');
+    }
+    return false;
+  }
+
+  private async buildIdempotentPaymentResponse(
+    tenantId: string,
+    orderId: string,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: {
+        total: true,
+        status: true,
+        currencyCode: true,
+        payments: {
+          select: {
+            amount: true,
+            method: true,
+            currencyCode: true,
+            exchangeRate: true,
+          },
+        },
+      },
+    });
+
+    const totalDue = this.money(Number(order?.total || 0));
+    const allPayments = order?.payments || [];
+    const totalPaid = this.money(
+      allPayments.reduce((s, p) => s + Number(p.amount), 0),
+    );
+    const changeBase = Math.max(0, totalPaid - totalDue);
+    const firstCash = allPayments.find((p) => p.method === PaymentMethod.CASH);
+    const changeCurrency =
+      firstCash?.currencyCode || order?.currencyCode || 'USD';
+    const changeRate = firstCash ? Number(firstCash.exchangeRate || 1) : 1;
+
+    return {
+      orderId,
+      status: order?.status || OrderStatus.PENDING,
+      totalDue,
+      paid: this.money(Math.min(totalPaid, totalDue)),
+      remaining: this.money(Math.max(0, totalDue - totalPaid)),
+      change: {
+        amount: this.money(changeBase / changeRate),
+        currency: changeCurrency,
+      },
+      paymentCount: allPayments.length,
+      idempotent: true,
+    };
   }
 
   private validateTransition(
@@ -98,6 +168,54 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Validate shiftId and deviceId belong to tenant and match the order branch.
+   * Throws BadRequestException/NotFoundException on mismatch.
+   * No-ops when both are absent (backward compat).
+   */
+  private async validateShiftAndDevice(
+    tenantId: string,
+    branchId: string,
+    shiftId?: string | null,
+    deviceId?: string | null,
+  ) {
+    if (!shiftId && !deviceId) return;
+
+    if (shiftId) {
+      const shift = await this.prisma.shift.findFirst({
+        where: { id: shiftId, tenantId },
+        select: { branchId: true, deviceId: true },
+      });
+      if (!shift) {
+        throw new NotFoundException('Shift not found or not accessible');
+      }
+      if (shift.branchId !== branchId) {
+        throw new BadRequestException(
+          'Shift does not belong to the order branch',
+        );
+      }
+      // If caller also passed deviceId, it must match the shift's device
+      if (deviceId && shift.deviceId && shift.deviceId !== deviceId) {
+        throw new BadRequestException('Device does not match the shift device');
+      }
+    }
+
+    if (deviceId) {
+      const device = await this.prisma.pOSDevice.findFirst({
+        where: { id: deviceId, tenantId },
+        select: { branchId: true },
+      });
+      if (!device) {
+        throw new NotFoundException('Device not found or not accessible');
+      }
+      if (device.branchId !== branchId) {
+        throw new BadRequestException(
+          'Device does not belong to the order branch',
+        );
+      }
+    }
+  }
+
   /* ----------------------------------------------------
      CREATE
   ---------------------------------------------------- */
@@ -113,6 +231,8 @@ export class OrdersService {
       shippingFee,
       includeVAT,
       guestCount,
+      shiftId,
+      deviceId,
     } = dto;
 
     // Fetch tenant info and branch order count in parallel
@@ -299,6 +419,9 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
+    // Validate shift/device ownership and branch consistency
+    await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
+
     // Use transaction to create order and update table status atomically
     return this.prisma.$transaction(async (tx) => {
       // Create the order
@@ -318,6 +441,8 @@ export class OrdersService {
           vat: vatAmount,
           ...(tableId && { tableId }),
           ...(customerId && { customerId }),
+          ...(shiftId && { shiftId }),
+          ...(deviceId && { deviceId }),
           items: { create: orderItems },
         },
         include: {
@@ -547,6 +672,10 @@ export class OrdersService {
       currencyCode?: string;
       exchangeRate?: number;
       loyalty?: { redeemPoints: number };
+      // Shift attribution (optional for backward compat)
+      shiftId?: string;
+      deviceId?: string;
+      idempotencyKey?: string;
     },
     userId: string,
   ) {
@@ -585,6 +714,52 @@ export class OrdersService {
       );
     }
 
+    // ── Shift context (passed by caller; no auto-resolution) ─────────────
+    const resolvedShiftId = paymentsInput.shiftId || null;
+    const resolvedDeviceId = paymentsInput.deviceId || null;
+
+    // Validate shift/device ownership against the order branch
+    if (resolvedShiftId || resolvedDeviceId) {
+      const orderForBranch = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: { branchId: true },
+      });
+      if (!orderForBranch) throw new NotFoundException('Order not found');
+      await this.validateShiftAndDevice(
+        tenantId,
+        orderForBranch.branchId,
+        resolvedShiftId,
+        resolvedDeviceId,
+      );
+    }
+
+    if (resolvedShiftId) {
+      const shift = await this.prisma.shift.findFirst({
+        where: { id: resolvedShiftId, tenantId },
+        select: { status: true },
+      });
+      if (!shift) throw new NotFoundException('Shift not found');
+      if (shift.status !== ShiftStatus.OPEN) {
+        throw new BadRequestException(
+          'Cannot process payment on a closed shift',
+        );
+      }
+    }
+
+    // ── Idempotency check (order-scoped) ─────────────────────────────────
+    if (paymentsInput.idempotencyKey) {
+      const existing = await this.prisma.payment.findFirst({
+        where: {
+          orderId,
+          idempotencyKey: paymentsInput.idempotencyKey,
+          order: { tenantId },
+        },
+      });
+      if (existing) {
+        return this.buildIdempotentPaymentResponse(tenantId, orderId);
+      }
+    }
+
     // ── Phase 1: Atomic payment + status update ──────────────────────────
     // Run payment records + order status inside ONE transaction.
     // Inventory deduction is intentionally OUTSIDE to avoid deadlocks:
@@ -592,343 +767,473 @@ export class OrdersService {
     // its own $transaction — if called inside this tx it deadlocks because
     // the Serializable lock on Order blocks the outside read.
 
-    const txResult = await this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.findFirst({
-        where: { id: orderId, tenantId },
-        select: {
-          id: true,
-          status: true,
-          total: true, // ✅ already includes VAT + shipping
-          subtotal: true,
-          discount: true,
-          branchId: true,
-          currencyCode: true,
-          customerId: true,
-          loyaltyRedeemedPoints: true,
-          loyaltyRedeemedAmount: true,
-          payments: {
-            select: { amount: true }, // amount is in BASE currency
+    try {
+      const txResult = await this.prisma.$transaction(async (tx) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, tenantId },
+          select: {
+            id: true,
+            status: true,
+            total: true, // ✅ already includes VAT + shipping
+            subtotal: true,
+            discount: true,
+            branchId: true,
+            shiftId: true,
+            deviceId: true,
+            currencyCode: true,
+            customerId: true,
+            loyaltyRedeemedPoints: true,
+            loyaltyRedeemedAmount: true,
+            payments: {
+              select: { amount: true }, // amount is in BASE currency
+            },
+            tenant: {
+              select: { businessType: true },
+            },
           },
-          tenant: {
-            select: { businessType: true },
-          },
-        },
-      });
+        });
 
-      if (!order) throw new NotFoundException('Order not found');
+        if (!order) throw new NotFoundException('Order not found');
 
-      if (order.status === OrderStatus.CANCELLED) {
-        throw new BadRequestException('Cannot pay a cancelled order');
-      }
+        if (order.status === OrderStatus.CANCELLED) {
+          throw new BadRequestException('Cannot pay a cancelled order');
+        }
 
-      /* ============================================
+        // Re-check shift state inside transaction to prevent writes after concurrent close.
+        if (resolvedShiftId) {
+          const shift = await tx.shift.findFirst({
+            where: { id: resolvedShiftId, tenantId },
+            select: { status: true },
+          });
+          if (!shift) throw new NotFoundException('Shift not found');
+          if (shift.status !== ShiftStatus.OPEN) {
+            throw new BadRequestException(
+              'Cannot process payment on a closed shift',
+            );
+          }
+        }
+
+        /* ============================================
          LOYALTY REDEMPTION
-      ============================================ */
+       ============================================ */
 
-      let loyaltyRedeemedAmount = Number(order.loyaltyRedeemedAmount || 0);
-      let loyaltyRedeemedPoints = order.loyaltyRedeemedPoints || 0;
-      let _loyaltyApplied = false;
+        let loyaltyRedeemedAmount = Number(order.loyaltyRedeemedAmount || 0);
+        let loyaltyRedeemedPoints = order.loyaltyRedeemedPoints || 0;
+        let _loyaltyApplied = false;
 
-      const loyaltyRequest = paymentsInput.loyalty?.redeemPoints;
-      if (loyaltyRequest && loyaltyRequest > 0) {
-        if (loyaltyRedeemedPoints > 0) {
-          throw new BadRequestException(
-            'Loyalty points already redeemed on this order',
-          );
-        }
-        if (!order.customerId) {
-          throw new BadRequestException(
-            'Customer is required for loyalty redemption',
-          );
-        }
-
-        const program = await this.loyaltyService.getProgram(tenantId);
-        if (!program.isEnabled) {
-          throw new BadRequestException('Loyalty program is not enabled');
-        }
-        if (
-          !program.redeemPointsStep ||
-          !program.redeemCurrencyPerStep ||
-          program.maxRedeemPercent == null
-        ) {
-          throw new BadRequestException(
-            'Loyalty program redemption not configured',
-          );
-        }
-        if (loyaltyRequest < (program.minRedeemPoints || 0)) {
-          throw new BadRequestException(
-            `Minimum redemption is ${program.minRedeemPoints} points`,
-          );
-        }
-
-        const account = await this.loyaltyService.getAccount(
-          tenantId,
-          order.customerId,
-        );
-        if (account.pointsBalance < loyaltyRequest) {
-          throw new BadRequestException(
-            `Insufficient loyalty balance. Available: ${account.pointsBalance}`,
-          );
-        }
-
-        const eligibleBase = LoyaltyMath.computeEligibleBase(
-          order.subtotal,
-          order.discount || 0,
-          0,
-        );
-
-        const redemption = LoyaltyMath.computeRedemption({
-          requestedPoints: loyaltyRequest,
-          redeemPointsStep: program.redeemPointsStep,
-          redeemCurrencyPerStep: program.redeemCurrencyPerStep,
-          maxRedeemPercent: program.maxRedeemPercent,
-          eligibleBase,
-        });
-
-        if (redemption.appliedPoints === 0) {
-          throw new BadRequestException(
-            'No points can be redeemed for this order',
-          );
-        }
-
-        await tx.order.update({
-          where: { id: orderId },
-          data: {
-            loyaltyRedeemedPoints: redemption.appliedPoints,
-            loyaltyRedeemedAmount: redemption.appliedDiscount,
-            loyaltyRedeemBaseAtCompletion: eligibleBase,
-          },
-        });
-
-        loyaltyRedeemedAmount = Number(redemption.appliedDiscount);
-        loyaltyRedeemedPoints = redemption.appliedPoints;
-        _loyaltyApplied = true;
-      }
-
-      /* ============================================
-         BATCH CALCULATION IN BASE CURRENCY
-      ============================================ */
-
-      const totalDue = this.money(Number(order.total) - loyaltyRedeemedAmount);
-
-      // Already paid (all in base currency)
-      const alreadyPaid = this.money(
-        order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
-      );
-
-      // Convert all payments to base currency and sum them
-      const batchTotalBase = this.money(
-        payments.reduce((sum, payment) => {
-          const exchangeRate =
-            payment.currencyCode && payment.currencyCode !== order.currencyCode
-              ? payment.exchangeRate || 1
-              : 1;
-
-          if (!exchangeRate || exchangeRate <= 0) {
-            throw new BadRequestException('Invalid exchange rate');
+        const loyaltyRequest = paymentsInput.loyalty?.redeemPoints;
+        if (loyaltyRequest && loyaltyRequest > 0) {
+          if (loyaltyRedeemedPoints > 0) {
+            throw new BadRequestException(
+              'Loyalty points already redeemed on this order',
+            );
+          }
+          if (!order.customerId) {
+            throw new BadRequestException(
+              'Customer is required for loyalty redemption',
+            );
           }
 
-          const paymentInBase = payment.amount * exchangeRate;
-          return sum + paymentInBase;
-        }, 0),
-      );
+          const program = await this.loyaltyService.getProgram(tenantId);
+          if (!program.isEnabled) {
+            throw new BadRequestException('Loyalty program is not enabled');
+          }
+          if (
+            !program.redeemPointsStep ||
+            !program.redeemCurrencyPerStep ||
+            program.maxRedeemPercent == null
+          ) {
+            throw new BadRequestException(
+              'Loyalty program redemption not configured',
+            );
+          }
+          if (loyaltyRequest < (program.minRedeemPoints || 0)) {
+            throw new BadRequestException(
+              `Minimum redemption is ${program.minRedeemPoints} points`,
+            );
+          }
 
-      // New total paid (in base currency)
-      const newTotalPaid = this.money(alreadyPaid + batchTotalBase);
+          const account = await this.loyaltyService.getAccount(
+            tenantId,
+            order.customerId,
+          );
+          if (account.pointsBalance < loyaltyRequest) {
+            throw new BadRequestException(
+              `Insufficient loyalty balance. Available: ${account.pointsBalance}`,
+            );
+          }
 
-      // Check if any card payment exceeds remaining (card cannot overpay)
-      const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
-      const hasCardPayment = payments.some(
-        (p) => p.method !== PaymentMethod.CASH,
-      );
+          const eligibleBase = LoyaltyMath.computeEligibleBase(
+            order.subtotal,
+            order.discount || 0,
+            0,
+          );
 
-      if (hasCardPayment && batchTotalBase > remaining) {
-        throw new BadRequestException(
-          `Payment exceeds remaining balance. Remaining: ${remaining}`,
-        );
-      }
-
-      const isFullyPaid = newTotalPaid >= totalDue;
-
-      /* ============================================
-         CREATE PAYMENT RECORDS FOR ALL PAYMENTS
-      ============================================ */
-
-      await Promise.all(
-        payments.map((payment) => {
-          const exchangeRate =
-            payment.currencyCode && payment.currencyCode !== order.currencyCode
-              ? payment.exchangeRate || 1
-              : 1;
-
-          const paymentInBase = this.money(payment.amount * exchangeRate);
-
-          return tx.payment.create({
-            data: {
-              orderId,
-              method: payment.method,
-              amount: new Prisma.Decimal(paymentInBase), // Store BASE currency
-              currencyCode: payment.currencyCode,
-              exchangeRate: exchangeRate
-                ? new Prisma.Decimal(exchangeRate)
-                : undefined,
-            },
-          });
-        }),
-      );
-
-      /* ============================================
-         UPDATE ORDER STATUS
-      ============================================ */
-
-      const isRestaurant =
-        order.tenant?.businessType === BusinessType.RESTAURANT;
-
-      let shouldDeductInventory = false;
-      let newStatus: OrderStatus | null = null;
-
-      if (isRestaurant) {
-        newStatus = isFullyPaid ? OrderStatus.PAID : OrderStatus.PARTIALLY_PAID;
-
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: newStatus },
-        });
-      } else {
-        if (isFullyPaid) {
-          // Get table info before updating order
-          const orderWithTable = await tx.order.findFirst({
-            where: { id: orderId },
-            select: { tableId: true },
+          const redemption = LoyaltyMath.computeRedemption({
+            requestedPoints: loyaltyRequest,
+            redeemPointsStep: program.redeemPointsStep,
+            redeemCurrencyPerStep: program.redeemCurrencyPerStep,
+            maxRedeemPercent: program.maxRedeemPercent,
+            eligibleBase,
           });
 
-          newStatus = OrderStatus.COMPLETED;
+          if (redemption.appliedPoints === 0) {
+            throw new BadRequestException(
+              'No points can be redeemed for this order',
+            );
+          }
 
           await tx.order.update({
             where: { id: orderId },
             data: {
-              status: newStatus,
-              completedAt: new Date(),
+              loyaltyRedeemedPoints: redemption.appliedPoints,
+              loyaltyRedeemedAmount: redemption.appliedDiscount,
+              loyaltyRedeemBaseAtCompletion: eligibleBase,
             },
           });
 
-          // ✅ Update table status if order was associated with a table
-          if (orderWithTable?.tableId) {
-            await this.tableStatusService.markTableAvailableIfPossible(
-              orderWithTable.tableId,
-              orderId,
-              tenantId,
-              tx,
+          loyaltyRedeemedAmount = Number(redemption.appliedDiscount);
+          loyaltyRedeemedPoints = redemption.appliedPoints;
+          _loyaltyApplied = true;
+        }
+
+        /* ============================================
+         BATCH CALCULATION IN BASE CURRENCY
+      ============================================ */
+
+        const totalDue = this.money(
+          Number(order.total) - loyaltyRedeemedAmount,
+        );
+
+        // Already paid (all in base currency)
+        const alreadyPaid = this.money(
+          order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
+        );
+
+        // Convert all payments to base currency and sum them
+        const batchTotalBase = this.money(
+          payments.reduce((sum, payment) => {
+            const exchangeRate =
+              payment.currencyCode &&
+              payment.currencyCode !== order.currencyCode
+                ? payment.exchangeRate || 1
+                : 1;
+
+            if (!exchangeRate || exchangeRate <= 0) {
+              throw new BadRequestException('Invalid exchange rate');
+            }
+
+            const paymentInBase = payment.amount * exchangeRate;
+            return sum + paymentInBase;
+          }, 0),
+        );
+
+        // New total paid (in base currency)
+        const newTotalPaid = this.money(alreadyPaid + batchTotalBase);
+
+        // Check if any card payment exceeds remaining (card cannot overpay)
+        const remaining = this.money(Math.max(0, totalDue - alreadyPaid));
+        const hasCardPayment = payments.some(
+          (p) => p.method !== PaymentMethod.CASH,
+        );
+
+        if (hasCardPayment && batchTotalBase > remaining) {
+          throw new BadRequestException(
+            `Payment exceeds remaining balance. Remaining: ${remaining}`,
+          );
+        }
+
+        const isFullyPaid = newTotalPaid >= totalDue;
+
+        /* ============================================
+         CREATE PAYMENT RECORDS FOR ALL PAYMENTS
+      ============================================ */
+
+        const createdPayments = await Promise.all(
+          payments.map((payment, idx) => {
+            const exchangeRate =
+              payment.currencyCode &&
+              payment.currencyCode !== order.currencyCode
+                ? payment.exchangeRate || 1
+                : 1;
+
+            const paymentInBase = this.money(payment.amount * exchangeRate);
+
+            // Build idempotency key: first payment gets the main key, subsequent get suffixed
+            const paymentIdempotencyKey = paymentsInput.idempotencyKey
+              ? idx === 0
+                ? paymentsInput.idempotencyKey
+                : `${paymentsInput.idempotencyKey}__${idx}`
+              : undefined;
+
+            return tx.payment.create({
+              data: {
+                orderId,
+                method: payment.method,
+                amount: new Prisma.Decimal(paymentInBase), // Store BASE currency
+                currencyCode: payment.currencyCode,
+                exchangeRate: exchangeRate
+                  ? new Prisma.Decimal(exchangeRate)
+                  : undefined,
+                // ── Shift attribution ──
+                shiftId: resolvedShiftId || undefined,
+                deviceId: resolvedDeviceId || undefined, // nullable FK-safe (B)
+                userId,
+                idempotencyKey: paymentIdempotencyKey,
+              },
+            });
+          }),
+        );
+
+        /* ============================================
+         CREATE CASH MOVEMENTS (for cash payments)
+      ============================================ */
+
+        if (resolvedShiftId && order.branchId) {
+          const cashPayments = createdPayments.filter(
+            (p) => p.method === PaymentMethod.CASH,
+          );
+
+          if (cashPayments.length > 0) {
+            await Promise.all(
+              cashPayments.map((cp) =>
+                tx.cashMovement.create({
+                  data: {
+                    tenantId,
+                    branchId: order.branchId,
+                    shiftId: resolvedShiftId,
+                    deviceId: resolvedDeviceId || undefined,
+                    userId,
+                    type: CashMovementType.CASH_SALE,
+                    amount: new Prisma.Decimal(Number(cp.amount)),
+                    reason: `Payment for order ${orderId}`,
+                    referenceId: cp.id,
+                    referenceType: CashMovementReferenceType.PAYMENT,
+                  },
+                }),
+              ),
             );
           }
+        }
 
-          // Flag for post-commit inventory deduction (non-restaurant only)
-          shouldDeductInventory = true;
-        } else if (order.status === OrderStatus.DRAFT) {
-          newStatus = OrderStatus.PENDING;
+        /* ============================================
+         BACKFILL Order.shiftId (if null and shift provided)
+      ============================================ */
+        if (resolvedShiftId && !order.shiftId) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              shiftId: resolvedShiftId,
+              ...(resolvedDeviceId &&
+                !order.deviceId && { deviceId: resolvedDeviceId }),
+            },
+          });
+        }
+
+        /* ============================================
+         UPDATE ORDER STATUS
+      ============================================ */
+
+        const isRestaurant =
+          order.tenant?.businessType === BusinessType.RESTAURANT;
+
+        let shouldDeductInventory = false;
+        let newStatus: OrderStatus | null = null;
+
+        if (isRestaurant) {
+          newStatus = isFullyPaid
+            ? OrderStatus.PAID
+            : OrderStatus.PARTIALLY_PAID;
+
           await tx.order.update({
             where: { id: orderId },
             data: { status: newStatus },
           });
-        }
-      }
+        } else {
+          if (isFullyPaid) {
+            // Get table info before updating order
+            const orderWithTable = await tx.order.findFirst({
+              where: { id: orderId },
+              select: { tableId: true },
+            });
 
-      /* ============================================
+            newStatus = OrderStatus.COMPLETED;
+
+            await tx.order.update({
+              where: { id: orderId },
+              data: {
+                status: newStatus,
+                completedAt: new Date(),
+              },
+            });
+
+            // ✅ Update table status if order was associated with a table
+            if (orderWithTable?.tableId) {
+              await this.tableStatusService.markTableAvailableIfPossible(
+                orderWithTable.tableId,
+                orderId,
+                tenantId,
+                tx,
+              );
+            }
+
+            // Flag for post-commit inventory deduction (non-restaurant only)
+            shouldDeductInventory = true;
+          } else if (order.status === OrderStatus.DRAFT) {
+            newStatus = OrderStatus.PENDING;
+            await tx.order.update({
+              where: { id: orderId },
+              data: { status: newStatus },
+            });
+          }
+        }
+
+        /* ============================================
          CALCULATE CHANGE (CASH ONLY)
       ============================================ */
 
-      const changeBase = Math.max(0, newTotalPaid - totalDue);
+        const changeBase = Math.max(0, newTotalPaid - totalDue);
 
-      // For cash payments, return change in the first cash payment's currency
-      const firstCashPayment = payments.find(
-        (p) => p.method === PaymentMethod.CASH,
-      );
+        // For cash payments, return change in the first cash payment's currency
+        const firstCashPayment = payments.find(
+          (p) => p.method === PaymentMethod.CASH,
+        );
 
-      const changeInfo = firstCashPayment
-        ? {
-            amount: this.money(
-              changeBase / (firstCashPayment.exchangeRate || 1),
-            ),
-            currency: firstCashPayment.currencyCode || order.currencyCode,
-          }
-        : {
-            amount: this.money(0),
-            currency: order.currencyCode,
-          };
+        const changeInfo = firstCashPayment
+          ? {
+              amount: this.money(
+                changeBase / (firstCashPayment.exchangeRate || 1),
+              ),
+              currency: firstCashPayment.currencyCode || order.currencyCode,
+            }
+          : {
+              amount: this.money(0),
+              currency: order.currencyCode,
+            };
 
-      const finalStatus =
-        newStatus ??
-        (isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING);
+        /* ============================================
+         CASH CHANGE MOVEMENT
+      ============================================ */
 
-      return {
-        orderId,
-        status: finalStatus,
-        totalDue,
-        paid: this.money(Math.min(newTotalPaid, totalDue)),
-        remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
-        change: changeInfo,
-        paymentCount: payments.length,
-        loyaltyRedeemedPoints,
-        loyaltyRedeemedAmount,
-        // Internal flags — stripped before returning to client
-        _shouldDeductInventory: shouldDeductInventory,
-        _branchId: order.branchId,
-        _loyaltyApplied,
-        _customerId: order.customerId,
-      };
-    });
+        if (
+          resolvedShiftId &&
+          order.branchId &&
+          changeBase > 0 &&
+          firstCashPayment
+        ) {
+          await tx.cashMovement.create({
+            data: {
+              tenantId,
+              branchId: order.branchId,
+              shiftId: resolvedShiftId,
+              deviceId: resolvedDeviceId || undefined,
+              userId,
+              type: CashMovementType.CASH_CHANGE,
+              amount: new Prisma.Decimal(changeBase),
+              reason: `Change for order ${orderId}`,
+              referenceId: orderId,
+              referenceType: CashMovementReferenceType.ORDER,
+            },
+          });
+        }
 
-    // ── Phase 2: Post-commit inventory deduction ─────────────────────────
-    // Runs AFTER the transaction commits, on its own connection.
-    // If this fails, payment is still recorded — inventory can be reconciled.
-    if (txResult._shouldDeductInventory) {
-      try {
-        await this.inventoryDeductionService.deductStockForOrder(
-          tenantId,
+        const finalStatus =
+          newStatus ??
+          (isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING);
+
+        return {
           orderId,
-          txResult._branchId,
-          userId,
-        );
-      } catch (err) {
-        // Log but don't fail the payment — order + payment are committed.
-        // Inventory can be reconciled separately.
-        console.error(
-          `[processPayment] Inventory deduction failed for order ${orderId}:`,
-          err,
-        );
+          status: finalStatus,
+          totalDue,
+          paid: this.money(Math.min(newTotalPaid, totalDue)),
+          remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
+          change: changeInfo,
+          paymentCount: payments.length,
+          loyaltyRedeemedPoints,
+          loyaltyRedeemedAmount,
+          // Internal flags — stripped before returning to client
+          _shouldDeductInventory: shouldDeductInventory,
+          _branchId: order.branchId,
+          _loyaltyApplied,
+          _customerId: order.customerId,
+        };
+      });
+
+      // ── Phase 2: Post-commit inventory deduction ─────────────────────────
+      // Runs AFTER the transaction commits, on its own connection.
+      // If this fails, payment is still recorded — inventory can be reconciled.
+      if (txResult._shouldDeductInventory) {
+        try {
+          await this.inventoryDeductionService.deductStockForOrder(
+            tenantId,
+            orderId,
+            txResult._branchId,
+            userId,
+          );
+        } catch (err) {
+          // Log but don't fail the payment — order + payment are committed.
+          // Inventory can be reconciled separately.
+          console.error(
+            `[processPayment] Inventory deduction failed for order ${orderId}:`,
+            err,
+          );
+        }
       }
-    }
 
-    // ── Phase 3: Post-commit loyalty ledger debit ────────────────────────
-    if (txResult._loyaltyApplied && txResult._customerId) {
-      try {
-        await this.loyaltyService.applyLedgerEntry({
-          tenantId,
-          customerId: txResult._customerId,
-          orderId,
-          type: LoyaltyTransactionType.REDEEM,
-          direction: LoyaltyDirection.DEBIT,
-          points: txResult.loyaltyRedeemedPoints,
-          moneyAmount: txResult.loyaltyRedeemedAmount,
-          idempotencyKey: `order:${orderId}:redeem`,
-          actorUserId: userId,
+      // ── Phase 3: Post-commit loyalty ledger debit ────────────────────────
+      if (txResult._loyaltyApplied && txResult._customerId) {
+        try {
+          await this.loyaltyService.applyLedgerEntry({
+            tenantId,
+            customerId: txResult._customerId,
+            orderId,
+            type: LoyaltyTransactionType.REDEEM,
+            direction: LoyaltyDirection.DEBIT,
+            points: txResult.loyaltyRedeemedPoints,
+            moneyAmount: txResult.loyaltyRedeemedAmount,
+            idempotencyKey: `order:${orderId}:redeem`,
+            actorUserId: userId,
+          });
+        } catch (err) {
+          this.logger.error(
+            `[processPayment] Loyalty debit failed for order ${orderId}:`,
+            err,
+          );
+        }
+      }
+
+      // ── Phase 4: Post-commit loyalty earn (retail → COMPLETED) ───────────
+      if (txResult.status === OrderStatus.COMPLETED && txResult._customerId) {
+        await this.earnLoyaltyPoints(tenantId, orderId, userId);
+      }
+
+      // Strip internal flags before returning
+      const { ...result } = txResult;
+      return result;
+    } catch (error) {
+      if (
+        paymentsInput.idempotencyKey &&
+        this.isIdempotencyUniqueError(error)
+      ) {
+        const candidateKeys = payments.map((_, idx) =>
+          idx === 0
+            ? paymentsInput.idempotencyKey!
+            : `${paymentsInput.idempotencyKey}__${idx}`,
+        );
+        const existing = await this.prisma.payment.findFirst({
+          where: {
+            orderId,
+            idempotencyKey: { in: candidateKeys },
+            order: { tenantId },
+          },
+          select: { id: true },
         });
-      } catch (err) {
-        this.logger.error(
-          `[processPayment] Loyalty debit failed for order ${orderId}:`,
-          err,
-        );
+        if (existing) {
+          return this.buildIdempotentPaymentResponse(tenantId, orderId);
+        }
       }
+      throw error;
     }
-
-    // ── Phase 4: Post-commit loyalty earn (retail → COMPLETED) ───────────
-    if (txResult.status === OrderStatus.COMPLETED && txResult._customerId) {
-      await this.earnLoyaltyPoints(tenantId, orderId, userId);
-    }
-
-    // Strip internal flags before returning
-    const { ...result } = txResult;
-    return result;
   }
 
   /**

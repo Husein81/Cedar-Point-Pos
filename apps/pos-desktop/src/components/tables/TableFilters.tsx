@@ -1,6 +1,6 @@
 import { TableStatus } from "@repo/types";
 import { Button, Icon, Input, Select } from "@repo/ui";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { TABLE_STATUS_OPTIONS } from "./config";
 
 export interface TableFilters {
@@ -22,38 +22,17 @@ export function TableFilters({
   onFiltersChange,
   floors,
 }: TableFiltersProps) {
-  const [localFilters, setLocalFilters] = useState<TableFilters>(filters);
+  const handleSearchChange = (value: string) =>
+    onFiltersChange({ ...filters, search: value });
 
-  const handleSearchChange = (value: string) => {
-    const updated = { ...localFilters, search: value };
-    setLocalFilters(updated);
-    onFiltersChange(updated);
-  };
+  const handleStatusChange = (value: string) =>
+    onFiltersChange({ ...filters, status: value as TableStatus | "ALL" });
 
-  const handleStatusChange = (value: string) => {
-    const updated = {
-      ...localFilters,
-      status: value as TableStatus | "ALL",
-    };
-    setLocalFilters(updated);
-    onFiltersChange(updated);
-  };
+  const handleFloorChange = (value: string) =>
+    onFiltersChange({ ...filters, floorId: value });
 
-  const handleFloorChange = (value: string) => {
-    const updated = { ...localFilters, floorId: value };
-    setLocalFilters(updated);
-    onFiltersChange(updated);
-  };
-
-  const handleClearFilters = () => {
-    const cleared: TableFilters = {
-      search: "",
-      status: "ALL",
-      floorId: "ALL",
-    };
-    setLocalFilters(cleared);
-    onFiltersChange(cleared);
-  };
+  const handleClearFilters = () =>
+    onFiltersChange({ search: "", status: "ALL", floorId: "ALL" });
 
   const floorOptions = useMemo(
     () => [
@@ -85,7 +64,7 @@ export function TableFilters({
           <Input
             id="table-search"
             placeholder="Search tables..."
-            value={localFilters.search}
+            value={filters.search}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9 h-10"
           />
@@ -96,7 +75,7 @@ export function TableFilters({
       <div className="min-w-40">
         <Select
           placeholder="All Statuses"
-          value={localFilters.status}
+          value={filters.status}
           onChange={(opt) => handleStatusChange(opt.value)}
           options={[
             { label: "All Statuses", value: "ALL" },
@@ -109,7 +88,7 @@ export function TableFilters({
       {floors.length > 0 && (
         <div className="min-w-40">
           <Select
-            value={localFilters.floorId}
+            value={filters.floorId}
             placeholder="All Floors"
             onChange={(opt) => handleFloorChange(opt.value)}
             options={floorOptions}

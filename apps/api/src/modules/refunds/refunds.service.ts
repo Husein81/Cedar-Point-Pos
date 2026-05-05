@@ -5,15 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CashMovementReferenceType,
+  CashMovementType,
   LoyaltyDirection,
   LoyaltyTransactionType,
   OrderStatus,
+  ShiftStatus,
 } from '@repo/types';
-import { Prisma } from '../../generated/prisma/client.js';
+import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
 import { InventoryTransactionService } from '../inventory/inventory-transaction.service.js';
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShiftsService } from '../shifts/shifts.service.js';
 import { CreateRefundDto } from './dto/create-refund.dto.js';
 
 interface RefundableOrdersParams {
@@ -34,7 +38,35 @@ export class RefundsService {
     private readonly prisma: PrismaService,
     private readonly inventoryTransactionService: InventoryTransactionService,
     private readonly loyaltyService: LoyaltyService,
+    private readonly shiftsService: ShiftsService,
   ) {}
+
+  private isIdempotencyUniqueError(error: unknown): boolean {
+    if (
+      !(
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+    ) {
+      return false;
+    }
+
+    const target = (error.meta as { target?: unknown } | undefined)?.target;
+    if (Array.isArray(target)) {
+      return target.includes('idempotencyKey');
+    }
+    if (typeof target === 'string') {
+      return target.includes('idempotencyKey');
+    }
+    return false;
+  }
+
+  private async findIdempotentRefund(tenantId: string, idempotencyKey: string) {
+    return this.prisma.refund.findFirst({
+      where: { tenantId, idempotencyKey },
+      include: { refundItems: true },
+    });
+  }
 
   /**
    * Get orders eligible for refund
@@ -244,6 +276,17 @@ export class RefundsService {
       throw new BadRequestException('At least one item must be refunded');
     }
 
+    // ── Idempotency check (tenant-scoped) ───────────────────────────────
+    if (dto.idempotencyKey) {
+      const existing = await this.findIdempotentRefund(
+        tenantId,
+        dto.idempotencyKey,
+      );
+      if (existing) {
+        return existing; // Return cached result for idempotent retry
+      }
+    }
+
     // ✅ OPTIMIZED: Fetch and validate OUTSIDE transaction to minimize lock time
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, tenantId },
@@ -269,14 +312,64 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    // if (!['COMPLETED'].includes(order.status)) {
-    //   throw new BadRequestException(
-    //     `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
-    //   );
-    // }
+    if (
+      order.status !== OrderStatus.COMPLETED &&
+      order.status !== OrderStatus.PARTIALLY_REFUNDED
+    ) {
+      throw new BadRequestException(
+        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED or PARTIALLY_REFUNDED orders can be refunded.`,
+      );
+    }
 
     if (!order.branchId) {
       throw new BadRequestException('Order must have a branch assigned');
+    }
+
+    // ── Resolve shift context (best-effort, with order branchId) ──────────
+    let resolvedShiftId = dto.shiftId || null;
+    let resolvedDeviceId = dto.deviceId || null;
+
+    if (resolvedShiftId) {
+      const shift = await this.prisma.shift.findFirst({
+        where: { id: resolvedShiftId, tenantId },
+        select: { branchId: true, deviceId: true, status: true },
+      });
+      if (!shift) {
+        throw new NotFoundException('Shift not found');
+      }
+      if (shift.branchId !== order.branchId) {
+        throw new BadRequestException(
+          'Shift does not belong to the order branch',
+        );
+      }
+      if (
+        resolvedDeviceId &&
+        shift.deviceId &&
+        shift.deviceId !== resolvedDeviceId
+      ) {
+        throw new BadRequestException('Device does not match the shift device');
+      }
+      if (shift.status !== ShiftStatus.OPEN) {
+        throw new BadRequestException(
+          'Cannot process refund on a closed shift',
+        );
+      }
+    }
+
+    if (!resolvedShiftId) {
+      try {
+        const currentShift = await this.shiftsService.getCurrentShift(
+          tenantId,
+          resolvedDeviceId || undefined,
+          order.branchId || undefined,
+        );
+        if (currentShift) {
+          resolvedShiftId = currentShift.id;
+          resolvedDeviceId = resolvedDeviceId || currentShift.deviceId;
+        }
+      } catch {
+        // Shift resolution is best-effort; don't block refund
+      }
     }
 
     const orderItemMap = new Map(order.items.map((i) => [i.id, i]));
@@ -337,8 +430,8 @@ export class RefundsService {
     }
 
     // ✅ OPTIMIZED: Short transaction with retry logic (minimal lock time)
-    const maxRetries = 3;
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const createdRefund = await this.prisma.$transaction(
           async (tx) => {
@@ -347,6 +440,35 @@ export class RefundsService {
               tx,
               items.map((i) => i.orderItemId),
             );
+
+            if (resolvedShiftId) {
+              const shift = await tx.shift.findFirst({
+                where: { id: resolvedShiftId, tenantId },
+                select: { branchId: true, deviceId: true, status: true },
+              });
+              if (!shift) {
+                throw new NotFoundException('Shift not found');
+              }
+              if (shift.branchId !== order.branchId) {
+                throw new BadRequestException(
+                  'Shift does not belong to the order branch',
+                );
+              }
+              if (
+                resolvedDeviceId &&
+                shift.deviceId &&
+                shift.deviceId !== resolvedDeviceId
+              ) {
+                throw new BadRequestException(
+                  'Device does not match the shift device',
+                );
+              }
+              if (shift.status !== ShiftStatus.OPEN) {
+                throw new BadRequestException(
+                  'Cannot process refund on a closed shift',
+                );
+              }
+            }
 
             // Quick validation inside transaction
             for (const item of items) {
@@ -365,13 +487,20 @@ export class RefundsService {
               }
             }
 
-            // Create refund record
+            // Create refund record with attribution
             const refund = await tx.refund.create({
               data: {
                 orderId,
                 reason: reason || null,
                 totalAmount: totalRefundAmount.toFixed(2),
                 refundedAt: new Date(),
+                // ── Shift attribution ──
+                tenantId,
+                branchId: order.branchId,
+                shiftId: resolvedShiftId || undefined,
+                deviceId: resolvedDeviceId || undefined,
+                userId,
+                idempotencyKey: dto.idempotencyKey || undefined,
                 refundItems: {
                   createMany: { data: refundItems },
                 },
@@ -386,10 +515,6 @@ export class RefundsService {
               order.loyaltyRedeemedPoints > 0 || order.loyaltyEarnedPoints > 0;
 
             if (hasLoyalty && order.customerId) {
-              // Cumulative eligible refunded amount (same basis as completion snapshot):
-              //   numerator = sum of ALL refundItem.subtotal across ALL refunds on this order
-              //     (each subtotal = qty * unitPrice, matching how eligible base was computed)
-              //   denominator = order.loyaltyEligibleBaseAtCompletion
               const priorRefundedAmount = order.refunds.reduce(
                 (sum, r) =>
                   sum.plus(
@@ -403,7 +528,6 @@ export class RefundsService {
               const eligibleRefundedAmountAfter =
                 priorRefundedAmount.plus(totalRefundAmount);
 
-              // Already-applied cumulative totals from all previous refunds
               const alreadyRestored = order.refunds.reduce(
                 (sum, r) => sum + r.loyaltyPointsRestored,
                 0,
@@ -434,6 +558,83 @@ export class RefundsService {
                     loyaltyPointsReversed,
                   },
                 });
+              }
+            }
+
+            /* ============================================
+               CREATE REFUND PAYMENT RECORDS
+            ============================================ */
+            if (dto.refundPayments && dto.refundPayments.length > 0) {
+              const refundPaymentsBaseTotal = dto.refundPayments.reduce(
+                (sum, rp) => {
+                  const exchangeRate = rp.exchangeRate || 1;
+                  return sum + Math.round(rp.amount * exchangeRate * 100) / 100;
+                },
+                0,
+              );
+              const tolerance = 0.02;
+              if (
+                Math.abs(
+                  refundPaymentsBaseTotal - totalRefundAmount.toNumber(),
+                ) > tolerance
+              ) {
+                throw new BadRequestException(
+                  `Refund payment total (${refundPaymentsBaseTotal.toFixed(2)}) does not match computed refund amount (${totalRefundAmount.toFixed(2)})`,
+                );
+              }
+
+              await Promise.all(
+                dto.refundPayments.map((rp) => {
+                  const exchangeRate = rp.exchangeRate || 1;
+                  const amountInBase =
+                    Math.round(rp.amount * exchangeRate * 100) / 100;
+
+                  return tx.refundPayment.create({
+                    data: {
+                      refundId: refund.id,
+                      method: rp.method as PaymentMethod,
+                      amount: new Prisma.Decimal(amountInBase),
+                      currencyCode: rp.currencyCode,
+                      exchangeRate: rp.exchangeRate
+                        ? new Prisma.Decimal(rp.exchangeRate)
+                        : undefined,
+                      shiftId: resolvedShiftId || undefined,
+                      deviceId: resolvedDeviceId || undefined,
+                      userId,
+                    },
+                  });
+                }),
+              );
+
+              if (resolvedShiftId && order.branchId) {
+                const cashRefundPayments = dto.refundPayments.filter(
+                  (rp) => rp.method === 'CASH',
+                );
+
+                if (cashRefundPayments.length > 0) {
+                  await Promise.all(
+                    cashRefundPayments.map((crp) => {
+                      const exchangeRate = crp.exchangeRate || 1;
+                      const amountInBase =
+                        Math.round(crp.amount * exchangeRate * 100) / 100;
+
+                      return tx.cashMovement.create({
+                        data: {
+                          tenantId,
+                          branchId: order.branchId,
+                          shiftId: resolvedShiftId,
+                          deviceId: resolvedDeviceId || undefined,
+                          userId,
+                          type: CashMovementType.CASH_REFUND_OUT,
+                          amount: new Prisma.Decimal(amountInBase),
+                          reason: `Refund for order ${orderId}`,
+                          referenceId: refund.id,
+                          referenceType: CashMovementReferenceType.REFUND,
+                        },
+                      });
+                    }),
+                  );
+                }
               }
             }
 
@@ -477,10 +678,7 @@ export class RefundsService {
               _customerId: order.customerId,
             };
           },
-          {
-            maxWait: 5000,
-            timeout: 10000,
-          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
         );
 
         // ── Post-commit: Loyalty ledger entries ────────────────
@@ -531,6 +729,7 @@ export class RefundsService {
         }
 
         // Strip internal flags
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { _customerId, ...result } = createdRefund;
         return result;
       } catch (error) {
@@ -541,20 +740,31 @@ export class RefundsService {
           throw error;
         }
 
-        console.error(
-          `Refund transaction attempt ${attempt + 1} failed:`,
-          error,
-        );
-
-        if (attempt === maxRetries - 1) {
-          throw new Error(
-            `Transaction failed after ${maxRetries} retries: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        if (dto.idempotencyKey && this.isIdempotencyUniqueError(error)) {
+          const existing = await this.findIdempotentRefund(
+            tenantId,
+            dto.idempotencyKey,
           );
+          if (existing) {
+            return existing;
+          }
         }
+
+        const isPrismaConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isPrismaConflict && attempt < MAX_RETRIES) {
+          await new Promise((r) =>
+            setTimeout(r, 50 * Math.pow(3, attempt - 1)),
+          );
+          continue;
+        }
+
+        throw error;
       }
     }
 
-    throw new Error('Transaction failed after retries');
+    throw new BadRequestException('Failed to create refund after retries');
   }
 
   /**
@@ -595,14 +805,6 @@ export class RefundsService {
         // Continue with other items to ensure partial success
       }
     }
-  }
-
-  private async getAlreadyRefundedQuantity(orderItemId: string) {
-    const result = await this.prisma.refundItem.aggregate({
-      where: { orderItemId },
-      _sum: { quantity: true },
-    });
-    return new Prisma.Decimal(result._sum.quantity || 0);
   }
 
   async findAll(
@@ -693,60 +895,5 @@ export class RefundsService {
         new Prisma.Decimal(r._sum.quantity ?? 0),
       ]),
     );
-  }
-
-  /**
-   * ✅ PERFORMANCE: Check if order is fully refunded
-   * Uses aggregation query (single DB call) instead of fetching all items
-   * Returns true only if ALL items have been fully refunded
-   */
-  private async isOrderFullyRefunded(
-    tx: Prisma.TransactionClient | undefined,
-    orderId: string,
-  ): Promise<boolean> {
-    const client = tx ?? this.prisma;
-
-    // Get order with item quantities
-    const order = await client.order.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-          },
-        },
-      },
-    });
-
-    if (!order || order.items.length === 0) return false;
-
-    // Get total refunded quantity per item in single query
-    const refundedItems = await client.refundItem.groupBy({
-      by: ['orderItemId'],
-      where: {
-        orderItem: {
-          orderId,
-        },
-      },
-      _sum: {
-        quantity: true,
-      },
-    });
-
-    const refundedMap = new Map(
-      refundedItems.map((r) => [
-        r.orderItemId,
-        new Prisma.Decimal(r._sum.quantity ?? 0),
-      ]),
-    );
-
-    // Check if every item is fully refunded
-    return order.items.every((item) => {
-      const refundedQty = refundedMap.get(item.id) ?? new Prisma.Decimal(0);
-      const originalQty = new Prisma.Decimal(item.quantity);
-      return refundedQty.equals(originalQty);
-    });
   }
 }

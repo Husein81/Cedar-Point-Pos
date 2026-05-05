@@ -29,6 +29,7 @@ import { TablesModule } from './modules/tables/tables.module.js';
 import { TenantModule } from './modules/tenant/tenant.module.js';
 import { TransfersModule } from './modules/transfers/transfers.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { ShiftsModule } from './modules/shifts/shifts.module.js';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { UsersModule } from './modules/users/users.module.js';
     OffersModule,
     RefundsModule,
     ReportsModule,
+    ShiftsModule,
     SystemAdminModule,
   ],
   controllers: [AppController],

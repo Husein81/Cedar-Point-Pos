@@ -11,7 +11,6 @@ interface FloorTabsProps {
   floors: FloorWithTableCount[];
   selectedFloorId: string | null;
   onSelectFloor: (floorId: string | null) => void;
-  onDeleteFloor?: (floor: FloorWithTableCount) => void;
   isLoading?: boolean;
 }
 

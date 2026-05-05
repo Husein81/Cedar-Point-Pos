@@ -1,10 +1,10 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
-import { Button, InputField, SelectField, Shad, Icon } from "@repo/ui";
+import { UserRole, type BusinessType } from "@/dto/tenant.dto";
 import { useCreateTenantUser, useTenantUsers } from "@/hooks/tenant";
-import { UserRole, type BusinessType } from "@repo/types";
-import { tenantHasAdmin, getAvailableRoles } from "@/types/tenant";
+import { getAvailableRoles, tenantHasAdmin } from "@/types/tenant";
+import { Button, Icon, InputField, SelectField, Shad } from "@repo/ui";
+import { useForm } from "@tanstack/react-form";
 import { useMemo } from "react";
 
 type Props = {
@@ -39,7 +39,7 @@ export function CreateUserDialog({
   const roleOptions = useMemo(() => {
     if (!hasAdmin) {
       // First user must be ADMIN - only show ADMIN option
-      return [{ value: UserRole.ADMIN, label: "Admin" }];
+      return [{ value: "ADMIN" , label: "Admin" }];
     }
     return availableRoles.map((role) => ({
       value: role,
@@ -53,16 +53,18 @@ export function CreateUserDialog({
       email: "",
       username: "",
       password: "",
-      role: hasAdmin ? "" : UserRole.ADMIN,
+      role: hasAdmin ? "" : "ADMIN",
     },
     onSubmit: async ({ value }) => {
       try {
+        const role = (hasAdmin ? value.role  : "ADMIN") as UserRole;
+
         await createUser.mutateAsync({
           name: value.name,
           email: value.email,
           username: value.username,
           password: value.password,
-          role: (hasAdmin ? value.role : UserRole.ADMIN) as UserRole,
+          role,
           tenantId,
         });
         form.reset();

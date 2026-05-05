@@ -1,27 +1,25 @@
 import { Button, Empty, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
-import { Activity, useCallback, useMemo, useState } from "react";
+import { Activity, useMemo, useState } from "react";
 
 // Hooks
 import { useFloorsByBranch } from "@/hooks/useFloor";
-import { useTablesByBranch, useTableStats } from "@/hooks/useTable";
+import { useTablesByBranch } from "@/hooks/useTable";
 import { useBranchStore } from "@/store/branchStore";
 
 // Components
+import { OngoingOrdersList } from "@/components/orders/OngoingOrdersList";
 import {
   FloorTabs,
   TableFilters,
   TableForm,
-  TableGrid,
-  TablesStatsCards,
+  TableGrid
 } from "@/components/tables";
-import { OngoingOrdersList } from "@/components/orders/OngoingOrdersList";
 
 // Types
 import type { TableFilters as TableFiltersType } from "@/components/tables/TableFilters";
-import type { FloorWithTableCount, TableWithFloor } from "@/dto/tables.dto";
-import { useModalStore } from "@/store/modalStore";
 import { useAuthStore } from "@/store/authStore";
+import { useModalStore } from "@/store/modalStore";
 
 type ActiveView = "dine-in" | "orders";
 
@@ -38,29 +36,27 @@ export function TablesPage() {
     refetch: refetchTables,
   } = useTablesByBranch();
   const { data: floors = [], isLoading: isLoadingFloors } = useFloorsByBranch();
-  const { data: stats } = useTableStats();
 
   // UI State
   const [activeView, setActiveView] = useState<ActiveView>("dine-in");
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const [deleteTarget, setDeleteTarget] = useState<{
-    type: "table" | "floor";
-    item: TableWithFloor | FloorWithTableCount;
-  } | null>(null);
   const [filters, setFilters] = useState<TableFiltersType>({
     search: "",
     status: "ALL",
     floorId: "ALL",
   });
 
-  // Filter tables by floor, status, and search
+  // Selecting a floor tab resets the floor dropdown filter to avoid conflicts
+  const handleSelectFloor = (floorId: string | null) => {
+    setSelectedFloorId(floorId);
+    setFilters((prev) => ({ ...prev, floorId: "ALL" }));
+  };
+
+  // Filter tables by floor tab, status, search, and floor dropdown
   const filteredTables = useMemo(() => {
     let result = tables;
 
-    // Filter by selected floor tab
+    // Filter by selected floor tab (takes priority; dropdown is reset when tab changes)
     if (selectedFloorId !== null) {
       result = result.filter((table) => table.floorId === selectedFloorId);
     }
@@ -82,31 +78,17 @@ export function TablesPage() {
       );
     }
 
-    // Filter by floor filter (different from floor tab selection)
-    if (filters.floorId !== "ALL") {
+    // Filter by floor dropdown (only active when no floor tab is selected)
+    if (selectedFloorId === null && filters.floorId !== "ALL") {
       result = result.filter((table) => table.floorId === filters.floorId);
     }
 
     return result;
   }, [tables, selectedFloorId, filters]);
 
-  // Delete handlers
-  const handleDeleteClick = (
-    type: "table" | "floor",
-    item: TableWithFloor | FloorWithTableCount,
-  ) => {
-    setDeleteTarget({ type, item });
-    setIsDeleteModalOpen(true);
-  };
-
   const handleAddTable = () => {
     openModal("Add Table", <TableForm />);
   };
-
-  const handleDeleteFloor = useCallback(
-    (floor: FloorWithTableCount) => handleDeleteClick("floor", floor),
-    [],
-  );
 
   // No branch selected
   if (!branchId) {
@@ -149,15 +131,15 @@ export function TablesPage() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() =>
-                navigate({
-                  to: "/orders",
-                  search: { orderType: "dine_in" },
-                })
-              }
-            >
+          <Button
+            size="sm"
+            onClick={() =>
+              navigate({
+                to: "/orders",
+                search: { orderType: "dine_in" },
+              })
+            }
+          >
             <Icon name="Plus" className="h-4 w-4 mr-2" />
             New Order
           </Button>
@@ -184,15 +166,11 @@ export function TablesPage() {
 
       {activeView === "dine-in" ? (
         <>
-          {/* Stats Cards */}
-          <TablesStatsCards stats={stats} />
-
           {/* Floor Tabs */}
           <FloorTabs
             floors={floors}
             selectedFloorId={selectedFloorId}
-            onSelectFloor={setSelectedFloorId}
-            onDeleteFloor={handleDeleteFloor}
+            onSelectFloor={handleSelectFloor}
             isLoading={isLoadingFloors}
           />
 
@@ -210,51 +188,6 @@ export function TablesPage() {
         /* Orders Tab Content */
         <OngoingOrdersList />
       )}
-
-      {/* Delete Confirmation Dialog */}
-      {/* <Shad.AlertDialog
-        open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-      >
-        <Shad.AlertDialogContent>
-          <Shad.AlertDialogHeader>
-            <Shad.AlertDialogTitle>
-              Delete {deleteTarget?.type === "table" ? "Table" : "Floor"}?
-            </Shad.AlertDialogTitle>
-            <Shad.AlertDialogDescription>
-              {deleteTarget?.type === "table" ? (
-                <>
-                  This will remove table "
-                  {(deleteTarget?.item as TableWithFloor)?.name}" from your
-                  restaurant layout. This action cannot be undone.
-                </>
-              ) : (
-                <>
-                  This will delete floor "
-                  {(deleteTarget?.item as FloorWithTableCount)?.name}". All
-                  tables on this floor will be unassigned but not deleted. This
-                  action cannot be undone.
-                </>
-              )}
-            </Shad.AlertDialogDescription>
-          </Shad.AlertDialogHeader>
-          <Shad.AlertDialogFooter>
-            <Shad.AlertDialogCancel disabled={isDeletePending}>
-              Cancel
-            </Shad.AlertDialogCancel>
-            <Shad.AlertDialogAction
-              onClick={handleConfirmDelete}
-              disabled={isDeletePending}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-500"
-            >
-              {isDeletePending && (
-                <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
-            </Shad.AlertDialogAction>
-          </Shad.AlertDialogFooter>
-        </Shad.AlertDialogContent>
-      </Shad.AlertDialog> */}
     </div>
   );
 }

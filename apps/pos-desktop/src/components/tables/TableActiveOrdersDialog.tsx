@@ -1,12 +1,12 @@
 import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { useMergeOrders, useTransferOrder } from "@/hooks/useOrder";
-import { useOrderStore } from "@/store/orderStore";
+import { useOrderStore, type BackendOrder } from "@/store/orderStore";
 import { useTablesByBranch } from "@/hooks/useTable";
 import type { Order } from "@repo/types";
 import type { TableWithFloor } from "@/dto/tables.dto";
 import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ActiveOrderCard } from "./ActiveOrderCard";
 import { MiniOrderInfo } from "./MiniOrderInfo";
@@ -70,15 +70,13 @@ export function TableActiveOrdersDialog({
   // Load an order into the POS cart
   const handleLoadOrder = useCallback(
     (order: Order) => {
-      const tabId = loadOrder(order);
+      const tabId = loadOrder(order as BackendOrder);
       if (tabId) {
-        const tableId = order.tableId || table.id;
+        const tableId = order.tableId ?? table.id;
         handleOpenChange(false);
         navigate({
           to: "/orders",
-          search: {
-            tableId: tableId || undefined,
-          },
+          search: { tableId },
         });
       }
     },
@@ -114,7 +112,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (transferredOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(transferredOrder as any, true);
+            loadOrder(transferredOrder as BackendOrder, true);
             toast.success("Order transferred successfully");
             handleOpenChange(false);
           },
@@ -149,7 +147,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (mergedOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(mergedOrder as any, true);
+            loadOrder(mergedOrder as BackendOrder, true);
             toast.success("Order transferred and merged successfully");
             handleOpenChange(false);
           },
@@ -190,7 +188,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (mergedOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(mergedOrder as any, true);
+            loadOrder(mergedOrder as BackendOrder, true);
             toast.success("Orders merged successfully");
             handleOpenChange(false);
           },
@@ -206,8 +204,9 @@ export function TableActiveOrdersDialog({
   );
 
   // Available tables for transfer (exclude current table)
-  const transferableTables = allTables.filter(
-    (t) => t.id !== table.id && t.isActive,
+  const transferableTables = useMemo(
+    () => allTables.filter((t) => t.id !== table.id && t.isActive),
+    [allTables, table.id],
   );
 
   return (

@@ -1,20 +1,21 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { tablesApi } from "../apis/tablesApi";
-import { useBranchStore } from "@/store/branchStore";
 import type {
   CreateTableDto,
-  UpdateTableDto,
   TableWithFloor,
+  UpdateTableDto,
 } from "@/dto/tables.dto";
+import { useBranchStore } from "@/store/branchStore";
 import type { Order, TableStatus } from "@repo/types";
+import { Table } from "@repo/types";
+import { UseMutationResult, UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { tablesApi } from "../apis/tablesApi";
 
-const TABLE_QUERY_KEY = ["tables"];
+const TABLE_QUERY_KEY = ["tables"] as const;
 
 /**
  * Get all tables for the current branch
  */
-export const useTablesByBranch = () => {
+export const useTablesByBranch = (): UseQueryResult<TableWithFloor[], Error > => {
   const { branchId } = useBranchStore();
 
   return useQuery({
@@ -28,11 +29,11 @@ export const useTablesByBranch = () => {
 /**
  * Get all tables for a specific floor
  */
-export const useTablesByFloor = (floorId: string | null) => {
+export const useTablesByFloor = (floorId: string | null):UseQueryResult<Table[], Error>   => {
   const { branchId } = useBranchStore();
 
   return useQuery({
-    queryKey: [...TABLE_QUERY_KEY, "floor", floorId],
+    queryKey: [...TABLE_QUERY_KEY, "floor", branchId, floorId],
     queryFn: () => tablesApi.getTablesByFloor(floorId!),
     staleTime: 60_000,
     enabled: !!floorId && !!branchId,
@@ -57,7 +58,7 @@ export const useTableStats = () => {
  * Get active (non-terminal) orders for a specific table.
  * Used when clicking an occupied table to see what orders are on it.
  */
-export const useActiveOrdersByTable = (tableId: string | null) => {
+export const useActiveOrdersByTable = (tableId: string | null):UseQueryResult<Order[], Error>   => {
   return useQuery<Order[]>({
     queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
     queryFn: () => tablesApi.getActiveOrdersByTable(tableId!),
@@ -81,10 +82,10 @@ export const useTable = (id: string) => {
 /**
  * Create a new table
  */
-export const useCreateTable = () => {
+export const useCreateTable = (): UseMutationResult<TableWithFloor, Error, CreateTableDto> => {
   const queryClient = useQueryClient();
 
-  return useMutation<TableWithFloor, Error, CreateTableDto>({
+  return useMutation({
     mutationFn: tablesApi.createTable,
     onSuccess: (data) => {
       toast.success(`Table "${data.name}" created successfully`);
@@ -108,18 +109,18 @@ export const useCreateTable = () => {
  */
 export const useUpdateTable = () => {
   const queryClient = useQueryClient();
-  const { branchId } = useBranchStore();
 
   return useMutation<
     TableWithFloor,
     Error,
     { id: string; data: UpdateTableDto },
-    { previousTables?: unknown }
+    { previousTables?: unknown; queryKey: string[] }
   >({
     mutationFn: ({ id, data }) => tablesApi.updateTable(id, data),
 
     onMutate: async ({ id, data }) => {
-      // Cancel outgoing refetches
+      // Read branchId at mutation time, not at hook call time
+      const branchId = useBranchStore.getState().branchId;
       const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
@@ -137,16 +138,13 @@ export const useUpdateTable = () => {
         },
       );
 
-      return { previousTables };
+      return { previousTables, queryKey };
     },
 
     onError: (error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousTables) {
-        queryClient.setQueryData(
-          [...TABLE_QUERY_KEY, "branch", branchId!],
-          context.previousTables,
-        );
+      // Rollback on error using the same key captured at mutation time
+      if (context?.previousTables && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousTables);
       }
       const message = error.message || "Failed to update table";
       toast.error(message);
@@ -168,25 +166,22 @@ export const useUpdateTable = () => {
  */
 export const useUpdateTableStatus = () => {
   const queryClient = useQueryClient();
-  const { branchId } = useBranchStore();
 
   return useMutation<
     TableWithFloor,
     Error,
     { id: string; status: TableStatus },
-    { previousTables?: unknown }
+    { previousTables?: unknown; queryKey: string[] }
   >({
     mutationFn: ({ id, status }) => tablesApi.updateTableStatus(id, { status }),
 
     onMutate: async ({ id, status }) => {
-      // Cancel outgoing refetches
+      const branchId = useBranchStore.getState().branchId;
       const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot previous value
       const previousTables = queryClient.getQueryData(queryKey);
 
-      // Optimistic update
       queryClient.setQueryData(
         queryKey,
         (old: TableWithFloor[] | undefined) => {
@@ -197,7 +192,14 @@ export const useUpdateTableStatus = () => {
         },
       );
 
-      return { previousTables };
+      return { previousTables, queryKey };
+    },
+
+    onError: (_error, _vars, context) => {
+      if (context?.previousTables && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousTables);
+      }
+      toast.error("Failed to update table status");
     },
 
     onSuccess: () => {
@@ -211,38 +213,35 @@ export const useUpdateTableStatus = () => {
  */
 export const useDeleteTable = () => {
   const queryClient = useQueryClient();
-  const { branchId } = useBranchStore();
 
-  return useMutation<void, Error, string, { previousTables?: unknown }>({
+  return useMutation<void, Error, string, { previousTables?: unknown; queryKey: string[] }>({
     mutationFn: tablesApi.deleteTable,
 
     onMutate: async (id) => {
-      // Cancel outgoing refetches
+      const branchId = useBranchStore.getState().branchId;
       const queryKey = [...TABLE_QUERY_KEY, "branch", branchId!];
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot previous value
       const previousTables = queryClient.getQueryData(queryKey);
 
-      // Optimistic update - remove table from list
+      // Soft-delete: mark isActive:false to match server response instead of
+      // removing the row (avoids a visibility flicker on the onSettled refetch)
       queryClient.setQueryData(
         queryKey,
         (old: TableWithFloor[] | undefined) => {
           if (!old) return old;
-          return old.filter((table) => table.id !== id);
+          return old.map((table) =>
+            table.id === id ? { ...table, isActive: false } : table,
+          );
         },
       );
 
-      return { previousTables };
+      return { previousTables, queryKey };
     },
 
     onError: (error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousTables) {
-        queryClient.setQueryData(
-          [...TABLE_QUERY_KEY, "branch", branchId!],
-          context.previousTables,
-        );
+      if (context?.previousTables && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousTables);
       }
       const message = error.message || "Failed to delete table";
       toast.error(message);

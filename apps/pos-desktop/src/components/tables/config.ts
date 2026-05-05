@@ -1,14 +1,6 @@
 import { TableStats } from "@/dto/tables.dto";
 import { TableStatus } from "@repo/types";
 
-export const TABLE_STATUS_OPTIONS: { label: string; value: TableStatus }[] = [
-  { label: "Available", value: TableStatus.AVAILABLE },
-  {
-    label: "Occupied",
-    value: TableStatus.OCCUPIED,
-  },
-  { label: "Reserved", value: TableStatus.RESERVED },
-];
 
 export const getStatsCards = (
   stats: TableStats,
@@ -51,11 +43,11 @@ export const getStatsCards = (
 
 export const statusColors: Record<TableStatus, string> = {
   AVAILABLE:
-    "border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20",
+    "bg-emerald-50/50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30",
   OCCUPIED:
-    "border-red-200 dark:border-red-900 bg-red-50/40 dark:bg-red-950/20",
+    "border-red-200 dark:border-red-900",
   RESERVED:
-    "border-purple-200 dark:border-purple-900 bg-purple-50/40 dark:bg-purple-950/20",
+    "bg-purple-50/50 border-purple-200 dark:bg-purple-950/20 dark:border-purple-800 hover:bg-purple-100/50 dark:hover:bg-purple-900/30",
 };
 
 export const statusIcons: Record<TableStatus, string> = {
@@ -74,6 +66,10 @@ export const STATUS_OPTIONS: {
   { value: "RESERVED", label: "Reserved", icon: "Clock" },
 ];
 
+// Derived from STATUS_OPTIONS — single source of truth for all status label/value combos
+export const TABLE_STATUS_OPTIONS: { label: string; value: TableStatus }[] =
+  STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
+
 export const TABLE_STATUS_CONFIG: Record<
   TableStatus,
   { label: string; className: string }
@@ -81,17 +77,17 @@ export const TABLE_STATUS_CONFIG: Record<
   AVAILABLE: {
     label: "Available",
     className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+      "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
   },
   OCCUPIED: {
     label: "Occupied",
     className:
-      "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+      "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
   },
   RESERVED: {
     label: "Reserved",
     className:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+      "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
   },
 };
 

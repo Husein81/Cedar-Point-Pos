@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { UseQueryResult, useQuery } from "@tanstack/react-query";
 import { branchApi } from "../apis/branchApi";
 import type { Branch } from "@repo/types";
 
 const BRANCH_QUERY_KEY = ["branches"];
 
-export const useBranches = () => {
+export const useBranches = ():UseQueryResult<Branch[], Error> => {
   return useQuery<Branch[]>({
     queryKey: BRANCH_QUERY_KEY,
     queryFn: () => branchApi.getBranches(),

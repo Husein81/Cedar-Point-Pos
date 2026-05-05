@@ -7,12 +7,13 @@ type Props = {
 };
 
 export function TablesStatsCards({ stats }: Props) {
-  const statsCards = getStatsCards(stats!);
+  if (!stats) return null;
+  const statsCards = getStatsCards(stats);
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
       {statsCards.map((stat) => (
         <Shad.Card key={stat.title}>
-          <Shad.CardContent className="p-5">
+          <Shad.CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">

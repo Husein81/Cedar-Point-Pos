@@ -12,37 +12,26 @@ import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
 
 interface TableCardProps {
   table: TableWithFloor;
-  onClick?: (table: TableWithFloor) => void;
 }
 
 export function TableCard({ table }: TableCardProps) {
   const { openModal } = useModalStore();
-  const status = (table.status as TableStatus) || "AVAILABLE";
+  const knownStatuses = Object.values(TableStatus) as string[];
+  const status: TableStatus = knownStatuses.includes(table.status)
+    ? (table.status as TableStatus)
+    : TableStatus.AVAILABLE;
   const navigate = useNavigate();
 
   const deleteTableMutation = useDeleteTable();
-
   const updateStatusMutation = useUpdateTableStatus();
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isActiveOrdersOpen, setIsActiveOrdersOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleEditTable = (table: TableWithFloor) =>
     openModal("Edit Table", <TableForm table={table} />);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on action buttons or dropdown
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("[data-dropdown]")) {
-      return;
-    }
-
-    // If table is OCCUPIED, show active orders dialog instead of navigating
-    if (status === "OCCUPIED") {
-      setIsActiveOrdersOpen(true);
-      return;
-    }
-
-    // Navigate to orders page with table context (AVAILABLE or RESERVED tables)
+  const handleSeatTable = () => {
     navigate({
       to: "/orders",
       search: {
@@ -52,6 +41,20 @@ export function TableCard({ table }: TableCardProps) {
           : table.name,
       },
     });
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("[data-dropdown]")) {
+      return;
+    }
+
+    if (status === "OCCUPIED") {
+      setIsActiveOrdersOpen(true);
+      return;
+    }
+
+    handleSeatTable();
   };
 
   const handleStatusChange = useCallback(
@@ -70,78 +73,81 @@ export function TableCard({ table }: TableCardProps) {
   const config = TABLE_STATUS_CONFIG[status] || TABLE_STATUS_CONFIG.AVAILABLE;
 
   return (
-    <Shad.Card
-      className={cn(
-        "group relative overflow-hidden transition-all duration-200 cursor-pointer",
-        "hover:shadow-md hover:-translate-y-0.5",
-        statusColors[status],
-        !table.isActive && "opacity-50",
-      )}
-      onClick={handleCardClick}
-    >
-      {/* Hover Action Buttons */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="absolute top-3 right-3 z-10 flex gap-1.5 items-center transition-opacity duration-200"
+    <>
+      <Shad.Card
+        className={cn(
+          "group relative overflow-hidden transition-all duration-300 cursor-pointer border-2",
+          "hover:shadow-xl hover:-translate-y-1",
+          statusColors[status],
+          !table.isActive && "opacity-50 grayscale",
+        )}
+        onClick={handleCardClick}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 bg-background/80 backdrop-blur-sm shadow-sm"
-          onClick={() => {
-            handleEditTable(table);
-          }}
-          aria-label="Edit table"
-        >
-          <Icon name="Pencil" className="h-4 w-4" />
-        </Button>
-        <AlertDialog
-          iconButton="Trash2"
-          variant="delete"
-          buttonVariant="destructive"
-          title={`Delete Table "${table.name}"?`}
-          description={`This will remove table "${table.name}" from your restaurant layout. This action cannot be undone.`}
-          className="h-9 w-9"
-          onConfirm={() => {
-            deleteTableMutation.mutate(table.id);
-          }}
-        />
-      </div>
+        {/* Background Pattern/Icon */}
+        <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+          <Icon name="LayoutGrid" className="h-32 w-32 rotate-12" />
+        </div>
 
-      <Shad.CardHeader className="pb-2 pt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Status Dropdown for manual editing */}
+        <div className="p-4 relative z-10">
+          {/* Header: Actions */}
+          <div className="flex items-start justify-between mb-2">
             <Shad.DropdownMenu
               open={isStatusDropdownOpen}
               onOpenChange={setIsStatusDropdownOpen}
             >
               <Shad.DropdownMenuTrigger asChild>
-                <div
+                <button
                   data-dropdown="true"
-                  className="cursor-pointer"
+                  className={cn(
+                    "flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase transition-all duration-200 border",
+                    "shadow-sm hover:shadow-md active:scale-95",
+                    config.className,
+                  )}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "font-semibold text-xs px-3 py-0.5",
-                      config.className,
-                    )}
-                  >
-                    {config.label}
-                  </Badge>
-                </div>
+                  <div className="relative flex h-1.5 w-1.5">
+                    <div
+                      className={cn(
+                        "absolute inset-0 rounded-full animate-pulse opacity-40",
+                        status === "AVAILABLE"
+                          ? "bg-emerald-500"
+                          : status === "OCCUPIED"
+                            ? "bg-red-500"
+                            : "bg-purple-500",
+                      )}
+                    />
+                    <div
+                      className={cn(
+                        "relative h-1.5 w-1.5 rounded-full",
+                        status === "AVAILABLE"
+                          ? "bg-emerald-500"
+                          : status === "OCCUPIED"
+                            ? "bg-red-500"
+                            : "bg-purple-500",
+                      )}
+                    />
+                  </div>
+                  {config.label}
+                  <Icon name="ChevronDown" className="h-3 w-3 opacity-50" />
+                </button>
               </Shad.DropdownMenuTrigger>
               <Shad.DropdownMenuContent
                 align="start"
+                className="w-48"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Shad.DropdownMenuLabel>Change Status</Shad.DropdownMenuLabel>
+                <Shad.DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Quick Status
+                </Shad.DropdownMenuLabel>
                 <Shad.DropdownMenuSeparator />
                 {STATUS_OPTIONS.map((option) => (
                   <Shad.DropdownMenuItem
                     key={option.value}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors",
+                      "focus:bg-accent focus:text-accent-foreground",
+                      option.value === status && "bg-accent/50 font-semibold",
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStatusChange(option.value);
@@ -150,49 +156,151 @@ export function TableCard({ table }: TableCardProps) {
                       option.value === status || updateStatusMutation.isPending
                     }
                   >
-                    <Icon name={option.icon} className="mr-2 h-4 w-4" />
-                    {option.label}
+                    <div
+                      className={cn(
+                        "h-2 w-2 rounded-full ring-2 ring-offset-2 ring-transparent transition-all",
+                        option.value === "AVAILABLE"
+                          ? "bg-emerald-500"
+                          : option.value === "OCCUPIED"
+                            ? "bg-red-500"
+                            : "bg-purple-500",
+                        option.value === status && (
+                          option.value === "AVAILABLE" ? "ring-emerald-500/30" :
+                          option.value === "OCCUPIED" ? "ring-red-500/30" :
+                          "ring-purple-500/30"
+                        )
+                      )}
+                    />
+                    <span className="flex-1">{option.label}</span>
                     {option.value === status && (
-                      <Icon name="Check" className="ml-auto h-4 w-4" />
+                      <Icon name="Check" className="h-4 w-4 text-primary animate-in zoom-in duration-200" />
                     )}
                   </Shad.DropdownMenuItem>
                 ))}
               </Shad.DropdownMenuContent>
             </Shad.DropdownMenu>
-          </div>
-        </div>
-      </Shad.CardHeader>
 
-      <Shad.CardContent className="pt-0 pb-4">
-        <div className="text-center py-3">
-          <h3 className="text-3xl font-bold text-foreground">
-            {table.tableNumber}
-          </h3>
-          <p className="text-sm text-muted-foreground font-medium mt-0.5">
-            {table.name}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-          <div className="flex items-center gap-1.5">
-            <Icon name="Users" className="h-3.5 w-3.5" />
-            <span>{table.capacity} guests</span>
-          </div>
-          {table.floor && (
-            <div className="flex items-center gap-1.5">
-              <Icon name="Building2" className="h-3.5 w-3.5" />
-              <span>{table.floor.name}</span>
+            <div className="flex gap-1">
+              <Shad.DropdownMenu>
+                <Shad.DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 transition-opacity bg-background/50 backdrop-blur-sm hover:bg-accent"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icon name="Ellipsis" className="h-4 w-4" />
+                  </Button>
+                </Shad.DropdownMenuTrigger>
+                <Shad.DropdownMenuContent align="end" className="w-40">
+                  {status === "AVAILABLE" && (
+                    <Shad.DropdownMenuItem
+                      onClick={handleSeatTable}
+                      className="cursor-pointer"
+                    >
+                      <Icon name="UserPlus" className="mr-2 h-4 w-4" />
+                      Seat Table
+                    </Shad.DropdownMenuItem>
+                  )}
+                  <Shad.DropdownMenuItem
+                    onClick={() => handleEditTable(table)}
+                    className="cursor-pointer"
+                  >
+                    <Icon name="Pencil" className="mr-2 h-4 w-4" />
+                    Edit Table
+                  </Shad.DropdownMenuItem>
+                  <Shad.DropdownMenuSeparator />
+                  <Shad.DropdownMenuItem
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Icon name="Trash2" className="mr-2 h-4 w-4" />
+                    Delete Table
+                  </Shad.DropdownMenuItem>
+                </Shad.DropdownMenuContent>
+              </Shad.DropdownMenu>
             </div>
-          )}
-        </div>
-      </Shad.CardContent>
+          </div>
 
-      {/* Active Orders Dialog — shown when clicking an occupied table */}
+          {/* Main Content: Table Number */}
+          <div className="py-4 flex flex-col items-center justify-center">
+              <span className="text-5xl font-black tracking-tighter text-foreground/90 group-hover:scale-110 transition-transform duration-300 inline-block">
+                {table.tableNumber}
+              </span>
+            <p className="text-sm font-semibold text-muted-foreground mt-1 truncate max-w-full">
+              {table.name}
+            </p>
+          </div>
+
+          {/* Footer: Capacity & Floor */}
+          <div className="mt-4 pt-3 border-t border-foreground/10 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-background/40 backdrop-blur-xs rounded-md border border-foreground/5 group-hover:bg-background/60 transition-colors">
+              <Icon name="Users" className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[11px] font-bold text-muted-foreground">
+                {table.capacity}
+              </span>
+            </div>
+            {table.floor && (
+              <div className="flex items-center gap-1 px-2 py-1">
+                <Icon
+                  name="Building2"
+                  className="h-3 w-3 text-muted-foreground/60"
+                />
+                <span className="text-[10px] font-medium text-muted-foreground/80">
+                  {table.floor.name}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Hover Overlay */}
+        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      </Shad.Card>
+
+      {/* Dialogs */}
       <TableActiveOrdersDialog
         table={table}
         open={isActiveOrdersOpen}
         onOpenChange={setIsActiveOrdersOpen}
       />
-    </Shad.Card>
+
+      <Shad.AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <Shad.AlertDialogContent>
+          <Shad.AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <Icon name="Trash2" className="h-5 w-5" />
+              </div>
+              <Shad.AlertDialogTitle className="text-red-600">
+                Delete Table "{table.name}"?
+              </Shad.AlertDialogTitle>
+            </div>
+            <Shad.AlertDialogDescription className="mt-2">
+              This will remove table "{table.name}" from your restaurant layout. This action cannot be undone.
+            </Shad.AlertDialogDescription>
+          </Shad.AlertDialogHeader>
+          <Shad.AlertDialogFooter className="mt-4">
+            <Shad.AlertDialogCancel asChild>
+              <Button variant="ghost">Cancel</Button>
+            </Shad.AlertDialogCancel>
+            <Shad.AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  deleteTableMutation.mutate(table.id);
+                  setIsDeleteDialogOpen(false);
+                }}
+              >
+                Delete
+              </Button>
+            </Shad.AlertDialogAction>
+          </Shad.AlertDialogFooter>
+        </Shad.AlertDialogContent>
+      </Shad.AlertDialog>
+    </>
   );
 }

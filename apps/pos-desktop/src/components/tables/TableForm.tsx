@@ -10,11 +10,11 @@ import { useModalStore } from "@/store/modalStore";
 import { Button, InputField, SelectField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
-interface TableFormProps {
+type Props = {
   table?: TableWithFloor;
 }
 
-export function TableForm({ table }: TableFormProps) {
+export function TableForm({ table }: Props) {
   const { branchId } = useBranchStore();
   const { closeModal } = useModalStore();
   const { data: floors = [] } = useFloorsByBranch();

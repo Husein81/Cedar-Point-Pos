@@ -22,7 +22,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
-import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as OffersIndexRouteImport } from './routes/offers/index'
 import { Route as ModifiersIndexRouteImport } from './routes/modifiers/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
@@ -108,11 +107,6 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
 const ProductsIndexRoute = ProductsIndexRouteImport.update({
   id: '/products/',
   path: '/products/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrdersIndexRoute = OrdersIndexRouteImport.update({
-  id: '/orders/',
-  path: '/orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OffersIndexRoute = OffersIndexRouteImport.update({
@@ -253,7 +247,6 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof InvoicesIndexRoute
   '/modifiers/': typeof ModifiersIndexRoute
   '/offers/': typeof OffersIndexRoute
-  '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
@@ -290,7 +283,6 @@ export interface FileRoutesByTo {
   '/invoices': typeof InvoicesIndexRoute
   '/modifiers': typeof ModifiersIndexRoute
   '/offers': typeof OffersIndexRoute
-  '/orders': typeof OrdersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
@@ -328,7 +320,6 @@ export interface FileRoutesById {
   '/invoices/': typeof InvoicesIndexRoute
   '/modifiers/': typeof ModifiersIndexRoute
   '/offers/': typeof OffersIndexRoute
-  '/orders/': typeof OrdersIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
@@ -367,7 +358,6 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/modifiers/'
     | '/offers/'
-    | '/orders/'
     | '/products/'
     | '/settings/'
     | '/suppliers/'
@@ -404,7 +394,6 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/modifiers'
     | '/offers'
-    | '/orders'
     | '/products'
     | '/settings'
     | '/suppliers'
@@ -441,7 +430,6 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/modifiers/'
     | '/offers/'
-    | '/orders/'
     | '/products/'
     | '/settings/'
     | '/suppliers/'
@@ -471,7 +459,6 @@ export interface RootRouteChildren {
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   ModifiersIndexRoute: typeof ModifiersIndexRoute
   OffersIndexRoute: typeof OffersIndexRoute
-  OrdersIndexRoute: typeof OrdersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
@@ -568,13 +555,6 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products/'
       preLoaderRoute: typeof ProductsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orders/': {
-      id: '/orders/'
-      path: '/orders'
-      fullPath: '/orders/'
-      preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/offers/': {
@@ -777,7 +757,6 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicesIndexRoute: InvoicesIndexRoute,
   ModifiersIndexRoute: ModifiersIndexRoute,
   OffersIndexRoute: OffersIndexRoute,
-  OrdersIndexRoute: OrdersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,

@@ -1,21 +1,19 @@
-import { useState, useMemo } from "react";
-import { Button, Icon, Input, Empty, cn } from "@repo/ui";
+import type { Offer } from "@/dto/offers.dto";
 import { useOffersPaginated } from "@/hooks/useOffers";
+import { useModalStore } from "@/store/modalStore";
+import { Button, Empty, Icon, Input, cn } from "@repo/ui";
+import { useMemo, useState } from "react";
+import { SkeletonCard } from "../common/SkeletonCard";
+import Heading from "../heading";
 import { OfferCard } from "./OfferCard";
 import { OfferForm } from "./OfferForm";
-import { useModalStore } from "@/store/modalStore";
-import Heading from "../heading";
-import type { Offer } from "@/dto/offers.dto";
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-type ViewMode = "grid" | "list";
 
 export const OffersPage = () => {
   const { openModal } = useModalStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [isAllExpanded, setIsAllExpanded] = useState(true);
 
   // Data
   const { data: offersResponse, isLoading } = useOffersPaginated();
@@ -28,9 +26,7 @@ export const OffersPage = () => {
     // Apply search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((offer) =>
-        offer.name.toLowerCase().includes(q),
-      );
+      result = result.filter((offer) => offer.name.toLowerCase().includes(q));
     }
 
     // Apply status filter
@@ -96,54 +92,20 @@ export const OffersPage = () => {
           </Button>
         </div>
 
-        {/* Right Side: View Toggle + Collapse All + Create Button */}
-        <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
-              className="px-2"
-              onClick={() => setViewMode("grid")}
-            >
-              <Icon name="LayoutGrid" className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="px-2"
-              onClick={() => setViewMode("list")}
-            >
-              <Icon name="List" className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Collapse All Button */}
-          <div title={isAllExpanded ? "Collapse all cards" : "Expand all cards"}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-2"
-              onClick={() => setIsAllExpanded(!isAllExpanded)}
-            >
-              <Icon
-                name={isAllExpanded ? "ChevronsDown" : "ChevronsUp"}
-                className="h-4 w-4"
-              />
-            </Button>
-          </div>
-
-          {/* Create Button */}
-          <Button onClick={handleCreateOffer} iconName="Plus">
-            Create Offer
-          </Button>
-        </div>
+        {/* Right Side: Create Button */}
+        <Button onClick={handleCreateOffer} iconName="Plus">
+          Create Offer
+        </Button>
       </div>
 
       {/* Cards/List Section */}
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Icon name="LoaderCircle" className="animate-spin h-8 w-8" />
+        <div
+          className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : filteredOffers.length === 0 ? (
         <Empty
@@ -156,19 +118,10 @@ export const OffersPage = () => {
         />
       ) : (
         <div
-          className={cn(
-            viewMode === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-              : "flex flex-col gap-3",
-          )}
+          className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4")}
         >
           {filteredOffers.map((offer: Offer) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              viewMode={viewMode}
-              forceExpanded={isAllExpanded}
-            />
+            <OfferCard key={offer.id} offer={offer} />
           ))}
         </div>
       )}

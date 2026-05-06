@@ -229,6 +229,7 @@ model OfferGroup {
   offerId         String
   name            String
   freeItemsCount  Int              @default(0)
+  maxItemsCount   Int              @default(1)
   offer           Offer            @relation(fields: [offerId], references: [id], onDelete: Cascade)
   offerGroupItems OfferGroupItem[]
 

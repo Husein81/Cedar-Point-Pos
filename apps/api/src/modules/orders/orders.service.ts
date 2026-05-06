@@ -2276,8 +2276,14 @@ export class OrdersService {
      TOTALS
   ---------------------------------------------------- */
 
-  async recalculateOrderTotals(tenantId: string, orderId: string) {
-    const items = await this.prisma.orderItem.findMany({
+  async recalculateOrderTotals(
+    tenantId: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+
+    const items = await db.orderItem.findMany({
       where: { orderId },
       select: { subtotal: true },
     });
@@ -2286,7 +2292,7 @@ export class OrdersService {
       items.reduce((s, i) => s + Number(i.subtotal), 0),
     );
 
-    const order = await this.prisma.order.findUnique({
+    const order = await db.order.findUnique({
       where: { id: orderId },
       select: {
         discount: true,
@@ -2396,7 +2402,7 @@ export class OrdersService {
         remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
     }
 
-    return this.prisma.order.update({
+    return db.order.update({
       where: { id: orderId },
       data: {
         subtotal,
@@ -2567,7 +2573,10 @@ export class OrdersService {
       unitPrice: number;
     }> = [];
 
-    // Collect all items from preview
+    const totalRetailPrice = preview.groups.reduce((sum, g) => {
+      return sum + g.items.reduce((s, i) => s + i.retailPrice, 0);
+    }, 0);
+
     const totalSelections = preview.groups.reduce(
       (sum, g) => sum + g.items.length,
       0,
@@ -2577,25 +2586,29 @@ export class OrdersService {
       throw new BadRequestException('No valid items in offer selection');
     }
 
-    // Distribute basePrice evenly across all selected items
-    const basePricePerItem = this.round(preview.basePrice / totalSelections);
-    // Handle rounding remainder — add to the first item
-    let basePriceRemainder = this.round(
-      preview.basePrice - basePricePerItem * totalSelections,
-    );
+    let basePriceRemainder = preview.basePrice;
 
-    for (const group of preview.groups) {
-      for (const item of group.items) {
-        const freeDiscount = item.isFree ? item.extraPrice : 0;
-        let unitPrice = this.round(
-          basePricePerItem + item.extraPrice - freeDiscount,
-        );
+    for (let gIdx = 0; gIdx < preview.groups.length; gIdx++) {
+      const group = preview.groups[gIdx];
+      for (let iIdx = 0; iIdx < group.items.length; iIdx++) {
+        const item = group.items[iIdx];
+        const isLastItem = gIdx === preview.groups.length - 1 && iIdx === group.items.length - 1;
 
-        // Add rounding remainder to first item
-        if (basePriceRemainder !== 0) {
-          unitPrice = this.round(unitPrice + basePriceRemainder);
-          basePriceRemainder = 0;
+        let basePriceShare = 0;
+        if (totalRetailPrice > 0) {
+          basePriceShare = this.round((item.retailPrice / totalRetailPrice) * preview.basePrice);
+        } else {
+          basePriceShare = this.round(preview.basePrice / totalSelections);
         }
+
+        if (isLastItem) {
+          basePriceShare = this.round(basePriceRemainder);
+        } else {
+          basePriceRemainder = this.round(basePriceRemainder - basePriceShare);
+        }
+
+        const freeDiscount = item.isFree ? item.extraPrice : 0;
+        const unitPrice = this.round(basePriceShare + item.extraPrice - freeDiscount);
 
         allItems.push({
           productId: item.productId,
@@ -2605,12 +2618,12 @@ export class OrdersService {
       }
     }
 
-    // 4. Create OrderItems inside a transaction
-    await this.prisma.$transaction(async (tx) => {
-      for (const item of allItems) {
-        const subtotal = this.round(item.unitPrice * 1); // quantity = 1 per offer item
-        await tx.orderItem.create({
-          data: {
+    // 4. Create OrderItems inside a transaction and recalculate totals atomically
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.orderItem.createMany({
+        data: allItems.map((item) => {
+          const subtotal = this.round(item.unitPrice * 1);
+          return {
             orderId,
             productId: item.productId,
             quantity: 1,
@@ -2618,12 +2631,12 @@ export class OrdersService {
             subtotal: new Prisma.Decimal(subtotal),
             total: new Prisma.Decimal(subtotal),
             notes: `Offer: ${preview.offerName}`,
-          },
-        });
-      }
-    });
+          };
+        }),
+      });
 
-    // 5. Recalculate order totals (VAT, discount, loyalty)
-    return this.recalculateOrderTotals(tenantId, orderId);
+      // 5. Recalculate order totals (VAT, discount, loyalty)
+      return this.recalculateOrderTotals(tenantId, orderId, tx);
+    });
   }
 }

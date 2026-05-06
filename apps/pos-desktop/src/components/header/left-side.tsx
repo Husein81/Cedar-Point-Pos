@@ -60,7 +60,13 @@ const LeftSide = () => {
       ) : undefined}
 
       <div className="flex items-center">
-        <img src={logo} alt="cedar point" width={24} height={24} />
+        <img
+          src={logo}
+          className="invert dark:invert-0 mr-2 p-0.5"
+          alt="cedar point"
+          width={24}
+          height={24}
+        />
         <h2 className="text-sm font-semibold text-text">
           Cedar <span className="text-primary">Point</span>
         </h2>

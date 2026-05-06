@@ -19,6 +19,7 @@ export type UpdateOfferDto = z.infer<typeof UpdateOfferSchema>;
 
 export const CreateOfferGroupSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
+  maxItemsCount: z.number(),
   freeItemsCount: z.coerce
     .number()
     .int()
@@ -29,6 +30,7 @@ export type CreateOfferGroupDto = z.infer<typeof CreateOfferGroupSchema>;
 
 export const UpdateOfferGroupSchema = z.object({
   name: z.string().min(1, "Name is required").max(255).optional(),
+  maxItemsCount: z.number(),
   freeItemsCount: z.coerce
     .number()
     .int()
@@ -41,10 +43,7 @@ export type UpdateOfferGroupDto = z.infer<typeof UpdateOfferGroupSchema>;
 
 export const CreateOfferGroupItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
-  extraPrice: z.coerce
-    .number()
-    .min(0, "Extra price must be >= 0")
-    .default(0),
+  extraPrice: z.coerce.number().min(0, "Extra price must be >= 0").default(0),
 });
 export type CreateOfferGroupItemDto = z.infer<
   typeof CreateOfferGroupItemSchema
@@ -89,9 +88,7 @@ export const OfferGroupItemProductSchema = z.object({
   name: z.string(),
   price: z.number(),
 });
-export type OfferGroupItemProduct = z.infer<
-  typeof OfferGroupItemProductSchema
->;
+export type OfferGroupItemProduct = z.infer<typeof OfferGroupItemProductSchema>;
 
 export const OfferGroupItemSchema = z.object({
   id: z.string(),
@@ -108,6 +105,7 @@ export const OfferGroupSchema = z.object({
   offerId: z.string(),
   name: z.string(),
   freeItemsCount: z.number(),
+  maxItemsCount: z.number(),
   offerGroupItems: z.array(OfferGroupItemSchema),
 });
 export type OfferGroup = z.infer<typeof OfferGroupSchema>;
@@ -135,9 +133,7 @@ export const PricePreviewGroupItemSchema = z.object({
   extraPrice: z.number(),
   isFree: z.boolean(),
 });
-export type PricePreviewGroupItem = z.infer<
-  typeof PricePreviewGroupItemSchema
->;
+export type PricePreviewGroupItem = z.infer<typeof PricePreviewGroupItemSchema>;
 
 export const PricePreviewGroupSchema = z.object({
   groupId: z.string(),
@@ -161,6 +157,4 @@ export const PricePreviewResponseSchema = z.object({
   isValid: z.boolean(),
   validationErrors: z.array(z.string()),
 });
-export type PricePreviewResponse = z.infer<
-  typeof PricePreviewResponseSchema
->;
+export type PricePreviewResponse = z.infer<typeof PricePreviewResponseSchema>;

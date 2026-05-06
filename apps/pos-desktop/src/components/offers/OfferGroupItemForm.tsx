@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Button, Input, Label, Empty, Icon } from "@repo/ui";
+import { Button, Input, Label, Empty, Icon, InputField } from "@repo/ui";
 import { useAddOfferGroupItem } from "@/hooks/useOffers";
 import { useProducts } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
 import type { Product } from "@repo/types";
+import { useForm } from "@tanstack/react-form";
 
 type OfferGroupItemFormProps = {
   offerId: string;
@@ -21,7 +22,6 @@ export const OfferGroupItemForm = ({
   const [selectedProductId, setSelectedProductId] = useState<string | null>(
     null,
   );
-  const [extraPrice, setExtraPrice] = useState("0");
 
   const addItem = useAddOfferGroupItem();
 
@@ -40,21 +40,29 @@ export const OfferGroupItemForm = ({
     (p: Product) => p.id === selectedProductId,
   );
 
+  const form = useForm({
+    defaultValues: {
+      extraPrice: 0,
+    },
+    onSubmit: async ({ value }) => {
+      if (!selectedProductId) return;
+      try {
+        await addItem.mutateAsync({
+          offerId,
+          groupId,
+          data: { productId: selectedProductId, extraPrice: value.extraPrice },
+        });
+        closeModal();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedProductId) return;
-    const parsedExtra = parseFloat(extraPrice);
-    if (isNaN(parsedExtra) || parsedExtra < 0) return;
-
-    addItem.mutate(
-      {
-        offerId,
-        groupId,
-        data: { productId: selectedProductId, extraPrice: parsedExtra },
-      },
-      { onSuccess: () => closeModal() },
-    );
+    e.stopPropagation();
+    form.handleSubmit();
   };
 
   return (
@@ -110,27 +118,25 @@ export const OfferGroupItemForm = ({
       {/* Selected Product Info */}
       {selectedProduct && (
         <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-          Selected: <span className="font-medium text-foreground">{selectedProduct.name}</span>{" "}
+          Selected:{" "}
+          <span className="font-medium text-foreground">
+            {selectedProduct.name}
+          </span>{" "}
           (${Number(selectedProduct.price).toFixed(2)})
         </div>
       )}
 
       {/* Extra Price */}
-      <div className="space-y-2">
-        <Label htmlFor="extra-price">Extra Price</Label>
-        <Input
-          id="extra-price"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={extraPrice}
-          onChange={(e) => setExtraPrice(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Additional charge on top of the offer base price for this product.
-        </p>
-      </div>
+      <form.Field name="extraPrice">
+        {(field) => (
+          <InputField
+            label="Extra Price"
+            placeholder="0.00"
+            field={field}
+            subLabel="Additional charge on top of the offer base price for this product."
+          />
+        )}
+      </form.Field>
 
       <div className="flex gap-3 pt-2">
         <Button
@@ -144,7 +150,8 @@ export const OfferGroupItemForm = ({
         <Button
           type="submit"
           className="flex-1"
-          disabled={addItem.isPending || !selectedProductId}
+          disabled={!selectedProductId}
+          isSubmitting={addItem.isPending}
         >
           {addItem.isPending ? "Adding..." : "Add Product"}
         </Button>

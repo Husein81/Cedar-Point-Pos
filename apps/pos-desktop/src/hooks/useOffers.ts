@@ -21,7 +21,7 @@ const ORDER_QUERY_KEY = ["orders"];
 // ─── Queries ───
 
 export const useOffersPaginated = (params?: QueryParams) => {
-  return useQuery<PaginationResponse<Offer>>({
+  return useQuery({
     queryKey: [...OFFER_QUERY_KEY, "paginated", params],
     queryFn: () => offersApi.getOffersPaginated(params),
   });

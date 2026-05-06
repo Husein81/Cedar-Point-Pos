@@ -105,6 +105,17 @@ export class OffersService {
             _count: {
               select: { offerGroups: true },
             },
+            offerGroups: {
+              include: {
+                offerGroupItems: {
+                  include: {
+                    product: {
+                      select: { id: true, name: true, price: true },
+                    },
+                  },
+                },
+              },
+            },
           },
         }),
       ]);
@@ -293,11 +304,18 @@ export class OffersService {
         throw new NotFoundException('Offer not found');
       }
 
+      if (data.freeItemsCount > data.maxItemsCount) {
+        throw new BadRequestException(
+          `freeItemsCount (${data.freeItemsCount}) cannot exceed maxItemsCount (${data.maxItemsCount})`,
+        );
+      }
+
       return await this.prisma.offerGroup.create({
         data: {
           offerId,
           name: data.name,
           freeItemsCount: data.freeItemsCount,
+          maxItemsCount: data.maxItemsCount,
         },
       });
     } catch (error) {
@@ -312,8 +330,11 @@ export class OffersService {
     data: UpdateOfferGroupDto,
   ) {
     try {
-      // If freeItemsCount is being updated, enforce invariant
-      if (data.freeItemsCount !== undefined) {
+      // If freeItemsCount or maxItemsCount is being updated, enforce invariant
+      if (
+        data.freeItemsCount !== undefined ||
+        data.maxItemsCount !== undefined
+      ) {
         const group = await this.prisma.offerGroup.findFirst({
           where: {
             id: groupId,
@@ -328,9 +349,18 @@ export class OffersService {
           throw new NotFoundException('Offer group not found');
         }
 
-        if (data.freeItemsCount > group._count.offerGroupItems) {
+        const newFreeItemsCount = data.freeItemsCount ?? group.freeItemsCount;
+        const newMaxItemsCount = data.maxItemsCount ?? group.maxItemsCount;
+
+        if (newFreeItemsCount > group._count.offerGroupItems) {
           throw new BadRequestException(
-            `freeItemsCount (${data.freeItemsCount}) cannot exceed the number of items in the group (${group._count.offerGroupItems})`,
+            `freeItemsCount (${newFreeItemsCount}) cannot exceed the number of items in the group (${group._count.offerGroupItems})`,
+          );
+        }
+
+        if (newFreeItemsCount > newMaxItemsCount) {
+          throw new BadRequestException(
+            `freeItemsCount (${newFreeItemsCount}) cannot exceed maxItemsCount (${newMaxItemsCount})`,
           );
         }
       }
@@ -605,10 +635,17 @@ export class OffersService {
     }
 
     // Validate: every group in the offer must have at least one selection
+    // and cannot exceed maxItemsCount
     for (const group of offer.offerGroups) {
-      if (!selectionsByGroup.has(group.id)) {
+      const selectedProductIds = selectionsByGroup.get(group.id) || [];
+      if (selectedProductIds.length === 0) {
         validationErrors.push(
           `Missing selection for group "${group.name}" (${group.id})`,
+        );
+      }
+      if (selectedProductIds.length > group.maxItemsCount) {
+        validationErrors.push(
+          `Too many selections for group "${group.name}". Max allowed is ${group.maxItemsCount}.`,
         );
       }
     }
@@ -632,6 +669,7 @@ export class OffersService {
       items: Array<{
         productId: string;
         productName: string;
+        retailPrice: number;
         extraPrice: number;
         isFree: boolean;
       }>;
@@ -644,6 +682,7 @@ export class OffersService {
       const groupItems: Array<{
         productId: string;
         productName: string;
+        retailPrice: number;
         extraPrice: number;
         isFree: boolean;
       }> = [];
@@ -679,6 +718,7 @@ export class OffersService {
         groupItems.push({
           productId,
           productName: offerItem.product.name,
+          retailPrice: Number(offerItem.product.price),
           extraPrice: this.round(Number(offerItem.extraPrice)),
           isFree: false, // will be set below
         });

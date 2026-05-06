@@ -20,6 +20,7 @@ export const offersApi = {
     params?: QueryParams,
   ): Promise<PaginationResponse<Offer>> => {
     const response = await api.get("/offers", { params });
+    console.log("Res", response.data);
     return response.data;
   },
 
@@ -55,10 +56,7 @@ export const offersApi = {
     offerId: string,
     data: CreateOfferGroupDto,
   ): Promise<Offer> => {
-    const response = await api.post<Offer>(
-      `/offers/${offerId}/groups`,
-      data,
-    );
+    const response = await api.post<Offer>(`/offers/${offerId}/groups`, data);
     return response.data;
   },
 
@@ -74,10 +72,7 @@ export const offersApi = {
     return response.data;
   },
 
-  deleteOfferGroup: async (
-    offerId: string,
-    groupId: string,
-  ): Promise<void> => {
+  deleteOfferGroup: async (offerId: string, groupId: string): Promise<void> => {
     await api.delete(`/offers/${offerId}/groups/${groupId}`);
   },
 
@@ -113,9 +108,7 @@ export const offersApi = {
     groupId: string,
     itemId: string,
   ): Promise<void> => {
-    await api.delete(
-      `/offers/${offerId}/groups/${groupId}/items/${itemId}`,
-    );
+    await api.delete(`/offers/${offerId}/groups/${groupId}/items/${itemId}`);
   },
 
   // ─── Pricing ───

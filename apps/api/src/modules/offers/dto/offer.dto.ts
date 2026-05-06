@@ -24,6 +24,11 @@ export const createOfferGroupSchema = z.object({
     .int()
     .min(0, 'Free items count must be >= 0')
     .default(0),
+  maxItemsCount: z.coerce
+    .number()
+    .int()
+    .min(1, 'Max items count must be >= 1')
+    .default(1),
 });
 export type CreateOfferGroupDto = z.infer<typeof createOfferGroupSchema>;
 
@@ -33,6 +38,11 @@ export const updateOfferGroupSchema = z.object({
     .number()
     .int()
     .min(0, 'Free items count must be >= 0')
+    .optional(),
+  maxItemsCount: z.coerce
+    .number()
+    .int()
+    .min(1, 'Max items count must be >= 1')
     .optional(),
 });
 export type UpdateOfferGroupDto = z.infer<typeof updateOfferGroupSchema>;

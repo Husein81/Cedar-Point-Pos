@@ -10,21 +10,42 @@ import {
   Put,
   Req,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
+import { ZodError } from 'zod';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { OffersService } from './offers.service.js';
-import type {
-  CreateOfferDto,
-  UpdateOfferDto,
-  CreateOfferGroupDto,
-  UpdateOfferGroupDto,
-  CreateOfferGroupItemDto,
-  UpdateOfferGroupItemDto,
+import {
+  createOfferSchema,
+  updateOfferSchema,
+  createOfferGroupSchema,
+  updateOfferGroupSchema,
+  createOfferGroupItemSchema,
+  updateOfferGroupItemSchema,
+  pricePreviewSchema,
 } from './dto/offer.dto.js';
+
+/**
+ * Parses and validates a request body against a Zod schema.
+ * Throws BadRequestException with flattened error details on validation failure.
+ */
+function validateBody<T>(schema: { parse: (data: unknown) => T }, body: unknown): T {
+  try {
+    return schema.parse(body);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: error.flatten(),
+      });
+    }
+    throw error;
+  }
+}
 
 @Controller('offers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,11 +63,22 @@ export class OffersController {
     @Req() req: Request & { user: { tenantId: string } },
   ) {
     const { tenantId } = req.user;
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
     const query = req.query as QueryParams;
     return this.offersService.getOffersPaginated(tenantId, query);
+  }
+
+  /**
+   * Get active offers only (cashier-facing read path).
+   * Returns only offers with isActive: true, with full group/item details.
+   */
+  @Get('active')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
+  async getActiveOffers(
+    @Req() req: Request & { user: { tenantId: string } },
+  ) {
+    const { tenantId } = req.user;
+    const query = req.query as QueryParams;
+    return this.offersService.getActiveOffers(tenantId, query);
   }
 
   /**
@@ -56,9 +88,6 @@ export class OffersController {
   @Roles('ADMIN', 'MANAGER', 'CASHIER')
   async getOffer(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
-    if (!tenantId) {
-      throw new Error('Tenant ID is required');
-    }
     return this.offersService.getOffer(tenantId, id);
   }
 
@@ -67,9 +96,10 @@ export class OffersController {
    */
   @Post()
   @Roles('ADMIN', 'MANAGER')
-  async createOffer(@Req() req: Request, @Body() body: CreateOfferDto) {
+  async createOffer(@Req() req: Request, @Body() body: unknown) {
     const { tenantId } = req.user as { tenantId: string };
-    return this.offersService.createOffer(tenantId, body);
+    const data = validateBody(createOfferSchema, body);
+    return this.offersService.createOffer(tenantId, data);
   }
 
   /**
@@ -80,10 +110,11 @@ export class OffersController {
   async updateOffer(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: UpdateOfferDto,
+    @Body() body: unknown,
   ) {
     const { tenantId } = req.user as { tenantId: string };
-    return this.offersService.updateOffer(tenantId, id, body);
+    const data = validateBody(updateOfferSchema, body);
+    return this.offersService.updateOffer(tenantId, id, data);
   }
 
   /**
@@ -107,10 +138,11 @@ export class OffersController {
   async createOfferGroup(
     @Req() req: Request,
     @Param('id') offerId: string,
-    @Body() body: CreateOfferGroupDto,
+    @Body() body: unknown,
   ) {
     const { tenantId } = req.user as { tenantId: string };
-    return this.offersService.createOfferGroup(tenantId, offerId, body);
+    const data = validateBody(createOfferGroupSchema, body);
+    return this.offersService.createOfferGroup(tenantId, offerId, data);
   }
 
   /**
@@ -122,14 +154,15 @@ export class OffersController {
     @Req() req: Request,
     @Param('id') offerId: string,
     @Param('groupId') groupId: string,
-    @Body() body: UpdateOfferGroupDto,
+    @Body() body: unknown,
   ) {
     const { tenantId } = req.user as { tenantId: string };
+    const data = validateBody(updateOfferGroupSchema, body);
     return this.offersService.updateOfferGroup(
       tenantId,
       offerId,
       groupId,
-      body,
+      data,
     );
   }
 
@@ -159,14 +192,15 @@ export class OffersController {
     @Req() req: Request,
     @Param('id') offerId: string,
     @Param('groupId') groupId: string,
-    @Body() body: CreateOfferGroupItemDto,
+    @Body() body: unknown,
   ) {
     const { tenantId } = req.user as { tenantId: string };
+    const data = validateBody(createOfferGroupItemSchema, body);
     return this.offersService.addOfferGroupItem(
       tenantId,
       offerId,
       groupId,
-      body,
+      data,
     );
   }
 
@@ -180,15 +214,16 @@ export class OffersController {
     @Param('id') offerId: string,
     @Param('groupId') groupId: string,
     @Param('itemId') itemId: string,
-    @Body() body: UpdateOfferGroupItemDto,
+    @Body() body: unknown,
   ) {
     const { tenantId } = req.user as { tenantId: string };
+    const data = validateBody(updateOfferGroupItemSchema, body);
     return this.offersService.updateOfferGroupItem(
       tenantId,
       offerId,
       groupId,
       itemId,
-      body,
+      data,
     );
   }
 
@@ -211,5 +246,44 @@ export class OffersController {
       groupId,
       itemId,
     );
+  }
+
+  // ─── Pricing & Validation ───
+
+  /**
+   * Compute a deterministic pricing breakdown for an offer selection.
+   * Also returns validation errors (missing groups, invalid products, etc.)
+   *
+   * POST /offers/price-preview
+   *
+   * Request body:
+   * {
+   *   "offerId": "clxyz...",
+   *   "selections": [
+   *     { "groupId": "grp1", "productId": "prod1" },
+   *     { "groupId": "grp2", "productId": "prod2" }
+   *   ]
+   * }
+   *
+   * Response:
+   * {
+   *   "offerId": "clxyz...",
+   *   "offerName": "Combo Meal",
+   *   "isActive": true,
+   *   "basePrice": 10.00,
+   *   "groups": [...],
+   *   "totalExtras": 3.00,
+   *   "totalFreeDiscount": 1.50,
+   *   "finalTotal": 11.50,
+   *   "isValid": true,
+   *   "validationErrors": []
+   * }
+   */
+  @Post('price-preview')
+  @Roles('ADMIN', 'MANAGER', 'CASHIER')
+  async pricePreview(@Req() req: Request, @Body() body: unknown) {
+    const { tenantId } = req.user as { tenantId: string };
+    const data = validateBody(pricePreviewSchema, body);
+    return this.offersService.pricePreview(tenantId, data);
   }
 }

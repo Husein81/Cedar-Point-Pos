@@ -18,6 +18,8 @@ export class KitchenService {
   ) {
     const { page, limit } = params || {};
     const skip = (Number(page) - 1) * Number(limit);
+    const day = Date.now() - 24 * 60 * 60 * 1000;
+    const twentyFourHoursAgo = new Date(day);
     const where: Prisma.OrderWhereInput = {
       tenantId,
       ...(branchId && { branchId }),
@@ -32,13 +34,17 @@ export class KitchenService {
           'FULLY_REFUNDED',
         ],
       },
+      createdAt: {
+        gte: twentyFourHoursAgo,
+      },
     };
     // Get orders that are in kitchen-relevant statuses
     const [totalCount, data] = await Promise.all([
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
         where,
-        skip,
+        skip: skip || 0,
+        take: Number(limit) || 10,
         include: {
           items: {
             include: {

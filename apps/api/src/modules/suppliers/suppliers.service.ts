@@ -76,11 +76,27 @@ export class SuppliersService {
       const searchTerm = search?.trim();
       if (searchTerm) {
         where.OR = [
-          { name: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
-          { companyName: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
-          { phone: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
-          { email: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
-          { category: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
+          {
+            name: { contains: searchTerm, mode: Prisma.QueryMode.insensitive },
+          },
+          {
+            companyName: {
+              contains: searchTerm,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            phone: { contains: searchTerm, mode: Prisma.QueryMode.insensitive },
+          },
+          {
+            email: { contains: searchTerm, mode: Prisma.QueryMode.insensitive },
+          },
+          {
+            category: {
+              contains: searchTerm,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
         ];
       }
 

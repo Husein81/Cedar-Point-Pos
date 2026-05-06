@@ -9,7 +9,13 @@ import {
   PaymentDto,
 } from "@/dto/order.dto";
 import type { Order, OrderStatus } from "@repo/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  UseMutationResult,
+  UseQueryResult,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -43,6 +49,7 @@ export const useCreateOrder = () => {
       queryClient.invalidateQueries({
         queryKey: ["adjustmentHistory"],
       });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -69,6 +76,7 @@ export const useProcessPayment = () => {
       });
       // Invalidate loyalty account after redemption
       queryClient.invalidateQueries({ queryKey: ["loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -81,6 +89,7 @@ export const useUpdateOrderStatus = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -93,6 +102,7 @@ export const useUpdateOrderDiscount = () => {
       ordersApi.updateOrderDiscount(id, { discount }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -106,6 +116,7 @@ export const useAssignTableToOrder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -117,6 +128,7 @@ export const useAddItemToOrder = () => {
     mutationFn: ({ id, item }) => ordersApi.addItemToOrder(id, item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -133,6 +145,7 @@ export const useUpdateItemQuantity = () => {
       ordersApi.updateItemQuantity(id, itemId, { quantity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -144,6 +157,7 @@ export const useRemoveItemFromOrder = () => {
     mutationFn: ({ id, itemId }) => ordersApi.removeItemFromOrder(id, itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
@@ -160,23 +174,28 @@ export const useUpdateItemDiscount = () => {
       ordersApi.updateItemDiscount(id, itemId, { value, type }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
 
-export const useSendToKitchen = () => {
+export const useSendToKitchen = (): UseMutationResult<Order, Error, string> => {
   const queryClient = useQueryClient();
 
-  return useMutation<Order, Error, string>({
+  return useMutation({
     mutationFn: ordersApi.sendToKitchen,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };
 
-export const usePreviewDeductions = (id: string, branchId: string) => {
+export const usePreviewDeductions = (
+  id: string,
+  branchId: string,
+): UseQueryResult => {
   return useQuery({
     queryKey: [...ORDER_QUERY_KEY, id, "preview-deductions", branchId],
     queryFn: () => ordersApi.previewDeductions(id, branchId),
@@ -201,13 +220,6 @@ export const useTransferOrder = () => {
   });
 };
 
-type TableSelectorTransferVariables = {
-  orderId: string;
-  targetTableId: string;
-  mergeIntoOrderId?: string;
-  targetTableDisplayName?: string;
-};
-
 type TableSelectorTransferConflict = {
   code: "TABLE_HAS_ACTIVE_ORDER";
   message?: string;
@@ -217,15 +229,33 @@ type TableSelectorTransferConflict = {
   targetTableDisplayName?: string;
 };
 
-export const useTableSelectorTransferOrder = () => {
+type TransferOrderVariables = {
+  orderId: string;
+  targetTableId: string;
+  mergeIntoOrderId: string;
+  targetTableDisplayName?: string;
+};
+
+export const useTableSelectorTransferOrder = (): UseMutationResult<
+  Order,
+  Error,
+  TransferOrderVariables
+> & {
+  conflict: TableSelectorTransferConflict | null;
+  clearConflict: () => void;
+} => {
   const queryClient = useQueryClient();
   const { loadOrder, closeTab } = useOrderStore();
   const closeModal = useModalStore((state) => state.closeModal);
   const [conflict, setConflict] =
     useState<TableSelectorTransferConflict | null>(null);
 
-  const mutation = useMutation<Order, any, TableSelectorTransferVariables>({
-    mutationFn: ({ orderId, targetTableId, mergeIntoOrderId }) =>
+  const mutation = useMutation({
+    mutationFn: ({
+      orderId,
+      targetTableId,
+      mergeIntoOrderId,
+    }: TransferOrderVariables) =>
       ordersApi.transferOrderToTable(orderId, targetTableId, mergeIntoOrderId),
     onMutate: () => {
       setConflict(null);
@@ -254,7 +284,7 @@ export const useTableSelectorTransferOrder = () => {
       toast.success(`Order transferred to ${targetDisplayName}`);
       closeModal();
     },
-    onError: (err, variables) => {
+    onError: (err: any, variables) => {
       const data = err?.response?.data;
       if (data?.code === "TABLE_HAS_ACTIVE_ORDER") {
         setConflict({
@@ -297,6 +327,7 @@ export const useMergeOrders = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
     },
   });
 };

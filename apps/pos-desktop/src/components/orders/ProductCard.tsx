@@ -100,8 +100,6 @@ const ProductCard = ({ product }: Props) => {
     });
   };
 
-  console.log(product.category?.color?.hex);
-
   return (
     <Shad.Card
       onClick={handleAddItem}

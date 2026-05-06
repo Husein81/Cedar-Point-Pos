@@ -470,169 +470,138 @@ export const InlineKeypad = () => {
      Payment + Confirm Flows
   --------------------------------------------- */
 
-  const handlePaymentConfirm = useCallback(
-    async (
-      payments: PaymentEntry[],
-      sendToKitchenFirst = false,
-      loyalty?: { redeemPoints: number },
-    ) => {
-      await withPaymentLock(async () => {
-        if (isProcessing || payments.length === 0) return;
+  const handlePaymentConfirm = async (
+    payments: PaymentEntry[],
+    sendToKitchenFirst = false,
+    loyalty?: { redeemPoints: number },
+  ) => {
+    await withPaymentLock(async () => {
+      if (isProcessing || payments.length === 0) return;
 
-        const active = getActiveOrder();
-        if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
-        if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
+      const active = getActiveOrder();
+      if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
+      if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
+        return;
+
+      setIsPaymentProcessing(true);
+
+      try {
+        if (!active || !branchId || !user?.tenantId || remainingTotal <= 0)
           return;
 
-        setIsPaymentProcessing(true);
+        // Get the active tab ID before closing anything
+        const tabToClose = activeTabId;
 
-        try {
-          if (!active || !branchId || !user?.tenantId || remainingTotal <= 0)
-            return;
+        // POS-style UX: close input early
+        closeKeypad();
+        closeModal();
 
-          // Get the active tab ID before closing anything
-          const tabToClose = activeTabId;
-
-          // POS-style UX: close input early
-          closeKeypad();
-          closeModal();
-
-          if (
-            user.tenant?.businessType === BusinessType.RESTAURANT &&
-            !active.type
-          ) {
-            throw new Error("Order type is required");
-          }
-
-          // Capture loaded state BEFORE getOrCreateOrderId
-          const wasLoadedOrder = isLoadedOrder();
-
-          const orderId = await getOrCreateOrderId();
-          if (!orderId) return;
-
-          // For orders that were ALREADY on the server before this flow,
-          // add only unsent local items.
-          if (wasLoadedOrder) {
-            const unsyncedLocal = active.items.filter(
-              (i) => !i.sentToKitchen && i.id.startsWith("item-"),
-            );
-            for (const item of unsyncedLocal) {
-              await addItemToOrder.mutateAsync({
-                id: orderId,
-                item: {
-                  productId: item.productId,
-                  quantity: item.quantity,
-                  notes: item.notes,
-                  modifiers: item.modifiers?.map((m) => m.modifierId),
-                },
-              });
-            }
-          }
-
-          // If Pay & Send: send unsent items to kitchen first
-          if (sendToKitchenFirst) {
-            const unsentCount = active.items.filter(
-              (i) => !i.sentToKitchen,
-            ).length;
-            if (unsentCount > 0) {
-              await sendToKitchen.mutateAsync(orderId);
-              markItemsSentToKitchen();
-              toast.success(
-                `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
-              );
-            }
-          }
-
-          const result = await processPayment.mutateAsync({
-            id: orderId,
-            payments: payments.map((p) => ({
-              amount: p.amount,
-              method: p.method,
-              currencyCode: p.currencyCode,
-              exchangeRate: p.exchangeRate,
-            })),
-            loyalty,
-          });
-
-          if (!result) return;
-
-          setOrderStatus(result.status);
-
-          // Close the tab AFTER order is created and payment is processed
-          if (tabToClose) closeTab(tabToClose);
-
-          if (result.status === OrderStatus.COMPLETED) {
-            clearOrder();
-          }
-
-          // Surface backend-applied loyalty values if redeemed
-          if (
-            result.loyaltyRedeemedPoints &&
-            result.loyaltyRedeemedPoints > 0
-          ) {
-            toast.success(
-              `Payment processed — ${Number(result.loyaltyRedeemedPoints).toLocaleString()} pts redeemed ($${Number(result.loyaltyRedeemedAmount || 0).toFixed(2)} discount)`,
-            );
-          } else {
-            toast.success("Payment processed successfully");
-          }
-        } catch (error: any) {
-          const raw = error.response?.data?.message || error.message || "";
-          const lower = raw.toLowerCase();
-
-          let message: string;
-          if (lower.includes("insufficient") && lower.includes("point")) {
-            message =
-              "Insufficient loyalty points — please reduce redemption amount";
-          } else if (lower.includes("loyalty") && lower.includes("disabled")) {
-            message = "Loyalty program is currently disabled";
-          } else if (
-            lower.includes("loyalty") &&
-            lower.includes("not configured")
-          ) {
-            message = "Loyalty program is not configured for this tenant";
-          } else if (
-            lower.includes("underpay") ||
-            lower.includes("underpaid")
-          ) {
-            message = "Payment amount is insufficient after reconciliation";
-          } else if (lower.includes("surplus") || lower.includes("overpay")) {
-            message = "Payment surplus detected — refund may be required";
-          } else {
-            message = raw || "Payment failed";
-          }
-
-          console.error("Payment failed:", error);
-          toast.error(message);
-        } finally {
-          setIsPaymentProcessing(false);
+        if (
+          user.tenant?.businessType === BusinessType.RESTAURANT &&
+          !active.type
+        ) {
+          throw new Error("Order type is required");
         }
-      });
-    },
-    [
-      activeTabId,
-      addItemToOrder,
-      branchId,
-      buildOrderDto,
-      clearOrder,
-      closeKeypad,
-      closeModal,
-      closeTab,
-      createOrder,
-      getActiveOrder,
-      getOrCreateOrderId,
-      isLoadedOrder,
-      isProcessing,
-      markItemsSentToKitchen,
-      processPayment,
-      sendToKitchen,
-      setOrderStatus,
-      remainingTotal,
-      user?.tenant?.businessType,
-      user?.tenantId,
-      withPaymentLock,
-    ],
-  );
+
+        // Capture loaded state BEFORE getOrCreateOrderId
+        const wasLoadedOrder = isLoadedOrder();
+
+        const orderId = await getOrCreateOrderId();
+        if (!orderId) return;
+
+        // For orders that were ALREADY on the server before this flow,
+        // add only unsent local items.
+        if (wasLoadedOrder) {
+          const unsyncedLocal = active.items.filter(
+            (i) => !i.sentToKitchen && i.id.startsWith("item-"),
+          );
+          for (const item of unsyncedLocal) {
+            await addItemToOrder.mutateAsync({
+              id: orderId,
+              item: {
+                productId: item.productId,
+                quantity: item.quantity,
+                notes: item.notes,
+                modifiers: item.modifiers?.map((m) => m.modifierId),
+              },
+            });
+          }
+        }
+
+        // If Pay & Send: send unsent items to kitchen first
+        if (sendToKitchenFirst) {
+          const unsentCount = active.items.filter(
+            (i) => !i.sentToKitchen,
+          ).length;
+          if (unsentCount > 0) {
+            await sendToKitchen.mutateAsync(orderId);
+            markItemsSentToKitchen();
+            toast.success(
+              `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
+            );
+          }
+        }
+
+        const result = await processPayment.mutateAsync({
+          id: orderId,
+          payments: payments.map((p) => ({
+            amount: p.amount,
+            method: p.method,
+            currencyCode: p.currencyCode,
+            exchangeRate: p.exchangeRate,
+          })),
+          loyalty,
+        });
+
+        if (!result) return;
+
+        setOrderStatus(result.status);
+
+        // Close the tab AFTER order is created and payment is processed
+        if (tabToClose) closeTab(tabToClose);
+
+        if (result.status === OrderStatus.COMPLETED) {
+          clearOrder();
+        }
+
+        // Surface backend-applied loyalty values if redeemed
+        if (result.loyaltyRedeemedPoints && result.loyaltyRedeemedPoints > 0) {
+          toast.success(
+            `Payment processed — ${Number(result.loyaltyRedeemedPoints).toLocaleString()} pts redeemed ($${Number(result.loyaltyRedeemedAmount || 0).toFixed(2)} discount)`,
+          );
+        } else {
+          toast.success("Payment processed successfully");
+        }
+      } catch (error: any) {
+        const raw = error.response?.data?.message || error.message || "";
+        const lower = raw.toLowerCase();
+
+        let message: string;
+        if (lower.includes("insufficient") && lower.includes("point")) {
+          message =
+            "Insufficient loyalty points — please reduce redemption amount";
+        } else if (lower.includes("loyalty") && lower.includes("disabled")) {
+          message = "Loyalty program is currently disabled";
+        } else if (
+          lower.includes("loyalty") &&
+          lower.includes("not configured")
+        ) {
+          message = "Loyalty program is not configured for this tenant";
+        } else if (lower.includes("underpay") || lower.includes("underpaid")) {
+          message = "Payment amount is insufficient after reconciliation";
+        } else if (lower.includes("surplus") || lower.includes("overpay")) {
+          message = "Payment surplus detected — refund may be required";
+        } else {
+          message = raw || "Payment failed";
+        }
+
+        console.error("Payment failed:", error);
+        toast.error(message);
+      } finally {
+        setIsPaymentProcessing(false);
+      }
+    });
+  };
 
   const handlePay = () => {
     openModal(

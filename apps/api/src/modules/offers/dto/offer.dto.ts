@@ -24,6 +24,11 @@ export const createOfferGroupSchema = z.object({
     .int()
     .min(0, 'Free items count must be >= 0')
     .default(0),
+  maxItemsCount: z.coerce
+    .number()
+    .int()
+    .min(1, 'Max items count must be >= 1')
+    .default(1),
 });
 export type CreateOfferGroupDto = z.infer<typeof createOfferGroupSchema>;
 
@@ -33,6 +38,11 @@ export const updateOfferGroupSchema = z.object({
     .number()
     .int()
     .min(0, 'Free items count must be >= 0')
+    .optional(),
+  maxItemsCount: z.coerce
+    .number()
+    .int()
+    .min(1, 'Max items count must be >= 1')
     .optional(),
 });
 export type UpdateOfferGroupDto = z.infer<typeof updateOfferGroupSchema>;
@@ -56,3 +66,18 @@ export const updateOfferGroupItemSchema = z.object({
 export type UpdateOfferGroupItemDto = z.infer<
   typeof updateOfferGroupItemSchema
 >;
+
+// ─── Price Preview / Validation DTO ───
+
+const offerSelectionItemSchema = z.object({
+  groupId: z.string().min(1, 'Group ID is required'),
+  productId: z.string().min(1, 'Product ID is required'),
+});
+
+export const pricePreviewSchema = z.object({
+  offerId: z.string().min(1, 'Offer ID is required'),
+  selections: z
+    .array(offerSelectionItemSchema)
+    .min(1, 'At least one selection is required'),
+});
+export type PricePreviewDto = z.infer<typeof pricePreviewSchema>;

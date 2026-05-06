@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
 import NavUser from "./nav-user";
+import logo from "/assets/logo.png";
 
 type NavDrawerProps = {
   open: boolean;
@@ -35,7 +36,12 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
         <div className="flex flex-col h-full">
           {/* Header */}
           <Shad.DrawerHeader className="border-b">
-            <Shad.DrawerTitle className="text-lg font-semibold">
+            <Shad.DrawerTitle className="flex items-center gap-4 text-lg font-semibold">
+              <img
+                src={logo}
+                className="w-8 h-8 dark:invert-0 invert"
+                alt="cedar point"
+              />
               CedarPoint POS
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>
@@ -47,7 +53,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
               {sidebarSections.map((section) => (
                 <Shad.Collapsible
                   open={toggle[section.label]}
-                  onOpenChange={(isOpen:boolean) =>
+                  onOpenChange={(isOpen: boolean) =>
                     setToggle((prev) => ({ ...prev, [section.label]: isOpen }))
                   }
                   key={section.label}

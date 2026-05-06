@@ -22,7 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
-import { Route as OrdersIndexRouteImport } from './routes/orders/index'
+import { Route as OffersIndexRouteImport } from './routes/offers/index'
 import { Route as ModifiersIndexRouteImport } from './routes/modifiers/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
@@ -109,9 +109,9 @@ const ProductsIndexRoute = ProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OrdersIndexRoute = OrdersIndexRouteImport.update({
-  id: '/orders/',
-  path: '/orders/',
+const OffersIndexRoute = OffersIndexRouteImport.update({
+  id: '/offers/',
+  path: '/offers/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModifiersIndexRoute = ModifiersIndexRouteImport.update({
@@ -242,14 +242,14 @@ export interface FileRoutesByFullPath {
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
-  '/categories': typeof CategoriesIndexRoute
-  '/customers': typeof CustomersIndexRoute
-  '/invoices': typeof InvoicesIndexRoute
-  '/modifiers': typeof ModifiersIndexRoute
-  '/orders': typeof OrdersIndexRoute
-  '/products': typeof ProductsIndexRoute
-  '/settings': typeof SettingsIndexRoute
-  '/suppliers': typeof SuppliersIndexRoute
+  '/categories/': typeof CategoriesIndexRoute
+  '/customers/': typeof CustomersIndexRoute
+  '/invoices/': typeof InvoicesIndexRoute
+  '/modifiers/': typeof ModifiersIndexRoute
+  '/offers/': typeof OffersIndexRoute
+  '/products/': typeof ProductsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
+  '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -282,7 +282,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/modifiers': typeof ModifiersIndexRoute
-  '/orders': typeof OrdersIndexRoute
+  '/offers': typeof OffersIndexRoute
   '/products': typeof ProductsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
@@ -319,7 +319,7 @@ export interface FileRoutesById {
   '/customers/': typeof CustomersIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/modifiers/': typeof ModifiersIndexRoute
-  '/orders/': typeof OrdersIndexRoute
+  '/offers/': typeof OffersIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
@@ -353,14 +353,14 @@ export interface FileRouteTypes {
     | '/settings/currencies'
     | '/settings/loyalty'
     | '/suppliers/$supplierId'
-    | '/categories'
-    | '/customers'
-    | '/invoices'
-    | '/modifiers'
-    | '/orders'
-    | '/products'
-    | '/settings'
-    | '/suppliers'
+    | '/categories/'
+    | '/customers/'
+    | '/invoices/'
+    | '/modifiers/'
+    | '/offers/'
+    | '/products/'
+    | '/settings/'
+    | '/suppliers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -393,7 +393,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/invoices'
     | '/modifiers'
-    | '/orders'
+    | '/offers'
     | '/products'
     | '/settings'
     | '/suppliers'
@@ -429,7 +429,7 @@ export interface FileRouteTypes {
     | '/customers/'
     | '/invoices/'
     | '/modifiers/'
-    | '/orders/'
+    | '/offers/'
     | '/products/'
     | '/settings/'
     | '/suppliers/'
@@ -458,7 +458,7 @@ export interface RootRouteChildren {
   CustomersIndexRoute: typeof CustomersIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   ModifiersIndexRoute: typeof ModifiersIndexRoute
-  OrdersIndexRoute: typeof OrdersIndexRoute
+  OffersIndexRoute: typeof OffersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
@@ -539,56 +539,56 @@ declare module '@tanstack/react-router' {
     '/suppliers/': {
       id: '/suppliers/'
       path: '/suppliers'
-      fullPath: '/suppliers'
+      fullPath: '/suppliers/'
       preLoaderRoute: typeof SuppliersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
       id: '/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/': {
       id: '/products/'
       path: '/products'
-      fullPath: '/products'
+      fullPath: '/products/'
       preLoaderRoute: typeof ProductsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/orders/': {
-      id: '/orders/'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof OrdersIndexRouteImport
+    '/offers/': {
+      id: '/offers/'
+      path: '/offers'
+      fullPath: '/offers/'
+      preLoaderRoute: typeof OffersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modifiers/': {
       id: '/modifiers/'
       path: '/modifiers'
-      fullPath: '/modifiers'
+      fullPath: '/modifiers/'
       preLoaderRoute: typeof ModifiersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invoices/': {
       id: '/invoices/'
       path: '/invoices'
-      fullPath: '/invoices'
+      fullPath: '/invoices/'
       preLoaderRoute: typeof InvoicesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customers/': {
       id: '/customers/'
       path: '/customers'
-      fullPath: '/customers'
+      fullPath: '/customers/'
       preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/categories/': {
       id: '/categories/'
       path: '/categories'
-      fullPath: '/categories'
+      fullPath: '/categories/'
       preLoaderRoute: typeof CategoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -756,7 +756,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersIndexRoute: CustomersIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
   ModifiersIndexRoute: ModifiersIndexRoute,
-  OrdersIndexRoute: OrdersIndexRoute,
+  OffersIndexRoute: OffersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,

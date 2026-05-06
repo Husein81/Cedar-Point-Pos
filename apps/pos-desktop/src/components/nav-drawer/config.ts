@@ -19,14 +19,6 @@ export const sidebarSections: SidebarSection[] = [
     label: "POS",
     items: [
       {
-        label: "Home",
-        icon: "House",
-        href: "/",
-        tooltip: "Home",
-        showFor: ["RETAIL", "RESTAURANT"],
-        roles: ["ADMIN", "MANAGER", "CASHIER"],
-      },
-      {
         label: "Dashboard",
         icon: "LayoutDashboard",
         href: "/dashboard",
@@ -98,6 +90,14 @@ export const sidebarSections: SidebarSection[] = [
         href: "/modifiers",
         tooltip: "Manage Modifiers",
         showFor: ["RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER"],
+      },
+      {
+        label: "Offers",
+        icon: "BadgePercent",
+        href: "/offers",
+        tooltip: "Manage Offers",
+        showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {

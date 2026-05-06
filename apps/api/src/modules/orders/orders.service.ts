@@ -22,7 +22,9 @@ import { InventoryDeductionService } from '../inventory/inventory-deduction.serv
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from '../tables/table-status.service.js';
+import { OffersService } from '../offers/offers.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
+import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
 
 // Extended QueryParams for order-specific filtering
@@ -47,6 +49,7 @@ export class OrdersService {
     private readonly inventoryDeductionService: InventoryDeductionService,
     private readonly tableStatusService: TableStatusService,
     private readonly loyaltyService: LoyaltyService,
+    private readonly offersService: OffersService,
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -156,6 +159,9 @@ export class OrdersService {
     };
 
     const map = businessType === BusinessType.RESTAURANT ? restaurant : retail;
+
+    if (current === next) return;
+
     const allowed = map[current] ?? [];
 
     if (!allowed.includes(next)) {
@@ -581,8 +587,12 @@ export class OrdersService {
       );
 
       // Guard: order must be fully paid before marking COMPLETED
-      // totalDue accounts for loyalty redemption discount
-      if (nextStatus === OrderStatus.COMPLETED) {
+      // EXCEPT for restaurant orders being completed (e.g. from the kitchen),
+      // as they are typically paid after service.
+      if (
+        nextStatus === OrderStatus.COMPLETED &&
+        order.tenant.businessType !== BusinessType.RESTAURANT
+      ) {
         const totalPaid = order.payments.reduce(
           (sum, p) => sum.add(p.amount),
           new Prisma.Decimal(0),
@@ -626,10 +636,6 @@ export class OrdersService {
       return { ...result, _branchId: order.branchId };
     });
 
-    // Phase 2: Post-commit inventory deduction (separate connection)
-    // Must run OUTSIDE the transaction to avoid deadlocks —
-    // deductStockForOrder uses this.prisma (main connection) and opens
-    // its own nested $transaction internally.
     if (nextStatus === OrderStatus.COMPLETED) {
       await this.inventoryDeductionService.deductStockForOrder(
         tenantId,
@@ -2270,8 +2276,14 @@ export class OrdersService {
      TOTALS
   ---------------------------------------------------- */
 
-  async recalculateOrderTotals(tenantId: string, orderId: string) {
-    const items = await this.prisma.orderItem.findMany({
+  async recalculateOrderTotals(
+    tenantId: string,
+    orderId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+
+    const items = await db.orderItem.findMany({
       where: { orderId },
       select: { subtotal: true },
     });
@@ -2280,7 +2292,7 @@ export class OrdersService {
       items.reduce((s, i) => s + Number(i.subtotal), 0),
     );
 
-    const order = await this.prisma.order.findUnique({
+    const order = await db.order.findUnique({
       where: { id: orderId },
       select: {
         discount: true,
@@ -2390,7 +2402,7 @@ export class OrdersService {
         remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
     }
 
-    return this.prisma.order.update({
+    return db.order.update({
       where: { id: orderId },
       data: {
         subtotal,
@@ -2489,5 +2501,142 @@ export class OrdersService {
 
   private money(value: number): number {
     return Math.round(value * 100) / 100;
+  }
+
+  // ─── Offer → Order Integration ───
+
+  /**
+   * Add items from an offer selection to an existing order.
+   *
+   * The server computes authoritative pricing via OffersService.pricePreview().
+   * Each selected product becomes its own OrderItem. The offer's basePrice is
+   * distributed proportionally across all selected items, and each item's
+   * extraPrice (minus any free-item discount) is added on top.
+   *
+   * Notes field on each order item records the offer origin for auditability.
+   */
+  async addOfferItemsToOrder(
+    tenantId: string,
+    orderId: string,
+    dto: AddOfferItemsDto,
+  ) {
+    // 1. Validate order is in editable state
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: {
+        status: true,
+        tenant: { select: { businessType: true } },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const isRestaurant = order.tenant.businessType === BusinessType.RESTAURANT;
+    if (isRestaurant) {
+      const editableStatuses = new Set<OrderStatus>([
+        OrderStatus.DRAFT,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.CONFIRMED,
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.PAID,
+        OrderStatus.PARTIALLY_PAID,
+      ]);
+      if (!editableStatuses.has(order.status)) {
+        throw new BadRequestException(
+          'Cannot add offer items: order is not in an editable state',
+        );
+      }
+    } else if (order.status !== OrderStatus.DRAFT) {
+      throw new BadRequestException(
+        'Cannot add offer items: order must be in DRAFT state',
+      );
+    }
+
+    // 2. Get authoritative pricing from OffersService
+    const preview = await this.offersService.pricePreview(tenantId, {
+      offerId: dto.offerId,
+      selections: dto.selections,
+    });
+
+    if (!preview.isValid) {
+      throw new BadRequestException({
+        message: 'Offer selection is invalid',
+        errors: preview.validationErrors,
+      });
+    }
+
+    // 3. Calculate per-item pricing
+    //    basePrice is distributed proportionally across all selected items.
+    //    Each item's final unitPrice = (basePriceShare) + extraPrice - freeDiscount
+    const allItems: Array<{
+      productId: string;
+      productName: string;
+      unitPrice: number;
+    }> = [];
+
+    const totalRetailPrice = preview.groups.reduce((sum, g) => {
+      return sum + g.items.reduce((s, i) => s + i.retailPrice, 0);
+    }, 0);
+
+    const totalSelections = preview.groups.reduce(
+      (sum, g) => sum + g.items.length,
+      0,
+    );
+
+    if (totalSelections === 0) {
+      throw new BadRequestException('No valid items in offer selection');
+    }
+
+    let basePriceRemainder = preview.basePrice;
+
+    for (let gIdx = 0; gIdx < preview.groups.length; gIdx++) {
+      const group = preview.groups[gIdx];
+      for (let iIdx = 0; iIdx < group.items.length; iIdx++) {
+        const item = group.items[iIdx];
+        const isLastItem = gIdx === preview.groups.length - 1 && iIdx === group.items.length - 1;
+
+        let basePriceShare = 0;
+        if (totalRetailPrice > 0) {
+          basePriceShare = this.round((item.retailPrice / totalRetailPrice) * preview.basePrice);
+        } else {
+          basePriceShare = this.round(preview.basePrice / totalSelections);
+        }
+
+        if (isLastItem) {
+          basePriceShare = this.round(basePriceRemainder);
+        } else {
+          basePriceRemainder = this.round(basePriceRemainder - basePriceShare);
+        }
+
+        const freeDiscount = item.isFree ? item.extraPrice : 0;
+        const unitPrice = this.round(basePriceShare + item.extraPrice - freeDiscount);
+
+        allItems.push({
+          productId: item.productId,
+          productName: item.productName,
+          unitPrice: Math.max(0, unitPrice),
+        });
+      }
+    }
+
+    // 4. Create OrderItems inside a transaction and recalculate totals atomically
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.orderItem.createMany({
+        data: allItems.map((item) => {
+          const subtotal = this.round(item.unitPrice * 1);
+          return {
+            orderId,
+            productId: item.productId,
+            quantity: 1,
+            unitPrice: new Prisma.Decimal(item.unitPrice),
+            subtotal: new Prisma.Decimal(subtotal),
+            total: new Prisma.Decimal(subtotal),
+            notes: `Offer: ${preview.offerName}`,
+          };
+        }),
+      });
+
+      // 5. Recalculate order totals (VAT, discount, loyalty)
+      return this.recalculateOrderTotals(tenantId, orderId, tx);
+    });
   }
 }

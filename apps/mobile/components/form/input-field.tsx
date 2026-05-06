@@ -29,6 +29,7 @@ export const InputField = ({
   const { isDark } = useThemeStore();
   const [show, setShow] = useState(false);
   const isPassword = type === "password";
+
   return (
     <View className="gap-2">
       <Label htmlFor={field.name}>{label}</Label>

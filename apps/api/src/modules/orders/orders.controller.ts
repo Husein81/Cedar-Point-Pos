@@ -19,6 +19,7 @@ import {
   PaymentMethod,
 } from '@repo/types';
 import type { Request } from 'express';
+import { ZodError } from 'zod';
 
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AssignTableDto } from './dto/assign-table.dto.js';
@@ -28,8 +29,27 @@ import type {
 } from './dto/create-order.dto.js';
 import type { UpdateQuantityDto } from './dto/update-quantity.dto.js';
 import type { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
+import { addOfferItemsSchema } from './dto/add-offer-items.dto.js';
 
 import { OrdersService } from './orders.service.js';
+
+/**
+ * Parses and validates a request body against a Zod schema.
+ * Throws BadRequestException with flattened error details on validation failure.
+ */
+function validateBody<T>(schema: { parse: (data: unknown) => T }, body: unknown): T {
+  try {
+    return schema.parse(body);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: error.flatten(),
+      });
+    }
+    throw error;
+  }
+}
 
 @Controller('orders')
 export class OrdersController {
@@ -345,5 +365,27 @@ export class OrdersController {
   sendToKitchen(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string; id: string };
     return this.ordersService.sendToKitchen(user.tenantId, id);
+  }
+
+  /* ----------------------------------------------------
+     OFFER INTEGRATION
+  ---------------------------------------------------- */
+
+  /**
+   * Add items from an offer to an order.
+   * Server computes authoritative pricing — never trusts client totals.
+   *
+   * POST /orders/:id/items/from-offer
+   */
+  @Post(':id/items/from-offer')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  addOfferItemsToOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const user = req.user as { tenantId: string };
+    const data = validateBody(addOfferItemsSchema, body);
+    return this.ordersService.addOfferItemsToOrder(user.tenantId, id, data);
   }
 }

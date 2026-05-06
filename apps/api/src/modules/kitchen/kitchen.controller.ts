@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Put,
 } from '@nestjs/common';
 import { KitchenService } from './kitchen.service.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -25,7 +26,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('kitchen')
-@Roles(UserRole.ADMIN, UserRole.MANAGER, 'KITCHEN')
+@Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.KITCHEN)
 export class KitchenController {
   constructor(private readonly kitchenService: KitchenService) {}
 
@@ -57,7 +58,7 @@ export class KitchenController {
     return this.kitchenService.getOrderById(orderId, tenantId);
   }
 
-  @Patch('orders/:id/status')
+  @Put('orders/:id/status')
   @HttpCode(HttpStatus.OK)
   updateOrderStatus(
     @Param('id') orderId: string,
@@ -76,7 +77,7 @@ export class KitchenController {
     );
   }
 
-  @Patch('tickets/:id/status')
+  @Put('tickets/:id/status')
   @HttpCode(HttpStatus.OK)
   updateTicketStatus(
     @Param('id') ticketId: string,

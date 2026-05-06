@@ -1,4 +1,4 @@
-import type { Order, PaginationResponse } from "@repo/types";
+import type { Order, OrderStatus, PaginationResponse } from "@repo/types";
 import { api } from "./api";
 
 type Params = {
@@ -25,16 +25,16 @@ export const kitchenApi = {
 
   updateOrderStatus: async (
     orderId: string,
-    status: string,
+    status: OrderStatus,
   ): Promise<Order> => {
-    const response = await api.patch(`/kitchen/orders/${orderId}/status`, {
+    const response = await api.put(`/kitchen/orders/${orderId}/status`, {
       status,
     });
     return response.data;
   },
 
   updateTicketStatus: async (ticketId: string, status: string) => {
-    const response = await api.patch(`/kitchen/tickets/${ticketId}/status`, {
+    const response = await api.put(`/kitchen/tickets/${ticketId}/status`, {
       status,
     });
     return response.data;

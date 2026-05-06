@@ -1,22 +1,22 @@
 import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
   BadRequestException,
   ConflictException,
+  Injectable,
+  InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateOfferDto,
-  UpdateOfferDto,
   CreateOfferGroupDto,
-  UpdateOfferGroupDto,
   CreateOfferGroupItemDto,
-  UpdateOfferGroupItemDto,
   PricePreviewDto,
+  UpdateOfferDto,
+  UpdateOfferGroupDto,
+  UpdateOfferGroupItemDto,
 } from './dto/offer.dto.js';
 
 @Injectable()
@@ -37,18 +37,15 @@ export class OffersService {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       switch (error.code) {
         case 'P2002': {
-          const target = (error.meta?.target as string[])?.join(', ') || 'field';
-          throw new ConflictException(
-            `Duplicate value for ${target}`,
-          );
+          const target =
+            (error.meta?.target as string[])?.join(', ') || 'field';
+          throw new ConflictException(`Duplicate value for ${target}`);
         }
         case 'P2025':
           throw new NotFoundException(`Record not found in ${context}`);
         case 'P2003': {
           const field = (error.meta?.field_name as string) || 'reference';
-          throw new BadRequestException(
-            `Invalid reference: ${field}`,
-          );
+          throw new BadRequestException(`Invalid reference: ${field}`);
         }
         default:
           break;
@@ -421,9 +418,7 @@ export class OffersService {
       }
 
       if (product.tenantId !== tenantId) {
-        throw new BadRequestException(
-          'Product does not belong to this tenant',
-        );
+        throw new BadRequestException('Product does not belong to this tenant');
       }
 
       if (product.isDeleted) {
@@ -433,9 +428,7 @@ export class OffersService {
       }
 
       if (!product.isActive) {
-        throw new BadRequestException(
-          `Product "${product.name}" is inactive`,
-        );
+        throw new BadRequestException(`Product "${product.name}" is inactive`);
       }
 
       // Check for duplicate product in group
@@ -578,7 +571,13 @@ export class OffersService {
             offerGroupItems: {
               include: {
                 product: {
-                  select: { id: true, name: true, price: true, isActive: true, isDeleted: true },
+                  select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    isActive: true,
+                    isDeleted: true,
+                  },
                 },
               },
             },

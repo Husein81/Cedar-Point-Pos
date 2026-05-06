@@ -159,6 +159,9 @@ export class OrdersService {
     };
 
     const map = businessType === BusinessType.RESTAURANT ? restaurant : retail;
+
+    if (current === next) return;
+
     const allowed = map[current] ?? [];
 
     if (!allowed.includes(next)) {
@@ -584,8 +587,12 @@ export class OrdersService {
       );
 
       // Guard: order must be fully paid before marking COMPLETED
-      // totalDue accounts for loyalty redemption discount
-      if (nextStatus === OrderStatus.COMPLETED) {
+      // EXCEPT for restaurant orders being completed (e.g. from the kitchen),
+      // as they are typically paid after service.
+      if (
+        nextStatus === OrderStatus.COMPLETED &&
+        order.tenant.businessType !== BusinessType.RESTAURANT
+      ) {
         const totalPaid = order.payments.reduce(
           (sum, p) => sum.add(p.amount),
           new Prisma.Decimal(0),
@@ -629,10 +636,6 @@ export class OrdersService {
       return { ...result, _branchId: order.branchId };
     });
 
-    // Phase 2: Post-commit inventory deduction (separate connection)
-    // Must run OUTSIDE the transaction to avoid deadlocks —
-    // deductStockForOrder uses this.prisma (main connection) and opens
-    // its own nested $transaction internally.
     if (nextStatus === OrderStatus.COMPLETED) {
       await this.inventoryDeductionService.deductStockForOrder(
         tenantId,

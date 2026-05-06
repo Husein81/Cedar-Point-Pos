@@ -80,7 +80,7 @@ export function OrderPage({
   ]);
 
   return (
-    <div className="fixed top-10 inset-x-0 bottom-8 flex flex-col bg-background">
+    <div className="fixed top-10 inset-x-0 bottom-0 flex flex-col bg-background">
       {/* Header with back button for table/takeaway flows */}
       {(activeTableId || showBackToTables) && (
         <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b bg-muted/20">

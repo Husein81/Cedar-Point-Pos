@@ -82,7 +82,7 @@ export class SuppliersController {
       category?: string | null;
       notes?: string | null;
     };
-      
+
     const { tenantId } = req.user as { tenantId: string };
     return this.suppliersService.createSupplier(tenantId, body);
   }

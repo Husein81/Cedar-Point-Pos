@@ -1451,8 +1451,14 @@ export class OrdersService {
      DRAFT MODIFICATIONS
   ---------------------------------------------------- */
 
-  async addItemToOrder(tenantId: string, orderId: string, dto: AddItemDto) {
-    const order = await this.prisma.order.findFirst({
+  async addItemToOrder(
+    tenantId: string,
+    orderId: string,
+    dto: AddItemDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const order = await db.order.findFirst({
       where: { id: orderId, tenantId },
       select: {
         status: true,
@@ -1477,7 +1483,7 @@ export class OrdersService {
       throw new BadRequestException('Draft orders only');
     }
 
-    const product = await this.prisma.product.findFirst({
+    const product = await db.product.findFirst({
       where: { id: dto.productId, tenantId, isDeleted: false },
     });
     if (!product) throw new NotFoundException('Product not found');
@@ -1487,7 +1493,7 @@ export class OrdersService {
     const itemModifiers: { modifierId: string; price: number }[] = [];
 
     if (dto.modifiers?.length) {
-      const modifiers = await this.prisma.modifier.findMany({
+      const modifiers = await db.modifier.findMany({
         where: {
           id: { in: dto.modifiers },
           tenantId,
@@ -1512,7 +1518,7 @@ export class OrdersService {
 
     const subtotal = dto.quantity * (unitPrice + modifiersTotal);
 
-    await this.prisma.orderItem.create({
+    await db.orderItem.create({
       data: {
         orderId,
         productId: product.id,
@@ -1532,7 +1538,7 @@ export class OrdersService {
       },
     });
 
-    return this.recalculateOrderTotals(tenantId, orderId);
+    return this.recalculateOrderTotals(tenantId, orderId, tx);
   }
 
   async updateItemQuantity(
@@ -1614,83 +1620,106 @@ export class OrdersService {
   }
 
   async sendToKitchen(tenantId: string, orderId: string) {
-    return this.prisma.$transaction(
-      async (tx) => {
-        const order = await tx.order.findFirst({
-          where: { id: orderId, tenantId },
-          select: {
-            id: true,
-            status: true,
-            tenant: { select: { businessType: true } },
-            items: {
-              select: {
-                id: true,
-                tickets: {
-                  select: { id: true, station: true },
-                },
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        select: {
+          id: true,
+          status: true,
+          tenant: { select: { businessType: true } },
+          items: {
+            select: {
+              id: true,
+              tickets: {
+                select: { id: true, station: true },
               },
             },
           },
-        });
+        },
+      });
 
-        if (!order) throw new NotFoundException('Order not found');
-        if (order.tenant.businessType !== BusinessType.RESTAURANT) {
-          throw new BadRequestException(
-            'Send to kitchen is only available for restaurant orders',
-          );
-        }
-
-        if (
-          order.status === OrderStatus.CANCELLED ||
-          order.status === OrderStatus.COMPLETED ||
-          order.status === OrderStatus.FULLY_REFUNDED
-        ) {
-          throw new BadRequestException(
-            'Cannot send a completed, cancelled, or refunded order to kitchen',
-          );
-        }
-
-        // Only send items that do NOT already have a ticket for the default station
-        const itemsToSend = order.items.filter(
-          (item) => !item.tickets.some((t) => t.station === null),
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.tenant.businessType !== BusinessType.RESTAURANT) {
+        throw new BadRequestException(
+          'Send to kitchen is only available for restaurant orders',
         );
+      }
 
-        if (itemsToSend.length === 0) {
-          // No-op: all items already sent
-          return tx.order.findUnique({ where: { id: orderId } });
-        }
+      if (
+        order.status === OrderStatus.CANCELLED ||
+        order.status === OrderStatus.COMPLETED ||
+        order.status === OrderStatus.FULLY_REFUNDED
+      ) {
+        throw new BadRequestException(
+          'Cannot send a completed, cancelled, or refunded order to kitchen',
+        );
+      }
 
-        const sentAt = new Date();
-        await tx.orderItemTicket.createMany({
-          data: itemsToSend.map((item) => ({
-            orderItemId: item.id,
-            station: null,
-            status: OrderStatus.SENT_TO_KITCHEN,
-            sentAt,
-          })),
+      // Only send items that do NOT already have a ticket for the default station
+      const itemsToSend = order.items.filter(
+        (item) => !item.tickets.some((t) => t.station === null),
+      );
+
+      if (itemsToSend.length === 0) {
+        return order;
+      }
+
+      const sentAt = new Date();
+      await tx.orderItemTicket.createMany({
+        data: itemsToSend.map((item) => ({
+          orderItemId: item.id,
+          station: null,
+          status: OrderStatus.SENT_TO_KITCHEN,
+          sentAt,
+        })),
+      });
+
+      // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
+      if (
+        order.status === OrderStatus.DRAFT ||
+        order.status === OrderStatus.CONFIRMED
+      ) {
+        return await tx.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.SENT_TO_KITCHEN },
         });
+      }
 
-        // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
-        if (
-          order.status === OrderStatus.DRAFT ||
-          order.status === OrderStatus.CONFIRMED
-        ) {
-          this.validateTransition(
-            order.tenant.businessType,
-            order.status,
-            OrderStatus.SENT_TO_KITCHEN,
-          );
+      return order;
+    });
+  }
 
-          await tx.order.update({
-            where: { id: orderId },
-            data: { status: OrderStatus.SENT_TO_KITCHEN },
-          });
-        }
+  /**
+   * Batch add items to an order for better performance
+   */
+  async batchAddItemsToOrder(
+    tenantId: string,
+    orderId: string,
+    items: AddItemDto[],
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+      });
 
-        return tx.order.findUnique({ where: { id: orderId } });
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+      if (!order) throw new NotFoundException('Order not found');
+      if (
+        order.status !== OrderStatus.DRAFT &&
+        order.status !== OrderStatus.CONFIRMED &&
+        order.status !== OrderStatus.SENT_TO_KITCHEN
+      ) {
+        throw new BadRequestException('Cannot add items to this order');
+      }
+
+      for (const itemDto of items) {
+        await this.addItemToOrder(tenantId, orderId, itemDto, tx);
+      }
+
+      return tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: { include: { product: true } } },
+      });
+    });
   }
 
   async assignTableToOrder(tenantId: string, orderId: string, tableId: string) {

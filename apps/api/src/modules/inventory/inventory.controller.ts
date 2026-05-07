@@ -156,7 +156,11 @@ export class InventoryController {
    */
   @Get('history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getInventoryHistory(@Req() req: Request) {
+  async getInventoryHistory(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Param('productId') productId: string,
+  ) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {
       changeType?: InventoryChangeType;
@@ -165,8 +169,8 @@ export class InventoryController {
       userId: string;
     };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId,
+      productId,
     };
 
     return this.inventoryService.getInventoryHistory(
@@ -181,7 +185,11 @@ export class InventoryController {
    */
   @Get(':branchId/history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByBranch(@Req() req: Request) {
+  async getInventoryHistoryByBranch(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Param('productId') productId: string,
+  ) {
     const user = req.user as { tenantId: string };
     const query = req.query as QueryParams & {
       changeType?: InventoryChangeType;
@@ -190,8 +198,8 @@ export class InventoryController {
       userId: string;
     };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId,
+      productId,
     };
     return this.inventoryService.getInventoryHistory(
       user.tenantId,
@@ -205,11 +213,15 @@ export class InventoryController {
    */
   @Get(':branchId/product/:productId/history')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getInventoryHistoryByProduct(@Req() req: Request) {
+  async getInventoryHistoryByProduct(
+    @Req() req: Request,
+    @Param('branchId') branchId: string,
+    @Param('productId') productId: string,
+  ) {
     const user = req.user as { tenantId: string };
     const params = {
-      branchId: req.params.branchId,
-      productId: req.params.productId,
+      branchId,
+      productId,
     };
     const query = req.query as QueryParams & {
       startDate?: string;

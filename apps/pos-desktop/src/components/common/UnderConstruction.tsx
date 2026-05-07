@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 export function UnderConstruction() {
   return (
-    <div className="flex items-center justify-center min-h-0">
+    <div className="flex items-center justify-center min-h-0 mt-14">
       <div className="text-center">
         <Link to="/">
           <Button variant="ghost" className="mb-6">

@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -40,8 +40,7 @@ export class CustomersController {
   }
 
   @Get(':id')
-  getCustomer(@Req() req: Request) {
-    const { id } = req.params;
+  getCustomer(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Customer ID is required');
     }
@@ -50,8 +49,7 @@ export class CustomersController {
   }
 
   @Get(':id/orders')
-  getCustomerOrders(@Req() req: Request) {
-    const { id } = req.params;
+  getCustomerOrders(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Customer ID is required');
     }
@@ -68,8 +66,7 @@ export class CustomersController {
   }
 
   @Put(':id')
-  updateCustomer(@Req() req: Request) {
-    const { id } = req.params;
+  updateCustomer(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Customer ID is required');
     }
@@ -78,8 +75,7 @@ export class CustomersController {
   }
 
   @Delete(':id')
-  deleteCustomer(@Req() req: Request) {
-    const { id } = req.params;
+  deleteCustomer(@Param('id') id: string) {
     if (!id) {
       throw new Error('Customer ID is required');
     }

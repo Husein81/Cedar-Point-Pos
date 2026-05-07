@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
 
 import type { Request } from 'express';
 import { DevicesService } from './devices.service.js';
@@ -16,25 +16,22 @@ export class DevicesController {
   }
 
   @Put('update-active/:id')
-  updateActiveDevice(@Req() request: Request) {
-    const deviceId = request.params.id;
-
-    if (!deviceId) {
+  updateActiveDevice(@Req() request: Request, @Param('id') id: string) {
+    if (!id) {
       throw new Error('Device ID is required');
     }
 
     const { isActive } = request.body as { isActive: boolean };
-    return this.devicesService.updateActiveDevice(deviceId, isActive);
+    return this.devicesService.updateActiveDevice(id, isActive);
   }
 
   @Put('update-kds-flag/:id')
-  updateKdsFlag(@Req() request: Request) {
-    const deviceId = request.params.id;
-    if (!deviceId) {
+  updateKdsFlag(@Req() request: Request, @Param('id') id: string) {
+    if (!id) {
       throw new Error('Device ID is required');
     }
     const { isKDS } = request.body as { isKDS: boolean };
-    return this.devicesService.updateKdsFlag(deviceId, isKDS);
+    return this.devicesService.updateKdsFlag(id, isKDS);
   }
 
   @Get('validate-token')

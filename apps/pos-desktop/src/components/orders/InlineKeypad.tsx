@@ -4,28 +4,28 @@ import {
 } from "@/components/orders/PaymentForm";
 import type { CreateOrderDto } from "@/dto/order.dto";
 import {
+  useCustomerLoyaltyAccount,
+  useLoyaltyProgram,
+} from "@/hooks/useLoyalty";
+import {
+  useBatchAddItemsToOrder,
   useCreateOrder,
   useProcessPayment,
   useSendToKitchen,
   useUpdateOrderStatus,
-  useAddItemToOrder,
 } from "@/hooks/useOrder";
-import {
-  useLoyaltyProgram,
-  useCustomerLoyaltyAccount,
-} from "@/hooks/useLoyalty";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
-import { Button, cn, Icon, Shad } from "@repo/ui";
+import { Button, Icon, Shad, cn } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import AlertDialog from "../common/AlertDialog";
-import { KEYPAD_CONFIG, type KeypadContext } from "./config";
 import OrderActions from "./OrderActions";
+import { KEYPAD_CONFIG, type KeypadContext } from "./config";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
@@ -82,7 +82,7 @@ export const InlineKeypad = () => {
   const processPayment = useProcessPayment();
   const updateOrderStatus = useUpdateOrderStatus();
   const sendToKitchen = useSendToKitchen();
-  const addItemToOrder = useAddItemToOrder();
+  const batchAddItemsToOrder = useBatchAddItemsToOrder();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const paymentLockRef = useRef(false);
@@ -510,20 +510,21 @@ export const InlineKeypad = () => {
         if (!orderId) return;
 
         // For orders that were ALREADY on the server before this flow,
-        // add only unsent local items.
+        // sync any new local items in one batch request.
         if (wasLoadedOrder) {
-          const unsyncedLocal = active.items.filter(
-            (i) => !i.sentToKitchen && i.id.startsWith("item-"),
-          );
-          for (const item of unsyncedLocal) {
-            await addItemToOrder.mutateAsync({
+          const unsyncedLocal = active.items
+            .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+            .map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: item.notes,
+              modifiers: item.modifiers?.map((m) => m.modifierId),
+            }));
+
+          if (unsyncedLocal.length > 0) {
+            await batchAddItemsToOrder.mutateAsync({
               id: orderId,
-              item: {
-                productId: item.productId,
-                quantity: item.quantity,
-                notes: item.notes,
-                modifiers: item.modifiers?.map((m) => m.modifierId),
-              },
+              items: unsyncedLocal,
             });
           }
         }
@@ -706,20 +707,21 @@ export const InlineKeypad = () => {
       if (!orderId) return;
 
       // For orders that were ALREADY on the server before this flow,
-      // add only unsent local items.
+      // sync any new local items in one batch request.
       if (wasLoadedOrder) {
-        const unsyncedLocal = active.items.filter(
-          (i) => !i.sentToKitchen && i.id.startsWith("item-"),
-        );
-        for (const item of unsyncedLocal) {
-          await addItemToOrder.mutateAsync({
+        const unsyncedLocal = active.items
+          .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+          .map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes,
+            modifiers: item.modifiers?.map((m) => m.modifierId),
+          }));
+
+        if (unsyncedLocal.length > 0) {
+          await batchAddItemsToOrder.mutateAsync({
             id: orderId,
-            item: {
-              productId: item.productId,
-              quantity: item.quantity,
-              notes: item.notes,
-              modifiers: item.modifiers?.map((m) => m.modifierId),
-            },
+            items: unsyncedLocal,
           });
         }
       }
@@ -730,7 +732,7 @@ export const InlineKeypad = () => {
       // Mark all items as sent locally
       markItemsSentToKitchen();
 
-      // Use server-returned status instead of hardcoded value
+      // Update status
       if (result?.status) {
         setOrderStatus(result.status as OrderStatus);
       } else {

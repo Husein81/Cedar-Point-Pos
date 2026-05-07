@@ -18,6 +18,7 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const ORDER_QUERY_KEY = ["orders"];
 const TABLE_QUERY_KEY = ["tables"];
@@ -133,6 +134,18 @@ export const useAddItemToOrder = () => {
   });
 };
 
+export const useBatchAddItemsToOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<Order, Error, { id: string; items: AddItemDto[] }>({
+    mutationFn: ({ id, items }) => ordersApi.batchAddItemsToOrder(id, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
+    },
+  });
+};
+
 export const useUpdateItemQuantity = () => {
   const queryClient = useQueryClient();
 
@@ -239,7 +252,8 @@ type TransferOrderVariables = {
 export const useTableSelectorTransferOrder = (): UseMutationResult<
   Order,
   Error,
-  TransferOrderVariables
+  TransferOrderVariables,
+  unknown
 > & {
   conflict: TableSelectorTransferConflict | null;
   clearConflict: () => void;
@@ -320,7 +334,8 @@ export const useMergeOrders = () => {
   return useMutation<
     Order,
     Error,
-    { targetOrderId: string; sourceOrderId: string }
+    { targetOrderId: string; sourceOrderId: string },
+    unknown
   >({
     mutationFn: ({ targetOrderId, sourceOrderId }) =>
       ordersApi.mergeOrders(targetOrderId, sourceOrderId),
@@ -349,7 +364,7 @@ export const useActiveOrderByTable = (tableId: string | null) => {
  * Useful when you want to trigger the fetch imperatively (e.g., on table selection)
  */
 export const useFetchActiveOrderByTable = () => {
-  return useMutation<Order | null, Error, string>({
+  return useMutation<Order | null, Error, string, unknown>({
     mutationFn: ordersApi.getActiveOrderByTableId,
   });
 };

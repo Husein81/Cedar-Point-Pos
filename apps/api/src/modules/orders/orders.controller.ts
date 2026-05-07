@@ -246,6 +246,20 @@ export class OrdersController {
   }
 
   /**
+   * Batch add items to order
+   */
+  @Post(':id/batch-items')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  batchAddItemsToOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() items: AddItemDto[],
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.batchAddItemsToOrder(user.tenantId, id, items);
+  }
+
+  /**
    * Update item quantity
    */
   @Patch(':id/items/:itemId')

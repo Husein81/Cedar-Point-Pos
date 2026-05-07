@@ -79,6 +79,15 @@ export const ordersApi = {
     return response.data;
   },
 
+  // Batch add items to order
+  batchAddItemsToOrder: async (
+    id: string,
+    items: AddItemDto[],
+  ): Promise<Order> => {
+    const response = await api.post(`/orders/${id}/batch-items`, items);
+    return response.data;
+  },
+
   // Update item quantity
   updateItemQuantity: async (
     id: string,

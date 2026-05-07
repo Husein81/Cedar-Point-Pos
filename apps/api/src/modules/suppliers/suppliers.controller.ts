@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { SuppliersService } from './suppliers.service.js';
@@ -45,8 +45,7 @@ export class SuppliersController {
    * Get a single supplier with operational stats
    */
   @Get(':id')
-  getSupplier(@Req() req: Request) {
-    const { id } = req.params;
+  getSupplier(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Supplier ID is required');
     }
@@ -58,8 +57,7 @@ export class SuppliersController {
    * Get purchase orders for a specific supplier
    */
   @Get(':id/purchase-orders')
-  getSupplierPurchaseOrders(@Req() req: Request) {
-    const { id } = req.params;
+  getSupplierPurchaseOrders(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Supplier ID is required');
     }
@@ -91,8 +89,7 @@ export class SuppliersController {
    * Update an existing supplier
    */
   @Put(':id')
-  updateSupplier(@Req() req: Request) {
-    const { id } = req.params;
+  updateSupplier(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Supplier ID is required');
     }
@@ -114,8 +111,7 @@ export class SuppliersController {
    * Delete a supplier (soft delete)
    */
   @Delete(':id')
-  deleteSupplier(@Req() req: Request) {
-    const { id } = req.params;
+  deleteSupplier(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Supplier ID is required');
     }

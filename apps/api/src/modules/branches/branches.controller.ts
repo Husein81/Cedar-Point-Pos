@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Post, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { BranchesService } from './branches.service.js';
@@ -29,8 +29,7 @@ export class BranchesController {
 
   @Roles('ADMIN', 'MANAGER')
   @Post('/:id')
-  updateBranch(@Req() req: Request) {
-    const { id } = req.params;
+  updateBranch(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Branch ID is required');
     }
@@ -40,8 +39,7 @@ export class BranchesController {
 
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
-  deleteBranch(@Req() req: Request) {
-    const { id } = req.params;
+  deleteBranch(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Branch ID is required');
     }
@@ -49,8 +47,7 @@ export class BranchesController {
   }
 
   @Get('/:id')
-  getBranchById(@Req() req: Request) {
-    const { id } = req.params;
+  getBranchById(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Branch ID is required');
     }
@@ -58,8 +55,7 @@ export class BranchesController {
   }
 
   @Get('/tenant/:tenantId')
-  getBranchesByTenantId(@Req() req: Request) {
-    const { tenantId } = req.params;
+  getBranchesByTenantId(@Param('tenantId') tenantId: string) {
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }

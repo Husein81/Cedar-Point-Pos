@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Post, Put, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
@@ -33,8 +33,7 @@ export class ProductsController {
   }
 
   @Get(':id')
-  getProduct(@Req() req: Request) {
-    const { id } = req.params;
+  getProduct(@Param('id') id: string) {
     if (!id) {
       throw new Error('Product ID is required');
     }
@@ -67,8 +66,7 @@ export class ProductsController {
   }
 
   @Put(':id')
-  updateProduct(@Req() req: Request) {
-    const { id } = req.params;
+  updateProduct(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
       throw new Error('Product ID is required');
     }
@@ -99,8 +97,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  deleteProduct(@Req() req: Request) {
-    const { id } = req.params;
+  deleteProduct(@Param('id') id: string) {
     if (!id) {
       throw new Error('Product ID is required');
     }
@@ -108,11 +105,10 @@ export class ProductsController {
   }
 
   @Get(':id/modifiers')
-  getModifiersByProduct(@Req() req: Request) {
-    const { id: productId } = req.params;
+  getModifiersByProduct(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
 
-    if (!productId) {
+    if (!id) {
       throw new Error('Product ID is required');
     }
 
@@ -120,6 +116,6 @@ export class ProductsController {
       throw new Error('Tenant ID is required');
     }
 
-    return this.productsService.getModifiersByProduct(productId, tenantId);
+    return this.productsService.getModifiersByProduct(id, tenantId);
   }
 }

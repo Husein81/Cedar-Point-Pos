@@ -1,6 +1,9 @@
 import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { useMergeOrders, useTransferOrder } from "@/hooks/useOrder";
-import { useOrderStore, type BackendOrder } from "@/store/orderStore";
+import {
+  useOrderStore,
+  type ServerOrderWithPayments,
+} from "@/store/orderStore";
 import { useTablesByBranch } from "@/hooks/useTable";
 import type { Order } from "@repo/types";
 import type { TableWithFloor } from "@/dto/tables.dto";
@@ -70,12 +73,12 @@ export function TableActiveOrdersDialog({
   // Load an order into the POS cart
   const handleLoadOrder = useCallback(
     (order: Order) => {
-      const tabId = loadOrder(order as BackendOrder);
+      const tabId = loadOrder(order as ServerOrderWithPayments);
       if (tabId) {
         const tableId = order.tableId ?? table.id;
         handleOpenChange(false);
         navigate({
-          to: "/orders",
+          to: "/",
           search: { tableId },
         });
       }
@@ -88,7 +91,7 @@ export function TableActiveOrdersDialog({
     createTabWithTable(table.id, tableName);
     handleOpenChange(false);
     navigate({
-      to: "/orders",
+      to: "/",
       search: {
         tableId: table.id,
         tableName,
@@ -112,7 +115,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (transferredOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(transferredOrder as BackendOrder, true);
+            loadOrder(transferredOrder as ServerOrderWithPayments, true);
             toast.success("Order transferred successfully");
             handleOpenChange(false);
           },
@@ -147,7 +150,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (mergedOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(mergedOrder as BackendOrder, true);
+            loadOrder(mergedOrder as ServerOrderWithPayments, true);
             toast.success("Order transferred and merged successfully");
             handleOpenChange(false);
           },
@@ -188,7 +191,7 @@ export function TableActiveOrdersDialog({
         {
           onSuccess: (mergedOrder) => {
             // Refresh the local tab with full server data (includes modifiers)
-            loadOrder(mergedOrder as BackendOrder, true);
+            loadOrder(mergedOrder as ServerOrderWithPayments, true);
             toast.success("Orders merged successfully");
             handleOpenChange(false);
           },

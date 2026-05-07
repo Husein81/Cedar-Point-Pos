@@ -5,7 +5,7 @@ export function UnderConstruction() {
   return (
     <div className="flex items-center justify-center min-h-0">
       <div className="text-center">
-        <Link to="/orders">
+        <Link to="/">
           <Button variant="ghost" className="mb-6">
             <Icon name="ArrowLeft" className="w-4 h-4 mr-2" />
             Go Back Home

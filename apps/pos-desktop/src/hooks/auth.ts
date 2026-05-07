@@ -1,10 +1,25 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { authApi } from "../apis/authApi";
 import { useAuthStore } from "@/store/authStore";
-import { toast } from "sonner";
 import { useOrderStore } from "@/store/orderStore";
+import {
+  UseMutationResult,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { toast } from "sonner";
+import { authApi } from "../apis/authApi";
+import { PublicUser } from "@repo/types";
 
-export const useLogin = () => {
+export const useLogin = (): UseMutationResult<
+  {
+    accessToken: string;
+    user: PublicUser;
+  },
+  Error,
+  {
+    username: string;
+    password: string;
+  }
+> => {
   const { setUser } = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({

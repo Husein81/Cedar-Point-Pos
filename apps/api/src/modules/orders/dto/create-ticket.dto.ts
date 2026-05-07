@@ -1,9 +1,19 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { OrderStatus } from '@repo/types';
-import z from 'zod';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-export const createTicketDto = z.object({
-  orderItemId: z.string(),
-  station: z.string().optional(),
-  status: z.enum(OrderStatus).optional(),
-});
-export type CreateTicketDto = z.infer<typeof createTicketDto>;
+export class CreateTicketDto {
+  @ApiProperty()
+  @IsString()
+  orderItemId!: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  station?: string;
+
+  @ApiProperty({ enum: OrderStatus, required: false })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+}

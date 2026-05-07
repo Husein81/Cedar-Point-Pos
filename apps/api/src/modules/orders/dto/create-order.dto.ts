@@ -1,43 +1,195 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { OrderType, PaymentMethod } from '@repo/types';
-import { z } from 'zod';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
-export const createOrderItemDto = z.object({
-  productId: z.string(),
-  quantity: z.number(),
-  unitPrice: z.number().optional(), // Override product price
-  discount: z
-    .object({
-      value: z.number().min(0),
-      type: z.enum(['PERCENTAGE', 'FIXED']),
-    })
-    .optional(), // Item-level discount
-  notes: z.string().optional(),
-  modifiers: z.array(z.string()).optional(), // Array of modifier IDs
-});
-export type CreateOrderItemDto = z.infer<typeof createOrderItemDto>;
+export class CreateOrderDiscountDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  value!: number;
 
-export const createOrderDto = z.object({
-  branchId: z.string(),
-  type: z.enum(OrderType),
-  tableId: z.string().optional(),
-  deviceId: z.string().optional(),
-  shiftId: z.string().optional(),
-  customerId: z.string().optional(),
-  items: z.array(createOrderItemDto).optional(),
-  discount: z.number().min(0).optional(), // Discount amount (must be >= 0)
-  shippingFee: z.number().min(0).optional(), // Shipping fee (must be >= 0)
-  includeVAT: z.boolean().optional(), // Whether to include 11% VAT
-  guestCount: z.number().int().min(1).optional(), // Number of guests for capacity check
-});
-export type CreateOrderDto = z.infer<typeof createOrderDto>;
+  @ApiProperty({ enum: ['PERCENTAGE', 'FIXED'] })
+  @IsEnum(['PERCENTAGE', 'FIXED'])
+  type!: 'PERCENTAGE' | 'FIXED';
+}
 
-export const PaymentDto = z.object({
-  amount: z.number(),
-  method: z.enum(PaymentMethod),
-  currencyCode: z.string().optional(),
-  exchangeRate: z.number().optional(),
-});
-export type PaymentDto = z.infer<typeof PaymentDto>;
+export class CreateOrderItemDto {
+  @ApiProperty()
+  @IsString()
+  productId!: string;
 
-export const BatchPaymentDto = z.array(PaymentDto);
-export type BatchPaymentDto = z.infer<typeof BatchPaymentDto>;
+  @ApiProperty()
+  @IsNumber()
+  quantity!: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  unitPrice?: number;
+
+  @ApiProperty({ type: CreateOrderDiscountDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateOrderDiscountDto)
+  discount?: CreateOrderDiscountDto;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ type: [String], required: false })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  modifiers?: string[];
+}
+
+export class CreateOrderDto {
+  @ApiProperty()
+  @IsString()
+  branchId!: string;
+
+  @ApiProperty({ enum: OrderType })
+  @IsEnum(OrderType)
+  type!: OrderType;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tableId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  shiftId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
+  @ApiProperty({ type: [CreateOrderItemDto], required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  items?: CreateOrderItemDto[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  shippingFee?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  includeVAT?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  guestCount?: number;
+}
+
+export class PaymentDto {
+  @ApiProperty()
+  @IsNumber()
+  amount!: number;
+
+  @ApiProperty({ enum: PaymentMethod })
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  currencyCode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  exchangeRate?: number;
+}
+
+export class LoyaltyRedemptionDto {
+  @ApiProperty()
+  @IsNumber()
+  @IsInt()
+  @Min(1)
+  redeemPoints!: number;
+}
+
+export class ProcessPaymentDto {
+  @ApiProperty({ type: [PaymentDto], required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentDto)
+  payments?: PaymentDto[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  amount?: number;
+
+  @ApiProperty({ enum: PaymentMethod, required: false })
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  method?: PaymentMethod;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  currencyCode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  exchangeRate?: number;
+
+  @ApiProperty({ type: LoyaltyRedemptionDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LoyaltyRedemptionDto)
+  loyalty?: LoyaltyRedemptionDto;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  shiftId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
+}

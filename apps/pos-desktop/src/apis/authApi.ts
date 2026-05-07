@@ -1,11 +1,11 @@
-import type { User } from "@repo/types";
+import type { PublicUser } from "@repo/types";
 import { api } from "./api";
 
 export const authApi = {
   login: async (
     username: string,
-    password: string
-  ): Promise<{ accessToken: string; user: Omit<User, "password"> }> => {
+    password: string,
+  ): Promise<{ accessToken: string; user: PublicUser }> => {
     try {
       const response = await api.post("/auth/sign-in", {
         username,

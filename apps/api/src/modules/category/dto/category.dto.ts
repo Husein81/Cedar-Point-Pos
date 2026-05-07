@@ -1,11 +1,54 @@
-export type CreateCategoryDto = {
-  id?: string;
-  name: string;
-  code?: string | null;
-  description?: string | null;
-  isDeleted?: boolean;
-  tenantId: string;
-  colorId?: string;
-};
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
-export type UpdateCategoryDto = Partial<CreateCategoryDto>;
+export class CreateCategoryDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  code?: string | null;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isDeleted?: boolean = false;
+
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
+  @IsOptional()
+  @IsString()
+  colorId?: string;
+}
+
+export class UpdateCategoryDto {
+  id?: string;
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  code?: string | null;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isDeleted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  colorId?: string;
+  tenantId?: string;
+}

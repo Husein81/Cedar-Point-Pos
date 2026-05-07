@@ -13,10 +13,11 @@ import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CategoryService } from './category.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import type {
+import {
   CreateCategoryDto,
   UpdateCategoryDto,
 } from './dto/category.dto.js';
+
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -45,10 +46,12 @@ export class CategoryController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createCategory(@Req() req: Request, @Body() data: CreateCategoryDto) {
+    console.log('Cat', data);
     const user = req.user as User;
     if (!user.tenantId) {
       throw new Error('Tenant ID is required');
     }
+
     return this.categoryService.createCategory({
       ...data,
       tenantId: user.tenantId,

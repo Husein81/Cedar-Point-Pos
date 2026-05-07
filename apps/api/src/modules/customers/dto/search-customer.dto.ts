@@ -1,8 +1,10 @@
-import { z } from 'zod';
+import { Min, Max, IsNumber, IsString } from 'class-validator';
 
-export const SearchCustomerSchema = z.object({
-  query: z.string().optional(),
-  limit: z.coerce.number().min(1).max(50).default(10),
-});
-
-export type SearchCustomerDto = z.infer<typeof SearchCustomerSchema>;
+export class SearchCustomerDto {
+  @IsString()
+  query?: string;
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  limit!: number;
+}

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@repo/types';
+import { PublicUser, User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
@@ -23,7 +23,7 @@ export class AuthService {
     private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
-  async createUser(data: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async createUser(data: CreateUserDto): Promise<PublicUser> {
     const { username, password, tenantId, role } = data;
 
     // Validate tenant exists
@@ -90,7 +90,7 @@ export class AuthService {
     { email, password }: AdminLoginDto,
     res: Response,
   ): Promise<{
-    user: Omit<User, 'password' | 'tenantId'>;
+    user: PublicUser;
   }> {
     const user = await this.prisma.user.findUnique({
       where: { email, role: UserRole.SYSTEM_ADMIN },
@@ -143,7 +143,7 @@ export class AuthService {
   }
 
   async login({ username, password }: LoginDto): Promise<{
-    user: Partial<User>;
+    user: PublicUser;
     accessToken: string;
   }> {
     const user = await this.prisma.user.findUnique({

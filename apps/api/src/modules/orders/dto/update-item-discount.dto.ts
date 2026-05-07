@@ -1,8 +1,13 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsNumber, Min } from 'class-validator';
 
-export const updateItemDiscountDto = z.object({
-  value: z.number().min(0),
-  type: z.enum(['PERCENTAGE', 'FIXED']),
-});
+export class UpdateItemDiscountDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  value!: number;
 
-export type UpdateItemDiscountDto = z.infer<typeof updateItemDiscountDto>;
+  @ApiProperty({ enum: ['PERCENTAGE', 'FIXED'] })
+  @IsEnum(['PERCENTAGE', 'FIXED'])
+  type!: 'PERCENTAGE' | 'FIXED';
+}

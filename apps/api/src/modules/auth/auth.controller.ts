@@ -10,7 +10,7 @@ import {
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
-import type { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
 import type { AdminLoginDto } from './dto/admin-login.dto.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UserRole } from '../../generated/prisma/client.js';

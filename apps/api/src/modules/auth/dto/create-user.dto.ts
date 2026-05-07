@@ -1,18 +1,33 @@
-import { z } from 'zod';
-import { UserRole } from '../../../generated/prisma/client.js';
+import { UserRole } from '@repo/types';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
-export const createUserSchema = z.object({
-  name: z.string().min(1),
-  email: z.string(),
-  username: z.string().min(1),
-  password: z.string().min(6),
-  role: z.nativeEnum(UserRole),
-  tenantId: z.string().uuid(),
-});
-export type CreateUserDto = z.infer<typeof createUserSchema>;
+export class CreateUserDto {
+  @IsString()
+  username!: string;
 
-export const loginSchema = z.object({
-  username: z.string(),
-  password: z.string().min(6),
-});
-export type LoginDto = z.infer<typeof loginSchema>;
+  @IsString()
+  name!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
+  @IsString()
+  @MinLength(6)
+  password!: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+}
+
+export class LoginDto {
+  @IsString()
+  username!: string;
+
+  @IsString()
+  password!: string;
+}

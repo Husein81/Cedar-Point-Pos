@@ -12,6 +12,7 @@ export const getColorColumns = (): ColumnDef<Color>[] => {
 
   return [
     {
+      id: "color-preview",
       accessorKey: "hex",
       header: "Color",
       cell: ({ row }) => (

@@ -21,7 +21,7 @@ export function TableSelector() {
   const transferOrder = useTableSelectorTransferOrder();
 
   // Read tableId from URL search params
-  const searchParams = useSearch({ from: "/orders/" });
+  const searchParams = useSearch({ from: "/" });
 
   // Initialize table from URL params when navigating from tables page
   // This effect runs once with the initial searchParams values
@@ -80,7 +80,11 @@ export function TableSelector() {
       activeOrderIds: conflict.activeOrderIds,
     });
     transferOrder.clearConflict();
-  }, [transferOrder.conflict, transferOrder.clearConflict, openMergeRequiredModal]);
+  }, [
+    transferOrder.conflict,
+    transferOrder.clearConflict,
+    openMergeRequiredModal,
+  ]);
 
   const handleTableSelect = useCallback(
     (table: TableWithFloor) => {

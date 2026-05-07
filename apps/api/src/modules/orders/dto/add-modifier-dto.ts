@@ -1,6 +1,8 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
 
-export const addModifierDto = z.object({
-  modifierId: z.string(),
-});
-export type AddModifierDto = z.infer<typeof addModifierDto>;
+export class AddModifierDto {
+  @ApiProperty()
+  @IsString()
+  modifierId!: string;
+}

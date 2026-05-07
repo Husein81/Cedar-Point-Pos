@@ -25,7 +25,11 @@ import { TableStatusService } from '../tables/table-status.service.js';
 import { OffersService } from '../offers/offers.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
-import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
+import type {
+  CreateOrderDto,
+  PaymentDto,
+  CreateOrderDiscountDto,
+} from './dto/create-order.dto.js';
 
 // Extended QueryParams for order-specific filtering
 interface OrderQueryParams extends QueryParams {
@@ -377,8 +381,8 @@ export class OrdersService {
         const discountValue =
           discount && typeof discount === 'object'
             ? {
-                type: (discount as Record<string, unknown>).type as string,
-                value: (discount as Record<string, unknown>).value as number,
+                type: (discount as CreateOrderDiscountDto).type,
+                value: (discount as CreateOrderDiscountDto).value,
               }
             : undefined;
 
@@ -2592,11 +2596,14 @@ export class OrdersService {
       const group = preview.groups[gIdx];
       for (let iIdx = 0; iIdx < group.items.length; iIdx++) {
         const item = group.items[iIdx];
-        const isLastItem = gIdx === preview.groups.length - 1 && iIdx === group.items.length - 1;
+        const isLastItem =
+          gIdx === preview.groups.length - 1 && iIdx === group.items.length - 1;
 
         let basePriceShare = 0;
         if (totalRetailPrice > 0) {
-          basePriceShare = this.round((item.retailPrice / totalRetailPrice) * preview.basePrice);
+          basePriceShare = this.round(
+            (item.retailPrice / totalRetailPrice) * preview.basePrice,
+          );
         } else {
           basePriceShare = this.round(preview.basePrice / totalSelections);
         }
@@ -2608,7 +2615,9 @@ export class OrdersService {
         }
 
         const freeDiscount = item.isFree ? item.extraPrice : 0;
-        const unitPrice = this.round(basePriceShare + item.extraPrice - freeDiscount);
+        const unitPrice = this.round(
+          basePriceShare + item.extraPrice - freeDiscount,
+        );
 
         allItems.push({
           productId: item.productId,

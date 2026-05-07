@@ -67,4 +67,14 @@ export class ColorController {
     }
     return this.colorService.deleteColor(user.tenantId, id);
   }
+
+  @Post('seed')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  seedColors(@Req() req: Request) {
+    const user = req.user as User;
+    if (!user.tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    return this.colorService.seedColors(user.tenantId);
+  }
 }

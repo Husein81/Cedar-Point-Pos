@@ -1,6 +1,9 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsPositive } from 'class-validator';
 
-export const updateQuantityDto = z.object({
-  quantity: z.number().positive(),
-});
-export type UpdateQuantityDto = z.infer<typeof updateQuantityDto>;
+export class UpdateQuantityDto {
+  @ApiProperty()
+  @IsNumber()
+  @IsPositive()
+  quantity!: number;
+}

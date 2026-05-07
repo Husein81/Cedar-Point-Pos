@@ -24,3 +24,7 @@ export const updateColor = async (
 export const deleteColor = async (id: string): Promise<void> => {
   await api.delete(`/colors/${id}`);
 };
+
+export const seedColors = async (): Promise<void> => {
+  await api.post("/colors/seed");
+};

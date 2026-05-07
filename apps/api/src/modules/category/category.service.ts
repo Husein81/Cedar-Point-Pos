@@ -10,7 +10,7 @@ export class CategoryService {
   constructor(private prisma: PrismaService) {}
   async createCategory(data: CreateCategoryDto) {
     return await this.prisma.category.create({
-      data,
+      data: data as Prisma.CategoryUncheckedCreateInput,
     });
   }
 

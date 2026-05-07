@@ -19,37 +19,18 @@ import {
   PaymentMethod,
 } from '@repo/types';
 import type { Request } from 'express';
-import { ZodError } from 'zod';
-
-import type { AddItemDto } from './dto/add-item.dto.js';
-import type { AssignTableDto } from './dto/assign-table.dto.js';
-import type {
-  BatchPaymentDto,
-  CreateOrderDto,
-} from './dto/create-order.dto.js';
-import type { UpdateQuantityDto } from './dto/update-quantity.dto.js';
-import type { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
-import { addOfferItemsSchema } from './dto/add-offer-items.dto.js';
+import { AddItemDto } from './dto/add-item.dto.js';
+import { AssignTableDto } from './dto/assign-table.dto.js';
+import { CreateOrderDto, ProcessPaymentDto } from './dto/create-order.dto.js';
+import { UpdateQuantityDto } from './dto/update-quantity.dto.js';
+import { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
+import { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
+import { CreateTicketDto } from './dto/create-ticket.dto.js';
+import { SplitPaymentDto } from './dto/split-payment.dto.js';
+import { AddModifierDto } from './dto/add-modifier-dto.js';
 
 import { OrdersService } from './orders.service.js';
 
-/**
- * Parses and validates a request body against a Zod schema.
- * Throws BadRequestException with flattened error details on validation failure.
- */
-function validateBody<T>(schema: { parse: (data: unknown) => T }, body: unknown): T {
-  try {
-    return schema.parse(body);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      throw new BadRequestException({
-        message: 'Validation failed',
-        errors: error.flatten(),
-      });
-    }
-    throw error;
-  }
-}
 
 @Controller('orders')
 export class OrdersController {
@@ -166,26 +147,10 @@ export class OrdersController {
   processPayment(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body()
-    body: {
-      // Batch payments (new format)
-      payments?: BatchPaymentDto;
-      // Single payment (deprecated, for backwards compatibility)
-      amount?: number;
-      method?: PaymentMethod;
-      currencyCode?: string;
-      exchangeRate?: number;
-      // Loyalty redemption (optional)
-      loyalty?: { redeemPoints: number };
-      // Shift attribution (optional)
-      shiftId?: string;
-      deviceId?: string;
-      idempotencyKey?: string;
-    },
+    @Body() dto: ProcessPaymentDto,
   ) {
     const user = req.user as { tenantId: string; id: string };
-
-    return this.ordersService.processPayment(user.tenantId, id, body, user.id);
+    return this.ordersService.processPayment(user.tenantId, id, dto, user.id);
   }
 
   /* ----------------------------------------------------
@@ -382,10 +347,9 @@ export class OrdersController {
   addOfferItemsToOrder(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() dto: AddOfferItemsDto,
   ) {
     const user = req.user as { tenantId: string };
-    const data = validateBody(addOfferItemsSchema, body);
-    return this.ordersService.addOfferItemsToOrder(user.tenantId, id, data);
+    return this.ordersService.addOfferItemsToOrder(user.tenantId, id, dto);
   }
 }

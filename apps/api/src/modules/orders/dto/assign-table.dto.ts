@@ -1,6 +1,9 @@
-import z from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
-export const assignTableDto = z.object({
-  tableId: z.string().optional(),
-});
-export type AssignTableDto = z.infer<typeof assignTableDto>;
+export class AssignTableDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tableId?: string;
+}

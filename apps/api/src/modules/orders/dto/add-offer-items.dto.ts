@@ -1,14 +1,28 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsString, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-const offerSelectionItemSchema = z.object({
-  groupId: z.string().min(1, 'Group ID is required'),
-  productId: z.string().min(1, 'Product ID is required'),
-});
+export class OfferSelectionItemDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  groupId!: string;
 
-export const addOfferItemsSchema = z.object({
-  offerId: z.string().min(1, 'Offer ID is required'),
-  selections: z
-    .array(offerSelectionItemSchema)
-    .min(1, 'At least one selection is required'),
-});
-export type AddOfferItemsDto = z.infer<typeof addOfferItemsSchema>;
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  productId!: string;
+}
+
+export class AddOfferItemsDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  offerId!: string;
+
+  @ApiProperty({ type: [OfferSelectionItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OfferSelectionItemDto)
+  selections!: OfferSelectionItemDto[];
+}

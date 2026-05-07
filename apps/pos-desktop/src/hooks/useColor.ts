@@ -3,6 +3,7 @@ import {
   createColor,
   deleteColor,
   getColors,
+  seedColors,
   updateColor,
 } from "@/apis/colorApi";
 
@@ -43,6 +44,16 @@ export const useDeleteColor = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteColor,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["colors"] });
+    },
+  });
+};
+
+export const useSeedColors = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: seedColors,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["colors"] });
     },

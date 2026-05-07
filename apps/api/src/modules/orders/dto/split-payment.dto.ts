@@ -1,13 +1,31 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { PaymentMethod } from '@repo/types';
-import { z } from 'zod';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsNumber,
+  Min,
+  ArrayMinSize,
+  ValidateNested,
+} from 'class-validator';
 
-export const splitPaymentItemDto = z.object({
-  amount: z.number().min(0.01),
-  method: z.enum(PaymentMethod),
-});
-export type SplitPaymentItemDto = z.infer<typeof splitPaymentItemDto>;
+export class SplitPaymentItemDto {
+  @ApiProperty()
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
 
-export const splitPaymentDto = z.object({
-  payments: z.array(splitPaymentItemDto).min(2), // At least 2 splits
-});
-export type SplitPaymentDto = z.infer<typeof splitPaymentDto>;
+  @ApiProperty({ enum: PaymentMethod })
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
+}
+
+export class SplitPaymentDto {
+  @ApiProperty({ type: [SplitPaymentItemDto] })
+  @IsArray()
+  @ArrayMinSize(2)
+  @ValidateNested({ each: true })
+  @Type(() => SplitPaymentItemDto)
+  payments!: SplitPaymentItemDto[];
+}

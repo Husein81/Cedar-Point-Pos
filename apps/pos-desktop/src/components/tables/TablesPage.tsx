@@ -13,7 +13,7 @@ import {
   FloorTabs,
   TableFilters,
   TableForm,
-  TableGrid
+  TableGrid,
 } from "@/components/tables";
 
 // Types
@@ -135,7 +135,7 @@ export function TablesPage() {
             size="sm"
             onClick={() =>
               navigate({
-                to: "/orders",
+                to: "/",
                 search: { orderType: "dine_in" },
               })
             }

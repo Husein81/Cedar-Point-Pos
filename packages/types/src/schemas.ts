@@ -81,6 +81,8 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
+export type PublicUser = Omit<User, "password">;
+
 // Branch
 export const BranchSchema = z.object({
   id: cuid,

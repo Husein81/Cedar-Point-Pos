@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { CreateColorDto, UpdateColorDto } from './dto/color.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Color } from '../../generated/prisma/browser.js';
@@ -58,6 +62,45 @@ export class ColorService {
 
     return this.prisma.color.delete({
       where: { id },
+    });
+  }
+
+  async seedColors(tenantId: string) {
+    const defaultColors = [
+      { name: 'Red', hex: '#EF4444', tenantId },
+      { name: 'Orange', hex: '#F97316', tenantId },
+      { name: 'Amber', hex: '#F59E0B', tenantId },
+      { name: 'Yellow', hex: '#EAB308', tenantId },
+      { name: 'Lime', hex: '#84CC16', tenantId },
+      { name: 'Green', hex: '#22C55E', tenantId },
+      { name: 'Emerald', hex: '#10B981', tenantId },
+      { name: 'Teal', hex: '#14B8A6', tenantId },
+      { name: 'Cyan', hex: '#06B6D4', tenantId },
+      { name: 'Sky', hex: '#0EA5E9', tenantId },
+      { name: 'Blue', hex: '#3B82F6', tenantId },
+      { name: 'Indigo', hex: '#6366F1', tenantId },
+      { name: 'Violet', hex: '#8B5CF6', tenantId },
+      { name: 'Purple', hex: '#A855F7', tenantId },
+      { name: 'Fuchsia', hex: '#D946EF', tenantId },
+      { name: 'Pink', hex: '#EC4899', tenantId },
+      { name: 'Rose', hex: '#F43F5E', tenantId },
+      { name: 'Slate', hex: '#64748B', tenantId },
+      { name: 'Gray', hex: '#6B7280', tenantId },
+      { name: 'Zinc', hex: '#71717A', tenantId },
+      { name: 'Neutral', hex: '#737373', tenantId },
+      { name: 'Stone', hex: '#78716C', tenantId },
+    ];
+
+    const existingCount = await this.prisma.color.count({
+      where: { tenantId },
+    });
+    if (existingCount > 0) {
+      throw new BadRequestException('Colors already exist');
+    }
+
+    return await this.prisma.color.createMany({
+      data: defaultColors,
+      skipDuplicates: true,
     });
   }
 }

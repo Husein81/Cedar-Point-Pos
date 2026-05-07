@@ -4,8 +4,8 @@ import "@repo/ui/globals";
 import { QueryProvider } from "@/providers/QueryProvider";
 
 export const metadata: Metadata = {
-  title: "Pointverse - System Admin",
-  description: "System administration portal for Pointverse platform",
+  title: "Cedar Point Pos - System Admin",
+  description: "System administration portal for Cedar Pos platform",
 };
 
 export default function RootLayout({

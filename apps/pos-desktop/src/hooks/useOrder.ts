@@ -232,7 +232,7 @@ type TableSelectorTransferConflict = {
 type TransferOrderVariables = {
   orderId: string;
   targetTableId: string;
-  mergeIntoOrderId: string;
+  mergeIntoOrderId?: string;
   targetTableDisplayName?: string;
 };
 

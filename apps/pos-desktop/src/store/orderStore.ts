@@ -61,7 +61,7 @@ export type OrderTab = {
   order: Order;
 };
 
-type ServerOrderWithPayments = ServerOrder & {
+export type ServerOrderWithPayments = ServerOrder & {
   payments?: Array<{ amount?: number | string | null }>;
 };
 

@@ -4,7 +4,7 @@ import { getSubcategoryColumns } from "@/config/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
 

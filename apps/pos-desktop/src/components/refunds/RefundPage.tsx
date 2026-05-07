@@ -20,7 +20,6 @@ export const RefundPage = () => {
     searchQuery,
     filterDateFrom,
     filterDateTo,
-    filterStatus,
     selectedOrderId,
     setSelectedOrderDetails,
     initializeRefundCart,

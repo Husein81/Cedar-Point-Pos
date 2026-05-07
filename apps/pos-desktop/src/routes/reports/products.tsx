@@ -152,7 +152,7 @@ function ProductsReportPage() {
   );
 
   const rows = data?.data ?? [];
-  const meta = data?.meta ?? {
+  const meta = data?.pagination ?? {
     page: 1,
     pageSize: 25,
     totalItems: 0,

@@ -34,7 +34,7 @@ export const RefundHeader = ({ onRefresh }: RefundHeaderProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate({ to: "/orders" })}
+          onClick={() => navigate({ to: "/" })}
         >
           <Icon name="ArrowLeft" className="w-5 h-5" />
         </Button>

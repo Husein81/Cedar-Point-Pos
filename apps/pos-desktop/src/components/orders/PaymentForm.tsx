@@ -25,13 +25,9 @@ type Props = {
     loyalty?: { redeemPoints: number },
   ) => void;
   hasUnsentItems?: boolean;
-  /** Loyalty program config — undefined means not loaded or not available */
   loyaltyProgram?: LoyaltyProgram;
-  /** Customer loyalty account — undefined when no customer or account not loaded */
   loyaltyAccount?: LoyaltyAccount;
-  /** Whether a customer is attached to the order */
   customerId?: string | null;
-  /** Eligible base for loyalty discount (subtotal - orderDiscount, excl. VAT/shipping) */
   eligibleBase?: number;
 };
 
@@ -97,7 +93,6 @@ export const PaymentForm = ({
   const [givenAmount, setGivenAmount] = useState<string>("");
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
 
-  // ===== LOYALTY STATE =====
   const [redeemPointsInput, setRedeemPointsInput] = useState<string>("");
   const redeemPointsValue = parseInt(redeemPointsInput, 10) || 0;
 
@@ -107,14 +102,9 @@ export const PaymentForm = ({
     [redeemPointsValue, loyaltyProgram, eligibleBase],
   );
 
-  // Payable total adjusted by loyalty discount
   const payableTotal = Math.max(0, total - loyaltyEstimate.appliedDiscount);
 
-  // Fetch active currencies for payment
-  const { data: activeCurrencies = [], isLoading: isLoadingCurrencies } =
-    useActiveTenantCurrencies();
-
-  // ===== CURRENCY HELPERS =====
+  const { data: activeCurrencies = [] } = useActiveTenantCurrencies();
 
   const baseCurrency = useMemo(() => {
     return activeCurrencies.find((c) => c.isDefault) || activeCurrencies[0];
@@ -155,48 +145,34 @@ export const PaymentForm = ({
     [activeCurrencies],
   );
 
-  // ===== PAYMENT CALCULATIONS =====
-
-  // Total paid so far (in base currency)
   const totalPaidInBase = useMemo(() => {
     return payments.reduce((sum, p) => sum + p.amountInBase, 0);
   }, [payments]);
 
-  // Remaining to pay (in base currency) — uses loyalty-adjusted payable total
   const remainingInBase = Math.max(0, payableTotal - totalPaidInBase);
 
-  // Remaining displayed in current currency
   const remainingInCurrency = remainingInBase * exchangeRate;
 
-  // Parse given amount
   const givenValue = parseFloat(givenAmount) || 0;
 
-  // How much applies (capped at remaining)
   const appliedInCurrency = Math.min(givenValue, remainingInCurrency);
   const appliedInBase = appliedInCurrency / exchangeRate;
 
-  // Change in the currency entered
   const changeInCurrency = Math.max(0, givenValue - remainingInCurrency);
 
-  // Is fully paid?
   const isFullyPaid = Math.abs(remainingInBase) < 0.01;
 
-  // Quick amounts based on remaining
   const quickAmounts = useMemo(
     () => generateQuickCashAmounts(remainingInCurrency),
     [remainingInCurrency],
   );
 
-  // ===== EFFECTS =====
-
-  // Initialize currency when available
   useEffect(() => {
     if (baseCurrency && !selectedCurrencyCode) {
       setSelectedCurrencyCode(baseCurrency.currencyCode);
     }
   }, [baseCurrency, selectedCurrencyCode]);
 
-  // Reset form when total changes
   useEffect(() => {
     setSelectedMethod("CASH");
     setPayments([]);
@@ -204,14 +180,11 @@ export const PaymentForm = ({
     setRedeemPointsInput("");
   }, [total]);
 
-  // Pre-fill when currency changes
   useEffect(() => {
     if (!isFullyPaid) {
       setGivenAmount(remainingInCurrency.toFixed(2).replace(/\.00$/, ""));
     }
   }, [selectedCurrencyCode]);
-
-  // ===== HANDLERS =====
 
   const handleAddPayment = () => {
     if (givenValue <= 0 || isFullyPaid) return;
@@ -271,7 +244,6 @@ export const PaymentForm = ({
     onConfirm(payments, true, loyalty);
   };
 
-  // ===== LOADING STATE =====
   return (
     <div className="sm:max-w-lg">
       {/* Header */}
@@ -419,7 +391,7 @@ export const PaymentForm = ({
                         className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"
                       />
                       <span className="text-xs font-medium text-purple-800 dark:text-purple-200">
-                        Est. Discount
+                        Est.
                       </span>
                     </div>
                     <div className="text-right">
@@ -537,7 +509,7 @@ export const PaymentForm = ({
                 Given
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-medium text-muted-foreground">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                   {currencySymbol}
                 </span>
                 <Input

@@ -35,10 +35,11 @@ function ColorsSettingsPage() {
   };
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="space-y-4 mt-4">
       <Heading
         title="Colors"
         subtitle="Manage colors for categories and products"
+        href="/settings"
       />
       <DataTable
         isLoading={isLoading}

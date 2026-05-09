@@ -31,11 +31,19 @@ import { TransfersModule } from './modules/transfers/transfers.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { ShiftsModule } from './modules/shifts/shifts.module.js';
 
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute
+      },
+    ]),
     PrismaModule,
     AuthModule,
     BranchesModule,
@@ -65,6 +73,10 @@ import { ShiftsModule } from './modules/shifts/shifts.module.js';
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

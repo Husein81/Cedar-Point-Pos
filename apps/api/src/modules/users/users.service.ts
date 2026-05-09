@@ -3,16 +3,16 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { PublicUser } from '@repo/types';
 import bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { User } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async getUserProfile(userId: string): Promise<Omit<User, 'password'>> {
+  async getUserProfile(userId: string): Promise<PublicUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -21,7 +21,6 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
 
     return result;
@@ -30,7 +29,7 @@ export class UsersService {
   async updateProfile(
     userId: string,
     data: Prisma.UserUpdateInput,
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<PublicUser> {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data,

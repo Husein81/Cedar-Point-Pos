@@ -10,7 +10,13 @@ import type {
   TenantCurrenciesResponse,
   TenantCurrency,
 } from "@repo/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  UseMutationResult,
+  UseQueryResult,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 const CURRENCY_QUERY_KEY = ["currencies"];
 const TENANT_CURRENCY_QUERY_KEY = ["tenant-currencies"];
@@ -68,7 +74,9 @@ export const useTenantCurrency = (id: string) => {
 /**
  * Get a tenant currency by code
  */
-export const useTenantCurrencyByCode = (code: string) => {
+export const useTenantCurrencyByCode = (
+  code: string,
+): UseQueryResult<TenantCurrency> => {
   return useQuery<TenantCurrency>({
     queryKey: [...TENANT_CURRENCY_QUERY_KEY, "code", code],
     queryFn: () => currencyApi.getTenantCurrencyByCode(code),
@@ -79,14 +87,20 @@ export const useTenantCurrencyByCode = (code: string) => {
 /**
  * Create a new tenant currency
  */
-export const useCreateTenantCurrency = () => {
+export const useCreateTenantCurrency = (): UseMutationResult<
+  TenantCurrency,
+  any,
+  CreateTenantCurrencyDto
+> => {
   const queryClient = useQueryClient();
 
-  return useMutation<TenantCurrency, Error, CreateTenantCurrencyDto>({
+  return useMutation({
     mutationFn: currencyApi.createTenantCurrency,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TENANT_CURRENCY_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ACTIVE_CURRENCIES_QUERY_KEY });
+      queryClient.invalidateQueries({
+        queryKey: ACTIVE_CURRENCIES_QUERY_KEY,
+      });
     },
   });
 };

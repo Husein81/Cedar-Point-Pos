@@ -1,19 +1,24 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthService } from './auth.service.js';
-import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import { CreateUserDto, LoginDto } from './dto/user.dto.js';
 import type { AdminLoginDto } from './dto/admin-login.dto.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UserRole } from '../../generated/prisma/client.js';
+import { AuthGuard } from '@nestjs/passport';
+import { User } from '@repo/types';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -27,6 +32,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('admin-sign-in')
   @HttpCode(HttpStatus.OK)
   adminLogin(
@@ -37,6 +43,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: LoginDto) {
@@ -64,5 +71,24 @@ export class AuthController {
     }
 
     return this.authService.logout(token);
+  }
+
+  @Public()
+  @UseGuards(AuthGuard('jwt-refresh'))
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  refresh(@Req() req: Request) {
+    const user = req.user as User;
+    const refreshToken =
+      req.headers.authorization?.replace('Bearer ', '') ||
+      req.cookies?.sa_refresh_token;
+
+    return this.authService.refreshTokens(user.id, refreshToken);
+  }
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  getProfile(@Req() req: Request) {
+    return req.user;
   }
 }

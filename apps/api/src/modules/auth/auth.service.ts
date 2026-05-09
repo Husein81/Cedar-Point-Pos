@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PublicUser, User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateUserDto, LoginDto } from './dto/create-user.dto.js';
+import { CreateUserDto, LoginDto } from './dto/user.dto.js';
 import type { AdminLoginDto } from './dto/admin-login.dto.js';
 import type { Response } from 'express';
 import { TokenBlacklistService } from './token-blacklist.service.js';
@@ -32,7 +32,7 @@ export class AuthService {
     });
 
     if (!tenant) {
-      throw new UnauthorizedException('Tenant not found');
+      throw new UnauthorizedException('Registration failed');
     }
 
     const existedUser = await this.prisma.user.findUnique({
@@ -40,7 +40,7 @@ export class AuthService {
     });
 
     if (existedUser) {
-      throw new UnauthorizedException('User already exists');
+      throw new UnauthorizedException('Registration failed');
     }
 
     // If creating a non-admin user, ensure tenant has at least one admin
@@ -60,7 +60,7 @@ export class AuthService {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await this.prisma.user.create({
       data: {
@@ -77,6 +77,7 @@ export class AuthService {
     return {
       id: user.id,
       name: user.name,
+      refreshToken: String(user.refreshToken),
       username: String(user.username),
       role: user.role,
       tenantId: String(user.tenantId),
@@ -119,7 +120,9 @@ export class AuthService {
       role: user.role,
     };
 
-    const accessToken = await this.jwtService.signAsync(payload);
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+    await this.updateRefreshToken(user.id, refreshToken);
+
     // ✅ Cookie for system-admin web app
     res.cookie('sa_token', accessToken, {
       httpOnly: true,
@@ -129,11 +132,20 @@ export class AuthService {
       maxAge: 1000 * 60 * 60 * 8, // 8 hours
     });
 
+    res.cookie('sa_refresh_token', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    });
+
     return {
       user: {
         id: user.id,
         name: user.name,
         username: user.username,
+        refreshToken,
         role: user.role,
         isActive: true,
         createdAt: user.createdAt,
@@ -145,21 +157,15 @@ export class AuthService {
   async login({ username, password }: LoginDto): Promise<{
     user: PublicUser;
     accessToken: string;
+    refreshToken: string;
   }> {
     const user = await this.prisma.user.findUnique({
       where: { username },
       include: { tenant: true },
     });
 
-    if (!user) {
+    if (!user || !user.tenantId || !user.tenant) {
       throw new UnauthorizedException('Invalid credentials');
-    }
-    if (!user.tenantId) {
-      throw new UnauthorizedException('User has no tenant assigned');
-    }
-
-    if (!user.tenant) {
-      throw new UnauthorizedException('Tenant is deactivated');
     }
 
     if (!user.isActive) {
@@ -175,21 +181,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload: JwtPayload = {
-      id: user.id,
-      username: user.username,
-      tenantId: String(user.tenantId),
-      role: user.role,
-    };
-
-    const accessToken = await this.jwtService.signAsync(payload);
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+    await this.updateRefreshToken(user.id, refreshToken);
 
     return {
       accessToken,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
         username: user.username,
+        refreshToken,
         role: user.role,
         tenantId: String(user.tenantId),
         tenant: user.tenant,
@@ -200,27 +202,72 @@ export class AuthService {
     };
   }
 
-  logout(token: string): { message: string } {
+  async logout(token: string): Promise<{ message: string }> {
     // Decode the token to get expiration time
-    const decoded: unknown = this.jwtService.decode(token);
+    const decoded = this.jwtService.decode(token);
 
-    if (
-      decoded !== null &&
-      typeof decoded === 'object' &&
-      'exp' in decoded &&
-      typeof (decoded as { exp: unknown }).exp === 'number'
-    ) {
-      const exp = (decoded as { exp: number }).exp;
-      // Calculate TTL (time until token expires)
-      const ttl = exp * 1000 - Date.now();
-
-      if (ttl > 0) {
-        // Add token to blacklist until it expires
-        this.tokenBlacklistService.blacklist(token, ttl);
+    if (decoded?.exp) {
+      const timeTokenExpiresIn = decoded.exp * 1000 - Date.now();
+      if (timeTokenExpiresIn > 0) {
+        this.tokenBlacklistService.blacklist(token, timeTokenExpiresIn);
       }
     }
 
+    if (decoded?.id) {
+      await this.prisma.user.update({
+        where: { id: decoded.id },
+        data: { refreshToken: null },
+      });
+    }
+
     return { message: 'Logged out successfully' };
+  }
+
+  async generateTokens(user: any) {
+    const payload: JwtPayload = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      ...(user.tenantId && { tenantId: String(user.tenantId) }),
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: '7d',
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const hashedRT = await bcrypt.hash(refreshToken, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: hashedRT },
+    });
+  }
+
+  async refreshTokens(userId: string, rt: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.refreshToken || !user.isActive) {
+      throw new UnauthorizedException('Access Denied');
+    }
+
+    const rtMatches = await bcrypt.compare(rt, user.refreshToken);
+    if (!rtMatches) {
+      throw new UnauthorizedException('Access Denied');
+    }
+
+    const tokens = await this.generateTokens(user);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
   }
 
   async validateUser(payload: JwtPayload): Promise<User> {

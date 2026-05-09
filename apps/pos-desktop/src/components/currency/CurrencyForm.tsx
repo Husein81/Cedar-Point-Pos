@@ -96,7 +96,7 @@ export const CurrencyForm = ({
             <label className="text-sm font-medium">Currency</label>
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="sm"
               className="h-7 text-xs"
               onClick={() => setIsManualEntry(!isManualEntry)}

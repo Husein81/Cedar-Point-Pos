@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui";
+import { Icon } from "@repo/ui";
 import { Link } from "@tanstack/react-router";
 
 type Props = {
@@ -11,21 +11,13 @@ type Props = {
 const Heading = ({ title, subtitle, href, actions }: Props) => {
   return (
     <div className="flex flex-col gap-4">
-      {/* Breadcrumbs */}
       {/* Header row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row py-2 sm:items-center sm:justify-between">
         {/* Left section */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-center">
           {href && (
-            <Link to={href}>
-              <Button
-                variant="ghost"
-                size="sm"
-                iconName="ArrowLeft"
-                className="mt-1"
-              >
-                Go back
-              </Button>
+            <Link to={href} className="rounded-lg py-1.5 px-2 mr-4">
+              <Icon name="ArrowLeft" className="size-5" />
             </Link>
           )}
 

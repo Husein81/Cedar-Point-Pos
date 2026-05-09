@@ -20,6 +20,15 @@ export class ProductsController {
 
     return await this.productsService.getProductsPaginated(tenantId, query);
   }
+ 
+  @Get('barcode/:barcode')
+  async getProductByBarcode(
+    @Req() req: Request & { user: { tenantId: string } },
+    @Param('barcode') barcode: string,
+  ) {
+    const { tenantId } = req.user;
+    return await this.productsService.getProductByBarcode(barcode, tenantId);
+  }
 
   @Get()
   async getProducts(@Req() req: Request) {
@@ -33,11 +42,12 @@ export class ProductsController {
   }
 
   @Get(':id')
-  getProduct(@Param('id') id: string) {
+  getProduct(@Req() req: Request, @Param('id') id: string) {
+    const { tenantId } = req.user as { tenantId: string };
     if (!id) {
       throw new Error('Product ID is required');
     }
-    return this.productsService.getProductById(id);
+    return this.productsService.getProductById(id, tenantId);
   }
 
   @Post()
@@ -70,6 +80,7 @@ export class ProductsController {
     if (!id) {
       throw new Error('Product ID is required');
     }
+    const { tenantId } = req.user as { tenantId: string };
     const body = req.body as Prisma.ProductUpdateInput & {
       branchId?: string;
       imageUrl?: string;
@@ -93,15 +104,16 @@ export class ProductsController {
       ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
     };
 
-    return this.productsService.updateProduct(id, updateData);
+    return this.productsService.updateProduct(id, tenantId, updateData);
   }
 
   @Delete(':id')
-  deleteProduct(@Param('id') id: string) {
+  deleteProduct(@Req() req: Request, @Param('id') id: string) {
+    const { tenantId } = req.user as { tenantId: string };
     if (!id) {
       throw new Error('Product ID is required');
     }
-    return this.productsService.deleteProduct(id);
+    return this.productsService.deleteProduct(id, tenantId);
   }
 
   @Get(':id/modifiers')

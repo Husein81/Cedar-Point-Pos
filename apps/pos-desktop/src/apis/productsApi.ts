@@ -25,6 +25,10 @@ export const productsApi = {
     });
     return response.data;
   },
+  getProductByBarcode: async (barcode: string): Promise<ProductWithRelations | null> => {
+    const response = await api.get(`/products/barcode/${barcode}`);
+    return response.data;
+  },
   getProduct: async (id: string): Promise<ProductWithRelations> => {
     const response = await api.get(`/products/${id}`);
     return response.data;

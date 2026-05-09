@@ -138,9 +138,24 @@ export class ProductsService {
     }
   }
 
-  async getProductById(id: string) {
-    return await this.prisma.product.findUnique({
-      where: { id },
+  async getProductByBarcode(barcode: string, tenantId: string) {
+    return await this.prisma.product.findFirst({
+      where: {
+        barcode,
+        tenantId,
+        isDeleted: false,
+      },
+      include: {
+        category: true,
+        subcategory: true,
+        inventory: true,
+      },
+    });
+  }
+
+  async getProductById(id: string, tenantId: string) {
+    return await this.prisma.product.findFirst({
+      where: { id, tenantId },
       include: {
         category: true,
         subcategory: true,
@@ -162,10 +177,10 @@ export class ProductsService {
     }
   }
 
-  async updateProduct(id: string, data: Prisma.ProductUpdateInput) {
+  async updateProduct(id: string, tenantId: string, data: Prisma.ProductUpdateInput) {
     try {
       const result = await this.prisma.product.update({
-        where: { id },
+        where: { id, tenantId },
         data,
       });
       return result;
@@ -175,10 +190,10 @@ export class ProductsService {
     }
   }
 
-  async deleteProduct(id: string) {
+  async deleteProduct(id: string, tenantId: string) {
     try {
       const result = await this.prisma.product.delete({
-        where: { id },
+        where: { id, tenantId },
       });
       return result;
     } catch (error) {

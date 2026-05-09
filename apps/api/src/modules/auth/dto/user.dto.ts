@@ -1,5 +1,11 @@
-import { UserRole } from '@repo/types';
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { User, UserRole } from '@repo/types';
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -30,4 +36,10 @@ export class LoginDto {
 
   @IsString()
   password!: string;
+}
+
+export class LoginResponse {
+  user!: User;
+  accessToken!: string;
+  refreshToken!: string;
 }

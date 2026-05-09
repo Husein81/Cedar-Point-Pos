@@ -70,9 +70,11 @@ export type TenantCurrenciesResponse = z.infer<
 export const UserSchema = z.object({
   id: uuid,
   name: z.string(),
+  email: z.string().email().optional(),
   username: z.string(),
-  password: z.string(), // usually not returned in responses; keep for internal/admin usage
+  password: z.string(),
   role: z.enum(UserRole),
+  refreshToken: z.string().optional(),
   isActive: z.boolean().default(true),
   createdAt: isoDate,
   updatedAt: isoDate,

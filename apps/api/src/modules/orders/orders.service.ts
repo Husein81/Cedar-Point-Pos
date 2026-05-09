@@ -31,8 +31,7 @@ import type {
   CreateOrderDiscountDto,
 } from './dto/create-order.dto.js';
 
-// Extended QueryParams for order-specific filtering
-interface OrderQueryParams extends QueryParams {
+type OrderQueryParams = QueryParams & {
   status?: OrderStatus;
   branchId?: string;
   userId?: string;
@@ -40,7 +39,7 @@ interface OrderQueryParams extends QueryParams {
   startDate?: string;
   endDate?: string;
   tableId?: string;
-}
+};
 
 const VAT_RATE = 0.11; // 11% VAT
 

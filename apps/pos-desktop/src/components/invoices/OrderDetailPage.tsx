@@ -1,136 +1,26 @@
 import { RefundForm, RefundHistory } from "@/components/refunds";
-import {
-  computeInvoiceFinancials,
-  computeItemRefundInfo,
-  buildMultiCurrencyAmounts,
-  type CurrencyAmount,
-} from "@/utils/invoiceFinancials";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrder } from "@/hooks/useOrder";
 import { useOrderRefunds } from "@/hooks/useRefund";
 import { useModalStore } from "@/store/modalStore";
+import {
+  buildMultiCurrencyAmounts,
+  computeInvoiceFinancials,
+  computeItemRefundInfo,
+} from "@/utils/invoiceFinancials";
 import { OrderStatus } from "@repo/types";
 import { Badge, Button, Icon, Separator, Shad } from "@repo/ui";
 import { Link, useParams } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { ArrowLeft, Download, RotateCcw } from "lucide-react";
-import { orderTypeConfig, statusConfig } from "./config";
-
-// ─── Shared presentational helpers ───────────────────────────────
-
-/** Render a single currency amount (primary + secondaries stacked) */
-function PriceStack({
-  amounts,
-  className,
-  negative,
-}: {
-  amounts: CurrencyAmount[];
-  className?: string;
-  negative?: boolean;
-}) {
-  if (amounts.length === 0) return null;
-  const primary = amounts[0]!;
-  const secondaries = amounts.slice(1);
-  const sign = negative ? "−" : "";
-
-  return (
-    <div className={className}>
-      <span className="font-semibold tabular-nums">
-        {sign}
-        {primary.formatted}
-      </span>
-      {secondaries.map((s) => (
-        <span
-          key={s.code}
-          className="block text-xs text-muted-foreground font-mono tabular-nums"
-        >
-          {sign}
-          {s.formatted}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** A single financial summary row (label + value) */
-function SummaryRow({
-  label,
-  hint,
-  amounts,
-  negative,
-  muted,
-  bold,
-  large,
-  icon,
-}: {
-  label: string;
-  hint?: string;
-  amounts: CurrencyAmount[];
-  negative?: boolean;
-  muted?: boolean;
-  bold?: boolean;
-  large?: boolean;
-  icon?: string;
-}) {
-  return (
-    <div className={`flex items-start justify-between ${large ? "py-1" : ""}`}>
-      <div className="space-y-0.5">
-        <div
-          className={`flex items-center gap-1.5 ${bold ? "font-semibold" : ""} ${muted ? "text-muted-foreground" : ""} ${large ? "text-base" : "text-sm"}`}
-        >
-          {icon && (
-            <Icon name={icon} className="w-3.5 h-3.5 shrink-0 opacity-60" />
-          )}
-          {label}
-        </div>
-        {hint && (
-          <p className="text-xs text-muted-foreground leading-tight">{hint}</p>
-        )}
-      </div>
-      <PriceStack
-        amounts={amounts}
-        negative={negative}
-        className={`text-right ${negative ? "text-destructive" : ""} ${muted ? "text-muted-foreground" : ""} ${bold ? "font-semibold" : ""} ${large ? "text-base" : "text-sm"}`}
-      />
-    </div>
-  );
-}
-
-type ItemDiscount = { type: "PERCENTAGE" | "FIXED"; value: number };
-
-function roundMoney(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function computeItemDiscountAmount(
-  item: {
-    quantity: string | number;
-    unitPrice: string | number;
-    modifiers?: Array<{ price?: string | number | null }>;
-  },
-  discount?: ItemDiscount | null,
-): number {
-  if (!discount || discount.value <= 0) return 0;
-
-  const quantity = Number(item.quantity || 0);
-  const unitPrice = Number(item.unitPrice || 0);
-  const modifiersTotal = (item.modifiers ?? []).reduce(
-    (sum, mod) => sum + Number(mod.price || 0),
-    0,
-  );
-
-  const base = (unitPrice + modifiersTotal) * quantity;
-  if (base <= 0) return 0;
-
-  const raw =
-    discount.type === "PERCENTAGE"
-      ? (base * discount.value) / 100
-      : discount.value;
-
-  return Math.max(0, roundMoney(raw));
-}
-
-// ─── Main Component ──────────────────────────────────────────────
+import { useMemo } from "react";
+import { PriceStack } from "./PriceStack";
+import { SummaryRow } from "./SummaryRaw";
+import {
+  computeItemDiscountAmount,
+  orderTypeConfig,
+  statusConfig,
+} from "./config";
+import { OrderDetailSkeleton } from "./orderSkeleton";
 
 export function OrderDetailPage() {
   const { orderId } = useParams({ from: "/invoices/$orderId" });
@@ -163,18 +53,8 @@ export function OrderDetailPage() {
     );
   };
 
-  // ── Loading / Error ──
-
   if (isLoading) {
-    return (
-      <div className="py-20 text-center text-sm text-muted-foreground">
-        <Icon
-          name="LoaderCircle"
-          className="w-4 h-4 animate-spin inline mr-2"
-        />
-        Loading invoice…
-      </div>
-    );
+    return <OrderDetailSkeleton />;
   }
 
   if (!order || !financials) {
@@ -187,8 +67,6 @@ export function OrderDetailPage() {
 
   const statusCfg = statusConfig[order.status];
   const typeCfg = orderTypeConfig[order.type];
-
-  // ── Render ──
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">

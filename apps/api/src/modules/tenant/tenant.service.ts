@@ -99,23 +99,30 @@ export class TenantService {
         });
 
         // Initialize default currencies for the tenant
-        // Only create if the currency exists in the reference table
+        // Ensure they exist in the global reference table first
         for (const curr of DEFAULT_TENANT_CURRENCIES) {
-          const currencyExists = await tx.currency.findUnique({
+          // Upsert into global Currency table to satisfy Foreign Key constraints
+          await tx.currency.upsert({
             where: { code: curr.code },
+            update: {},
+            create: {
+              code: curr.code,
+              name: curr.code === 'USD' ? 'United States Dollar' : curr.code === 'LBP' ? 'Lebanese Pound' : curr.code,
+              symbol: curr.code === 'USD' ? '$' : curr.code === 'LBP' ? 'ل.ل' : '',
+              decimalPlaces: curr.code === 'LBP' ? 0 : 2,
+            },
           });
 
-          if (currencyExists) {
-            await tx.tenantCurrency.create({
-              data: {
-                tenantId: newTenant.id,
-                currencyCode: curr.code,
-                exchangeRate: curr.exchangeRate,
-                isDefault: curr.isDefault,
-                isActive: true,
-              },
-            });
-          }
+          // Create tenant-specific configuration
+          await tx.tenantCurrency.create({
+            data: {
+              tenantId: newTenant.id,
+              currencyCode: curr.code,
+              exchangeRate: curr.exchangeRate,
+              isDefault: curr.isDefault,
+              isActive: true,
+            },
+          });
         }
 
         return newTenant;

@@ -11,7 +11,7 @@ datasource db {
 // ---------- TENANT (Multi-Tenancy Root) ----------
 //
 model Tenant {
-  id               String       @id @default(cuid())
+  id               String       @id @default(uuid())
   name             String
   businessType     BusinessType
   baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
@@ -58,7 +58,7 @@ model Currency {
 }
 
 model TenantCurrency {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid())
   tenantId     String
   currencyCode String
   exchangeRate Decimal  @db.Decimal(18, 6)
@@ -75,7 +75,7 @@ model TenantCurrency {
 }
 
 model User {
-  id                  String               @id @default(cuid())
+  id                  String               @id @default(uuid())
   name                String
   email               String?              @unique
   username            String               @unique
@@ -101,7 +101,7 @@ model User {
 }
 
 model Branch {
-  id               String             @id @default(cuid())
+  id               String             @id @default(uuid())
   tenantId         String
   name             String
   address          String?
@@ -125,7 +125,7 @@ model Branch {
 }
 
 model POSDevice {
-  id             String          @id @default(cuid())
+  id             String          @id @default(uuid())
   tenantId       String
   branchId       String
   name           String
@@ -143,7 +143,7 @@ model POSDevice {
 }
 
 model Category {
-  id            String        @id @default(cuid())
+  id            String        @id @default(uuid())
   tenantId      String
   name          String
   code          String?       @unique
@@ -157,7 +157,7 @@ model Category {
 }
 
 model Color {
-  id         String     @id @default(cuid())
+  id         String     @id @default(uuid())
   name       String
   hex        String
   tenantId   String
@@ -169,7 +169,7 @@ model Color {
 }
 
 model Subcategory {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   categoryId  String
   name        String
   description String?
@@ -179,7 +179,7 @@ model Subcategory {
 }
 
 model Product {
-  id                  String                      @id @default(cuid())
+  id                  String                      @id @default(uuid())
   tenantId            String
   name                String
   description         String?
@@ -211,7 +211,7 @@ model Product {
 }
 
 model Offer {
-  id          String       @id @default(cuid())
+  id          String       @id @default(uuid())
   tenantId    String
   name        String
   basePrice   Decimal      @default(0) @db.Decimal(10, 2)
@@ -225,7 +225,7 @@ model Offer {
 }
 
 model OfferGroup {
-  id              String           @id @default(cuid())
+  id              String           @id @default(uuid())
   offerId         String
   name            String
   freeItemsCount  Int              @default(0)
@@ -237,7 +237,7 @@ model OfferGroup {
 }
 
 model OfferGroupItem {
-  id           String     @id @default(cuid())
+  id           String     @id @default(uuid())
   offerGroupId String
   productId    String
   extraPrice   Decimal    @default(0) @db.Decimal(10, 2)
@@ -248,7 +248,7 @@ model OfferGroupItem {
 }
 
 model Inventory {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid())
   tenantId     String
   branchId     String
   productId    String
@@ -263,7 +263,7 @@ model Inventory {
 }
 
 model InventoryHistory {
-  id             String              @id @default(cuid())
+  id             String              @id @default(uuid())
   tenantId       String
   branchId       String
   productId      String
@@ -290,7 +290,7 @@ model InventoryHistory {
 }
 
 model Transfer {
-  id           String         @id @default(cuid())
+  id           String         @id @default(uuid())
   tenantId     String
   fromBranchId String
   toBranchId   String
@@ -314,7 +314,7 @@ model Transfer {
 }
 
 model TransferItem {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   transferId String
   productId  String
   quantity   Decimal  @db.Decimal(10, 4)
@@ -325,7 +325,7 @@ model TransferItem {
 }
 
 model Refund {
-  id                    String   @id @default(cuid())
+  id                    String   @id @default(uuid())
   orderId               String?
   totalAmount           Decimal  @default(0) @db.Decimal(10, 2)
   reason                String?
@@ -357,7 +357,7 @@ model Refund {
 }
 
 model RefundItem {
-  id          String     @id @default(cuid())
+  id          String     @id @default(uuid())
   refundId    String
   orderItemId String?
   quantity    Decimal    @db.Decimal(10, 4)
@@ -375,7 +375,7 @@ model RefundItem {
 }
 
 model RefundPayment {
-  id           String        @id @default(cuid())
+  id           String        @id @default(uuid())
   refundId     String
   method       PaymentMethod
   amount       Decimal       @db.Decimal(10, 2)
@@ -400,7 +400,7 @@ model RefundPayment {
 // ---------- CASH MOVEMENT LEDGER ----------
 //
 model CashMovement {
-  id             String                     @id @default(cuid())
+  id             String                     @id @default(uuid())
   tenantId       String
   branchId       String
   shiftId        String
@@ -430,7 +430,7 @@ model CashMovement {
 // ---------- RESTAURANT MODULE (FLOORS & TABLES) ----------
 //
 model Floor {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   tenantId  String
   branchId  String
   name      String
@@ -447,7 +447,7 @@ model Floor {
 }
 
 model Table {
-  id          String      @id @default(cuid())
+  id          String      @id @default(uuid())
   tableNumber Int
   tenantId    String
   branchId    String
@@ -470,7 +470,7 @@ model Table {
 }
 
 model ModifierGroup {
-  id        String       @id @default(cuid())
+  id        String       @id @default(uuid())
   tenantId  String
   name      String
   type      ModifierType
@@ -480,7 +480,7 @@ model ModifierGroup {
 }
 
 model Modifier {
-  id                 String                      @id @default(cuid())
+  id                 String                      @id @default(uuid())
   tenantId           String
   groupId            String
   productId          String? // @deprecated - kept for backward compatibility
@@ -495,7 +495,7 @@ model Modifier {
 }
 
 model ModifierProductAssignment {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   modifierId String
   productId  String
   createdAt  DateTime @default(now())
@@ -509,7 +509,7 @@ model ModifierProductAssignment {
 }
 
 model Order {
-  id                              String               @id @default(cuid())
+  id                              String               @id @default(uuid())
   tenantId                        String
   userId                          String?
   branchId                        String
@@ -553,7 +553,7 @@ model Order {
 }
 
 model OrderItem {
-  id          String              @id @default(cuid())
+  id          String              @id @default(uuid())
   orderId     String
   productId   String
   quantity    Decimal             @default(1) @db.Decimal(10, 4)
@@ -570,7 +570,7 @@ model OrderItem {
 }
 
 model OrderItemTicket {
-  id          String      @id @default(cuid())
+  id          String      @id @default(uuid())
   orderItemId String
   station     String?
   status      OrderStatus @default(SENT_TO_KITCHEN)
@@ -580,7 +580,7 @@ model OrderItemTicket {
 }
 
 model OrderItemModifier {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   orderItemId String
   modifierId  String
   price       Decimal   @db.Decimal(10, 2)
@@ -589,7 +589,7 @@ model OrderItemModifier {
 }
 
 model Payment {
-  id            String        @id @default(cuid())
+  id            String        @id @default(uuid())
   orderId       String
   method        PaymentMethod
   currencyCode  String?
@@ -616,7 +616,7 @@ model Payment {
 }
 
 model Customer {
-  id                  String               @id @default(cuid())
+  id                  String               @id @default(uuid())
   tenantId            String
   name                String
   email               String?
@@ -633,7 +633,7 @@ model Customer {
 }
 
 model LoyaltyProgram {
-  id                     String                @id @default(cuid())
+  id                     String                @id @default(uuid())
   tenantId               String                @unique
   isEnabled              Boolean               @default(false)
   enrollmentMode         LoyaltyEnrollmentMode @default(AUTO)
@@ -652,7 +652,7 @@ model LoyaltyProgram {
 }
 
 model LoyaltyAccount {
-  id               String               @id @default(cuid())
+  id               String               @id @default(uuid())
   tenantId         String
   customerId       String               @unique
   pointsBalance    Int                  @default(0)
@@ -674,7 +674,7 @@ model LoyaltyAccount {
 }
 
 model LoyaltyTransaction {
-  id             String                 @id @default(cuid())
+  id             String                 @id @default(uuid())
   tenantId       String
   accountId      String
   customerId     String
@@ -707,7 +707,7 @@ model LoyaltyTransaction {
 // ---------- SUPPLIER MODULE ----------
 //
 model Supplier {
-  id             String          @id @default(cuid())
+  id             String          @id @default(uuid())
   tenantId       String
   name           String
   companyName    String?
@@ -728,7 +728,7 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id          String              @id @default(cuid())
+  id          String              @id @default(uuid())
   tenantId    String
   branchId    String
   supplierId  String
@@ -750,7 +750,7 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id              String        @id @default(cuid())
+  id              String        @id @default(uuid())
   purchaseOrderId String
   productId       String
   quantity        Decimal       @db.Decimal(10, 4)
@@ -766,7 +766,7 @@ model PurchaseOrderItem {
 }
 
 model Shift {
-  id         String      @id @default(cuid())
+  id         String      @id @default(uuid())
   tenantId   String
   branchId   String
   userId     String
@@ -813,7 +813,7 @@ model Shift {
 // ---------- SHIFT PAYMENT SUMMARY ----------
 //
 model ShiftPaymentSummary {
-  id           String        @id @default(cuid())
+  id           String        @id @default(uuid())
   shiftId      String
   method       PaymentMethod
   salesCount   Int           @default(0)
@@ -832,7 +832,7 @@ model ShiftPaymentSummary {
 // ---------- SHIFT REPORT SNAPSHOT (Z-REPORT) ----------
 //
 model ShiftReportSnapshot {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   shiftId   String   @unique
   payload   Json // Full Z-report JSON snapshot
   createdAt DateTime @default(now())
@@ -844,7 +844,7 @@ model ShiftReportSnapshot {
 // ---------- SHIFT SCHEDULE (Planned Shifts) ----------
 //
 model ShiftSchedule {
-  id            String              @id @default(cuid())
+  id            String              @id @default(uuid())
   tenantId      String
   branchId      String
   userId        String // Assigned employee

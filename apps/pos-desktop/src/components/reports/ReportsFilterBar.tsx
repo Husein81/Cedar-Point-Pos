@@ -2,6 +2,7 @@ import type { DateRangePreset, ReportsFilterState } from "@/types/reports";
 import type { Branch } from "@repo/types";
 import { Button, DatePicker, Icon, Select, Shad } from "@repo/ui";
 import { DATE_PRESETS, ORDER_TYPES, PAYMENT_METHODS } from "./config";
+import { Category } from "@repo/types";
 
 type ReportsFilterBarProps = {
   filters: ReportsFilterState;
@@ -15,7 +16,7 @@ type ReportsFilterBarProps = {
   hideOrderType?: boolean;
   hidePaymentMethod?: boolean;
   showCategory?: boolean;
-  categories?: { id: string; name: string }[];
+  categories?: Category[];
 };
 
 export const ReportsFilterBar = ({

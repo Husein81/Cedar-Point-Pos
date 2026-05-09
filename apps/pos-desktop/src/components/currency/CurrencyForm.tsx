@@ -7,20 +7,25 @@ import { useModalStore } from "@/store/modalStore";
 import type { TenantCurrency, Currency } from "@repo/types";
 import { Button, InputField, SelectField, SwitchField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 type Props = {
   tenantCurrency?: TenantCurrency;
   existingCurrencyCodes?: string[];
 };
 
-export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Props) => {
+export const CurrencyForm = ({
+  tenantCurrency,
+  existingCurrencyCodes = [],
+}: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const createMutation = useCreateTenantCurrency();
   const updateMutation = useUpdateTenantCurrency();
-  
+  const [isManualEntry, setIsManualEntry] = useState(false);
+
   // Fetch all available currencies from reference table
-  const { data: allCurrencies = [], isLoading: isLoadingCurrencies } = useAllCurrencies();
+  const { data: allCurrencies = [], isLoading: isLoadingCurrencies } =
+    useAllCurrencies();
 
   // Filter out currencies that are already configured for this tenant
   const availableCurrencies = useMemo(() => {
@@ -30,7 +35,7 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
     }
     // When creating, filter out already configured currencies
     return allCurrencies.filter(
-      (c: Currency) => !existingCurrencyCodes.includes(c.code)
+      (c: Currency) => !existingCurrencyCodes.includes(c.code),
     );
   }, [allCurrencies, existingCurrencyCodes, tenantCurrency]);
 
@@ -52,7 +57,7 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
     onSubmit: async ({ value }) => {
       try {
         const exchangeRate = parseFloat(value.exchangeRate);
-        
+
         if (isEditing && tenantCurrency) {
           await updateMutation.mutateAsync({
             id: tenantCurrency.id,
@@ -86,24 +91,56 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
     >
       {/* Currency Selection - only for new currencies */}
       {!isEditing && (
-        <form.Field
-          name="currencyCode"
-          validators={{
-            onChange: ({ value }) =>
-              !value || value.trim().length === 0
-                ? "Currency is required"
-                : undefined,
-          }}
-        >
-          {(field) => (
-            <SelectField
-              label="Currency"
-              field={field}
-              options={currencyOptions}
-              placeholder={isLoadingCurrencies ? "Loading currencies..." : "Select a currency"}
-            />
-          )}
-        </form.Field>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Currency</label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setIsManualEntry(!isManualEntry)}
+            >
+              {isManualEntry ? "Select from list" : "Enter code manually"}
+            </Button>
+          </div>
+
+          <form.Field
+            name="currencyCode"
+            validators={{
+              onChange: ({ value }) =>
+                !value || value.trim().length === 0
+                  ? "Currency is required"
+                  : value.trim().length !== 3
+                    ? "Currency code must be 3 letters (ISO 4217)"
+                    : undefined,
+            }}
+          >
+            {(field) =>
+              isManualEntry ? (
+                <InputField
+                  field={field}
+                  label="Currency Code"
+                  placeholder="e.g. USD, EUR, LBP"
+                  maxLength={3}
+                  className="uppercase"
+                  autoFocus
+                />
+              ) : (
+                <SelectField
+                  label=""
+                  field={field}
+                  options={currencyOptions}
+                  placeholder={
+                    isLoadingCurrencies
+                      ? "Loading currencies..."
+                      : "Select a currency"
+                  }
+                />
+              )
+            }
+          </form.Field>
+        </div>
       )}
 
       {/* Display currency info when editing */}
@@ -112,7 +149,8 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
           <p className="text-sm text-muted-foreground">Currency</p>
           <p className="font-medium">
             {tenantCurrency.currencyCode} - {tenantCurrency.currency.name}
-            {tenantCurrency.currency.symbol && ` (${tenantCurrency.currency.symbol})`}
+            {tenantCurrency.currency.symbol &&
+              ` (${tenantCurrency.currency.symbol})`}
           </p>
         </div>
       )}
@@ -141,8 +179,8 @@ export const CurrencyForm = ({ tenantCurrency, existingCurrencyCodes = [] }: Pro
       </form.Field>
 
       <p className="text-xs text-muted-foreground">
-        Exchange rate relative to your base currency. For example, if base is USD
-        and this is LBP, enter the rate like 89500.
+        Exchange rate relative to your base currency. For example, if base is
+        USD and this is LBP, enter the rate like 89500.
       </p>
 
       {/* Active Toggle */}

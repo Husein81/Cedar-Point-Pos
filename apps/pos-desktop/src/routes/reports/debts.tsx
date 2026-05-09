@@ -91,7 +91,7 @@ function DebtsReportPage() {
     useReportsDebts(appliedFilters);
 
   const rows = data?.data || [];
-  const meta = data?.meta || {
+  const meta = data?.pagination || {
     page: 1,
     pageSize: 10,
     totalItems: 0,

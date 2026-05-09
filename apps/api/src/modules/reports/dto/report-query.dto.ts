@@ -21,9 +21,9 @@ export const reportQuerySchema = z
     to: z.coerce.date(),
 
     // Optional filters
-    branchId: z.string().cuid().optional(),
-    userId: z.string().cuid().optional(),
-    shiftId: z.string().cuid().optional(),
+    branchId: z.string().uuid().optional(),
+    userId: z.string().uuid().optional(),
+    shiftId: z.string().uuid().optional(),
 
     // Enum filters
     orderType: z
@@ -72,7 +72,7 @@ export const reportQuerySchema = z
       .optional(),
 
     // Product filters
-    categoryId: z.string().cuid().optional(),
+    categoryId: z.string().uuid().optional(),
 
     // Search (interpreted differently per endpoint)
     search: z.string().max(100).optional(),

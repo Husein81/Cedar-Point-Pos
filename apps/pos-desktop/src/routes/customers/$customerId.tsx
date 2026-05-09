@@ -7,7 +7,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { ManualAdjustmentForm } from "@/components/loyalty/ManualAdjustmentForm";
-import { Avatar, Badge, Button, DataTable, Shad } from "@repo/ui";
+import { Avatar, Badge, Button, DataTable, Shad, Skeleton } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -277,11 +277,7 @@ function RouteComponent() {
   const showLoyalty = loyaltyProgram?.isEnabled;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <p className="text-gray-500">Loading customer...</p>
-      </div>
-    );
+    return <CustomerDetailsSkeleton />;
   }
 
   if (!customer) {
@@ -599,8 +595,71 @@ function RouteComponent() {
   );
 }
 
-// ── Helper: loyalty stat card ──
+function CustomerDetailsSkeleton() {
+  return (
+    <div className="space-y-6 pt-4">
+      {/* Header Skeleton */}
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-10 w-10 rounded-md" />
+        <div className="flex items-center gap-4 flex-1">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+      </div>
 
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Shad.Card key={i}>
+            <Shad.CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4" />
+            </Shad.CardHeader>
+            <Shad.CardContent>
+              <Skeleton className="h-8 w-16" />
+            </Shad.CardContent>
+          </Shad.Card>
+        ))}
+      </div>
+
+      {/* Info Card Skeleton */}
+      <Shad.Card>
+        <Shad.CardHeader>
+          <Skeleton className="h-6 w-40" />
+        </Shad.CardHeader>
+        <Shad.CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-start gap-3">
+                <Skeleton className="h-4 w-4 mt-1" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Shad.CardContent>
+      </Shad.Card>
+
+      {/* Loyalty/Orders Skeleton */}
+      <div className="border-t pt-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+// ── Helper: loyalty stat card ──
 function LoyaltyStat({
   label,
   value,

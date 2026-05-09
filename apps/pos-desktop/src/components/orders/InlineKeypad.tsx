@@ -285,21 +285,14 @@ export const InlineKeypad = () => {
     user?.tenantId,
   ]);
 
-  /**
-   * Checks if the active order was loaded from the server.
-   * Server-persisted orders have CUID IDs (no 'order-' prefix).
-   */
+
   const isLoadedOrder = useCallback((): boolean => {
     const active = getActiveOrder();
     if (!active) return false;
     return !active.id.startsWith("order-");
   }, [getActiveOrder]);
 
-  /**
-   * Returns the server order ID or creates a new order via API.
-   * For loaded orders, returns the existing server ID.
-   * For fresh orders, creates via createOrder API and returns the new ID.
-   */
+
   const getOrCreateOrderId = useCallback(async (): Promise<string | null> => {
     const active = getActiveOrder();
     if (!active) return null;

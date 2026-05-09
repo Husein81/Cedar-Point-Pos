@@ -1,4 +1,5 @@
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
+import { CategoryDetailsSkeleton } from "@/components/category/categorySkeleton";
 import Heading from "@/components/heading";
 import { getSubcategoryColumns } from "@/config/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
@@ -33,11 +34,7 @@ function RouteComponent() {
     category?.subcategories?.filter((sub) => !sub.isDeleted) || [];
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <p className="text-gray-500">Loading category...</p>
-      </div>
-    );
+    return <CategoryDetailsSkeleton />;
   }
 
   if (!category) {
@@ -55,7 +52,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-14">
       <Heading
         title={category.name}
         subtitle={category.description ?? ""}

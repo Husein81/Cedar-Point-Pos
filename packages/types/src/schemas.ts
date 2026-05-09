@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { decimal, isoDate, cuid } from "./config";
+import { decimal, isoDate, uuid } from "./config";
 import {
   BusinessType,
   CashMovementReferenceType,
@@ -25,7 +25,7 @@ import {
 
 // Tenant
 export const TenantSchema = z.object({
-  id: cuid,
+  id: uuid,
   name: z.string(),
   businessType: BusinessType,
   createdAt: isoDate,
@@ -45,8 +45,8 @@ export type Currency = z.infer<typeof CurrencySchema>;
 
 // TenantCurrency (Tenant-Scoped Currency Config)
 export const TenantCurrencySchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   currencyCode: z.string(), // ISO 4217 code
   exchangeRate: decimal, // Rate relative to base currency
   isActive: z.boolean().default(true),
@@ -68,7 +68,7 @@ export type TenantCurrenciesResponse = z.infer<
 
 // User
 export const UserSchema = z.object({
-  id: cuid,
+  id: uuid,
   name: z.string(),
   username: z.string(),
   password: z.string(), // usually not returned in responses; keep for internal/admin usage
@@ -76,7 +76,7 @@ export const UserSchema = z.object({
   isActive: z.boolean().default(true),
   createdAt: isoDate,
   updatedAt: isoDate,
-  tenantId: cuid.nullable().optional(),
+  tenantId: uuid.nullable().optional(),
   tenant: TenantSchema.nullable().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
@@ -85,8 +85,8 @@ export type PublicUser = Omit<User, "password">;
 
 // Branch
 export const BranchSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   address: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
@@ -96,9 +96,9 @@ export type Branch = z.infer<typeof BranchSchema>;
 
 // POSDevice
 export const POSDeviceSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
   name: z.string(),
   token: z.string(),
   lastSync: isoDate.nullable().optional(),
@@ -108,30 +108,30 @@ export const POSDeviceSchema = z.object({
 export type POSDevice = z.infer<typeof POSDeviceSchema>;
 
 export const Color = z.object({
-  id: cuid,
+  id: uuid,
   name: z.string(),
   hex: z.string(),
-  tenantId: cuid,
+  tenantId: uuid,
 });
 export type Color = z.infer<typeof Color>;
 
 // Category
 export const CategorySchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   code: z.string().nullable().optional(), // unique in prisma
   description: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
-  colorId: cuid.nullable().optional(),
+  colorId: uuid.nullable().optional(),
   color: Color.nullable().optional(),
 });
 export type Category = z.infer<typeof CategorySchema>;
 
 // Subcategory
 export const SubcategorySchema = z.object({
-  id: cuid,
-  categoryId: cuid,
+  id: uuid,
+  categoryId: uuid,
   name: z.string(),
   description: z.string().nullable().optional(),
   isDeleted: z.boolean().default(false),
@@ -140,9 +140,9 @@ export type Subcategory = z.infer<typeof SubcategorySchema>;
 
 // Product
 export const ProductSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid.nullable().optional(),
   name: z.string(),
   description: z.string().nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
@@ -150,9 +150,9 @@ export const ProductSchema = z.object({
   barcode: z.string().nullable().optional(),
   price: decimal.nullable().optional(),
   cost: decimal.nullable().optional(),
-  categoryId: cuid.nullable().optional(),
+  categoryId: uuid.nullable().optional(),
   category: CategorySchema.nullable().optional(),
-  subcategoryId: cuid.nullable().optional(),
+  subcategoryId: uuid.nullable().optional(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
   isModifiable: z.boolean().default(false),
@@ -160,8 +160,8 @@ export const ProductSchema = z.object({
   inventory: z
     .array(
       z.object({
-        branchId: cuid,
-        tenantId: cuid,
+        branchId: uuid,
+        tenantId: uuid,
         stock: decimal.default("0"),
         minStock: decimal.default("0"),
       }),
@@ -172,8 +172,8 @@ export type Product = z.infer<typeof ProductSchema>;
 
 // Offer / OfferGroup / OfferGroupItem
 export const OfferSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   basePrice: decimal,
   isActive: z.boolean().default(true),
@@ -183,27 +183,27 @@ export const OfferSchema = z.object({
 export type Offer = z.infer<typeof OfferSchema>;
 
 export const OfferGroupSchema = z.object({
-  id: cuid,
-  offerId: cuid,
+  id: uuid,
+  offerId: uuid,
   name: z.string(),
   freeItemsCount: z.number().int().nonnegative().default(0),
 });
 export type OfferGroup = z.infer<typeof OfferGroupSchema>;
 
 export const OfferGroupItemSchema = z.object({
-  id: cuid,
-  offerGroupId: cuid,
-  productId: cuid,
+  id: uuid,
+  offerGroupId: uuid,
+  productId: uuid,
   extraPrice: decimal.default("0"),
 });
 export type OfferGroupItem = z.infer<typeof OfferGroupItemSchema>;
 
 // Inventory
 export const InventorySchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  productId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  productId: uuid,
   stock: decimal.default("0"),
   minStock: decimal.default("0"),
   lastAdjusted: isoDate,
@@ -212,11 +212,11 @@ export type Inventory = z.infer<typeof InventorySchema>;
 
 // InventoryHistory
 export const InventoryHistorySchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  productId: cuid,
-  userId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  productId: uuid,
+  userId: uuid,
   changeType: z.enum(InventoryChangeType),
   beforeStock: decimal,
   afterStock: decimal,
@@ -230,13 +230,13 @@ export type InventoryHistory = z.infer<typeof InventoryHistorySchema>;
 
 // Transfer / TransferItem
 export const TransferSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  fromBranchId: cuid,
-  toBranchId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  fromBranchId: uuid,
+  toBranchId: uuid,
   status: z.enum(TransferStatus).default("PENDING"),
-  requestedBy: cuid,
-  approvedBy: cuid.nullable().optional(),
+  requestedBy: uuid,
+  approvedBy: uuid.nullable().optional(),
   notes: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
@@ -245,25 +245,25 @@ export const TransferSchema = z.object({
 export type Transfer = z.infer<typeof TransferSchema>;
 
 export const TransferItemSchema = z.object({
-  id: cuid,
-  transferId: cuid,
-  productId: cuid,
+  id: uuid,
+  transferId: uuid,
+  productId: uuid,
   quantity: decimal,
 });
 export type TransferItem = z.infer<typeof TransferItemSchema>;
 
 // Refund / RefundItem
 export const RefundItemSchema = z.object({
-  id: cuid.optional(),
-  refundId: cuid.optional(),
+  id: uuid.optional(),
+  refundId: uuid.optional(),
   refund: z.object({
-    id: cuid,
-    orderId: cuid,
+    id: uuid,
+    orderId: uuid,
     totalAmount: decimal,
     reason: z.string().nullable().optional(),
     refundedAt: isoDate,
   }),
-  orderItemId: cuid,
+  orderItemId: uuid,
   quantity: decimal,
   unitPrice: decimal,
   subtotal: decimal,
@@ -271,8 +271,8 @@ export const RefundItemSchema = z.object({
 export type RefundItem = z.infer<typeof RefundItemSchema>;
 
 export const RefundSchema = z.object({
-  id: cuid,
-  orderId: cuid,
+  id: uuid,
+  orderId: uuid,
   totalAmount: decimal.default("0"),
   reason: z.string().nullable().optional(),
   refundedAt: isoDate,
@@ -281,11 +281,11 @@ export const RefundSchema = z.object({
   loyaltyPointsRestored: z.number().int().default(0),
   loyaltyPointsReversed: z.number().int().default(0),
   // Shift attribution
-  tenantId: cuid.nullable().optional(),
-  branchId: cuid.nullable().optional(),
-  shiftId: cuid.nullable().optional(),
-  deviceId: cuid.nullable().optional(),
-  userId: cuid.nullable().optional(),
+  tenantId: uuid.nullable().optional(),
+  branchId: uuid.nullable().optional(),
+  shiftId: uuid.nullable().optional(),
+  deviceId: uuid.nullable().optional(),
+  userId: uuid.nullable().optional(),
   idempotencyKey: z.string().nullable().optional(),
   items: z.array(RefundItemSchema).optional(),
   refundPayments: z.array(z.lazy(() => RefundPaymentSchema)).optional(),
@@ -294,9 +294,9 @@ export type Refund = z.infer<typeof RefundSchema>;
 
 // Floor
 export const FloorSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
   name: z.string(),
   order: z.number().int().default(0),
   isDeleted: z.boolean().default(false),
@@ -307,11 +307,11 @@ export type Floor = z.infer<typeof FloorSchema>;
 
 // Table
 export const TableSchema = z.object({
-  id: cuid,
+  id: uuid,
   tableNumber: z.number().int(),
-  tenantId: cuid,
-  branchId: cuid,
-  floorId: cuid.nullable().optional(),
+  tenantId: uuid,
+  branchId: uuid,
+  floorId: uuid.nullable().optional(),
   name: z.string(),
   capacity: z.number().int().positive().default(4),
   status: z.enum(TableStatus).default("AVAILABLE"),
@@ -325,8 +325,8 @@ export type Table = z.infer<typeof TableSchema>;
 
 // ModifierGroup / Modifier
 export const ModifierGroupSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   type: z.enum(ModifierType),
   isDeleted: z.boolean().default(false),
@@ -334,10 +334,10 @@ export const ModifierGroupSchema = z.object({
 export type ModifierGroup = z.infer<typeof ModifierGroupSchema>;
 
 export const ModifierSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  groupId: cuid,
-  productId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  groupId: uuid,
+  productId: uuid.nullable().optional(),
   name: z.string(),
   price: decimal.default("0"),
   isDeleted: z.boolean().default(false),
@@ -346,9 +346,9 @@ export type Modifier = z.infer<typeof ModifierSchema>;
 
 // OrderItem
 export const OrderItemSchema = z.object({
-  id: cuid,
-  orderId: cuid,
-  productId: cuid,
+  id: uuid,
+  orderId: uuid,
+  productId: uuid,
   quantity: decimal.default("1"),
   unitPrice: decimal,
   subtotal: decimal.optional(),
@@ -365,9 +365,9 @@ export const OrderItemSchema = z.object({
   modifiers: z
     .array(
       z.object({
-        id: cuid,
-        orderItemId: cuid,
-        modifierId: cuid,
+        id: uuid,
+        orderItemId: uuid,
+        modifierId: uuid,
         modifier: ModifierSchema.optional(), // For modifier details
         price: decimal,
       }),
@@ -376,8 +376,8 @@ export const OrderItemSchema = z.object({
   tickets: z
     .array(
       z.object({
-        id: cuid,
-        orderItemId: cuid,
+        id: uuid,
+        orderItemId: uuid,
         station: z.string().nullable().optional(),
         status: z.enum(OrderStatus).default("SENT_TO_KITCHEN"),
         sentAt: isoDate,
@@ -391,24 +391,24 @@ export type OrderItem = z.infer<typeof OrderItemSchema>;
 
 // Order
 export const OrderSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  userId: cuid.nullable().optional(),
-  branchId: cuid,
-  tableId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  userId: uuid.nullable().optional(),
+  branchId: uuid,
+  tableId: uuid.nullable().optional(),
   table: TableSchema.optional(),
-  deviceId: cuid.nullable().optional(),
-  customerId: cuid.nullable().optional(),
+  deviceId: uuid.nullable().optional(),
+  customerId: uuid.nullable().optional(),
   customer: z
     .object({
-      id: cuid,
+      id: uuid,
       name: z.string(),
       phone: z.string().nullable().optional(),
       address: z.string().nullable().optional(),
     })
     .nullable()
     .optional(),
-  shiftId: cuid.nullable().optional(),
+  shiftId: uuid.nullable().optional(),
   refunds: z.array(RefundSchema).optional(),
   orderNumber: z.string().nullable().optional(),
   type: z.enum(OrderType),
@@ -441,8 +441,8 @@ export type Order = z.infer<typeof OrderSchema>;
 
 // OrderItemTicket
 export const OrderItemTicketSchema = z.object({
-  id: cuid,
-  orderItemId: cuid,
+  id: uuid,
+  orderItemId: uuid,
   station: z.string().nullable().optional(),
   status: z.enum(OrderStatus).default("SENT_TO_KITCHEN"),
   sentAt: isoDate,
@@ -452,17 +452,17 @@ export type OrderItemTicket = z.infer<typeof OrderItemTicketSchema>;
 
 // OrderItemModifier
 export const OrderItemModifierSchema = z.object({
-  id: cuid,
-  orderItemId: cuid,
-  modifierId: cuid,
+  id: uuid,
+  orderItemId: uuid,
+  modifierId: uuid,
   price: decimal,
 });
 export type OrderItemModifier = z.infer<typeof OrderItemModifierSchema>;
 
 // Payment
 export const PaymentSchema = z.object({
-  id: cuid,
-  orderId: cuid,
+  id: uuid,
+  orderId: uuid,
   method: z.enum(PaymentMethod),
   currencyCode: z.string().default("USD"),
   amount: decimal,
@@ -470,17 +470,17 @@ export const PaymentSchema = z.object({
   transactionId: z.string().nullable().optional(),
   paidAt: isoDate,
   // Shift attribution
-  shiftId: cuid.nullable().optional(),
-  deviceId: cuid.nullable().optional(),
-  userId: cuid.nullable().optional(),
+  shiftId: uuid.nullable().optional(),
+  deviceId: uuid.nullable().optional(),
+  userId: uuid.nullable().optional(),
   idempotencyKey: z.string().nullable().optional(),
 });
 export type Payment = z.infer<typeof PaymentSchema>;
 
 // Customer
 export const CustomerSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   email: z.string().email().nullable().optional(),
   phone: z.string().nullable().optional(),
@@ -496,8 +496,8 @@ export type Customer = z.infer<typeof CustomerSchema>;
 
 // Supplier
 export const SupplierSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   name: z.string(),
   companyName: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
@@ -514,10 +514,10 @@ export type Supplier = z.infer<typeof SupplierSchema>;
 
 // PurchaseOrder
 export const PurchaseOrderSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  supplierId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  supplierId: uuid,
   orderNumber: z.string().nullable().optional(),
   totalAmount: z.number().default(0),
   status: z
@@ -534,9 +534,9 @@ export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;
 
 // PurchaseOrderItem
 export const PurchaseOrderItemSchema = z.object({
-  id: cuid,
-  purchaseOrderId: cuid,
-  productId: cuid,
+  id: uuid,
+  purchaseOrderId: uuid,
+  productId: uuid,
   quantity: decimal,
   unitCost: decimal,
   totalCost: decimal,
@@ -552,11 +552,11 @@ export type PurchaseOrderItem = z.infer<typeof PurchaseOrderItemSchema>;
 
 // Shift
 export const ShiftSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  userId: cuid,
-  deviceId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  userId: uuid,
+  deviceId: uuid.nullable().optional(),
   startTime: isoDate,
   endTime: isoDate.nullable().optional(),
   startCash: decimal.default("0"),
@@ -566,32 +566,32 @@ export const ShiftSchema = z.object({
   status: z.enum(ShiftStatus).default("OPEN"),
   notes: z.string().nullable().optional(),
   // Close-related fields
-  closedById: cuid.nullable().optional(),
+  closedById: uuid.nullable().optional(),
   closeMode: z.enum(ShiftCloseMode).nullable().optional(),
   closeResult: z.enum(ShiftCloseResult).nullable().optional(),
   varianceAmount: decimal.nullable().optional(),
   variancePercent: decimal.nullable().optional(),
-  approvedById: cuid.nullable().optional(),
+  approvedById: uuid.nullable().optional(),
   approvalNote: z.string().nullable().optional(),
   // Schedule linkage
-  scheduleId: cuid.nullable().optional(),
+  scheduleId: uuid.nullable().optional(),
 });
 export type Shift = z.infer<typeof ShiftSchema>;
 
 // ShiftSchedule (Planned Shifts)
 export const ShiftScheduleSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  userId: cuid,
-  deviceId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  userId: uuid,
+  deviceId: uuid.nullable().optional(),
   date: isoDate,
   startTime: isoDate,
   endTime: isoDate,
   notes: z.string().nullable().optional(),
   status: z.enum(ShiftScheduleStatus).default("DRAFT"),
   publishedAt: isoDate.nullable().optional(),
-  publishedById: cuid.nullable().optional(),
+  publishedById: uuid.nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });
@@ -599,27 +599,27 @@ export type ShiftSchedule = z.infer<typeof ShiftScheduleSchema>;
 
 // RefundPayment
 export const RefundPaymentSchema = z.object({
-  id: cuid,
-  refundId: cuid,
+  id: uuid,
+  refundId: uuid,
   method: z.enum(PaymentMethod),
   amount: decimal,
   currencyCode: z.string().nullable().optional(),
   exchangeRate: decimal.nullable().optional(),
-  shiftId: cuid.nullable().optional(),
-  deviceId: cuid.nullable().optional(),
-  userId: cuid.nullable().optional(),
+  shiftId: uuid.nullable().optional(),
+  deviceId: uuid.nullable().optional(),
+  userId: uuid.nullable().optional(),
   createdAt: isoDate,
 });
 export type RefundPayment = z.infer<typeof RefundPaymentSchema>;
 
 // CashMovement
 export const CashMovementSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  branchId: cuid,
-  shiftId: cuid,
-  deviceId: cuid.nullable().optional(),
-  userId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  shiftId: uuid,
+  deviceId: uuid.nullable().optional(),
+  userId: uuid,
   type: z.enum(CashMovementType),
   amount: decimal,
   reason: z.string().nullable().optional(),
@@ -636,8 +636,8 @@ export type CashMovement = z.infer<typeof CashMovementSchema>;
 
 // LoyaltyProgram
 export const LoyaltyProgramSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
+  id: uuid,
+  tenantId: uuid,
   isEnabled: z.boolean().default(false),
   enrollmentMode: z.enum(LoyaltyEnrollmentMode).default("AUTO"),
   earnPointsPerCurrency: decimal.nullable().optional(),
@@ -654,9 +654,9 @@ export type LoyaltyProgram = z.infer<typeof LoyaltyProgramSchema>;
 
 // LoyaltyAccount
 export const LoyaltyAccountSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  customerId: cuid,
+  id: uuid,
+  tenantId: uuid,
+  customerId: uuid,
   pointsBalance: z.number().int().default(0),
   lifetimeEarned: z.number().int().default(0),
   lifetimeRedeemed: z.number().int().default(0),
@@ -670,12 +670,12 @@ export type LoyaltyAccount = z.infer<typeof LoyaltyAccountSchema>;
 
 // LoyaltyTransaction
 export const LoyaltyTransactionSchema = z.object({
-  id: cuid,
-  tenantId: cuid,
-  accountId: cuid,
-  customerId: cuid,
-  orderId: cuid.nullable().optional(),
-  refundId: cuid.nullable().optional(),
+  id: uuid,
+  tenantId: uuid,
+  accountId: uuid,
+  customerId: uuid,
+  orderId: uuid.nullable().optional(),
+  refundId: uuid.nullable().optional(),
   type: z.enum(LoyaltyTransactionType),
   direction: z.enum(LoyaltyDirection),
   points: z.number().int(),
@@ -684,7 +684,7 @@ export const LoyaltyTransactionSchema = z.object({
   idempotencyKey: z.string(),
   reason: z.string().nullable().optional(),
   metadata: z.unknown().nullable().optional(),
-  actorUserId: cuid.nullable().optional(),
+  actorUserId: uuid.nullable().optional(),
   createdAt: isoDate,
 });
 export type LoyaltyTransaction = z.infer<typeof LoyaltyTransactionSchema>;

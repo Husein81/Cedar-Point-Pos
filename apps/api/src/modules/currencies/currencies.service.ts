@@ -132,17 +132,18 @@ export class CurrenciesService {
       throw new BadRequestException('Exchange rate must be a positive number');
     }
 
-    // Check if currency exists in the reference table
-    const currency = await this.prisma.currency.findUnique({
+    // Ensure currency exists in the reference table
+    // We upsert with default values if it doesn't exist
+    await this.prisma.currency.upsert({
       where: { code: currencyCode },
+      update: {},
+      create: {
+        code: currencyCode,
+        name: currencyCode, // Default name to code
+        symbol: '',
+        decimalPlaces: 2,
+      },
     });
-
-    // If currency doesn't exist in reference table, require it to be added first
-    if (!currency) {
-      throw new BadRequestException(
-        `Currency ${currencyCode} is not available. Please contact support to add new currencies.`,
-      );
-    }
 
     // Check if tenant already has this currency configured
     const existing = await this.prisma.tenantCurrency.findUnique({

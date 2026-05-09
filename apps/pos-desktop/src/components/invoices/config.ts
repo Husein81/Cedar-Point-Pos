@@ -38,3 +38,37 @@ export const orderTypeConfig: Record<string, { label: string; icon: string }> =
     DELIVERY: { label: "Delivery", icon: "Truck" },
     RETAIL: { label: "Retail", icon: "Store" },
   };
+
+type ItemDiscount = { type: "PERCENTAGE" | "FIXED"; value: number };
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function computeItemDiscountAmount(
+  item: {
+    quantity: string | number;
+    unitPrice: string | number;
+    modifiers?: Array<{ price?: string | number | null }>;
+  },
+  discount?: ItemDiscount | null,
+): number {
+  if (!discount || discount.value <= 0) return 0;
+
+  const quantity = Number(item.quantity || 0);
+  const unitPrice = Number(item.unitPrice || 0);
+  const modifiersTotal = (item.modifiers ?? []).reduce(
+    (sum, mod) => sum + Number(mod.price || 0),
+    0,
+  );
+
+  const base = (unitPrice + modifiersTotal) * quantity;
+  if (base <= 0) return 0;
+
+  const raw =
+    discount.type === "PERCENTAGE"
+      ? (base * discount.value) / 100
+      : discount.value;
+
+  return Math.max(0, roundMoney(raw));
+}

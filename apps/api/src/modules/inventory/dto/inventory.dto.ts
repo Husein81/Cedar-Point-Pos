@@ -15,10 +15,10 @@ export const inventoryQuerySchema = z.object({
 export type InventoryQuery = z.infer<typeof inventoryQuerySchema>;
 
 export const createInventoryHistorySchema = z.object({
-  tenantId: z.string().cuid().optional(),
-  branchId: z.string().cuid().optional(),
-  productId: z.string().cuid().optional(),
-  userId: z.string().cuid().optional(),
+  tenantId: z.string().uuid().optional(),
+  branchId: z.string().uuid().optional(),
+  productId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
   changeType: z.enum(InventoryChangeType).optional(),
   beforeStock: z.number().optional(),
   afterStock: z.number().optional(),

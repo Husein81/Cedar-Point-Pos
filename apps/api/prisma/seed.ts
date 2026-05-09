@@ -143,7 +143,7 @@ export class Seeder {
 
   async main(): Promise<void> {
     try {
-      // await this.seedCurrencies();
+      await this.seedCurrencies();
       await this.seedColors();
     } catch (error) {
       console.error('❌ Seed failed:', error);

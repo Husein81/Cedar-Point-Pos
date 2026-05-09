@@ -53,8 +53,8 @@ export type UpdateScheduleDto = z.infer<typeof updateScheduleDto>;
 
 // ── Query Schedules ──────────────────────────────────────────────────────────
 export const queryScheduleDto = z.object({
-  branchId: z.string().cuid().optional(),
-  userId: z.string().cuid().optional(),
+  branchId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
   status: z
     .enum([
       ShiftScheduleStatus.DRAFT,

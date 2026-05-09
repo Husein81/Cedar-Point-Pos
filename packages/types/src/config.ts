@@ -10,5 +10,5 @@ export const decimal = z
   .refine((v) => /^-?\d+(\.\d+)?$/.test(v), "Invalid decimal string");
 export type Decimal = z.infer<typeof decimal>;
 
-export const cuid = z.string().regex(/^c[0-9a-z]{24,}$/, "Invalid CUID");
+export const uuid = z.string().uuid("Invalid UUID");
 export const isoDate = z.coerce.date();

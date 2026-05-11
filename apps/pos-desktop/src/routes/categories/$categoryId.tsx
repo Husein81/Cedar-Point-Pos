@@ -1,5 +1,5 @@
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
-import { CategoryDetailsSkeleton } from "@/components/category/categorySkeleton";
+import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import Heading from "@/components/heading";
 import { getSubcategoryColumns } from "@/config/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
@@ -34,7 +34,7 @@ function RouteComponent() {
     category?.subcategories?.filter((sub) => !sub.isDeleted) || [];
 
   if (isLoading) {
-    return <CategoryDetailsSkeleton />;
+    return <DetailsSkeleton />;
   }
 
   if (!category) {
@@ -52,7 +52,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-4 mt-14">
+    <div className="space-y-4 mt-6">
       <Heading
         title={category.name}
         subtitle={category.description ?? ""}

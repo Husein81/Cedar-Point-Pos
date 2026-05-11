@@ -4,15 +4,15 @@ export function OrderDetailSkeleton() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       {/* Back navigation */}
-      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-4 w-32 bg-muted/60" />
 
       {/* Header Skeleton */}
       <div className="flex items-start justify-between gap-6">
         <div className="space-y-1.5">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-8 w-48 bg-muted/60" />
+          <Skeleton className="h-4 w-64 bg-muted/20" />
         </div>
-        <Skeleton className="h-6 w-24 rounded-full" />
+        <Skeleton className="h-6 w-24 rounded-full bg-muted/60" />
       </div>
 
       {/* Quick Info Cards Skeleton */}
@@ -20,10 +20,10 @@ export function OrderDetailSkeleton() {
         {[1, 2, 3].map((i) => (
           <Shad.Card key={i}>
             <Shad.CardHeader className="pb-2">
-              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16 bg-muted/60" />
             </Shad.CardHeader>
             <Shad.CardContent className="pt-0">
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24 bg-muted/60" />
             </Shad.CardContent>
           </Shad.Card>
         ))}
@@ -34,17 +34,17 @@ export function OrderDetailSkeleton() {
         <div className="col-span-3 space-y-6">
           <Shad.Card>
             <Shad.CardHeader>
-              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-5 w-32 bg-muted/60" />
             </Shad.CardHeader>
             <Shad.CardContent className="p-0">
               <div className="divide-y">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="px-6 py-4 space-y-2">
                     <div className="flex justify-between">
-                      <Skeleton className="h-5 w-48" />
-                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-48 bg-muted/60" />
+                      <Skeleton className="h-5 w-16 bg-muted/20" />
                     </div>
-                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-32 bg-muted/60" />
                   </div>
                 ))}
               </div>
@@ -58,8 +58,8 @@ export function OrderDetailSkeleton() {
             <Shad.CardContent className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex justify-between">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-24 bg-muted/60" />
+                  <Skeleton className="h-4 w-16 bg-muted/20" />
                 </div>
               ))}
             </Shad.CardContent>
@@ -69,10 +69,10 @@ export function OrderDetailSkeleton() {
         <div className="col-span-2">
           <Shad.Card>
             <Shad.CardHeader>
-              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-5 w-32 bg-muted/60" />
             </Shad.CardHeader>
             <Shad.CardContent>
-              <Skeleton className="h-32 w-full rounded-md" />
+              <Skeleton className="h-32 w-full rounded-md bg-muted/60" />
             </Shad.CardContent>
           </Shad.Card>
         </div>

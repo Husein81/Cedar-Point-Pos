@@ -34,10 +34,7 @@ export function OrderPage({
   const activeTableId = showBackToTables
     ? tableId
     : (order?.tableId ?? tableId);
-  const activeTableName = order?.tableName ?? null;
 
-  // Use useLayoutEffect to switch/create the table tab synchronously
-  // before the browser paints, preventing the stale-table flash.
   const tableInitRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (tableId && tableName) {
@@ -82,7 +79,6 @@ export function OrderPage({
   return (
     <div className="fixed top-10 inset-x-0 bottom-0 flex flex-col bg-background">
       <OrderTabs
-        className="shrink-0 px-4 pt-2"
         leftElement={
           hasTables && (
             <Button

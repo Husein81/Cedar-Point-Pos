@@ -226,18 +226,12 @@ interface OrderStoreState {
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
 
-  // Loading existing orders from backend
   loadExistingOrder: (backendOrder: BackendOrder) => void;
 
-  // Utility
   reset: () => void;
 }
 
 const INITIAL_TAB = createNewTab(1);
-
-const getMaxTabs = () => {
-  return useAuthStore().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
-};
 
 const maxTabs =
   useAuthStore.getState().user?.tenant?.businessType === "RETAIL" ? 5 : 15;

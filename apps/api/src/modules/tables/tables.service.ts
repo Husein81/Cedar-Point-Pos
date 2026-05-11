@@ -20,9 +20,6 @@ export class TablesService {
     private readonly tableStatusService: TableStatusService,
   ) {}
 
-  /**
-   * Centralized error handler to eliminate code duplication
-   */
   private handleError(error: unknown, context: string): never {
     if (
       error instanceof BadRequestException ||

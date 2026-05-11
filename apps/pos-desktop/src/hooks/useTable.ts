@@ -6,16 +6,22 @@ import type {
 import { useBranchStore } from "@/store/branchStore";
 import type { Order, TableStatus } from "@repo/types";
 import { Table } from "@repo/types";
-import { UseMutationResult, UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  UseMutationResult,
+  UseQueryResult,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { tablesApi } from "../apis/tablesApi";
 
 const TABLE_QUERY_KEY = ["tables"] as const;
 
-/**
- * Get all tables for the current branch
- */
-export const useTablesByBranch = (): UseQueryResult<TableWithFloor[], Error > => {
+export const useTablesByBranch = (): UseQueryResult<
+  TableWithFloor[],
+  Error
+> => {
   const { branchId } = useBranchStore();
 
   return useQuery({
@@ -26,10 +32,9 @@ export const useTablesByBranch = (): UseQueryResult<TableWithFloor[], Error > =>
   });
 };
 
-/**
- * Get all tables for a specific floor
- */
-export const useTablesByFloor = (floorId: string | null):UseQueryResult<Table[], Error>   => {
+export const useTablesByFloor = (
+  floorId: string | null,
+): UseQueryResult<Table[], Error> => {
   const { branchId } = useBranchStore();
 
   return useQuery({
@@ -58,7 +63,9 @@ export const useTableStats = () => {
  * Get active (non-terminal) orders for a specific table.
  * Used when clicking an occupied table to see what orders are on it.
  */
-export const useActiveOrdersByTable = (tableId: string | null):UseQueryResult<Order[], Error>   => {
+export const useActiveOrdersByTable = (
+  tableId: string | null,
+): UseQueryResult<Order[], Error> => {
   return useQuery<Order[]>({
     queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
     queryFn: () => tablesApi.getActiveOrdersByTable(tableId!),
@@ -82,23 +89,22 @@ export const useTable = (id: string) => {
 /**
  * Create a new table
  */
-export const useCreateTable = (): UseMutationResult<TableWithFloor, Error, CreateTableDto> => {
+export const useCreateTable = (): UseMutationResult<
+  TableWithFloor,
+  Error,
+  CreateTableDto
+> => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: tablesApi.createTable,
     onSuccess: (data) => {
       toast.success(`Table "${data.name}" created successfully`);
-      // Invalidate all table queries
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        "Failed to create table";
-      console.error("Table creation error:", error.response?.data || error);
+    onError: (error: Error) => {
+      const message = error.message ?? "Failed to create table";
+      console.error("Table creation error:", error.message || error);
       toast.error(message);
     },
   });
@@ -214,7 +220,12 @@ export const useUpdateTableStatus = () => {
 export const useDeleteTable = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string, { previousTables?: unknown; queryKey: string[] }>({
+  return useMutation<
+    void,
+    Error,
+    string,
+    { previousTables?: unknown; queryKey: string[] }
+  >({
     mutationFn: tablesApi.deleteTable,
 
     onMutate: async (id) => {

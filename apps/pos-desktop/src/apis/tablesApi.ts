@@ -49,7 +49,7 @@ export const tablesApi = {
    * Create a new table
    */
   createTable: async (data: CreateTableDto): Promise<TableWithFloor> => {
-    const response = await api.post<TableWithFloor>("/tables", data);
+    const response = await api.post("/tables", data);
     return response.data;
   },
 

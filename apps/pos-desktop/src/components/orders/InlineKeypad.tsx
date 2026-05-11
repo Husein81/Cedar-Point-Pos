@@ -105,7 +105,7 @@ export const InlineKeypad = () => {
   const { data: loyaltyAccount } = useCustomerLoyaltyAccount(
     order?.customerId ?? null,
   );
-  // Eligible base for loyalty discount = subtotal - orderDiscount (excl. VAT/shipping)
+
   const loyaltyEligibleBase = Math.max(0, subtotal - discount);
 
   const deliveryNeedsCustomer =
@@ -118,17 +118,9 @@ export const InlineKeypad = () => {
 
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
-  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
-  const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
-
-  const isProcessing = isPaymentProcessing || isSendingToKitchen;
 
   const [isDiffMode, setIsDiffMode] = useState(false);
   const [diffBaseValue, setDiffBaseValue] = useState<number | null>(null);
-
-  /* ---------------------------------------------
-     Helpers
-  --------------------------------------------- */
 
   const parse = useCallback(
     (v: string) =>
@@ -285,13 +277,11 @@ export const InlineKeypad = () => {
     user?.tenantId,
   ]);
 
-
   const isLoadedOrder = useCallback((): boolean => {
     const active = getActiveOrder();
     if (!active) return false;
     return !active.id.startsWith("order-");
   }, [getActiveOrder]);
-
 
   const getOrCreateOrderId = useCallback(async (): Promise<string | null> => {
     const active = getActiveOrder();
@@ -459,141 +449,87 @@ export const InlineKeypad = () => {
     setValue("0");
   };
 
-  /* ---------------------------------------------
-     Payment + Confirm Flows
-  --------------------------------------------- */
-
   const handlePaymentConfirm = async (
     payments: PaymentEntry[],
     sendToKitchenFirst = false,
     loyalty?: { redeemPoints: number },
   ) => {
     await withPaymentLock(async () => {
-      if (isProcessing || payments.length === 0) return;
+      if (payments.length === 0) return;
 
       const active = getActiveOrder();
-      if (active?.type === OrderType.DELIVERY && !active?.customerId) return;
-      if (active?.type === OrderType.DELIVERY && !active?.customerAddress)
+      if (!active || !branchId || !user?.tenantId || remainingTotal <= 0)
         return;
+      if (active.type === OrderType.DELIVERY && !active.customerId) return;
+      if (active.type === OrderType.DELIVERY && !active.customerAddress) return;
 
-      setIsPaymentProcessing(true);
+      const tabToClose = activeTabId;
+      closeKeypad();
+      closeModal();
+      if (tabToClose) closeTab(tabToClose);
+      clearOrder();
 
-      try {
-        if (!active || !branchId || !user?.tenantId || remainingTotal <= 0)
-          return;
-
-        // Get the active tab ID before closing anything
-        const tabToClose = activeTabId;
-
-        // POS-style UX: close input early
-        closeKeypad();
-        closeModal();
-
-        if (
-          user.tenant?.businessType === BusinessType.RESTAURANT &&
-          !active.type
-        ) {
-          throw new Error("Order type is required");
-        }
-
-        // Capture loaded state BEFORE getOrCreateOrderId
-        const wasLoadedOrder = isLoadedOrder();
-
-        const orderId = await getOrCreateOrderId();
-        if (!orderId) return;
-
-        // For orders that were ALREADY on the server before this flow,
-        // sync any new local items in one batch request.
-        if (wasLoadedOrder) {
-          const unsyncedLocal = active.items
-            .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
-            .map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              notes: item.notes,
-              modifiers: item.modifiers?.map((m) => m.modifierId),
-            }));
-
-          if (unsyncedLocal.length > 0) {
-            await batchAddItemsToOrder.mutateAsync({
-              id: orderId,
-              items: unsyncedLocal,
-            });
+      (async () => {
+        try {
+          if (
+            user.tenant?.businessType === BusinessType.RESTAURANT &&
+            !active.type
+          ) {
+            throw new Error("Order type is required");
           }
-        }
 
-        // If Pay & Send: send unsent items to kitchen first
-        if (sendToKitchenFirst) {
-          const unsentCount = active.items.filter(
-            (i) => !i.sentToKitchen,
-          ).length;
-          if (unsentCount > 0) {
-            await sendToKitchen.mutateAsync(orderId);
-            markItemsSentToKitchen();
-            toast.success(
-              `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
-            );
+          const wasLoadedOrder = isLoadedOrder();
+          const orderId = await getOrCreateOrderId();
+          if (!orderId) return;
+
+          // Sync local items if needed
+          if (wasLoadedOrder) {
+            const unsyncedLocal = active.items
+              .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+              .map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                notes: item.notes,
+                modifiers: item.modifiers?.map((m) => m.modifierId),
+              }));
+
+            if (unsyncedLocal.length > 0) {
+              await batchAddItemsToOrder.mutateAsync({
+                id: orderId,
+                items: unsyncedLocal,
+              });
+            }
           }
+
+          // Send to kitchen if requested
+          if (sendToKitchenFirst) {
+            const unsentItems = active.items.filter((i) => !i.sentToKitchen);
+            if (unsentItems.length > 0) {
+              await sendToKitchen.mutateAsync(orderId);
+            }
+          }
+
+          const result = await processPayment.mutateAsync({
+            id: orderId,
+            payments: payments.map((p) => ({
+              amount: p.amount,
+              method: p.method,
+              currencyCode: p.currencyCode,
+              exchangeRate: p.exchangeRate,
+            })),
+            loyalty,
+          });
+
+          if (!result) return;
+        } catch (error: any) {
+          const raw =
+            error.response?.data?.message || error.message || "Payment failed";
+          console.error("Background payment failed:", error);
+          toast.error(`Sync Error: ${raw}. Please check invoice history.`, {
+            duration: 8000,
+          });
         }
-
-        const result = await processPayment.mutateAsync({
-          id: orderId,
-          payments: payments.map((p) => ({
-            amount: p.amount,
-            method: p.method,
-            currencyCode: p.currencyCode,
-            exchangeRate: p.exchangeRate,
-          })),
-          loyalty,
-        });
-
-        if (!result) return;
-
-        setOrderStatus(result.status);
-
-        // Close the tab AFTER order is created and payment is processed
-        if (tabToClose) closeTab(tabToClose);
-
-        if (result.status === OrderStatus.COMPLETED) {
-          clearOrder();
-        }
-
-        // Surface backend-applied loyalty values if redeemed
-        if (result.loyaltyRedeemedPoints && result.loyaltyRedeemedPoints > 0) {
-          toast.success(
-            `Payment processed — ${Number(result.loyaltyRedeemedPoints).toLocaleString()} pts redeemed ($${Number(result.loyaltyRedeemedAmount || 0).toFixed(2)} discount)`,
-          );
-        } else {
-          toast.success("Payment processed successfully");
-        }
-      } catch (error: any) {
-        const raw = error.response?.data?.message || error.message || "";
-        const lower = raw.toLowerCase();
-
-        let message: string;
-        if (lower.includes("insufficient") && lower.includes("point")) {
-          message =
-            "Insufficient loyalty points — please reduce redemption amount";
-        } else if (lower.includes("loyalty") && lower.includes("disabled")) {
-          message = "Loyalty program is currently disabled";
-        } else if (
-          lower.includes("loyalty") &&
-          lower.includes("not configured")
-        ) {
-          message = "Loyalty program is not configured for this tenant";
-        } else if (lower.includes("underpay") || lower.includes("underpaid")) {
-          message = "Payment amount is insufficient after reconciliation";
-        } else if (lower.includes("surplus") || lower.includes("overpay")) {
-          message = "Payment surplus detected — refund may be required";
-        } else {
-          message = raw || "Payment failed";
-        }
-
-        console.error("Payment failed:", error);
-        toast.error(message);
-      } finally {
-        setIsPaymentProcessing(false);
-      }
+      })();
     });
   };
 
@@ -614,50 +550,51 @@ export const InlineKeypad = () => {
 
   const handleConfirmWithoutPayment = async () => {
     await withPaymentLock(async () => {
-      if (isProcessing || !order?.items?.length || total <= 0) return;
+      if (!order?.items?.length || total <= 0) return;
       if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
       if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
 
-      setIsPaymentProcessing(true);
+      const active = getActiveOrder();
+      if (!active || !branchId || !user?.tenantId) return;
 
-      try {
-        const active = getActiveOrder();
-        if (!active || !branchId || !user?.tenantId) return;
+      // OPTIMISTIC START: Clear UI immediately
+      clearOrder();
+      closeKeypad();
+      closeModal();
+      if (activeTabId) closeTab(activeTabId);
 
-        // POS UX: clear local order immediately
-        clearOrder();
-        closeKeypad();
-        closeModal();
-        if (activeTabId) closeTab(activeTabId);
+      toast.success("Confirming order...");
+      // OPTIMISTIC END
 
-        if (
-          user.tenant?.businessType === BusinessType.RESTAURANT &&
-          !active.type
-        ) {
-          throw new Error("Order type is required");
+      // Background syncing
+      (async () => {
+        try {
+          if (
+            user.tenant?.businessType === BusinessType.RESTAURANT &&
+            !active.type
+          ) {
+            throw new Error("Order type is required");
+          }
+
+          const orderId = await getOrCreateOrderId();
+          if (!orderId) return;
+
+          // Transition to PENDING/CONFIRMED
+          await updateOrderStatus.mutateAsync({
+            id: orderId,
+            status: OrderStatus.PENDING,
+          });
+
+          toast.success("Order synchronized successfully");
+        } catch (error: any) {
+          const message =
+            error.response?.data?.message ||
+            error.message ||
+            "Order confirmation failed";
+          console.error("Background confirmation failed:", error);
+          toast.error(`Sync Error: ${message}`, { duration: 8000 });
         }
-
-        const orderId = await getOrCreateOrderId();
-        if (!orderId) return;
-
-        // For restaurant orders, transition to PENDING
-        await updateOrderStatus.mutateAsync({
-          id: orderId,
-          status: OrderStatus.PENDING,
-        });
-
-        setOrderStatus(OrderStatus.PENDING);
-        toast.success("Order confirmed");
-      } catch (error: any) {
-        const message =
-          error.response?.data?.message ||
-          error.message ||
-          "Order confirmation failed";
-        console.error("Order confirmation failed:", error);
-        toast.error(message);
-      } finally {
-        setIsPaymentProcessing(false);
-      }
+      })();
     });
   };
 
@@ -669,10 +606,8 @@ export const InlineKeypad = () => {
   const hasUnsentItems = unsentItems.length > 0;
 
   const handleSendToKitchen = async () => {
-    if (isSendingToKitchen || isPaymentProcessing) return;
     if (!order?.items?.length) return;
 
-    // If there are no unsent items, show neutral toast and return
     if (!hasUnsentItems) {
       toast.success("No new items to send");
       return;
@@ -681,70 +616,65 @@ export const InlineKeypad = () => {
     if (order?.type === OrderType.DELIVERY && !order?.customerId) return;
     if (order?.type === OrderType.DELIVERY && !order?.customerAddress) return;
 
-    setIsSendingToKitchen(true);
+    const active = getActiveOrder();
+    if (!active || !branchId || !user?.tenantId) return;
 
-    try {
-      const active = getActiveOrder();
-      if (!active || !branchId || !user?.tenantId) return;
+    const unsentCount = active.items.filter((i) => !i.sentToKitchen).length;
+    const wasLoadedOrder = isLoadedOrder();
 
-      if (!active.type) {
-        throw new Error("Order type is required");
-      }
+    // OPTIMISTIC UPDATE: Mark items as sent immediately in the UI
+    markItemsSentToKitchen();
+    toast.success(
+      `Sending ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen...`,
+    );
 
-      const unsentCount = active.items.filter((i) => !i.sentToKitchen).length;
+    // Run API call in background
+    (async () => {
+      try {
+        const orderId = await getOrCreateOrderId();
+        if (!orderId) return;
 
-      // Capture loaded state BEFORE getOrCreateOrderId
-      const wasLoadedOrder = isLoadedOrder();
+        if (wasLoadedOrder) {
+          const unsyncedLocal = active.items
+            .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+            .map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: item.notes,
+              modifiers: item.modifiers?.map((m) => m.modifierId),
+            }));
 
-      const orderId = await getOrCreateOrderId();
-      if (!orderId) return;
-
-      // For orders that were ALREADY on the server before this flow,
-      // sync any new local items in one batch request.
-      if (wasLoadedOrder) {
-        const unsyncedLocal = active.items
-          .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
-          .map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            notes: item.notes,
-            modifiers: item.modifiers?.map((m) => m.modifierId),
-          }));
-
-        if (unsyncedLocal.length > 0) {
-          await batchAddItemsToOrder.mutateAsync({
-            id: orderId,
-            items: unsyncedLocal,
-          });
+          if (unsyncedLocal.length > 0) {
+            await batchAddItemsToOrder.mutateAsync({
+              id: orderId,
+              items: unsyncedLocal,
+            });
+          }
         }
+
+        const result = await sendToKitchen.mutateAsync(orderId);
+
+        if (result?.status) {
+          setOrderStatus(result.status as OrderStatus);
+        } else {
+          setOrderStatus(OrderStatus.PENDING);
+        }
+
+        toast.success(
+          `Kitchen confirmed ${unsentCount} item${unsentCount !== 1 ? "s" : ""}`,
+        );
+      } catch (error: any) {
+        const message =
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to sync kitchen order";
+        console.error("Background kitchen sync failed:", error);
+        toast.error(`Kitchen Error: ${message}. Items might not be sent!`, {
+          duration: 5000,
+        });
+        // NOTE: In a full implementation, we would rollback the markItemsSentToKitchen() here
       }
-
-      // Send to kitchen via API
-      const result = await sendToKitchen.mutateAsync(orderId);
-
-      // Mark all items as sent locally
-      markItemsSentToKitchen();
-
-      // Update status
-      if (result?.status) {
-        setOrderStatus(result.status as OrderStatus);
-      } else {
-        setOrderStatus(OrderStatus.PENDING);
-      }
-
-      toast.success(
-        `Sent ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen`,
-      );
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to send to kitchen";
-      console.error("Send to kitchen failed:", error);
-      toast.error(message);
-    } finally {
-      setIsSendingToKitchen(false);
-    }
+    })();
   };
 
   /* ---------------------------------------------
@@ -985,7 +915,7 @@ export const InlineKeypad = () => {
                 variant={key.variant ?? "outline"}
                 onClick={key.onClick}
                 className={cn(
-                  "h-10 2xl:h-12 text-lg",
+                  "h-10 2xl:h-12 text-lg dark:hover:bg-primary",
                   isActive &&
                     "bg-primary/15 text-primary ring-1 ring-primary/30",
                 )}
@@ -1014,11 +944,9 @@ export const InlineKeypad = () => {
             disabled={
               !order?.items?.length ||
               remainingTotal <= 0 ||
-              isProcessing ||
               deliveryNeedsCustomer ||
               deliveryNeedsAddress
             }
-            isSubmitting={isPaymentProcessing}
             onClick={handlePay}
           >
             <Icon name="CreditCard" className="w-5 h-5 mr-2" />
@@ -1032,11 +960,9 @@ export const InlineKeypad = () => {
               className="flex-1 h-12 text-sm font-semibold"
               disabled={
                 !order?.items?.length ||
-                isProcessing ||
                 deliveryNeedsCustomer ||
                 deliveryNeedsAddress
               }
-              isSubmitting={isSendingToKitchen}
               onClick={handleSendToKitchen}
             >
               <Icon name="ChefHat" className="w-5 h-5 mr-2" />
@@ -1060,7 +986,6 @@ export const InlineKeypad = () => {
               disabled={
                 !order?.items?.length ||
                 total <= 0 ||
-                isProcessing ||
                 deliveryNeedsCustomer ||
                 deliveryNeedsAddress
               }

@@ -6,15 +6,14 @@ export type AdminLoginPayload = {
 };
 
 export type AdminLoginResponse = {
-  user: {
-    id: string;
-    name: string;
-    username: string;
-    role: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-  };
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const adminAuthApi = {

@@ -1,11 +1,11 @@
-import { Button, Icon, Input, Separator, Shad, Badge } from "@repo/ui";
-import { cn } from "@repo/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { PaymentMethod } from "@repo/types";
-import { formatPrice, generateQuickCashAmounts } from "./config";
-import { useModalStore } from "@/store/modalStore";
+import type { LoyaltyAccount, LoyaltyProgram } from "@/dto/loyalty.dto";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
-import type { LoyaltyProgram, LoyaltyAccount } from "@/dto/loyalty.dto";
+import { useModalStore } from "@/store/modalStore";
+import { PaymentMethod } from "@repo/types";
+import { Badge, Button, Icon, Input, Separator, cn } from "@repo/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ReceiptModal } from "./ReceiptModal";
+import { formatPrice, generateQuickCashAmounts } from "./config";
 
 // Payment entry for split payments
 export type PaymentEntry = {
@@ -87,6 +87,7 @@ export const PaymentForm = ({
   eligibleBase = 0,
 }: Props) => {
   const { closeModal } = useModalStore();
+  const [showPreview, setShowPreview] = useState(false);
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
@@ -248,382 +249,422 @@ export const PaymentForm = ({
     <div className="sm:max-w-lg">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-          <Icon name="CreditCard" className="w-5 h-5 text-primary" />
-        </div>
-        <Shad.DialogTitle>Payment</Shad.DialogTitle>
+        <div className="flex-1" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "h-8 gap-1.5",
+            showPreview &&
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+          onClick={() => setShowPreview(!showPreview)}
+        >
+          <Icon
+            name={showPreview ? "ChevronLeft" : "Eye"}
+            className="w-3.5 h-3.5"
+          />
+          {showPreview ? "Back to Payment" : "Preview Receipt"}
+        </Button>
       </div>
 
-      <div className="space-y-4 pt-4">
-        {/* ===== SUMMARY CARDS ===== */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Total */}
-          <div className="text-center py-3 bg-muted/30 rounded-lg">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Total
-            </p>
-            <p className="text-2xl font-bold">${formatPrice(total)}</p>
-          </div>
-
-          {/* Remaining */}
-          <div
-            className={cn(
-              "text-center py-3 rounded-lg transition-colors",
-              isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10",
-            )}
-          >
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Remaining
-            </p>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                isFullyPaid ? "text-green-600" : "text-orange-600",
-              )}
-            >
-              {isFullyPaid ? (
-                <span className="flex items-center justify-center gap-1">
-                  <Icon name="Check" className="w-5 h-5" />
-                  Paid
-                </span>
-              ) : (
-                <>
-                  {currencySymbol}
-                  {formatPrice(remainingInCurrency)}
-                </>
-              )}
-            </p>
-          </div>
+      {showPreview ? (
+        <div className="pt-4 h-[500px]">
+          <ReceiptModal
+            payments={payments}
+            loyaltyApplied={
+              loyaltyEstimate.appliedPoints > 0
+                ? {
+                    points: loyaltyEstimate.appliedPoints,
+                    discount: loyaltyEstimate.appliedDiscount,
+                  }
+                : undefined
+            }
+          />
         </div>
-
-        {/* ===== LOYALTY REDEMPTION ===== */}
-        {loyaltyProgram?.isEnabled && (
-          <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg space-y-3">
-            <div className="flex items-center gap-2">
-              <Icon
-                name="Award"
-                className="w-4 h-4 text-purple-600 dark:text-purple-400"
-              />
-              <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                Loyalty Points
-              </span>
+      ) : (
+        <div className="space-y-4 pt-4">
+          {/* ===== SUMMARY CARDS ===== */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total */}
+            <div className="text-center py-3 bg-muted/30 rounded-lg">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                Total
+              </p>
+              <p className="text-2xl font-bold">${formatPrice(total)}</p>
             </div>
 
-            {!customerId ? (
-              <p className="text-xs text-purple-600 dark:text-purple-400 italic">
-                Select a customer to redeem loyalty points
+            {/* Remaining */}
+            <div
+              className={cn(
+                "text-center py-3 rounded-lg transition-colors",
+                isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10",
+              )}
+            >
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                Remaining
               </p>
-            ) : !loyaltyAccount || loyaltyAccount.pointsBalance <= 0 ? (
-              <p className="text-xs text-purple-600 dark:text-purple-400">
-                No points available for this customer
+              <p
+                className={cn(
+                  "text-2xl font-bold",
+                  isFullyPaid ? "text-green-600" : "text-orange-600",
+                )}
+              >
+                {isFullyPaid ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <Icon name="Check" className="w-5 h-5" />
+                    Paid
+                  </span>
+                ) : (
+                  <>
+                    {currencySymbol}
+                    {formatPrice(remainingInCurrency)}
+                  </>
+                )}
               </p>
-            ) : (
-              <>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-purple-700 dark:text-purple-300">
-                    Available
-                  </span>
-                  <span className="font-mono font-medium text-purple-800 dark:text-purple-200">
-                    {loyaltyAccount.pointsBalance.toLocaleString()} pts
-                  </span>
-                </div>
+            </div>
+          </div>
 
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 space-y-1">
-                    <label className="text-xs text-purple-700 dark:text-purple-300">
-                      Redeem Points
-                    </label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={loyaltyAccount.pointsBalance}
-                      step={loyaltyProgram.redeemPointsStep || 1}
-                      value={redeemPointsInput}
-                      onChange={(e) => setRedeemPointsInput(e.target.value)}
-                      placeholder={`Min ${loyaltyProgram.minRedeemPoints || 0}`}
-                      className="h-9 text-sm font-mono"
-                    />
+          {/* ===== LOYALTY REDEMPTION ===== */}
+          {loyaltyProgram?.isEnabled && (
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg space-y-3">
+              <div className="flex items-center gap-2">
+                <Icon
+                  name="Award"
+                  className="w-4 h-4 text-purple-600 dark:text-purple-400"
+                />
+                <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                  Loyalty Points
+                </span>
+              </div>
+
+              {!customerId ? (
+                <p className="text-xs text-purple-600 dark:text-purple-400 italic">
+                  Select a customer to redeem loyalty points
+                </p>
+              ) : !loyaltyAccount || loyaltyAccount.pointsBalance <= 0 ? (
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  No points available for this customer
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-purple-700 dark:text-purple-300">
+                      Available
+                    </span>
+                    <span className="font-mono font-medium text-purple-800 dark:text-purple-200">
+                      {loyaltyAccount.pointsBalance.toLocaleString()} pts
+                    </span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 text-xs"
-                    onClick={() =>
-                      setRedeemPointsInput(String(loyaltyAccount.pointsBalance))
-                    }
+
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs text-purple-700 dark:text-purple-300">
+                        Redeem Points
+                      </label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={loyaltyAccount.pointsBalance}
+                        step={loyaltyProgram.redeemPointsStep || 1}
+                        value={redeemPointsInput}
+                        onChange={(e) => setRedeemPointsInput(e.target.value)}
+                        placeholder={`Min ${loyaltyProgram.minRedeemPoints || 0}`}
+                        className="h-9 text-sm font-mono"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 text-xs"
+                      onClick={() =>
+                        setRedeemPointsInput(
+                          String(loyaltyAccount.pointsBalance),
+                        )
+                      }
+                    >
+                      Max
+                    </Button>
+                    {redeemPointsValue > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-xs text-destructive"
+                        onClick={() => setRedeemPointsInput("")}
+                      >
+                        <Icon name="X" className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Validation messages */}
+                  {redeemPointsValue > 0 &&
+                    redeemPointsValue > loyaltyAccount.pointsBalance && (
+                      <p className="text-xs text-destructive">
+                        Exceeds available balance
+                      </p>
+                    )}
+                  {redeemPointsValue > 0 &&
+                    loyaltyProgram.minRedeemPoints > 0 &&
+                    redeemPointsValue < loyaltyProgram.minRedeemPoints && (
+                      <p className="text-xs text-destructive">
+                        Minimum {loyaltyProgram.minRedeemPoints} points required
+                      </p>
+                    )}
+
+                  {/* Applied estimate */}
+                  {loyaltyEstimate.appliedDiscount > 0 && (
+                    <div className="flex items-center justify-between py-2 px-3 bg-purple-100 dark:bg-purple-900/30 rounded-md">
+                      <div className="flex items-center gap-1.5">
+                        <Icon
+                          name="Sparkles"
+                          className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"
+                        />
+                        <span className="text-xs font-medium text-purple-800 dark:text-purple-200">
+                          Est.
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
+                          − ${formatPrice(loyaltyEstimate.appliedDiscount)}
+                        </span>
+                        <p className="text-[10px] text-purple-500">
+                          {loyaltyEstimate.appliedPoints} pts · preview
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ===== PAYMENTS ADDED ===== */}
+          {payments.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Payments
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {payments.length}
+                </Badge>
+              </div>
+              <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
+                {payments.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
                   >
-                    Max
-                  </Button>
-                  {redeemPointsValue > 0 && (
+                    <div className="flex items-center gap-3 flex-1">
+                      <Badge variant="outline" className="text-xs">
+                        {p.method}
+                      </Badge>
+                      <div>
+                        <span className="font-mono text-sm font-medium">
+                          {getCurrencySymbol(p.currencyCode)}{" "}
+                          {formatPrice(p.amount)}
+                        </span>
+                        {/* Show conversion if not in base currency */}
+                        {p.currencyCode !== baseCurrency?.currencyCode && (
+                          <p className="text-xs text-muted-foreground font-mono">
+                            ≈ ${formatPrice(p.amountInBase)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-9 text-xs text-destructive"
-                      onClick={() => setRedeemPointsInput("")}
+                      onClick={() => handleRemovePayment(p.id)}
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Icon name="X" className="w-3 h-3" />
                     </Button>
-                  )}
-                </div>
-
-                {/* Validation messages */}
-                {redeemPointsValue > 0 &&
-                  redeemPointsValue > loyaltyAccount.pointsBalance && (
-                    <p className="text-xs text-destructive">
-                      Exceeds available balance
-                    </p>
-                  )}
-                {redeemPointsValue > 0 &&
-                  loyaltyProgram.minRedeemPoints > 0 &&
-                  redeemPointsValue < loyaltyProgram.minRedeemPoints && (
-                    <p className="text-xs text-destructive">
-                      Minimum {loyaltyProgram.minRedeemPoints} points required
-                    </p>
-                  )}
-
-                {/* Applied estimate */}
-                {loyaltyEstimate.appliedDiscount > 0 && (
-                  <div className="flex items-center justify-between py-2 px-3 bg-purple-100 dark:bg-purple-900/30 rounded-md">
-                    <div className="flex items-center gap-1.5">
-                      <Icon
-                        name="Sparkles"
-                        className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"
-                      />
-                      <span className="text-xs font-medium text-purple-800 dark:text-purple-200">
-                        Est.
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
-                        − ${formatPrice(loyaltyEstimate.appliedDiscount)}
-                      </span>
-                      <p className="text-[10px] text-purple-500">
-                        {loyaltyEstimate.appliedPoints} pts · preview
-                      </p>
-                    </div>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* ===== PAYMENTS ADDED ===== */}
-        {payments.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                Payments
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                {payments.length}
-              </Badge>
-            </div>
-            <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
-              {payments.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <Badge variant="outline" className="text-xs">
-                      {p.method}
-                    </Badge>
-                    <div>
-                      <span className="font-mono text-sm font-medium">
-                        {getCurrencySymbol(p.currencyCode)}{" "}
-                        {formatPrice(p.amount)}
-                      </span>
-                      {/* Show conversion if not in base currency */}
-                      {p.currencyCode !== baseCurrency?.currencyCode && (
-                        <p className="text-xs text-muted-foreground font-mono">
-                          ≈ ${formatPrice(p.amountInBase)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemovePayment(p.id)}
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Icon name="X" className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ===== ADD PAYMENT SECTION ===== */}
-        {!isFullyPaid && (
-          <>
-            <Separator />
-
-            {/* Currency Toggle */}
-            {activeCurrencies.length > 1 && (
-              <div className="flex gap-2">
-                {activeCurrencies.map((currency) => (
-                  <Button
-                    key={currency.currencyCode}
-                    variant={
-                      selectedCurrencyCode === currency.currencyCode
-                        ? "default"
-                        : "outline"
-                    }
-                    size="lg"
-                    className="flex-1 text-lg font-bold"
-                    onClick={() =>
-                      setSelectedCurrencyCode(currency.currencyCode)
-                    }
-                  >
-                    {currency.currency?.symbol || currency.currencyCode}
-                  </Button>
                 ))}
               </div>
-            )}
-
-            {/* Payment Method */}
-            <div className="grid grid-cols-4 gap-2">
-              {PAYMENT_METHODS.map((method) => (
-                <Button
-                  key={method.value}
-                  variant={
-                    selectedMethod === method.value ? "default" : "outline"
-                  }
-                  className="flex flex-col gap-0.5 h-auto py-2"
-                  size="sm"
-                  onClick={() => setSelectedMethod(method.value)}
-                >
-                  <Icon name={method.icon} className="w-4 h-4" />
-                  <span className="text-xs">{method.label}</span>
-                </Button>
-              ))}
             </div>
+          )}
 
-            {/* Given Amount Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Given
-              </label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
-                  {currencySymbol}
-                </span>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  value={givenAmount}
-                  onChange={(e) => setGivenAmount(e.target.value)}
-                  placeholder={formatPrice(remainingInCurrency)}
-                  className="pl-10 text-xl font-bold h-12"
-                  autoFocus
-                />
-              </div>
+          {/* ===== ADD PAYMENT SECTION ===== */}
+          {!isFullyPaid && (
+            <>
+              <Separator />
 
-              {/* Quick Amount Buttons */}
-              {selectedMethod === "CASH" && quickAmounts.length > 0 && (
-                <div className="grid grid-cols-4 gap-1.5">
-                  {quickAmounts.slice(0, 4).map((amount) => (
+              {/* Currency Toggle */}
+              {activeCurrencies.length > 1 && (
+                <div className="flex gap-2">
+                  {activeCurrencies.map((currency) => (
                     <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setGivenAmount(amount.toString())}
-                      className="text-xs font-mono"
+                      key={currency.currencyCode}
+                      variant={
+                        selectedCurrencyCode === currency.currencyCode
+                          ? "default"
+                          : "outline"
+                      }
+                      size="lg"
+                      className="flex-1 text-lg font-bold"
+                      onClick={() =>
+                        setSelectedCurrencyCode(currency.currencyCode)
+                      }
                     >
-                      {currencySymbol}
-                      {formatPrice(amount)}
+                      {currency.currency?.symbol || currency.currencyCode}
                     </Button>
                   ))}
                 </div>
               )}
-            </div>
 
-            {/* Change Due */}
-            {selectedMethod === "CASH" && changeInCurrency > 0.01 && (
-              <div className="flex items-center justify-between py-3 px-4 bg-green-500/10 rounded-lg border border-green-500/20">
-                <span className="text-sm font-medium">Change</span>
-                <span className="text-xl font-bold text-green-600">
-                  {currencySymbol}
-                  {formatPrice(changeInCurrency)}
-                </span>
+              {/* Payment Method */}
+              <div className="grid grid-cols-4 gap-2">
+                {PAYMENT_METHODS.map((method) => (
+                  <Button
+                    key={method.value}
+                    variant={
+                      selectedMethod === method.value ? "default" : "outline"
+                    }
+                    className="flex flex-col gap-0.5 h-auto py-2"
+                    size="sm"
+                    onClick={() => setSelectedMethod(method.value)}
+                  >
+                    <Icon name={method.icon} className="w-4 h-4" />
+                    <span className="text-xs">{method.label}</span>
+                  </Button>
+                ))}
               </div>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleAddPayment}
-                disabled={givenValue <= 0}
-                className="flex-1"
-              >
-                <Icon name="Plus" className="w-4 h-4" />
-                Add
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={handlePayFull}
-                disabled={remainingInBase <= 0}
-                className="flex-1"
-              >
-                <Icon name="Zap" className="w-4 h-4" />
-                Full
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
+              {/* Given Amount Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Given
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                    {currencySymbol}
+                  </span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    value={givenAmount}
+                    onChange={(e) => setGivenAmount(e.target.value)}
+                    placeholder={formatPrice(remainingInCurrency)}
+                    className="pl-10 text-xl font-bold h-12"
+                    autoFocus
+                  />
+                </div>
 
-      {/* ===== FOOTER ACTIONS ===== */}
-      <div className="flex pt-4 gap-2">
-        <Button
-          variant="outline"
-          type="button"
-          onClick={closeModal}
-          disabled={isConfirming}
-        >
-          Cancel
-        </Button>
+                {/* Quick Amount Buttons */}
+                {selectedMethod === "CASH" && quickAmounts.length > 0 && (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {quickAmounts.slice(0, 4).map((amount) => (
+                      <Button
+                        key={amount}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setGivenAmount(amount.toString())}
+                        className="text-xs font-mono"
+                      >
+                        {currencySymbol}
+                        {formatPrice(amount)}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        {hasUnsentItems ? (
-          <>
+              {/* Change Due */}
+              {selectedMethod === "CASH" && changeInCurrency > 0.01 && (
+                <div className="flex items-center justify-between py-3 px-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <span className="text-sm font-medium">Change</span>
+                  <span className="text-xl font-bold text-green-600">
+                    {currencySymbol}
+                    {formatPrice(changeInCurrency)}
+                  </span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleAddPayment}
+                  disabled={givenValue <= 0}
+                  className="flex-1"
+                >
+                  <Icon name="Plus" className="w-4 h-4 mr-2" />
+                  Add
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handlePayFull}
+                  disabled={remainingInBase <= 0}
+                  className="flex-1"
+                >
+                  <Icon name="Zap" className="w-4 h-4 mr-2" />
+                  Full
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ===== FOOTER ACTIONS ===== */}
+          <div className="flex pt-4 gap-2 border-t mt-4">
             <Button
               variant="outline"
-              onClick={handleConfirm}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-              isSubmitting={isConfirming}
-              className="flex-1 text-base"
+              type="button"
+              onClick={closeModal}
+              disabled={isConfirming}
             >
-              <Icon name="CreditCard" className="w-5 h-5" />
-              Pay Only
+              Cancel
             </Button>
-            <Button
-              onClick={handlePayAndSend}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-              isSubmitting={isConfirming}
-              className="flex-1 text-base"
-            >
-              <Icon name="ChefHat" className="w-5 h-5" />
-              Pay & Send
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={handleConfirm}
-            disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-            isSubmitting={isConfirming}
-            className="flex-1 text-base"
-          >
-            <Icon name="Check" className="w-5 h-5" />
-            {isFullyPaid ? "Complete" : "Add Payment"}
-          </Button>
-        )}
-      </div>
+
+            {hasUnsentItems ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleConfirm}
+                  disabled={
+                    !isFullyPaid || payments.length === 0 || isConfirming
+                  }
+                  isSubmitting={isConfirming}
+                  className="flex-1 text-base"
+                >
+                  <Icon name="CreditCard" className="w-5 h-5 mr-2" />
+                  Pay Only
+                </Button>
+                <Button
+                  onClick={handlePayAndSend}
+                  disabled={
+                    !isFullyPaid || payments.length === 0 || isConfirming
+                  }
+                  isSubmitting={isConfirming}
+                  className="flex-1 text-base"
+                >
+                  <Icon name="ChefHat" className="w-5 h-5 mr-2" />
+                  Pay & Send
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleConfirm}
+                disabled={
+                  !isFullyPaid || payments.length === 0 || isConfirming
+                }
+                isSubmitting={isConfirming}
+                className="flex-1 text-base"
+              >
+                <Icon
+                  name={isFullyPaid ? "Check" : "Plus"}
+                  className="w-5 h-5 mr-2"
+                />
+                {isFullyPaid ? "Complete Order" : "Add Payment"}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -27,8 +27,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        cookieExtractor, // ✅ admin cookie
         ExtractJwt.fromAuthHeaderAsBearerToken(), // ✅ POS bearer
+        cookieExtractor, // ✅ admin cookie
       ]),
       ignoreExpiration: false,
       secretOrKey: secret,

@@ -235,13 +235,20 @@ interface OrderStoreState {
 
 const INITIAL_TAB = createNewTab(1);
 
+const getMaxTabs = () => {
+  return useAuthStore().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
+};
+
+const maxTabs =
+  useAuthStore.getState().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
+
 export const useOrderStore = create<OrderStoreState>()(
   persist(
     (set, get) => ({
       // Initial state
       tabs: [INITIAL_TAB],
       activeTabId: INITIAL_TAB.id,
-      maxTabs: 5,
+      maxTabs,
 
       // =====================
       // Tab Management
@@ -303,10 +310,6 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Create a new tab if we have room
         if (state.tabs.length >= state.maxTabs) {
-          // Evict a stale tab: prefer tabs with server-persisted table
-          // orders that aren't the active tab (least likely to still
-          // be relevant). This prevents silent failures when the user
-          // keeps navigating to different tables from the tables page.
           const staleTab = state.tabs.find(
             (t) =>
               t.id !== state.activeTabId &&
@@ -735,10 +738,6 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
-      // =====================
-      // Customer Actions
-      // =====================
-
       setCustomer: (
         customerId: string | null,
         customerName: string | null,
@@ -1162,7 +1161,9 @@ export const useOrderStore = create<OrderStoreState>()(
           tableName: backendOrder.table?.name ?? null,
           notes: backendOrder.notes || "",
           createdAt: new Date(backendOrder.createdAt),
-          modifiedAt: new Date(backendOrder.updatedAt || backendOrder.createdAt),
+          modifiedAt: new Date(
+            backendOrder.updatedAt || backendOrder.createdAt,
+          ),
         };
 
         set({

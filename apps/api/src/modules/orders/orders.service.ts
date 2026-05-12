@@ -43,6 +43,8 @@ type OrderQueryParams = QueryParams & {
 
 const VAT_RATE = 0.11; // 11% VAT
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -53,6 +55,7 @@ export class OrdersService {
     private readonly tableStatusService: TableStatusService,
     private readonly loyaltyService: LoyaltyService,
     private readonly offersService: OffersService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -650,6 +653,12 @@ export class OrdersService {
       // Phase 3: Loyalty earn on completion
       await this.earnLoyaltyPoints(tenantId, orderId, userId);
     }
+
+    // Emit event for real-time kitchen updates
+    this.eventEmitter.emit('kitchen.order.updated', {
+      branchId: updated._branchId,
+      orderId: updated.id,
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _branchId, ...result } = updated;
@@ -1639,6 +1648,7 @@ export class OrdersService {
         select: {
           id: true,
           status: true,
+          branchId: true,
           tenant: { select: { businessType: true } },
           items: {
             select: {
@@ -1688,17 +1698,26 @@ export class OrdersService {
       });
 
       // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
+      let updatedOrder;
       if (
         order.status === OrderStatus.DRAFT ||
         order.status === OrderStatus.CONFIRMED
       ) {
-        return await tx.order.update({
+        updatedOrder = await tx.order.update({
           where: { id: orderId },
           data: { status: OrderStatus.SENT_TO_KITCHEN },
         });
+      } else {
+        updatedOrder = order;
       }
 
-      return order;
+      // Emit event for real-time kitchen updates
+      this.eventEmitter.emit('kitchen.order.created', {
+        branchId: order.branchId,
+        orderId: order.id,
+      });
+
+      return updatedOrder;
     });
   }
 

@@ -1469,17 +1469,18 @@ export class OrdersService {
     if (isRestaurant) {
       const editableStatuses = new Set<OrderStatus>([
         OrderStatus.DRAFT,
-        OrderStatus.SENT_TO_KITCHEN,
         OrderStatus.CONFIRMED,
+        OrderStatus.SENT_TO_KITCHEN,
         OrderStatus.IN_PROGRESS,
-        OrderStatus.PAID,
+        OrderStatus.READY,
         OrderStatus.PARTIALLY_PAID,
+        OrderStatus.PAID,
       ]);
       if (!editableStatuses.has(order.status)) {
-        throw new BadRequestException('Draft orders only');
+        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
       }
     } else if (order.status !== OrderStatus.DRAFT) {
-      throw new BadRequestException('Draft orders only');
+      throw new BadRequestException('Retail orders can only be modified in DRAFT status');
     }
 
     const product = await db.product.findFirst({
@@ -1487,7 +1488,7 @@ export class OrdersService {
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    const unitPrice = Number(product.price);
+    const unitPrice = typeof dto.unitPrice === 'number' ? dto.unitPrice : Number(product.price);
     let modifiersTotal = 0;
     const itemModifiers: { modifierId: string; price: number }[] = [];
 
@@ -1515,7 +1516,19 @@ export class OrdersService {
       }
     }
 
-    const subtotal = dto.quantity * (unitPrice + modifiersTotal);
+    let lineSubtotal = dto.quantity * (unitPrice + modifiersTotal);
+
+    // Apply item-level discount if present
+    if (dto.discount) {
+      const { value, type } = dto.discount;
+      const discountAmount =
+        type === 'PERCENTAGE'
+          ? (lineSubtotal * Number(value)) / 100
+          : Number(value);
+      lineSubtotal -= discountAmount;
+    }
+
+    const subtotal = lineSubtotal;
 
     await db.orderItem.create({
       data: {
@@ -1526,6 +1539,7 @@ export class OrdersService {
         subtotal: new Prisma.Decimal(subtotal),
         total: new Prisma.Decimal(subtotal),
         notes: dto.notes,
+        discount: dto.discount,
         ...(itemModifiers.length > 0 && {
           modifiers: {
             create: itemModifiers.map((m) => ({
@@ -1702,12 +1716,20 @@ export class OrdersService {
       });
 
       if (!order) throw new NotFoundException('Order not found');
-      if (
-        order.status !== OrderStatus.DRAFT &&
-        order.status !== OrderStatus.CONFIRMED &&
-        order.status !== OrderStatus.SENT_TO_KITCHEN
-      ) {
-        throw new BadRequestException('Cannot add items to this order');
+
+      // Allow batch additions in any editable status
+      const editableStatuses = new Set<OrderStatus>([
+        OrderStatus.DRAFT,
+        OrderStatus.CONFIRMED,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.READY,
+        OrderStatus.PARTIALLY_PAID,
+        OrderStatus.PAID,
+      ]);
+
+      if (!editableStatuses.has(order.status as OrderStatus)) {
+        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
       }
 
       for (const itemDto of items) {

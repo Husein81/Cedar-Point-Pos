@@ -2,7 +2,7 @@ import {
   PaymentForm,
   type PaymentEntry,
 } from "@/components/orders/PaymentForm";
-import type { CreateOrderDto } from "@/dto/order.dto";
+import type { CreateOrderDto, Order } from "@/dto/order.dto";
 import {
   useCustomerLoyaltyAccount,
   useLoyaltyProgram,
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import AlertDialog from "../common/AlertDialog";
 import OrderActions from "./OrderActions";
 import { KEYPAD_CONFIG, type KeypadContext } from "./config";
+import ApplyDiscount from "./ApplyDiscount";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
@@ -237,75 +238,78 @@ export const InlineKeypad = () => {
     ],
   );
 
-  const buildOrderDto = useCallback((): CreateOrderDto | null => {
-    const active = getActiveOrder();
-    if (!active || !branchId || !user?.tenantId) return null;
+  const buildOrderDto = useCallback(
+    (orderOverride?: Order): CreateOrderDto | null => {
+      const active = orderOverride || getActiveOrder();
+      if (!active || !branchId || !user?.tenantId) return null;
 
-    let orderType: OrderType;
-    if (user.tenant?.businessType === BusinessType.RESTAURANT) {
-      orderType = active.type || OrderType.DINE_IN;
-    } else {
-      orderType = OrderType.RETAIL;
-    }
+      let orderType: OrderType;
+      if (user.tenant?.businessType === BusinessType.RESTAURANT) {
+        orderType = active.type || OrderType.DINE_IN;
+      } else {
+        orderType = OrderType.RETAIL;
+      }
 
-    const dto: CreateOrderDto = {
+      const dto: CreateOrderDto = {
+        branchId,
+        type: orderType,
+        customerId: active.customerId || undefined,
+        shippingFee: active.shippingFee,
+        includeVAT: active.includeVAT,
+        ...(orderType === OrderType.DINE_IN && active.tableId
+          ? { tableId: active.tableId }
+          : {}),
+        items: active.items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          discount: i.discount,
+          notes: i.notes,
+          modifiers: i.modifiers?.map((m) => m.modifierId),
+        })),
+        ...(discount > 0 && { discount }),
+      };
+
+      return dto;
+    },
+    [
       branchId,
-      type: orderType,
-      customerId: active.customerId || undefined,
-      shippingFee: active.shippingFee,
-      includeVAT: active.includeVAT,
-      ...(orderType === OrderType.DINE_IN && active.tableId
-        ? { tableId: active.tableId }
-        : {}),
-      items: active.items.map((i) => ({
-        productId: i.productId,
-        quantity: i.quantity,
-        unitPrice: i.price,
-        discount: i.discount,
-        notes: i.notes,
-        modifiers: i.modifiers?.map((m) => m.modifierId),
-      })),
-      ...(discount > 0 && { discount }),
-    };
+      discount,
+      getActiveOrder,
+      user?.tenant?.businessType,
+      user?.tenantId,
+    ],
+  );
 
-    return dto;
-  }, [
-    branchId,
-    discount,
-    getActiveOrder,
-    user?.tenant?.businessType,
-    user?.tenantId,
-  ]);
+  const isLoadedOrder = useCallback(
+    (orderOverride?: Order): boolean => {
+      const active = orderOverride || getActiveOrder();
+      if (!active) return false;
+      return !active.id.startsWith("order-");
+    },
+    [getActiveOrder],
+  );
 
-  const isLoadedOrder = useCallback((): boolean => {
-    const active = getActiveOrder();
-    if (!active) return false;
-    return !active.id.startsWith("order-");
-  }, [getActiveOrder]);
+  const getOrCreateOrderId = useCallback(
+    async (orderOverride?: Order): Promise<string | null> => {
+      const active = orderOverride || getActiveOrder();
+      if (!active) return null;
 
-  const getOrCreateOrderId = useCallback(async (): Promise<string | null> => {
-    const active = getActiveOrder();
-    if (!active) return null;
+      if (isLoadedOrder(active)) {
+        return active.id;
+      }
 
-    if (isLoadedOrder()) {
-      return active.id;
-    }
+      const dto = buildOrderDto(active);
+      if (!dto) return null;
 
-    const dto = buildOrderDto();
-    if (!dto) return null;
+      const created = await createOrder.mutateAsync(dto);
 
-    const created = await createOrder.mutateAsync(dto);
+      updateOrderId(created.id);
 
-    updateOrderId(created.id);
-
-    return created.id;
-  }, [
-    buildOrderDto,
-    createOrder,
-    getActiveOrder,
-    isLoadedOrder,
-    updateOrderId,
-  ]);
+      return created.id;
+    },
+    [buildOrderDto, createOrder, getActiveOrder, isLoadedOrder, updateOrderId],
+  );
 
   const withPaymentLock = useCallback(async (fn: () => Promise<void>) => {
     if (paymentLockRef.current) return;
@@ -478,8 +482,8 @@ export const InlineKeypad = () => {
             throw new Error("Order type is required");
           }
 
-          const wasLoadedOrder = isLoadedOrder();
-          const orderId = await getOrCreateOrderId();
+          const wasLoadedOrder = isLoadedOrder(active);
+          const orderId = await getOrCreateOrderId(active);
           if (!orderId) return;
 
           // Sync local items if needed
@@ -489,6 +493,8 @@ export const InlineKeypad = () => {
               .map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
+                unitPrice: item.price,
+                discount: item.discount,
                 notes: item.notes,
                 modifiers: item.modifiers?.map((m) => m.modifierId),
               }));
@@ -521,11 +527,9 @@ export const InlineKeypad = () => {
           });
 
           if (!result) return;
-        } catch (error: any) {
-          const raw =
-            error.response?.data?.message || error.message || "Payment failed";
+        } catch (error) {
           console.error("Background payment failed:", error);
-          toast.error(`Sync Error: ${raw}. Please check invoice history.`, {
+          toast.error(`Sync Error: ${error}. Please check invoice history.`, {
             duration: 8000,
           });
         }
@@ -539,7 +543,6 @@ export const InlineKeypad = () => {
       <PaymentForm
         total={remainingTotal}
         onConfirm={handlePaymentConfirm}
-        hasUnsentItems={hasUnsentItems}
         loyaltyProgram={loyaltyProgram}
         loyaltyAccount={loyaltyAccount}
         customerId={order?.customerId}
@@ -640,6 +643,8 @@ export const InlineKeypad = () => {
             .map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
+              unitPrice: item.price,
+              discount: item.discount,
               notes: item.notes,
               modifiers: item.modifiers?.map((m) => m.modifierId),
             }));
@@ -753,59 +758,12 @@ export const InlineKeypad = () => {
       return;
     }
 
-    const hasSelectedItem = !!itemId;
-
     openModal(
       "Apply Discount",
-      <div className="max-w-sm mx-auto grid grid-cols-2 gap-2">
-        {/* Line Discounts */}
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-14 flex-col gap-1"
-          disabled={!hasSelectedItem}
-          onClick={() => openDiscountForItem("DISCOUNT_PERCENT")}
-        >
-          <Icon name="Percent" className="w-5 h-5" />
-          <span className="text-xs font-medium">% Line Discount</span>
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-14 flex-col gap-1"
-          disabled={!hasSelectedItem}
-          onClick={() => openDiscountForItem("DISCOUNT_FIXED")}
-        >
-          <Icon name="DollarSign" className="w-5 h-5" />
-          <span className="text-xs font-medium">$ Line Discount</span>
-        </Button>
-
-        {/* Total Discounts */}
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-14 flex-col gap-1"
-          onClick={() => openDiscountForOrder("DISCOUNT_PERCENT")}
-        >
-          <Icon name="Percent" className="w-5 h-5" />
-          <span className="text-xs font-medium">% Total Discount</span>
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-14 flex-col gap-1"
-          onClick={() => openDiscountForOrder("DISCOUNT_FIXED")}
-        >
-          <Icon name="DollarSign" className="w-5 h-5" />
-          <span className="text-xs font-medium">$ Total Discount</span>
-        </Button>
-
-        {!hasSelectedItem && (
-          <p className="col-span-2 text-xs text-muted-foreground text-center mt-1">
-            Select a cart item first to apply a line discount.
-          </p>
-        )}
-      </div>,
+      <ApplyDiscount
+        openDiscountForItem={openDiscountForItem}
+        openDiscountForOrder={openDiscountForOrder}
+      />,
       "Choose discount type and scope.",
     );
   };

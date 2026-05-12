@@ -4,7 +4,7 @@ import { useProducts } from "@/hooks/useProduct";
 import { useUpdateTableStatus } from "@/hooks/useTable";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
-import { OrderItem, useOrderStore } from "@/store/orderStore";
+import { useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
 import { OrderType, Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
@@ -16,6 +16,7 @@ import { TableSelector } from "./TableSelector";
 import OrderSummary from "./OrderSummary";
 import { useDeliveryCustomerEnforcement } from "./OrderTypeSelector";
 import { useAuthStore } from "@/store/authStore";
+import { OrderItem } from "@/dto/order.dto";
 
 export const OrderCart = () => {
   const {
@@ -126,7 +127,7 @@ export const OrderCart = () => {
     <div className={cn("flex flex-col h-full bg-background")}>
       {/* Cart Header */}
       <div className="flex flex-col gap-2 px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center justify-between ">
+        <div className="flex flex-col justify-between gap-1 ">
           <div className="flex items-center gap-2">
             <Icon
               name="ShoppingCart"

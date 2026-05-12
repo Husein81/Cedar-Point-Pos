@@ -2,7 +2,7 @@ import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
 import { Button, cn, Icon, Shad } from "@repo/ui";
 import { formatPrice } from "./config";
-import { DiscountType, OrderItemModifier } from "@/store/orderStore";
+import { DiscountType, OrderItemModifier } from "@/dto/order.dto";
 
 type Item = {
   id: string;

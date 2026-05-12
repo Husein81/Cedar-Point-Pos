@@ -1,11 +1,14 @@
 import type { LoyaltyAccount, LoyaltyProgram } from "@/dto/loyalty.dto";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
-import { useModalStore } from "@/store/modalStore";
 import { PaymentMethod } from "@repo/types";
-import { Badge, Button, Icon, Input, Separator, cn } from "@repo/ui";
+import { Button, Icon, Input, Separator, cn } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ReceiptModal } from "./ReceiptModal";
-import { formatPrice, generateQuickCashAmounts } from "./config";
+import { ReceiptModal } from "../ReceiptModal";
+import { formatPrice, generateQuickCashAmounts } from "../config";
+import PaymentFooterActions from "./PaymentFooterActions";
+import PaymentSummaryCard from "./PaymentSummaryCard";
+import PaymentsList from "./PaymentsList";
+import { PAYMENT_METHODS, estimateLoyaltyDiscount } from "./config";
 
 // Payment entry for split payments
 export type PaymentEntry = {
@@ -24,69 +27,20 @@ type Props = {
     sendToKitchenFirst?: boolean,
     loyalty?: { redeemPoints: number },
   ) => void;
-  hasUnsentItems?: boolean;
   loyaltyProgram?: LoyaltyProgram;
   loyaltyAccount?: LoyaltyAccount;
   customerId?: string | null;
   eligibleBase?: number;
 };
 
-const PAYMENT_METHODS: {
-  value: PaymentMethod;
-  label: string;
-  icon: string;
-}[] = [
-  { value: "CASH", label: "Cash", icon: "Banknote" },
-  { value: "CARD", label: "Card", icon: "CreditCard" },
-  { value: "ONLINE", label: "Online", icon: "Smartphone" },
-];
-
-// ===== Loyalty estimate (client preview) =====
-
-function estimateLoyaltyDiscount(
-  redeemPoints: number,
-  program: LoyaltyProgram | undefined,
-  eligibleBase: number,
-): { appliedDiscount: number; appliedPoints: number } {
-  if (
-    !program ||
-    !program.isEnabled ||
-    !program.redeemPointsStep ||
-    !program.redeemCurrencyPerStep ||
-    program.maxRedeemPercent == null ||
-    redeemPoints <= 0
-  ) {
-    return { appliedDiscount: 0, appliedPoints: 0 };
-  }
-
-  if (redeemPoints < (program.minRedeemPoints || 0)) {
-    return { appliedDiscount: 0, appliedPoints: 0 };
-  }
-
-  const blockCount = Math.floor(redeemPoints / program.redeemPointsStep);
-  const requestedDiscount = blockCount * program.redeemCurrencyPerStep;
-  const maxDiscountByPercent = (eligibleBase * program.maxRedeemPercent) / 100;
-  const appliedDiscount =
-    Math.floor(
-      Math.min(requestedDiscount, maxDiscountByPercent, eligibleBase) * 100,
-    ) / 100;
-  const appliedPoints =
-    Math.floor(appliedDiscount / program.redeemCurrencyPerStep) *
-    program.redeemPointsStep;
-
-  return { appliedDiscount, appliedPoints };
-}
-
 export const PaymentForm = ({
   total,
   onConfirm,
-  hasUnsentItems = false,
   loyaltyProgram,
   loyaltyAccount,
   customerId,
   eligibleBase = 0,
 }: Props) => {
-  const { closeModal } = useModalStore();
   const [showPreview, setShowPreview] = useState(false);
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
@@ -151,7 +105,6 @@ export const PaymentForm = ({
   }, [payments]);
 
   const remainingInBase = Math.max(0, payableTotal - totalPaidInBase);
-
   const remainingInCurrency = remainingInBase * exchangeRate;
 
   const givenValue = parseFloat(givenAmount) || 0;
@@ -251,7 +204,7 @@ export const PaymentForm = ({
       <div className="flex items-center gap-3">
         <div className="flex-1" />
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           className={cn(
             "h-8 gap-1.5",
@@ -285,45 +238,12 @@ export const PaymentForm = ({
       ) : (
         <div className="space-y-4 pt-4">
           {/* ===== SUMMARY CARDS ===== */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Total */}
-            <div className="text-center py-3 bg-muted/30 rounded-lg">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                Total
-              </p>
-              <p className="text-2xl font-bold">${formatPrice(total)}</p>
-            </div>
-
-            {/* Remaining */}
-            <div
-              className={cn(
-                "text-center py-3 rounded-lg transition-colors",
-                isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10",
-              )}
-            >
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                Remaining
-              </p>
-              <p
-                className={cn(
-                  "text-2xl font-bold",
-                  isFullyPaid ? "text-green-600" : "text-orange-600",
-                )}
-              >
-                {isFullyPaid ? (
-                  <span className="flex items-center justify-center gap-1">
-                    <Icon name="Check" className="w-5 h-5" />
-                    Paid
-                  </span>
-                ) : (
-                  <>
-                    {currencySymbol}
-                    {formatPrice(remainingInCurrency)}
-                  </>
-                )}
-              </p>
-            </div>
-          </div>
+          <PaymentSummaryCard
+            isFullyPaid={isFullyPaid}
+            total={total}
+            currencySymbol={currencySymbol}
+            remainingInCurrency={remainingInCurrency}
+          />
 
           {/* ===== LOYALTY REDEMPTION ===== */}
           {loyaltyProgram?.isEnabled && (
@@ -440,53 +360,13 @@ export const PaymentForm = ({
             </div>
           )}
 
-          {/* ===== PAYMENTS ADDED ===== */}
-          {payments.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Payments
-                </span>
-                <Badge variant="secondary" className="text-xs">
-                  {payments.length}
-                </Badge>
-              </div>
-              <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
-                {payments.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Badge variant="outline" className="text-xs">
-                        {p.method}
-                      </Badge>
-                      <div>
-                        <span className="font-mono text-sm font-medium">
-                          {getCurrencySymbol(p.currencyCode)}{" "}
-                          {formatPrice(p.amount)}
-                        </span>
-                        {/* Show conversion if not in base currency */}
-                        {p.currencyCode !== baseCurrency?.currencyCode && (
-                          <p className="text-xs text-muted-foreground font-mono">
-                            ≈ ${formatPrice(p.amountInBase)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemovePayment(p.id)}
-                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Icon name="X" className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* ===== PAYMENTS List ===== */}
+          <PaymentsList
+            baseCurrency={baseCurrency!}
+            payments={payments}
+            getCurrencySymbol={getCurrencySymbol}
+            handleRemovePayment={handleRemovePayment}
+          />
 
           {/* ===== ADD PAYMENT SECTION ===== */}
           {!isFullyPaid && (
@@ -610,59 +490,13 @@ export const PaymentForm = ({
           )}
 
           {/* ===== FOOTER ACTIONS ===== */}
-          <div className="flex pt-4 gap-2 border-t mt-4">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={closeModal}
-              disabled={isConfirming}
-            >
-              Cancel
-            </Button>
-
-            {hasUnsentItems ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleConfirm}
-                  disabled={
-                    !isFullyPaid || payments.length === 0 || isConfirming
-                  }
-                  isSubmitting={isConfirming}
-                  className="flex-1 text-base"
-                >
-                  <Icon name="CreditCard" className="w-5 h-5 mr-2" />
-                  Pay Only
-                </Button>
-                <Button
-                  onClick={handlePayAndSend}
-                  disabled={
-                    !isFullyPaid || payments.length === 0 || isConfirming
-                  }
-                  isSubmitting={isConfirming}
-                  className="flex-1 text-base"
-                >
-                  <Icon name="ChefHat" className="w-5 h-5 mr-2" />
-                  Pay & Send
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={handleConfirm}
-                disabled={
-                  !isFullyPaid || payments.length === 0 || isConfirming
-                }
-                isSubmitting={isConfirming}
-                className="flex-1 text-base"
-              >
-                <Icon
-                  name={isFullyPaid ? "Check" : "Plus"}
-                  className="w-5 h-5 mr-2"
-                />
-                {isFullyPaid ? "Complete Order" : "Add Payment"}
-              </Button>
-            )}
-          </div>
+          <PaymentFooterActions
+            isConfirming={isConfirming}
+            isFullyPaid={isFullyPaid}
+            payments={payments}
+            handleConfirm={handleConfirm}
+            handlePayAndSend={handlePayAndSend}
+          />
         </div>
       )}
     </div>

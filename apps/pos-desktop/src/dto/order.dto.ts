@@ -3,6 +3,7 @@ import {
   OrderType,
   PaymentMethod,
   QueryParams,
+  Order as ServerOrder,
 } from "@repo/types";
 import { z } from "zod";
 
@@ -87,3 +88,98 @@ export interface OrderFilters extends QueryParams {
   endDate?: string;
   tableId?: string;
 }
+
+export type DiscountType = "PERCENTAGE" | "FIXED";
+
+export type OrderItemModifier = {
+  modifierId: string;
+  name: string;
+  price: number;
+};
+
+export type OrderItem = {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+  imageUrl?: string | null;
+  modifiers?: OrderItemModifier[]; // Restaurant modifiers
+  discount?: {
+    value: number;
+    type: "PERCENTAGE" | "FIXED";
+  };
+  sentToKitchen?: boolean;
+};
+
+export type OrderDiscount = {
+  type: DiscountType;
+  value: number;
+};
+
+export type Order = {
+  id: string;
+  status: OrderStatus;
+  type?: OrderType;
+  items: OrderItem[];
+  discount: OrderDiscount | null;
+  shippingFee: number;
+  includeVAT: boolean;
+  paidAmount: number;
+  customerId: string | null;
+  customerName: string | null;
+  customerAddress: string | null;
+  tableId: string | null;
+  tableName: string | null;
+  notes: string;
+  createdAt: Date;
+  modifiedAt: Date;
+};
+
+export type OrderTab = {
+  id: string;
+  label: string;
+  order: Order;
+};
+
+export type ServerOrderWithPayments = ServerOrder & {
+  payments?: Array<{ amount?: number | string | null }>;
+};
+
+export type BackendOrder = {
+  id: string;
+  status: OrderStatus;
+  type?: OrderType;
+  items: Array<{
+    id: string;
+    productId: string;
+    quantity: number | string;
+    unitPrice: number | string;
+    notes?: string | null;
+    discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
+    product?: {
+      id: string;
+      name: string;
+      imageUrl?: string | null;
+    } | null;
+    modifiers?: Array<{
+      modifierId: string;
+      price: number | string;
+      modifier?: {
+        id: string;
+        name: string;
+      } | null;
+    }>;
+  }>;
+  discount?: number | null;
+  shippingFee?: number | string | null;
+  includeVAT?: boolean;
+  customerId?: string | null;
+  customer?: { name: string; address?: string | null } | null;
+  tableId?: string | null;
+  table?: { name: string } | null;
+  notes?: string | null;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+};

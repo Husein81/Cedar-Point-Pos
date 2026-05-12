@@ -1,7 +1,7 @@
 import type { PaymentEntry } from "@/components/orders/PaymentForm";
 
 import { useAuthStore } from "@/store/authStore";
-import type { Order } from "@/store/orderStore";
+import type { Order } from "@/dto/order.dto";
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 // Thermal receipt styles

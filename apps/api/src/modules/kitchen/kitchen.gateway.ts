@@ -8,6 +8,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
+import { Order } from '@repo/types';
 
 @WebSocketGateway({
   cors: {
@@ -36,7 +38,9 @@ export class KitchenGateway
   @SubscribeMessage('joinBranch')
   handleJoinBranch(client: Socket, branchId: string) {
     client.join(`branch_${branchId}`);
-    this.logger.log(`Client ${client.id} joined branch room: branch_${branchId}`);
+    this.logger.log(
+      `Client ${client.id} joined branch room: branch_${branchId}`,
+    );
   }
 
   @SubscribeMessage('leaveBranch')
@@ -46,11 +50,11 @@ export class KitchenGateway
   }
 
   // Method to emit updates to a specific branch
-  emitOrderUpdate(branchId: string, order: any) {
+  emitOrderUpdate(branchId: string, order: unknown) {
     this.server.to(`branch_${branchId}`).emit('orderUpdated', order);
   }
 
-  emitNewOrder(branchId: string, order: any) {
+  emitNewOrder(branchId: string, order: unknown) {
     this.server.to(`branch_${branchId}`).emit('newOrder', order);
   }
 }

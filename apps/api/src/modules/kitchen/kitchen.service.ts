@@ -15,7 +15,10 @@ export class KitchenService {
   ) {}
 
   @OnEvent('kitchen.order.created')
-  async handleKitchenOrderCreated(payload: { branchId: string; orderId: string }) {
+  async handleKitchenOrderCreated(payload: {
+    branchId: string;
+    orderId: string;
+  }) {
     try {
       const order = await this.prisma.order.findUnique({
         where: { id: payload.orderId },
@@ -42,7 +45,10 @@ export class KitchenService {
   }
 
   @OnEvent('kitchen.order.updated')
-  async handleKitchenOrderUpdated(payload: { branchId: string; orderId: string }) {
+  async handleKitchenOrderUpdated(payload: {
+    branchId: string;
+    orderId: string;
+  }) {
     try {
       const order = await this.prisma.order.findUnique({
         where: { id: payload.orderId },

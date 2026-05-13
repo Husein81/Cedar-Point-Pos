@@ -18,6 +18,7 @@ import {
   createNewTab,
   createEmptyOrder,
   getDefaultOrderType,
+  generateOrderId,
 } from "./config";
 
 type OrderStoreState = {
@@ -96,7 +97,7 @@ type OrderStoreState = {
 
 const INITIAL_TAB = createNewTab(1);
 
-const maxTabs =
+const getMaxTabs = () =>
   useAuthStore.getState().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
 
 export const useOrderStore = create<OrderStoreState>()(
@@ -105,7 +106,7 @@ export const useOrderStore = create<OrderStoreState>()(
       // Initial state
       tabs: [INITIAL_TAB],
       activeTabId: INITIAL_TAB.id,
-      maxTabs,
+      maxTabs: getMaxTabs(),
 
       createTab: () => {
         const state = get();
@@ -506,19 +507,7 @@ export const useOrderStore = create<OrderStoreState>()(
 
             return {
               ...tab,
-              order: {
-                ...tab.order,
-                items: [],
-                discount: null,
-                paidAmount: 0,
-                type: getDefaultOrderType(),
-                customerId: null,
-                customerName: null,
-                tableId: null,
-                tableName: null,
-                notes: "",
-                modifiedAt: new Date(),
-              },
+              order: { ...createEmptyOrder(), id: generateOrderId() },
             };
           }),
         });

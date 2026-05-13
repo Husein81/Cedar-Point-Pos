@@ -8,7 +8,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
 import { OrderType, Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "./InlineKeypad";
+import { InlineKeypad } from "./Keypad/InlineKeypad";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
 import { ModifierModal } from "./ModifierModal";

@@ -133,6 +133,7 @@ export type Order = {
   tableId: string | null;
   tableName: string | null;
   notes: string;
+  orderNumber?: string;
   createdAt: Date;
   modifiedAt: Date;
 };

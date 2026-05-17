@@ -1,6 +1,6 @@
 import { Controller, Delete, Get, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { User, UserRole } from '@repo/types';
+import { PublicUser, User, UserRole } from '@repo/types';
 import { UsersService } from './users.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
@@ -9,7 +9,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('/:id')
-  getUserProfile(@Req() req: Request): Promise<Omit<User, 'password'>> {
+  getUserProfile(@Req() req: Request): Promise<PublicUser> {
     const { id } = req.params;
 
     if (!id) {
@@ -20,7 +20,7 @@ export class UsersController {
   }
 
   @Put('/:id')
-  updateUserProfile(@Req() req: Request): Promise<Omit<User, 'password'>> {
+  updateUserProfile(@Req() req: Request): Promise<PublicUser> {
     const { id } = req.params;
     const data = req.body as Prisma.UserUpdateInput;
     if (!id) {
@@ -30,7 +30,7 @@ export class UsersController {
   }
 
   @Put('/:id/role')
-  updateUserRole(@Req() req: Request): Promise<Omit<User, 'password'>> {
+  updateUserRole(@Req() req: Request): Promise<PublicUser> {
     const { id } = req.params;
     const { role } = req.body as { role: UserRole };
     if (!id) {

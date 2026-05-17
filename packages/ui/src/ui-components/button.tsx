@@ -10,6 +10,7 @@ type Props = {
   textColor?: string;
   rightIconName?: string;
   isSubmitting?: boolean;
+  submitting?: string;
   className?: string;
   disabled?: boolean;
   variant?:
@@ -42,6 +43,7 @@ export const Button = ({
   text,
   textColor,
   isSubmitting,
+  submitting = "Saving...",
   rightIconName,
   variant,
   disabled,
@@ -64,11 +66,14 @@ export const Button = ({
       {...props}
     >
       {isSubmitting ? (
-        <Icon
-          name="LoaderCircle"
-          className="animate-spin"
-          size={iconSize || 16}
-        />
+        <div className="flex items-center gap-2">
+          <Icon
+            name="LoaderCircle"
+            className="animate-spin"
+            size={iconSize || 16}
+          />
+          <span>{submitting}</span>
+        </div>
       ) : (
         <div className="flex items-center gap-2">
           {iconName && (

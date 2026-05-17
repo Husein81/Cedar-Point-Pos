@@ -35,9 +35,10 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   useEffect(() => {
     setMode("EQUAL");
     setSplitCount(2);
-    const halfAmount = Math.floor(total / 2);
+    const halfAmount = Math.floor((total / 2) * 100) / 100;
+    const remainder = Math.round((total - halfAmount * 2) * 100) / 100;
     setCustomSplits([
-      { amount: halfAmount + (total % 2), method: "CASH" },
+      { amount: halfAmount + remainder, method: "CASH" },
       { amount: halfAmount, method: "CASH" },
     ]);
   }, [total]);
@@ -45,8 +46,8 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   // Update custom splits when split count changes in EQUAL mode
   useEffect(() => {
     if (mode === "EQUAL") {
-      const perPerson = Math.floor(total / splitCount);
-      const remainder = total - perPerson * splitCount;
+      const perPerson = Math.floor((total / splitCount) * 100) / 100;
+      const remainder = Math.round((total - perPerson * splitCount) * 100) / 100;
       const splits: Split[] = Array(splitCount)
         .fill(perPerson)
         .map((val, idx) => ({
@@ -58,13 +59,13 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   }, [mode, splitCount, total]);
 
   const equalSplitAmount = useMemo(
-    () => Math.floor(total / splitCount),
-    [total, splitCount]
+    () => Math.floor((total / splitCount) * 100) / 100,
+    [total, splitCount],
   );
 
   const customTotal = useMemo(
     () => customSplits.reduce((sum, split) => sum + split.amount, 0),
-    [customSplits]
+    [customSplits],
   );
 
   const isValid = useMemo(() => {
@@ -77,7 +78,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
     setCustomSplits((prev) => {
       const updated = [...prev];
       if (updated[index]) {
-        updated[index] = { amount: numValue, method: updated[index].method };
+        updated[index] = { amount: numValue, method: updated[index]!.method };
       }
       return updated;
     });
@@ -87,7 +88,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
     setCustomSplits((prev) => {
       const updated = [...prev];
       if (updated[index]) {
-        updated[index] = { amount: updated[index].amount, method };
+        updated[index] = { amount: updated[index]!.amount, method };
       }
       return updated;
     });
@@ -198,7 +199,11 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
               {total % splitCount !== 0 && (
                 <p className="text-xs text-muted-foreground pl-1">
                   * First guest pays $
-                  {formatPrice(equalSplitAmount + (total % splitCount))}{" "}
+                  {formatPrice(
+                    Math.round(
+                      (equalSplitAmount + (total - equalSplitAmount * splitCount)) * 100,
+                    ) / 100,
+                  )}{" "}
                   (includes remainder)
                 </p>
               )}
@@ -333,7 +338,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
                 "flex items-center justify-between p-3 rounded-lg border-2",
                 isValid
                   ? "bg-green-500/5 border-green-500/20"
-                  : "bg-destructive/5 border-destructive/20"
+                  : "bg-destructive/5 border-destructive/20",
               )}
             >
               <div className="flex items-center gap-2">
@@ -341,7 +346,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
                   name={isValid ? "Check" : "CircleAlert"}
                   className={cn(
                     "w-4 h-4",
-                    isValid ? "text-green-600" : "text-destructive"
+                    isValid ? "text-green-600" : "text-destructive",
                   )}
                 />
                 <span className="text-sm font-medium">
@@ -351,7 +356,7 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
               <span
                 className={cn(
                   "font-bold text-sm",
-                  isValid ? "text-green-600" : "text-destructive"
+                  isValid ? "text-green-600" : "text-destructive",
                 )}
               >
                 ${formatPrice(customTotal)}

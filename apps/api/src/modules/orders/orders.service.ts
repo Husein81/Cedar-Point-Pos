@@ -177,11 +177,6 @@ export class OrdersService {
     }
   }
 
-  /**
-   * Validate shiftId and deviceId belong to tenant and match the order branch.
-   * Throws BadRequestException/NotFoundException on mismatch.
-   * No-ops when both are absent (backward compat).
-   */
   private async validateShiftAndDevice(
     tenantId: string,
     branchId: string,
@@ -244,20 +239,11 @@ export class OrdersService {
       deviceId,
     } = dto;
 
-    // Fetch tenant info and branch order count in parallel
-    const [tenant, orderCount] = await Promise.all([
-      this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { businessType: true },
-      }),
-      this.prisma.order.count({
-        where: {
-          tenantId,
-          branchId,
-          createdAt: { gte: new Date(new Date().getFullYear(), 0, 1) },
-        },
-      }),
-    ]);
+    // Fetch tenant info
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { businessType: true },
+    });
 
     if (!tenant) throw new NotFoundException('Tenant not found');
 
@@ -287,19 +273,14 @@ export class OrdersService {
       }
     }
 
-    const orderNumber = `${new Date().getFullYear()}-${String(orderCount + 1).padStart(5, '0')}`;
-
     let subtotal = 0;
     const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];
 
-    // Fetch products only if items exist, and do it in parallel with validation
     if (items?.length) {
-      // Collect all modifier IDs from all items
       const allModifierIds = items
         .filter((i) => i.modifiers?.length)
         .flatMap((i) => i.modifiers || []);
 
-      // Fetch products and modifiers in parallel
       const [products, modifiers] = (await Promise.all([
         this.prisma.product.findMany({
           where: {
@@ -335,7 +316,6 @@ export class OrdersService {
         const product = productMap.get(item.productId);
         if (!product) throw new BadRequestException('Product not found');
 
-        // Use override price or product price
         const unitPrice =
           'unitPrice' in item && typeof item.unitPrice === 'number'
             ? item.unitPrice
@@ -359,10 +339,8 @@ export class OrdersService {
           }
         }
 
-        // Include modifier prices in line subtotal
         let lineSubtotal = (unitPrice + modifiersTotal) * item.quantity;
 
-        // Apply item-level discount if present
         const discount =
           'discount' in item && item.discount !== null ? item.discount : null;
         if (
@@ -418,7 +396,6 @@ export class OrdersService {
     const orderType =
       shippingFee && shippingFee > 0 ? OrderType.DELIVERY : type;
 
-    // Calculate VAT (11%) on subtotal after discount and shipping
     const subtotalAfterDiscountAndShipping = this.round(
       Math.max(0, Number(subtotal) - (discount || 0) + (shippingFee || 0)),
     );
@@ -428,11 +405,20 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
-    // Validate shift/device ownership and branch consistency
     await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
 
-    // Use transaction to create order and update table status atomically
     return this.prisma.$transaction(async (tx) => {
+      const year = new Date().getFullYear();
+      const sequence = await tx.orderSequence.upsert({
+        where: {
+          tenantId_branchId_year: { tenantId, branchId, year },
+        },
+        update: { lastValue: { increment: 1 } },
+        create: { tenantId, branchId, year, lastValue: 1 },
+      });
+
+      const orderNumber = `${year}-${String(sequence.lastValue).padStart(5, '0')}`;
+
       // Create the order
       const order = await tx.order.create({
         data: {
@@ -442,7 +428,6 @@ export class OrdersService {
           type: orderType,
           status: OrderStatus.DRAFT,
           orderNumber,
-          subtotal,
           total,
           discount: discount ?? 0,
           shippingFee: shippingFee ?? 0,
@@ -484,6 +469,17 @@ export class OrdersService {
   /* ----------------------------------------------------
      READ
   ---------------------------------------------------- */
+
+  async getNextOrderNumber(tenantId: string, branchId: string) {
+    const year = new Date().getFullYear();
+    const sequence = await this.prisma.orderSequence.findFirst({
+      where: { tenantId, branchId, year },
+    });
+    const nextVal = (sequence?.lastValue || 0) + 1;
+    return {
+      orderNumber: `${year}-${String(nextVal).padStart(5, '0')}`,
+    };
+  }
 
   async findOne(tenantId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
@@ -1486,10 +1482,14 @@ export class OrdersService {
         OrderStatus.PAID,
       ]);
       if (!editableStatuses.has(order.status)) {
-        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
+        throw new BadRequestException(
+          `Cannot add items to order with status ${order.status}`,
+        );
       }
     } else if (order.status !== OrderStatus.DRAFT) {
-      throw new BadRequestException('Retail orders can only be modified in DRAFT status');
+      throw new BadRequestException(
+        'Retail orders can only be modified in DRAFT status',
+      );
     }
 
     const product = await db.product.findFirst({
@@ -1497,7 +1497,8 @@ export class OrdersService {
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    const unitPrice = typeof dto.unitPrice === 'number' ? dto.unitPrice : Number(product.price);
+    const unitPrice =
+      typeof dto.unitPrice === 'number' ? dto.unitPrice : Number(product.price);
     let modifiersTotal = 0;
     const itemModifiers: { modifierId: string; price: number }[] = [];
 
@@ -1748,7 +1749,9 @@ export class OrdersService {
       ]);
 
       if (!editableStatuses.has(order.status as OrderStatus)) {
-        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
+        throw new BadRequestException(
+          `Cannot add items to order with status ${order.status}`,
+        );
       }
 
       for (const itemDto of items) {

@@ -17,7 +17,6 @@ import {
   renumberTabs,
   createNewTab,
   createEmptyOrder,
-  getDefaultOrderType,
   generateOrderId,
 } from "./config";
 
@@ -75,6 +74,7 @@ type OrderStoreState = {
 
   // Update the order ID on the active tab (e.g. after server creation)
   updateOrderId: (newId: string) => void;
+  updateOrderNumber: (newNumber: string) => void;
 
   // Load existing server order into a new tab
   loadOrder: (
@@ -721,6 +721,25 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
+      updateOrderNumber: (newNumber: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                orderNumber: newNumber,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
       loadOrder: (
         serverOrder: ServerOrderWithPayments,
         forceRefresh?: boolean,
@@ -811,6 +830,7 @@ export const useOrderStore = create<OrderStoreState>()(
           tableId: resolvedTableId,
           tableName: resolvedTableName,
           notes: "",
+          orderNumber: serverOrder.orderNumber ?? "",
           createdAt: new Date(serverOrder.createdAt),
           modifiedAt: new Date(),
         };

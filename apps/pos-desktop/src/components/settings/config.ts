@@ -34,6 +34,14 @@ export const settingsSections: SettingsSection[] = [
     href: "/settings/loyalty",
     showFor: ["RETAIL", "RESTAURANT"],
   },
+  {
+    id: "profile",
+    label: "Profile",
+    description: "View and manage your personal account details",
+    icon: "User",
+    href: "/settings/profile",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
   // Future sections:
   // {
   //   id: "taxes",

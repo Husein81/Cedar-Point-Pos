@@ -622,7 +622,7 @@ export class RefundsService {
                         data: {
                           tenantId,
                           branchId: order.branchId,
-                          shiftId: resolvedShiftId,
+                          shiftId: resolvedShiftId ?? '',
                           deviceId: resolvedDeviceId || undefined,
                           userId,
                           type: CashMovementType.CASH_REFUND_OUT,

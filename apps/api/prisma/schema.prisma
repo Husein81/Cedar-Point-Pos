@@ -78,8 +78,10 @@ model User {
   id                  String               @id @default(uuid())
   name                String
   email               String?              @unique
+  phone               String?              @unique
   username            String               @unique
   password            String
+  avatar              String?
   role                UserRole             @default(CASHIER)
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
@@ -550,7 +552,17 @@ model Order {
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
 
+  @@unique([tenantId, branchId, orderNumber])
   @@index([tenantId, branchId, createdAt])
+}
+
+model OrderSequence {
+  tenantId  String
+  branchId  String
+  year      Int
+  lastValue Int    @default(0)
+
+  @@id([tenantId, branchId, year])
 }
 
 model OrderItem {

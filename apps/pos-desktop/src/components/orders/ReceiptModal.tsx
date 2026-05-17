@@ -1,7 +1,6 @@
-import type { PaymentEntry } from "@/components/orders/PaymentForm";
 import { ReceiptPdf } from "@/components/receipt/ReceiptPdf";
 import { useBranch } from "@/hooks/useBranch";
-import { useOrders } from "@/hooks/useOrder";
+import { useNextOrderNumber } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useOrderStore } from "@/store/orderStore";
@@ -11,24 +10,25 @@ import { Button, Icon } from "@repo/ui";
 import { useEffect, useState } from "react";
 
 interface Props {
-  payments: PaymentEntry[];
   loyaltyApplied?: {
     points: number;
     discount: number;
   };
 }
 
-export const ReceiptModal = ({ payments, loyaltyApplied }: Props) => {
+export const ReceiptModal = ({ loyaltyApplied }: Props) => {
   const { getActiveOrder } = useOrderStore();
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
   const { data: branch } = useBranch(branchId || "");
 
   const order = getActiveOrder();
-  const { data: orders } = useOrders({
-    page: "1",
-    limit: "1",
-  });
+  const { data: nextNumberData } = useNextOrderNumber(branchId!);
+
+  const orderNumber =
+    order?.orderNumber || nextNumberData?.orderNumber || "PREVIEW";
+
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -36,11 +36,6 @@ export const ReceiptModal = ({ payments, loyaltyApplied }: Props) => {
     }, 1000);
     return () => clearTimeout(timer);
   }, []);
-
-  const orderCount = orders?.pagination.totalCount ?? 0;
-  const orderNumber = `${new Date().getFullYear()}-${String(orderCount + 1).padStart(5, "0")}`;
-
-  const [isReady, setIsReady] = useState(false);
 
   if (!order || !user) {
     return (
@@ -54,7 +49,6 @@ export const ReceiptModal = ({ payments, loyaltyApplied }: Props) => {
     const blob = await pdf(
       <ReceiptPdf
         order={order}
-        payments={payments}
         tenantName={user.tenant?.name || "Cedar Point"}
         branchName={branch?.name || "Main Branch"}
         branchAddress={branch?.address || ""}
@@ -90,7 +84,6 @@ export const ReceiptModal = ({ payments, loyaltyApplied }: Props) => {
         <PDFViewer width="100%" height="100%" showToolbar={false}>
           <ReceiptPdf
             order={order}
-            payments={payments}
             tenantName={user.tenant?.name || "Cedar Point"}
             branchName={branch?.name || "Main Branch"}
             branchAddress={branch?.address || ""}

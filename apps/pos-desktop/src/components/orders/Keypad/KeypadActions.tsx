@@ -9,10 +9,13 @@ import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { BusinessType, OrderType } from "@repo/types";
 import { Button, Icon } from "@repo/ui";
-import { useOrderStore } from "@/store/orderStore";
 import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
-
+import { SplitBillForm } from "@/components/orders/SplitBillForm";
+import type { PaymentEntry } from "@/components/orders/PaymentForm";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
+import { useOrderStore } from "@/store/orderStore";
+import { ReceiptModal } from "@/components/orders/ReceiptModal";
 
 export default function KeypadActions() {
   const { openModal } = useModalStore();
@@ -60,6 +63,9 @@ export default function KeypadActions() {
   );
   const loyaltyEligibleBase = Math.max(0, subtotalValue - discountValue);
 
+  const { data: currenciesData } = useTenantCurrencies();
+  const baseCurrencyCode = currenciesData?.baseCurrencyCode || "USD";
+
   const handlePay = () => {
     openModal(
       "Payment Form",
@@ -74,11 +80,35 @@ export default function KeypadActions() {
     );
   };
 
+  const handleSplitBill = () => {
+    openModal(
+      "Split Bill",
+      <SplitBillForm
+        total={remainingTotal}
+        onConfirm={(splits) => {
+          const payments: PaymentEntry[] = splits.map((s) => ({
+            id: crypto.randomUUID(),
+            method: s.method,
+            amount: s.amount,
+            currencyCode: baseCurrencyCode,
+            exchangeRate: 1,
+            amountInBase: s.amount,
+          }));
+          handlePaymentConfirm(payments);
+        }}
+      />,
+    );
+  };
+
+  const handlePrintReceipt = () => {
+    openModal("Receipt Preview", <ReceiptModal />);
+  };
+
   return (
     <div className="flex items-center border-t border-border p-2 gap-2">
       <Button
         size="lg"
-        className="flex-1 h-12 text-sm font-semibold"
+        className="h-12 text-sm font-semibold"
         disabled={
           !order?.items?.length ||
           remainingTotal <= 0 ||
@@ -91,11 +121,36 @@ export default function KeypadActions() {
         Payment
       </Button>
 
+      <Button
+        size="lg"
+        variant="outline"
+        className="px-4 h-12"
+        disabled={!order?.items?.length}
+        onClick={handlePrintReceipt}
+      >
+        <Icon name="Printer" className="w-5 h-5" />
+      </Button>
+
+      <Button
+        size="lg"
+        variant="outline"
+        className="px-4 h-12"
+        disabled={
+          !order?.items?.length ||
+          remainingTotal <= 0 ||
+          deliveryNeedsCustomer ||
+          deliveryNeedsAddress
+        }
+        onClick={handleSplitBill}
+      >
+        <Icon name="Scissors" className="w-5 h-5" />
+      </Button>
+
       {isRestaurant ? (
         <Button
           size="lg"
           variant="outline"
-          className="flex-1 h-12 text-sm font-semibold"
+          className="h-12 text-sm font-semibold"
           disabled={
             !order?.items?.length ||
             deliveryNeedsCustomer ||
@@ -103,7 +158,6 @@ export default function KeypadActions() {
           }
           onClick={handleSendToKitchen}
         >
-          <Icon name="ChefHat" className="w-5 h-5 mr-2" />
           Send to Kitchen
           {hasUnsentItems && (
             <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
@@ -120,7 +174,7 @@ export default function KeypadActions() {
           buttonVariant="outline"
           label="Confirm"
           size="lg"
-          className="flex-1 h-12 text-sm font-semibold"
+          className="h-12 text-sm font-semibold"
           disabled={
             !order?.items?.length ||
             total <= 0 ||

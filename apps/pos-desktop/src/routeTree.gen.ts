@@ -28,6 +28,7 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
@@ -139,6 +140,11 @@ const SuppliersSupplierIdRoute = SuppliersSupplierIdRouteImport.update({
   path: '/suppliers/$supplierId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsLoyaltyRoute = SettingsLoyaltyRouteImport.update({
   id: '/settings/loyalty',
   path: '/settings/loyalty',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
+    | '/settings/profile'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
+    | '/settings/profile'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
+    | '/settings/profile'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -453,6 +465,7 @@ export interface RootRouteChildren {
   SettingsColorsRoute: typeof SettingsColorsRoute
   SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
   SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -597,6 +610,13 @@ declare module '@tanstack/react-router' {
       path: '/suppliers/$supplierId'
       fullPath: '/suppliers/$supplierId'
       preLoaderRoute: typeof SuppliersSupplierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/loyalty': {
@@ -751,6 +771,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsColorsRoute: SettingsColorsRoute,
   SettingsCurrenciesRoute: SettingsCurrenciesRoute,
   SettingsLoyaltyRoute: SettingsLoyaltyRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,

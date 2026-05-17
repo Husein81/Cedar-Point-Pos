@@ -32,12 +32,14 @@ import { UsersModule } from './modules/users/users.module.js';
 import { ShiftsModule } from './modules/shifts/shifts.module.js';
 
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute

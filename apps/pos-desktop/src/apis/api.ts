@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "../store/authStore";
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -15,3 +16,17 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear auth state and redirect to login if not already on login page
+      const isLoginRequest = error.config.url?.includes("/auth/sign-in");
+      if (!isLoginRequest) {
+        useAuthStore.getState().logout();
+      }
+    }
+    return Promise.reject(error);
+  },
+);

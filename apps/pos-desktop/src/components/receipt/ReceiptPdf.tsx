@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
 
 type Props = {
   order: Order;
-  payments: PaymentEntry[];
   tenantName: string;
   branchName: string;
   branchAddress?: string;
@@ -128,7 +127,6 @@ type Props = {
 
 export const ReceiptPdf = ({
   order,
-  payments,
   tenantName,
   branchName,
   branchAddress,
@@ -272,25 +270,6 @@ export const ReceiptPdf = ({
             </View>
           </View>
         </View>
-
-        {/* Payments */}
-        {payments.length > 0 && (
-          <View style={styles.paymentsSection}>
-            <Text style={[styles.bold, { marginBottom: 3 }]}>Payments:</Text>
-            {payments.map((p) => (
-              <View key={p.id} style={styles.paymentRow}>
-                <Text>
-                  {p.method} ({p.currencyCode})
-                </Text>
-                <Text>
-                  {p.currencyCode !== "USD"
-                    ? `${p.amount.toFixed(2)} (${p.currencyCode})`
-                    : `$${p.amount.toFixed(2)}`}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
 
         {/* Footer */}
         <View style={styles.footer}>

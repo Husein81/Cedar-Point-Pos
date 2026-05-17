@@ -1,9 +1,7 @@
 import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { useMergeOrders, useTransferOrder } from "@/hooks/useOrder";
-import {
-  useOrderStore,
-  type ServerOrderWithPayments,
-} from "@/store/orderStore";
+import { useOrderStore } from "@/store/orderStore";
+import { type ServerOrderWithPayments } from "@/dto/order.dto";
 import { useTablesByBranch } from "@/hooks/useTable";
 import type { Order } from "@repo/types";
 import type { TableWithFloor } from "@/dto/tables.dto";

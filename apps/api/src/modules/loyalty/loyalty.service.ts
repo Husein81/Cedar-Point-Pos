@@ -301,7 +301,7 @@ export class LoyaltyService {
         take: limit,
         include: {
           order: {
-            select: { id: true, orderNumber: true },
+            select: { id: true },
           },
           refund: {
             select: { id: true, totalAmount: true },

@@ -44,6 +44,6 @@ export const createNewTab = (tabNumber: number): OrderTab => ({
 export const renumberTabs = (tabs: OrderTab[]): OrderTab[] => {
   return tabs.map((tab, index) => ({
     ...tab,
-    label: `Order ${index + 1}`,
+    label: tab.order.id.startsWith("order-") ? `Order ${index + 1}` : tab.label,
   }));
 };

@@ -174,7 +174,6 @@ export class OrderItemService {
             order: {
               select: {
                 id: true,
-                orderNumber: true,
                 status: true,
               },
             },

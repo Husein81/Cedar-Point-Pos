@@ -1,10 +1,10 @@
-import type { User } from "@repo/types";
+import type { PublicUser } from "@repo/types";
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { useBranchStore } from "./branchStore";
 
 type State = {
-  user: Omit<User, "password"> | null;
+  user: PublicUser | null;
   token: string | null;
   isAuthenticated: boolean;
   isHighLevelUser?: boolean;
@@ -12,7 +12,8 @@ type State = {
 };
 
 type Actions = {
-  setUser: (user: Omit<User, "password">, token: string) => void;
+  setUser: (user: PublicUser, token: string) => void;
+  updateUser: (user: PublicUser) => void;
   clearUser: () => void;
   logout: () => void;
 };
@@ -28,13 +29,20 @@ export const useAuthStore = create<State & Actions>()(
       isAuthenticated: false,
       isHighLevelUser: false,
       isStaff: false,
-      setUser: (user: Omit<User, "password">, token: string) => {
+      setUser: (user: PublicUser, token: string) => {
         // Store token separately for API interceptor
         localStorage.setItem(TOKEN_KEY, token);
         set(() => ({
           user,
           token,
           isAuthenticated: true,
+          isHighLevelUser: user.role === "ADMIN" || user.role === "MANAGER",
+          isStaff: user.role === "CASHIER" || user.role === "KITCHEN",
+        }));
+      },
+      updateUser: (user: PublicUser) => {
+        set(() => ({
+          user,
           isHighLevelUser: user.role === "ADMIN" || user.role === "MANAGER",
           isStaff: user.role === "CASHIER" || user.role === "KITCHEN",
         }));

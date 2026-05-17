@@ -71,6 +71,8 @@ export const UserSchema = z.object({
   id: uuid,
   name: z.string(),
   email: z.string().email().nullable(),
+  phone: z.string().nullable(),
+  avatar: z.string().url().nullable(),
   username: z.string(),
   password: z.string(),
   role: z.enum(UserRole),
@@ -401,6 +403,7 @@ export const OrderSchema = z.object({
   table: TableSchema.optional(),
   deviceId: uuid.nullable().optional(),
   customerId: uuid.nullable().optional(),
+  orderNumber: z.string().nullable().optional(),
   customer: z
     .object({
       id: uuid,
@@ -412,7 +415,6 @@ export const OrderSchema = z.object({
     .optional(),
   shiftId: uuid.nullable().optional(),
   refunds: z.array(RefundSchema).optional(),
-  orderNumber: z.string().nullable().optional(),
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
   vat: decimal.nullable().optional(),
@@ -690,6 +692,17 @@ export const LoyaltyTransactionSchema = z.object({
   createdAt: isoDate,
 });
 export type LoyaltyTransaction = z.infer<typeof LoyaltyTransactionSchema>;
+
+// OrderSequence
+export const OrderSequenceSchema = z.object({
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  date: z.string(),
+  lastValue: z.number().int().default(0),
+  updatedAt: isoDate,
+});
+export type OrderSequence = z.infer<typeof OrderSequenceSchema>;
 
 // ===========================================
 //         Query Params Schema

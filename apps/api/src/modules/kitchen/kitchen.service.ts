@@ -3,13 +3,76 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { OrdersService } from '../orders/orders.service.js';
 import { OrderStatus, QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/browser.js';
+import { OnEvent } from '@nestjs/event-emitter';
+import { KitchenGateway } from './kitchen.gateway.js';
 
 @Injectable()
 export class KitchenService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
+    private readonly kitchenGateway: KitchenGateway,
   ) {}
+
+  @OnEvent('kitchen.order.created')
+  async handleKitchenOrderCreated(payload: {
+    branchId: string;
+    orderId: string;
+  }) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: payload.orderId },
+        include: {
+          items: {
+            include: {
+              product: { select: { id: true, name: true, imageUrl: true } },
+              modifiers: {
+                include: { modifier: { select: { id: true, name: true } } },
+              },
+              tickets: { orderBy: { sentAt: 'desc' }, take: 1 },
+            },
+          },
+          table: { select: { id: true, name: true, tableNumber: true } },
+        },
+      });
+
+      if (order) {
+        this.kitchenGateway.emitNewOrder(payload.branchId, order);
+      }
+    } catch (error) {
+      console.error('Error handling kitchen.order.created event:', error);
+    }
+  }
+
+  @OnEvent('kitchen.order.updated')
+  async handleKitchenOrderUpdated(payload: {
+    branchId: string;
+    orderId: string;
+  }) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: payload.orderId },
+        include: {
+          items: {
+            include: {
+              product: { select: { id: true, name: true, imageUrl: true } },
+              modifiers: {
+                include: { modifier: { select: { id: true, name: true } } },
+              },
+              tickets: { orderBy: { sentAt: 'desc' }, take: 1 },
+            },
+          },
+          table: { select: { id: true, name: true, tableNumber: true } },
+        },
+      });
+
+      if (order) {
+        this.kitchenGateway.emitOrderUpdate(payload.branchId, order);
+      }
+    } catch (error) {
+      console.error('Error handling kitchen.order.updated event:', error);
+    }
+  }
 
   async getKitchenOrders(
     tenantId: string,

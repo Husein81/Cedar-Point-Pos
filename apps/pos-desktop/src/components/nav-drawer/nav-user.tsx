@@ -23,7 +23,8 @@ const NavUser = () => {
           className="flex w-full  items-center justify-between text-muted-foreground gap-2 cursor-pointer "
         >
           <div className="flex items-center gap-2">
-            <Avatar fallback={user?.name?.charAt(0).toUpperCase()} />
+            {user?.name && <Avatar fallback={user.name} />}
+
             <div className="flex flex-col leading-tight items-start">
               <span className="text-sm font-medium ">
                 {user?.name || "User menu"}
@@ -38,7 +39,7 @@ const NavUser = () => {
       <Shad.DropdownMenuContent align="start" className="sm:max-w-lg">
         <Shad.DropdownMenuLabel>
           <div className="flex items-center gap-2">
-            <Avatar fallback={user?.name[0]?.charAt(0).toUpperCase()} />
+            <Avatar fallback={user?.name} />
             <span className="">{user?.name || "Unknown User"}</span>
           </div>
         </Shad.DropdownMenuLabel>
@@ -48,7 +49,7 @@ const NavUser = () => {
         <Shad.DropdownMenuItem
           onSelect={(e) => {
             e.preventDefault();
-            navigate({ to: "/settings" });
+            navigate({ to: "/settings/profile" });
           }}
         >
           <Icon name="User" className="mr-2" />

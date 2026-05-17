@@ -43,6 +43,8 @@ type OrderQueryParams = QueryParams & {
 
 const VAT_RATE = 0.11; // 11% VAT
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -53,6 +55,7 @@ export class OrdersService {
     private readonly tableStatusService: TableStatusService,
     private readonly loyaltyService: LoyaltyService,
     private readonly offersService: OffersService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
@@ -174,11 +177,6 @@ export class OrdersService {
     }
   }
 
-  /**
-   * Validate shiftId and deviceId belong to tenant and match the order branch.
-   * Throws BadRequestException/NotFoundException on mismatch.
-   * No-ops when both are absent (backward compat).
-   */
   private async validateShiftAndDevice(
     tenantId: string,
     branchId: string,
@@ -241,20 +239,11 @@ export class OrdersService {
       deviceId,
     } = dto;
 
-    // Fetch tenant info and branch order count in parallel
-    const [tenant, orderCount] = await Promise.all([
-      this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { businessType: true },
-      }),
-      this.prisma.order.count({
-        where: {
-          tenantId,
-          branchId,
-          createdAt: { gte: new Date(new Date().getFullYear(), 0, 1) },
-        },
-      }),
-    ]);
+    // Fetch tenant info
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { businessType: true },
+    });
 
     if (!tenant) throw new NotFoundException('Tenant not found');
 
@@ -284,19 +273,14 @@ export class OrdersService {
       }
     }
 
-    const orderNumber = `${new Date().getFullYear()}-${String(orderCount + 1).padStart(5, '0')}`;
-
     let subtotal = 0;
     const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];
 
-    // Fetch products only if items exist, and do it in parallel with validation
     if (items?.length) {
-      // Collect all modifier IDs from all items
       const allModifierIds = items
         .filter((i) => i.modifiers?.length)
         .flatMap((i) => i.modifiers || []);
 
-      // Fetch products and modifiers in parallel
       const [products, modifiers] = (await Promise.all([
         this.prisma.product.findMany({
           where: {
@@ -332,7 +316,6 @@ export class OrdersService {
         const product = productMap.get(item.productId);
         if (!product) throw new BadRequestException('Product not found');
 
-        // Use override price or product price
         const unitPrice =
           'unitPrice' in item && typeof item.unitPrice === 'number'
             ? item.unitPrice
@@ -356,10 +339,8 @@ export class OrdersService {
           }
         }
 
-        // Include modifier prices in line subtotal
         let lineSubtotal = (unitPrice + modifiersTotal) * item.quantity;
 
-        // Apply item-level discount if present
         const discount =
           'discount' in item && item.discount !== null ? item.discount : null;
         if (
@@ -415,7 +396,6 @@ export class OrdersService {
     const orderType =
       shippingFee && shippingFee > 0 ? OrderType.DELIVERY : type;
 
-    // Calculate VAT (11%) on subtotal after discount and shipping
     const subtotalAfterDiscountAndShipping = this.round(
       Math.max(0, Number(subtotal) - (discount || 0) + (shippingFee || 0)),
     );
@@ -425,62 +405,101 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
-    // Validate shift/device ownership and branch consistency
     await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
 
-    // Use transaction to create order and update table status atomically
-    return this.prisma.$transaction(async (tx) => {
-      // Create the order
-      const order = await tx.order.create({
-        data: {
-          tenantId,
-          branchId,
-          userId,
-          type: orderType,
-          status: OrderStatus.DRAFT,
-          orderNumber,
-          subtotal,
-          total,
-          discount: discount ?? 0,
-          shippingFee: shippingFee ?? 0,
-          includeVAT: includeVAT ?? false,
-          vat: vatAmount,
-          ...(tableId && { tableId }),
-          ...(customerId && { customerId }),
-          ...(shiftId && { shiftId }),
-          ...(deviceId && { deviceId }),
-          items: { create: orderItems },
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
-              modifiers: {
-                include: { modifier: true },
+    const currentYear = new Date().getFullYear().toString();
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // fetch/upsert sequence
+        const sequence = await tx.orderSequence.upsert({
+          where: { branchId_date: { branchId, date: currentYear } },
+          update: { lastValue: { increment: 1 } },
+          create: { tenantId, branchId, date: currentYear, lastValue: 1 },
+        });
+
+        const orderNumber = `${currentYear}-${sequence.lastValue.toString().padStart(5, '0')}`;
+
+        // Create the order
+        const order = await tx.order.create({
+          data: {
+            tenantId,
+            branchId,
+            userId,
+            orderNumber,
+            type: orderType,
+            status: OrderStatus.DRAFT,
+            total,
+            discount: discount ?? 0,
+            shippingFee: shippingFee ?? 0,
+            includeVAT: includeVAT ?? false,
+            vat: vatAmount,
+            ...(tableId && { tableId }),
+            ...(customerId && { customerId }),
+            ...(shiftId && { shiftId }),
+            ...(deviceId && { deviceId }),
+            items: { create: orderItems },
+          },
+          include: {
+            items: {
+              include: {
+                product: true,
+                modifiers: {
+                  include: { modifier: true },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      // Auto-update table status to OCCUPIED if tableId provided
-      if (tableId) {
-        // Validate table and update status if needed
-        await this.tableStatusService.markTableOccupiedIfNeeded(
-          tableId,
-          tenantId,
-          tx,
-          guestCount,
-        );
+        // Auto-update table status to OCCUPIED if tableId provided
+        if (tableId) {
+          // Validate table and update status if needed
+          await this.tableStatusService.markTableOccupiedIfNeeded(
+            tableId,
+            tenantId,
+            tx,
+            guestCount,
+          );
+        }
+
+        return order;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        // Reconcile sequence outside the failed transaction
+        const latestOrder = await this.prisma.order.findFirst({
+          where: { branchId, orderNumber: { startsWith: `${currentYear}-` } },
+          orderBy: { orderNumber: 'desc' },
+        });
+
+        if (latestOrder && latestOrder.orderNumber) {
+          const lastNum = parseInt(
+            latestOrder.orderNumber.split('-')[1] || '0',
+            10,
+          );
+          if (!isNaN(lastNum)) {
+            await this.prisma.orderSequence.upsert({
+              where: { branchId_date: { branchId, date: currentYear } },
+              update: { lastValue: lastNum }, // Next attempt will increment it
+              create: {
+                tenantId,
+                branchId,
+                date: currentYear,
+                lastValue: lastNum,
+              },
+            });
+          }
+        }
       }
 
-      return order;
-    });
+      console.error(error);
+      throw error;
+    }
   }
-
-  /* ----------------------------------------------------
-     READ
-  ---------------------------------------------------- */
 
   async findOne(tenantId: string, orderId: string) {
     const order = await this.prisma.order.findFirst({
@@ -503,6 +522,22 @@ export class OrdersService {
     return order;
   }
 
+  async getNextOrderNumber(tenantId: string, branchId: string) {
+    const currentYear = new Date().getFullYear().toString();
+    const sequence = await this.prisma.orderSequence.findUnique({
+      where: {
+        branchId_date: {
+          branchId,
+          date: currentYear,
+        },
+      },
+    });
+
+    const nextValue = (sequence?.lastValue || 0) + 1;
+    const orderNumber = `${currentYear}-${nextValue.toString().padStart(5, '0')}`;
+    return { orderNumber };
+  }
+
   async findAll(tenantId: string, params: OrderQueryParams) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
@@ -515,7 +550,7 @@ export class OrdersService {
       ...(params.type && { type: params.type }),
       ...(params.tableId && { tableId: params.tableId }),
       ...(params.search && {
-        orderNumber: { contains: params.search, mode: 'insensitive' },
+        id: params.search,
       }),
     };
 
@@ -650,6 +685,12 @@ export class OrdersService {
       // Phase 3: Loyalty earn on completion
       await this.earnLoyaltyPoints(tenantId, orderId, userId);
     }
+
+    // Emit event for real-time kitchen updates
+    this.eventEmitter.emit('kitchen.order.updated', {
+      branchId: updated._branchId,
+      orderId: updated.id,
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _branchId, ...result } = updated;
@@ -1477,10 +1518,14 @@ export class OrdersService {
         OrderStatus.PAID,
       ]);
       if (!editableStatuses.has(order.status)) {
-        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
+        throw new BadRequestException(
+          `Cannot add items to order with status ${order.status}`,
+        );
       }
     } else if (order.status !== OrderStatus.DRAFT) {
-      throw new BadRequestException('Retail orders can only be modified in DRAFT status');
+      throw new BadRequestException(
+        'Retail orders can only be modified in DRAFT status',
+      );
     }
 
     const product = await db.product.findFirst({
@@ -1488,7 +1533,8 @@ export class OrdersService {
     });
     if (!product) throw new NotFoundException('Product not found');
 
-    const unitPrice = typeof dto.unitPrice === 'number' ? dto.unitPrice : Number(product.price);
+    const unitPrice =
+      typeof dto.unitPrice === 'number' ? dto.unitPrice : Number(product.price);
     let modifiersTotal = 0;
     const itemModifiers: { modifierId: string; price: number }[] = [];
 
@@ -1639,6 +1685,7 @@ export class OrdersService {
         select: {
           id: true,
           status: true,
+          branchId: true,
           tenant: { select: { businessType: true } },
           items: {
             select: {
@@ -1688,17 +1735,26 @@ export class OrdersService {
       });
 
       // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
+      let updatedOrder;
       if (
         order.status === OrderStatus.DRAFT ||
         order.status === OrderStatus.CONFIRMED
       ) {
-        return await tx.order.update({
+        updatedOrder = await tx.order.update({
           where: { id: orderId },
           data: { status: OrderStatus.SENT_TO_KITCHEN },
         });
+      } else {
+        updatedOrder = order;
       }
 
-      return order;
+      // Emit event for real-time kitchen updates
+      this.eventEmitter.emit('kitchen.order.created', {
+        branchId: order.branchId,
+        orderId: order.id,
+      });
+
+      return updatedOrder;
     });
   }
 
@@ -1729,7 +1785,9 @@ export class OrdersService {
       ]);
 
       if (!editableStatuses.has(order.status as OrderStatus)) {
-        throw new BadRequestException(`Cannot add items to order with status ${order.status}`);
+        throw new BadRequestException(
+          `Cannot add items to order with status ${order.status}`,
+        );
       }
 
       for (const itemDto of items) {
@@ -2138,7 +2196,7 @@ export class OrdersService {
         tenantId,
         status: { in: this.ACTIVE_ORDER_STATUSES },
       },
-      select: { id: true, status: true, orderNumber: true },
+      select: { id: true, status: true },
     });
   }
 

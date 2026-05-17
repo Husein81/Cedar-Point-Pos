@@ -46,6 +46,7 @@ model Tenant {
   offers              Offer[]
   refunds             Refund[]
   cashMovements       CashMovement[]
+  orderSequences      OrderSequence[]
 }
 
 model Currency {
@@ -78,8 +79,10 @@ model User {
   id                  String               @id @default(uuid())
   name                String
   email               String?              @unique
+  phone               String?              @unique
   username            String               @unique
   password            String
+  avatar              String?
   role                UserRole             @default(CASHIER)
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
@@ -123,6 +126,7 @@ model Branch {
   purchaseOrders   PurchaseOrder[]
   refunds          Refund[]
   cashMovements    CashMovement[]
+  orderSequences   OrderSequence[]
 }
 
 model POSDevice {
@@ -520,6 +524,7 @@ model Order {
   shiftId                         String?
   orderNumber                     String?
   type                            OrderType
+
   status                          OrderStatus          @default(DRAFT)
   subtotal                        Decimal              @default(0) @db.Decimal(10, 2)
   total                           Decimal              @default(0) @db.Decimal(10, 2)
@@ -551,6 +556,7 @@ model Order {
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
 
   @@index([tenantId, branchId, createdAt])
+  @@unique([branchId, orderNumber])
 }
 
 model OrderItem {
@@ -1015,4 +1021,18 @@ enum LoyaltyTransactionType {
 enum LoyaltyDirection {
   CREDIT
   DEBIT
+}
+
+model OrderSequence {
+  id        String   @id @default(uuid())
+  tenantId  String
+  branchId  String
+  date      String
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, date])
 }

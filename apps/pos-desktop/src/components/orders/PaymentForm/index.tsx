@@ -3,7 +3,6 @@ import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
 import { PaymentMethod } from "@repo/types";
 import { Button, Icon, Input, Separator, cn } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ReceiptModal } from "../ReceiptModal";
 import { formatPrice, generateQuickCashAmounts } from "../config";
 import PaymentFooterActions from "./PaymentFooterActions";
 import PaymentSummaryCard from "./PaymentSummaryCard";
@@ -41,8 +40,6 @@ export const PaymentForm = ({
   customerId,
   eligibleBase = 0,
 }: Props) => {
-  const [showPreview, setShowPreview] = useState(false);
-
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
   const [givenAmount, setGivenAmount] = useState<string>("");
@@ -200,44 +197,8 @@ export const PaymentForm = ({
 
   return (
     <div className="sm:max-w-lg">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1" />
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-8 gap-1.5",
-            showPreview &&
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-          )}
-          onClick={() => setShowPreview(!showPreview)}
-        >
-          <Icon
-            name={showPreview ? "ChevronLeft" : "Eye"}
-            className="w-3.5 h-3.5"
-          />
-          {showPreview ? "Back to Payment" : "Preview Receipt"}
-        </Button>
-      </div>
-
-      {showPreview ? (
-        <div className="pt-4 h-[500px]">
-          <ReceiptModal
-            payments={payments}
-            loyaltyApplied={
-              loyaltyEstimate.appliedPoints > 0
-                ? {
-                    points: loyaltyEstimate.appliedPoints,
-                    discount: loyaltyEstimate.appliedDiscount,
-                  }
-                : undefined
-            }
-          />
-        </div>
-      ) : (
-        <div className="space-y-4 pt-4">
-          {/* ===== SUMMARY CARDS ===== */}
+      <div className="space-y-4 pt-4">
+        {/* ===== SUMMARY CARDS ===== */}
           <PaymentSummaryCard
             isFullyPaid={isFullyPaid}
             total={total}
@@ -490,15 +451,14 @@ export const PaymentForm = ({
           )}
 
           {/* ===== FOOTER ACTIONS ===== */}
-          <PaymentFooterActions
-            isConfirming={isConfirming}
-            isFullyPaid={isFullyPaid}
-            payments={payments}
-            handleConfirm={handleConfirm}
-            handlePayAndSend={handlePayAndSend}
-          />
-        </div>
-      )}
+        <PaymentFooterActions
+          isConfirming={isConfirming}
+          isFullyPaid={isFullyPaid}
+          payments={payments}
+          handleConfirm={handleConfirm}
+          handlePayAndSend={handlePayAndSend}
+        />
+      </div>
     </div>
   );
 };

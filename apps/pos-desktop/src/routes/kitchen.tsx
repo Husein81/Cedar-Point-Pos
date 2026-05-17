@@ -12,6 +12,8 @@ import { useBranchStore } from "@/store/branchStore";
 import { Empty, Shad } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useKitchenSocket } from "@/hooks/useKitchenSocket";
+import { useQueryClient } from "@tanstack/react-query";
 
 const KITCHEN_ORDERS_PER_PAGE = 12;
 
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/kitchen")({
 
 function KitchenPage() {
   const { branchId } = useBranchStore();
+  const queryClient = useQueryClient();
   const { page, setPage } = usePaginationState({
     initialPage: 1,
   });
@@ -34,6 +37,16 @@ function KitchenPage() {
     page: String(page),
     limit: String(KITCHEN_ORDERS_PER_PAGE),
   });
+
+  // Websocket integration
+  const { lastUpdate } = useKitchenSocket(branchId!);
+
+  useMemo(() => {
+    if (lastUpdate) {
+      // Invalidate the kitchen orders query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
+    }
+  }, [lastUpdate, queryClient]);
 
   const orders = data?.data ?? [];
   const totalCount = data?.pagination.totalCount ?? 0;

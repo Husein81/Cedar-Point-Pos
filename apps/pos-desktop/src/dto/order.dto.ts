@@ -133,6 +133,7 @@ export type Order = {
   tableId: string | null;
   tableName: string | null;
   notes: string;
+  orderNumber?: string;
   createdAt: Date;
   modifiedAt: Date;
 };
@@ -180,6 +181,7 @@ export type BackendOrder = {
   tableId?: string | null;
   table?: { name: string } | null;
   notes?: string | null;
+  orderNumber?: string | null;
   createdAt: string | Date;
   updatedAt?: string | Date;
 };

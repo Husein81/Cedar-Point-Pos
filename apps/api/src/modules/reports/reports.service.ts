@@ -137,7 +137,7 @@ export interface LoyaltyTransactionRow {
   balanceAfter: number;
   reason: string | null;
   customer: { id: string; name: string } | null;
-  order: { id: string; orderNumber: string | null } | null;
+  order: { id: string } | null;
   refund: { id: string } | null;
   actorUser: { id: string; name: string } | null;
 }
@@ -236,7 +236,7 @@ export class ReportsService {
       }),
       // Search by orderNumber
       ...(search && {
-        orderNumber: { contains: search, mode: 'insensitive' as const },
+        id: { contains: search, mode: 'insensitive' as const },
       }),
     };
 
@@ -255,7 +255,6 @@ export class ReportsService {
         take: pageSize,
         select: {
           id: true,
-          orderNumber: true,
           type: true,
           status: true,
           createdAt: true,
@@ -306,7 +305,7 @@ export class ReportsService {
 
       return {
         id: order.id,
-        orderNumber: order.orderNumber,
+        orderNumber: order.id,
         type: order.type,
         status: order.status,
         createdAt: order.createdAt,
@@ -853,7 +852,7 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
       // Search by order number
       ...(search && {
-        orderNumber: { contains: search, mode: 'insensitive' as const },
+        id: { contains: search, mode: 'insensitive' as const },
       }),
     };
 
@@ -872,7 +871,6 @@ export class ReportsService {
         take: pageSize,
         select: {
           id: true,
-          orderNumber: true,
           type: true,
           createdAt: true,
           subtotal: true,
@@ -894,7 +892,7 @@ export class ReportsService {
     // Transform to response shape
     const data: DebtOrderRow[] = orders.map((order) => ({
       id: order.id,
-      orderNumber: order.orderNumber,
+      orderNumber: order.id,
       createdAt: order.createdAt,
       branch: order.branch,
       type: order.type,
@@ -1178,7 +1176,7 @@ export class ReportsService {
         include: {
           order: {
             select: {
-              orderNumber: true,
+              id: true,
               status: true,
               type: true,
               branch: {
@@ -2186,7 +2184,7 @@ export class ReportsService {
           balanceAfter: true,
           reason: true,
           customer: { select: { id: true, name: true } },
-          order: { select: { id: true, orderNumber: true } },
+          order: { select: { id: true } },
           refund: { select: { id: true } },
           actorUser: { select: { id: true, name: true } },
         },

@@ -83,6 +83,8 @@ export class AuthService {
       role: user.role,
       tenantId: String(user.tenantId),
       isActive: user.isActive,
+      phone: user.phone ?? null,
+      avatar: user.avatar ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -147,6 +149,8 @@ export class AuthService {
       refreshToken,
       role: user.role,
       isActive: true,
+      phone: user.phone ?? null,
+      avatar: user.avatar ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -193,6 +197,8 @@ export class AuthService {
         refreshToken,
         role: user.role,
         isActive: true,
+        phone: user.phone ?? null,
+        avatar: user.avatar ?? null,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         tenantId: String(user.tenantId),

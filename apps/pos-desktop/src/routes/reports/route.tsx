@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { useMemo } from "react";
 import { ReportCard, REPORT_CARDS } from "@/components/reports";
 
@@ -28,7 +28,7 @@ function ReportsLayout() {
   return (
     <div className="pt-4">
       <div className="mx-auto space-y-6">
-        <Heading
+        <TitleBar
           title={isRoot ? "Reports" : title}
           subtitle={`Business analytics & performance • ${currentDate}`}
           href={isRoot ? "" : "/reports"}

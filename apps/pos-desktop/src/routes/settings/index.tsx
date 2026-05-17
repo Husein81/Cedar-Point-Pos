@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuthStore } from "@/store/authStore";
 import type { BusinessType } from "@repo/types";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { settingsSections, SettingsSectionCard } from "@/components/settings";
 
 export const Route = createFileRoute("/settings/")({
@@ -17,12 +17,12 @@ function SettingsPage() {
 
   // Filter sections based on business type
   const filteredSections = settingsSections.filter((section) =>
-    section.showFor.includes(businessType)
+    section.showFor.includes(businessType),
   );
 
   return (
     <div className="space-y-6 pt-4">
-      <Heading
+      <TitleBar
         title="Settings"
         subtitle="Manage your business configuration and preferences"
       />

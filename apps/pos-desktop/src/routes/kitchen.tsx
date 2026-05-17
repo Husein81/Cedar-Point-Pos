@@ -1,6 +1,6 @@
 import { SkeletonCard } from "@/components/common/SkeletonCard";
 import GridPagination from "@/components/grid-pagination";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import {
   KitchenCard,
   KitchenFilters,
@@ -77,7 +77,7 @@ function KitchenPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center w-full justify-between">
-        <Heading
+        <TitleBar
           title="Kitchen Orders"
           subtitle={`${totalCount} Active Orders`}
         />
@@ -126,4 +126,3 @@ function KitchenPage() {
     </div>
   );
 }
-

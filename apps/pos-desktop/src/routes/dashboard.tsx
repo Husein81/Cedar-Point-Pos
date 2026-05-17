@@ -16,7 +16,7 @@ import {
   useWeeklySales,
 } from "../hooks/useDashboard";
 import { Button, Icon } from "@repo/ui";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -50,7 +50,7 @@ function DashboardPage() {
     <div className="min-h-screen pt-4">
       <div className="mx-auto space-y-6">
         {/* Header */}
-        <Heading
+        <TitleBar
           title="Dashboard"
           subtitle={currentDate}
           actions={

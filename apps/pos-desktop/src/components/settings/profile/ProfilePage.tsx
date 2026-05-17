@@ -1,4 +1,4 @@
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { useUpdateProfile } from "@/hooks/useUser";
 import { useAuthStore } from "@/store/authStore";
 import { Avatar, Badge, Button, Icon, InputField, Shad } from "@repo/ui";
@@ -23,10 +23,30 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8 pt-4">
-      <Heading
+      <TitleBar
         title="Profile Settings"
         subtitle="Manage your personal information and account details"
         href="/settings"
+        actions={
+          <Button
+            type="submit"
+            size="lg"
+            disabled={updateMutation.isPending || !form.state.canSubmit}
+            className="min-w-[170px]"
+          >
+            {updateMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <Icon name="LoaderCircle" className="size-4 animate-spin" />
+                Saving...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Icon name="Save" className="size-4" />
+                Save Changes
+              </div>
+            )}
+          </Button>
+        }
       />
 
       <form
@@ -45,7 +65,7 @@ export default function ProfilePage() {
                 <Avatar
                   src={user?.avatar || undefined}
                   fallback={user?.name || "U"}
-                  className="size-24 border-4 border-background shadow-lg"
+                  className="size-24 border-4 border-background shadow-lg rounded-xl"
                 />
 
                 <div className="mt-4 space-y-1">
@@ -280,40 +300,6 @@ export default function ProfilePage() {
                 </div>
               </Shad.CardContent>
             </Shad.Card>
-
-            {/* ACTION BAR */}
-            <div className="sticky bottom-4 z-10">
-              <div className="flex items-center justify-between rounded-2xl border bg-background/90 backdrop-blur px-5 py-4 shadow-lg">
-                <div>
-                  <p className="font-medium">Save your profile changes</p>
-                  <p className="text-sm text-muted-foreground">
-                    Your updates will be applied immediately.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={updateMutation.isPending || !form.state.canSubmit}
-                  className="min-w-[170px]"
-                >
-                  {updateMutation.isPending ? (
-                    <div className="flex items-center gap-2">
-                      <Icon
-                        name="LoaderCircle"
-                        className="size-4 animate-spin"
-                      />
-                      Saving...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Icon name="Save" className="size-4" />
-                      Save Changes
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </form>

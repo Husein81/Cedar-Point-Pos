@@ -1,5 +1,5 @@
 import { CategoryForm } from "@/components/category/CategoryForm";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { getCategoryColumns } from "@/config/categoryColumn";
 import { useCategories } from "@/hooks/useCategory";
 import { useModalStore } from "@/store/modalStore";
@@ -32,7 +32,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Categories"
         subtitle="Browse and manage all product categories"
       />

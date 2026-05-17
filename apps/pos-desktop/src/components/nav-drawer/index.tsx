@@ -36,13 +36,16 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
         <div className="flex flex-col h-full">
           {/* Header */}
           <Shad.DrawerHeader className="border-b">
-            <Shad.DrawerTitle className="flex items-center gap-4 text-lg font-semibold">
+            <Shad.DrawerTitle className="flex items-center gap-2 text-lg font-semibold">
               <img
                 src={logo}
                 className="w-8 h-8 dark:invert-0 invert"
                 alt="cedar point"
               />
-              CedarPoint POS
+              <h2 className="text-lg font-semibold text-text">
+                Cedar
+                <span className="text-primary font-bold">Point</span>
+              </h2>
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>
 

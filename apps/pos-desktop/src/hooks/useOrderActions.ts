@@ -7,6 +7,8 @@ import {
   useSendToKitchen,
   useUpdateOrderStatus,
 } from "@/hooks/useOrder";
+import { useBranch } from "@/hooks/useBranch";
+import { printReceipt } from "@/components/receipt/ReceiptPdf";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useKeypadStore } from "@/store/keypadStore";
@@ -23,6 +25,7 @@ export function useOrderActions() {
   const { closeKeypad } = useKeypadStore();
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
+  const { data: branch } = useBranch(branchId || "");
 
   const getActiveOrder = useOrderStore((s) => s.getActiveOrder);
   const getDiscountAmount = useOrderStore((s) => s.getDiscountAmount);
@@ -101,11 +104,15 @@ export function useOrderActions() {
   );
 
   const getOrCreateOrderId = useCallback(
-    async (orderOverride?: Order): Promise<string | null> => {
+    async (
+      orderOverride?: Order,
+    ): Promise<{ id: string; orderNumber: string } | null> => {
       const active = orderOverride ?? getActiveOrder();
       if (!active) return null;
 
-      if (isLoadedOrder(active)) return active.id;
+      if (isLoadedOrder(active)) {
+        return { id: active.id, orderNumber: active.orderNumber || "" };
+      }
 
       const dto = buildOrderDto(active);
       if (!dto) return null;
@@ -115,7 +122,7 @@ export function useOrderActions() {
       if (created.orderNumber) {
         updateOrderNumber(created.orderNumber);
       }
-      return created.id;
+      return { id: created.id, orderNumber: created.orderNumber || "" };
     },
     [
       buildOrderDto,
@@ -174,8 +181,10 @@ export function useOrderActions() {
             }
 
             const wasLoadedOrder = isLoadedOrder(active);
-            const orderId = await getOrCreateOrderId(active);
-            if (!orderId) return;
+            const syncedOrder = await getOrCreateOrderId(active);
+            if (!syncedOrder) return;
+            const orderId = syncedOrder.id;
+            const orderNumber = syncedOrder.orderNumber;
 
             if (wasLoadedOrder) {
               const unsyncedLocal = active.items
@@ -197,7 +206,7 @@ export function useOrderActions() {
               }
             }
 
-            await processPayment.mutateAsync({
+            const updatedOrder = await processPayment.mutateAsync({
               id: orderId,
               payments: payments.map((p) => ({
                 amount: p.amount,
@@ -207,6 +216,28 @@ export function useOrderActions() {
               })),
               loyalty,
             });
+
+            try {
+              let loyaltyApplied = undefined;
+              if (loyalty && loyalty.redeemPoints > 0) {
+                loyaltyApplied = {
+                  points: loyalty.redeemPoints,
+                  discount: Number(updatedOrder.discount || 0),
+                };
+              }
+
+              await printReceipt({
+                order: active,
+                tenantName: user.tenant?.name || "Cedar Point",
+                branchName: branch?.name || "Main Branch",
+                branchAddress: branch?.address || "",
+                branchPhone: branch?.phone || "",
+                orderNumber: updatedOrder.orderNumber || orderNumber || "PREVIEW",
+                loyaltyApplied,
+              });
+            } catch (printErr) {
+              console.error("Auto-print failed:", printErr);
+            }
           } catch (error) {
             toast.error(extractErrorMessage(error, "Payment failed"), {
               duration: 8000,
@@ -218,6 +249,7 @@ export function useOrderActions() {
     [
       activeTabId,
       batchAddItemsToOrder,
+      branch,
       branchId,
       clearOrder,
       closeKeypad,
@@ -252,8 +284,9 @@ export function useOrderActions() {
       // ── Background sync ──
       (async () => {
         try {
-          const orderId = await getOrCreateOrderId(active);
-          if (!orderId) return;
+          const syncedOrder = await getOrCreateOrderId(active);
+          if (!syncedOrder) return;
+          const orderId = syncedOrder.id;
 
           await updateOrderStatus.mutateAsync({
             id: orderId,
@@ -310,8 +343,9 @@ export function useOrderActions() {
     // ── Background sync ──
     (async () => {
       try {
-        const orderId = await getOrCreateOrderId(active);
-        if (!orderId) return;
+        const syncedOrder = await getOrCreateOrderId(active);
+        if (!syncedOrder) return;
+        const orderId = syncedOrder.id;
 
         if (wasLoadedOrder) {
           const unsyncedLocal = unsentItems

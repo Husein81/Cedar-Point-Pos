@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useColors, useSeedColors } from "@/hooks/useColor";
 import { useModalStore } from "@/store/modalStore";
 import { ColorForm } from "@/components/settings/ColorForm";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { Button, DataTable } from "@repo/ui";
 import { getColorColumns } from "@/config/colorColumn";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ function ColorsSettingsPage() {
 
   return (
     <div className="space-y-4 mt-4">
-      <Heading
+      <TitleBar
         title="Colors"
         subtitle="Manage colors for categories and products"
         href="/settings"

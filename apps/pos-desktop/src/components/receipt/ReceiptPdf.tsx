@@ -1,129 +1,128 @@
-import type { PaymentEntry } from "@/components/orders/PaymentForm";
-
 import { useAuthStore } from "@/store/authStore";
 import type { Order } from "@/dto/order.dto";
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
 
-// Thermal receipt styles
 const styles = StyleSheet.create({
   page: {
-    padding: 20,
+    padding: 16,
     fontSize: 9,
     fontFamily: "Helvetica",
     color: "#000",
-    width: "100%",
   },
-  header: {
+
+  center: {
     alignItems: "center",
-    marginBottom: 15,
+    textAlign: "center",
   },
-  logo: {
-    width: 60,
-    height: 60,
-    marginBottom: 5,
-  },
+
   title: {
     fontSize: 14,
     fontWeight: "bold",
-    marginBottom: 2,
   },
+
   subtitle: {
     fontSize: 8,
     color: "#444",
-    marginBottom: 1,
+    marginTop: 2,
   },
+
   divider: {
     borderBottomWidth: 1,
     borderBottomColor: "#000",
     borderBottomStyle: "dashed",
     marginVertical: 8,
   },
-  orderInfo: {
-    marginBottom: 10,
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  orderInfoRow: {
+
+  section: {
+    marginBottom: 8,
+  },
+
+  label: {
+    color: "#444",
+  },
+
+  value: {
+    fontWeight: "bold",
+  },
+
+  // Items
+  itemHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
+    paddingBottom: 4,
+    marginBottom: 6,
+  },
+
+  itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 2,
   },
-  tableHeader: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#000",
-    paddingBottom: 3,
-    marginBottom: 5,
-    fontWeight: "bold",
-  },
-  itemRow: {
-    flexDirection: "row",
-    marginBottom: 3,
-  },
+
   itemName: {
     flex: 2,
   },
+
   itemQty: {
     flex: 0.5,
     textAlign: "center",
   },
+
   itemPrice: {
     flex: 1,
     textAlign: "right",
   },
-  itemTotal: {
-    flex: 1,
-    textAlign: "right",
-  },
-  modifierRow: {
-    flexDirection: "row",
-    paddingLeft: 10,
+
+  modifiers: {
     fontSize: 7,
-    color: "#444",
-    marginBottom: 1,
+    color: "#555",
+    paddingLeft: 10,
+    marginBottom: 3,
   },
-  totalsSection: {
+
+  // Totals
+  totalsBox: {
     marginTop: 10,
-    gap: 2,
+    paddingTop: 6,
   },
+
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: 3,
   },
+
   grandTotal: {
+    borderTopWidth: 1,
+    borderTopColor: "#000",
+    marginTop: 6,
+    paddingTop: 6,
     fontSize: 12,
     fontWeight: "bold",
-    paddingTop: 5,
   },
-  paymentsSection: {
-    marginTop: 10,
-  },
-  paymentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    fontSize: 8,
-  },
+
+  // Footer
   footer: {
-    marginTop: 20,
+    marginTop: 14,
     alignItems: "center",
-    gap: 4,
     fontSize: 8,
+    color: "#444",
   },
-  bold: {
-    fontWeight: "bold",
+
+  badge: {
+    fontSize: 8,
+    marginTop: 4,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "#000",
   },
 });
-
-type Props = {
-  order: Order;
-  tenantName: string;
-  branchName: string;
-  branchAddress?: string;
-  branchPhone?: string;
-  orderNumber: string;
-  loyaltyApplied?: {
-    points: number;
-    discount: number;
-  };
-};
 
 export const ReceiptPdf = ({
   order,
@@ -133,28 +132,32 @@ export const ReceiptPdf = ({
   branchPhone,
   orderNumber,
   loyaltyApplied,
-}: Props) => {
+}: any) => {
   const { user } = useAuthStore();
+
   const subtotal = order.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum: number, item: { price: number; quantity: number }) =>
+      sum + item.price * item.quantity,
     0,
   );
-  const vatAmount = order.includeVAT ? subtotal * 0.11 : 0;
-  const discountAmount = order.discount
+
+  const vat = order.includeVAT ? subtotal * 0.11 : 0;
+
+  const discount = order.discount
     ? order.discount.type === "PERCENTAGE"
       ? (subtotal * order.discount.value) / 100
       : order.discount.value
     : 0;
 
   const loyaltyDiscount = loyaltyApplied?.discount || 0;
-  const total =
-    subtotal - discountAmount + order.shippingFee + vatAmount - loyaltyDiscount;
+
+  const total = subtotal - discount + order.shippingFee + vat - loyaltyDiscount;
 
   return (
     <Document>
       <Page size={[226, 800]} style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* HEADER */}
+        <View style={styles.center}>
           <Text style={styles.title}>{tenantName}</Text>
           <Text style={styles.subtitle}>{branchName}</Text>
           {branchAddress && (
@@ -167,117 +170,158 @@ export const ReceiptPdf = ({
 
         <View style={styles.divider} />
 
-        {/* Order Info */}
-        <View style={styles.orderInfo}>
-          <View style={styles.orderInfoRow}>
-            <Text>Order #:</Text>
-            <Text>{orderNumber}</Text>
+        {/* ORDER INFO */}
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <Text style={styles.label}>Order</Text>
+            <Text style={styles.value}>{orderNumber}</Text>
           </View>
-          <View style={styles.orderInfoRow}>
-            <Text>Date:</Text>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>Date</Text>
             <Text>{new Date().toLocaleString()}</Text>
           </View>
+
           {order.tableName && (
-            <View style={styles.orderInfoRow}>
-              <Text>Table:</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>Table</Text>
               <Text>{order.tableName}</Text>
             </View>
           )}
-          {order.customerName && (
-            <View style={styles.orderInfoRow}>
-              <Text>Customer:</Text>
-              <Text>{order.customerName}</Text>
-            </View>
-          )}
-          <View style={styles.orderInfoRow}>
-            <Text>Served by: </Text>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>Cashier</Text>
             <Text>{user?.name}</Text>
           </View>
         </View>
 
         <View style={styles.divider} />
 
-        {/* Items Table */}
-        <View style={styles.tableHeader}>
+        {/* ITEMS */}
+        <View style={styles.itemHeader}>
           <Text style={styles.itemQty}>Qty</Text>
           <Text style={styles.itemName}>Item</Text>
-          <Text style={styles.itemTotal}>Total</Text>
+          <Text style={styles.itemPrice}>Total</Text>
         </View>
 
-        {order.items.map((item) => (
-          <View key={item.id} wrap={false}>
+        {order.items.map((item: any) => (
+          <View key={item.id}>
             <View style={styles.itemRow}>
               <Text style={styles.itemQty}>{item.quantity}</Text>
               <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemTotal}>
+              <Text style={styles.itemPrice}>
                 ${(item.price * item.quantity).toFixed(2)}
               </Text>
             </View>
-            {item.modifiers?.map((mod) => (
-              <View key={mod.modifierId} style={styles.modifierRow}>
-                <Text>+ {mod.name}</Text>
-                {mod.price > 0 && <Text> (${mod.price.toFixed(2)})</Text>}
+
+            {item.modifiers?.length > 0 && (
+              <View style={styles.modifiers}>
+                {item.modifiers.map((m: any) => (
+                  <Text key={m.modifierId}>
+                    + {m.name} {m.price ? `($${m.price.toFixed(2)})` : ""}
+                  </Text>
+                ))}
               </View>
-            ))}
+            )}
           </View>
         ))}
 
         <View style={styles.divider} />
 
-        {/* Totals */}
-        <View style={styles.totalsSection}>
+        {/* TOTALS */}
+        <View style={styles.totalsBox}>
           <View style={styles.totalRow}>
             <Text>Subtotal</Text>
             <Text>${subtotal.toFixed(2)}</Text>
           </View>
 
-          {discountAmount > 0 && (
+          {discount > 0 && (
             <View style={styles.totalRow}>
-              <Text>Order Discount</Text>
-              <Text>-${discountAmount.toFixed(2)}</Text>
+              <Text>Discount</Text>
+              <Text>-${discount.toFixed(2)}</Text>
             </View>
           )}
 
           {loyaltyDiscount > 0 && (
             <View style={styles.totalRow}>
-              <Text>Loyalty Discount ({loyaltyApplied?.points} pts)</Text>
+              <Text>Loyalty</Text>
               <Text>-${loyaltyDiscount.toFixed(2)}</Text>
             </View>
           )}
 
           {order.shippingFee > 0 && (
             <View style={styles.totalRow}>
-              <Text>Shipping</Text>
+              <Text>Delivery</Text>
               <Text>${order.shippingFee.toFixed(2)}</Text>
             </View>
           )}
 
           {order.includeVAT && (
             <View style={styles.totalRow}>
-              <Text>VAT (11%)</Text>
-              <Text>${vatAmount.toFixed(2)}</Text>
+              <Text>VAT</Text>
+              <Text>${vat.toFixed(2)}</Text>
             </View>
           )}
 
-          <View style={{ borderTopWidth: 1, borderTopColor: "#000" }}>
-            <View style={[styles.totalRow, styles.grandTotal]}>
-              <Text>TOTAL</Text>
-              <Text>L.L{(total * 90000).toFixed(2)}</Text>
-            </View>
-            <View style={[styles.totalRow, styles.grandTotal]}>
+          <View style={styles.grandTotal}>
+            <View style={styles.totalRow}>
               <Text>TOTAL</Text>
               <Text>${total.toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.totalRow}>
+              <Text>TOTAL LBP</Text>
+              <Text>{(total * 90000).toFixed(0)} L.L</Text>
             </View>
           </View>
         </View>
 
-        {/* Footer */}
+        {/* FOOTER */}
         <View style={styles.footer}>
-          <Text>Thank you for your visit!</Text>
-          <Text>Powered by Cedar Point</Text>
-          <Text>www.cedarpoint.software</Text>
+          <Text>Thank you for dining with us</Text>
+          <Text>Cedar Point POS System</Text>
         </View>
       </Page>
     </Document>
   );
+};
+
+export const printReceipt = async (params: {
+  order: Order;
+  tenantName: string;
+  branchName: string;
+  branchAddress?: string;
+  branchPhone?: string;
+  orderNumber: string;
+  loyaltyApplied?: {
+    points: number;
+    discount: number;
+  };
+}) => {
+  const blob = await pdf(
+    <ReceiptPdf
+      order={params.order}
+      tenantName={params.tenantName}
+      branchName={params.branchName}
+      branchAddress={params.branchAddress}
+      branchPhone={params.branchPhone}
+      orderNumber={params.orderNumber}
+      loyaltyApplied={params.loyaltyApplied}
+    />,
+  ).toBlob();
+
+  const url = URL.createObjectURL(blob);
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = url;
+  document.body.appendChild(iframe);
+
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  };
 };

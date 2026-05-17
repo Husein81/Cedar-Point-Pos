@@ -1022,6 +1022,7 @@ export const useOrderStore = create<OrderStoreState>()(
           tableId: backendOrder.tableId ?? null,
           tableName: backendOrder.table?.name ?? null,
           notes: backendOrder.notes || "",
+          orderNumber: backendOrder.orderNumber ?? "",
           createdAt: new Date(backendOrder.createdAt),
           modifiedAt: new Date(
             backendOrder.updatedAt || backendOrder.createdAt,

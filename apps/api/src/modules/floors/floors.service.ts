@@ -221,7 +221,7 @@ export class FloorsService {
                       ],
                     },
                   },
-                  select: { id: true, orderNumber: true },
+                  select: { id: true },
                 },
               },
             },

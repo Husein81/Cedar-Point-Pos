@@ -181,6 +181,7 @@ export type BackendOrder = {
   tableId?: string | null;
   table?: { name: string } | null;
   notes?: string | null;
+  orderNumber?: string | null;
   createdAt: string | Date;
   updatedAt?: string | Date;
 };

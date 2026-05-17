@@ -325,14 +325,7 @@ export class InventoryDeductionService {
     const stockWarnings: StockWarningInfo[] = [];
 
     // Get order number for better history tracking
-    let orderNumber: string | undefined;
-    if (orderId) {
-      const order = await this.prisma.order.findUnique({
-        where: { id: orderId },
-        select: { orderNumber: true },
-      });
-      orderNumber = order?.orderNumber ?? undefined;
-    }
+    const orderNumber = orderId;
 
     // Execute all deductions through centralized transaction service
     for (const deduction of deductions) {

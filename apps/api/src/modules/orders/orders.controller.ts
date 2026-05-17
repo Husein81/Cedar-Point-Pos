@@ -31,7 +31,6 @@ import { AddModifierDto } from './dto/add-modifier-dto.js';
 
 import { OrdersService } from './orders.service.js';
 
-
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -101,17 +100,13 @@ export class OrdersController {
     const user = req.user as { tenantId: string };
     return this.ordersService.findActiveOrderByTableId(user.tenantId, tableId);
   }
-  
-  /**
-   * Get predicted next order number for a branch
-   */
+
   @Get('next-number')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  getNextOrderNumber(
-    @Req() req: Request,
-    @Query('branchId') branchId: string,
-  ) {
-    if (!branchId) throw new BadRequestException('branchId is required');
+  getNextOrderNumber(@Req() req: Request, @Query('branchId') branchId: string) {
+    if (!branchId) {
+      throw new BadRequestException('Branch ID is required');
+    }
     const user = req.user as { tenantId: string };
     return this.ordersService.getNextOrderNumber(user.tenantId, branchId);
   }

@@ -1,6 +1,6 @@
+import { useAuthStore } from "@/store/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminAuthApi, type AdminLoginPayload } from "../apis/authApi";
-import { useAuthStore } from "@/store/authStore";
 
 export const useLogin = () => {
   const { setUser } = useAuthStore();
@@ -9,7 +9,7 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (payload: AdminLoginPayload) => adminAuthApi.login(payload),
     onSuccess: (data) => {
-      setUser(data.user);
+      setUser(data);
       queryClient.invalidateQueries({ queryKey: ["current-admin"] });
     },
   });
@@ -24,11 +24,9 @@ export const useLogout = () => {
     onSuccess: () => {
       clearUser();
       queryClient.invalidateQueries({ queryKey: ["current-admin"] });
-      // Redirect handled by store's logout or manually
       window.location.href = "/login";
     },
     onError: () => {
-      // Even if logout API fails, clear local state and redirect
       logout();
     },
   });

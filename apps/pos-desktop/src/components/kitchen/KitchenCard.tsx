@@ -2,12 +2,8 @@ import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
 import { Badge, Button, cn, Icon } from "@repo/ui";
 import { formatDistanceToNow } from "date-fns";
-import { useCallback } from "react";
-import {
-  getActionButtonStatus,
-  getOrderTypeHeaderColor,
-  getTimeColor,
-} from "./config";
+import { useCallback, useMemo } from "react";
+import { getActionButtonStatus, getOrderTypeHeaderColor } from "./config";
 
 type Props = {
   order: Order;
@@ -25,18 +21,36 @@ const KitchenCard = ({ order }: Props) => {
 
   const onActionButtonClick = useCallback(() => {
     const { nextStatus } = getActionButtonStatus(order.status);
+
     if (nextStatus) {
       handleStatusChange(order.id, nextStatus);
     }
   }, [order.id, order.status, handleStatusChange]);
 
-
   const isFullyRefunded = order.status === "FULLY_REFUNDED";
 
-  
+  const elapsedMinutes = useMemo(() => {
+    return Math.floor(
+      (Date.now() - new Date(order.createdAt).getTime()) / 60000,
+    );
+  }, [order.createdAt]);
+
+  const urgencyColor = useMemo(() => {
+    if (elapsedMinutes >= 30) {
+      return "text-red-500";
+    }
+
+    if (elapsedMinutes >= 15) {
+      return "text-amber-500";
+    }
+
+    return "text-emerald-500";
+  }, [elapsedMinutes]);
+
   const getItemRefundInfo = (itemId: string) => {
     const item = order.items?.find((i) => i.id === itemId);
-    if (!item || !item.refundItems || item.refundItems.length === 0) {
+
+    if (!item || !item.refundItems?.length) {
       return null;
     }
 
@@ -44,176 +58,185 @@ const KitchenCard = ({ order }: Props) => {
       (sum, refund) => sum + Number(refund.quantity),
       0,
     );
-    const isFullyRefunded = totalRefunded >= Number(item.quantity);
-    const isPartiallyRefunded = totalRefunded > 0 && !isFullyRefunded;
 
     return {
       totalRefunded,
-      isFullyRefunded,
-      isPartiallyRefunded,
-      latestReason: item.refundItems[0]?.refund?.reason || null,
+      isFullyRefunded: totalRefunded >= Number(item.quantity),
+      isPartiallyRefunded:
+        totalRefunded > 0 && totalRefunded < Number(item.quantity),
     };
   };
-
 
   const { nextStatus, buttonLabel } = getActionButtonStatus(order.status);
 
   return (
     <div
       className={cn(
-        "bg-card rounded-lg shadow-md overflow-hidden h-fit",
-        "border-2 border-transparent hover:border-primary",
-        "transition-all duration-200",
+        "flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all",
+        "hover:border-primary/40 hover:shadow-md",
         isFullyRefunded && "opacity-70",
       )}
     >
-      {/* Colored Header */}
-      <div
-        className={cn(
-          "px-4 py-2 flex items-center justify-between",
-          getOrderTypeHeaderColor(order.type),
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-white font-bold text-lg">
-            #
-            {order.table?.tableNumber ||
-              order.orderNumber ||
-              order.id.slice(0, 4)}
-          </span>
-          <Icon name="Circle" className="w-1 h-1 text-white fill-white" />
-          <span className="text-white text-sm">
-            {order.table?.name || order.type.replace(/_/g, " ")}
-          </span>
-        </div>
-        <span className={cn("text-sm", getTimeColor(order.createdAt))}>
-          {formatDistanceToNow(new Date(order.createdAt), {
-            addSuffix: false,
-          })}
-        </span>
-      </div>
+      {/* HEADER */}
+      <div className="border-b px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-lg text-sm font-bold text-white",
+                getOrderTypeHeaderColor(order.type),
+              )}
+            >
+              #{order.table?.tableNumber || order.id.slice(0, 2)}
+            </div>
 
-      {/* Order Content */}
-      <div className="p-4 space-y-3 min-h-50 relative">
-        {/* Refunded Stamp */}
-        {isFullyRefunded && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="border-4 border-red-500 text-red-500 font-bold text-4xl px-8 py-4 rotate-[-15deg] opacity-80">
-              REFUNDED
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">
+                {order.table?.name || order.type.replace(/_/g, " ")}
+              </h2>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Icon name="Clock3" className="size-3.5" />
+
+                <span className={cn("font-medium ", urgencyColor)}>
+                  {formatDistanceToNow(new Date(order.createdAt), {
+                    addSuffix: false,
+                  })}
+                </span>
+
+                <span>•</span>
+
+                <span>{order.items?.length || 0} items</span>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Items List */}
-        <div className="space-y-2 [&>div>div]:pr-3">
-          {order.items?.map((item) => {
-            const refundInfo = getItemRefundInfo(item.id);
-            return (
-              <div key={item.id} className="space-y-1">
-                <div className="flex items-start gap-2">
-                  {/* Quantity Badge */}
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "font-bold text-base min-w-8 justify-center h-7 shrink-0",
-                      refundInfo?.isFullyRefunded
-                        ? "bg-red-500/20 text-red-400 line-through border-red-500/50"
-                        : refundInfo?.isPartiallyRefunded
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/50"
-                          : "bg-primary/20 text-primary border-primary/50",
-                    )}
-                  >
-                    {refundInfo?.isPartiallyRefunded
-                      ? Number(item.quantity) - refundInfo.totalRefunded
-                      : item.quantity}
-                  </Badge>
-                  <div className="flex-1">
+          <Badge
+            variant="secondary"
+            className="rounded-full px-2.5 py-1 text-[11px]"
+          >
+            {order.type === "DINE_IN"
+              ? "Dine In"
+              : order.type === "DELIVERY"
+                ? "Delivery"
+                : order.type === "TAKEAWAY"
+                  ? "Takeaway"
+                  : order.type.replace(/_/g, " ")}
+          </Badge>
+        </div>
+      </div>
+
+      {/* ITEMS */}
+      <div className="flex-1 space-y-3 p-4">
+        {order.items?.map((item) => {
+          const refundInfo = getItemRefundInfo(item.id);
+
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "rounded-lg border p-3",
+                refundInfo?.isFullyRefunded &&
+                  "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30",
+                refundInfo?.isPartiallyRefunded &&
+                  "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30",
+              )}
+            >
+              <div className="flex gap-3">
+                {/* QTY */}
+                <div
+                  className={cn(
+                    "flex h-9 min-w-9 items-center justify-center rounded-lg text-sm font-bold",
+                    refundInfo?.isFullyRefunded
+                      ? "bg-red-500 text-white"
+                      : refundInfo?.isPartiallyRefunded
+                        ? "bg-amber-500 text-black"
+                        : "bg-primary/10 text-primary",
+                  )}
+                >
+                  {refundInfo?.isPartiallyRefunded
+                    ? Number(item.quantity) - refundInfo.totalRefunded
+                    : item.quantity}
+                </div>
+
+                {/* CONTENT */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
                     <p
                       className={cn(
-                        "font-medium text-foreground",
+                        "text-sm font-medium leading-5",
                         refundInfo?.isFullyRefunded &&
-                          "text-red-400 line-through",
-                        refundInfo?.isPartiallyRefunded && "text-amber-400",
+                          "line-through opacity-70",
                       )}
                     >
                       {item.product?.name}
                     </p>
 
-                    {/* Modifiers */}
-                    {item.modifiers && item.modifiers.length > 0 && (
-                      <div className="mt-1 ml-1 flex flex-wrap gap-1">
-                        {item.modifiers.map((mod) => (
-                          <Badge
-                            key={mod.id}
-                            variant="secondary"
-                            className="text-xs font-normal py-0 h-5"
-                          >
-                            + {mod.modifier?.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {item.notes && (
-                      <p className="text-xs text-gray-500 italic mt-1 ml-1">
-                        "{item.notes}"
-                      </p>
-                    )}
-
-                    {/* Refund Badge */}
                     {refundInfo?.isFullyRefunded && (
-                      <Badge className="mt-1 bg-red-100 text-red-700 border-red-300 text-xs">
-                        REFUNDED
+                      <Badge variant="destructive" className="text-[10px]">
+                        Refunded
                       </Badge>
-                    )}
-                    {refundInfo?.isPartiallyRefunded && (
-                      <Badge className="mt-1 bg-amber-100 text-amber-700 border-amber-300 text-xs">
-                        {refundInfo.totalRefunded} REFUNDED
-                      </Badge>
-                    )}
-
-                    {/* Refund Reason */}
-                    {refundInfo?.latestReason && (
-                      <p className="text-xs text-red-600 italic mt-1 ml-1">
-                        {refundInfo.latestReason}
-                      </p>
                     )}
                   </div>
+
+                  {/* MODIFIERS */}
+                  {item.modifiers && item.modifiers.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {item.modifiers.map((mod) => (
+                        <div
+                          key={mod.id}
+                          className="rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground"
+                        >
+                          + {mod.modifier?.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* NOTES */}
+                  {item.notes && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-muted p-2">
+                      <Icon
+                        name="NotebookPen"
+                        className="mt-0.5 size-3 text-muted-foreground"
+                      />
+
+                      <p className="text-xs text-muted-foreground">
+                        {item.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* PARTIAL REFUND */}
+                  {refundInfo?.isPartiallyRefunded && (
+                    <p className="mt-2 text-xs font-medium text-amber-600">
+                      {refundInfo.totalRefunded} refunded
+                    </p>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Footer Button */}
-      <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 uppercase font-medium">
-          <Icon name="Utensils" className="w-3 h-3" />
-          <span>
-            {order.type === "DINE_IN"
-              ? "DINE IN"
-              : order.type === "DELIVERY"
-                ? "DELIVERY"
-                : order.type === "TAKEAWAY"
-                  ? "TO GO"
-                  : order.type.replace(/_/g, " ")}
-          </span>
-        </div>
+      {/* FOOTER */}
+      <div className="border-t p-4">
         <Button
           onClick={onActionButtonClick}
-          className={cn(
-            "w-full",
-            nextStatus === OrderStatus.READY && "bg-green-600 hover:bg-green-700",
-            nextStatus === OrderStatus.COMPLETED && "bg-emerald-600 hover:bg-emerald-700",
-          )}
           disabled={
             nextStatus === null ||
             updateStatusMutation.isPending ||
             isFullyRefunded
           }
           isSubmitting={updateStatusMutation.isPending}
+          className={cn(
+            "h-11 w-full rounded-lg font-semibold",
+            nextStatus === OrderStatus.READY &&
+              "bg-green-600 hover:bg-green-700",
+            nextStatus === OrderStatus.COMPLETED &&
+              "bg-emerald-600 hover:bg-emerald-700",
+          )}
         >
           {buttonLabel}
         </Button>
@@ -221,5 +244,5 @@ const KitchenCard = ({ order }: Props) => {
     </div>
   );
 };
-export default KitchenCard;
 
+export default KitchenCard;

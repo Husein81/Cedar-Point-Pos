@@ -99,7 +99,6 @@ export function OngoingOrdersList({ className }: Props) {
       const q = search.toLowerCase();
       result = result.filter(
         (o) =>
-          o.orderNumber?.toLowerCase().includes(q) ||
           o.id.toLowerCase().includes(q) ||
           o.table?.name?.toLowerCase().includes(q) ||
           o.customer?.name?.toLowerCase().includes(q),
@@ -116,7 +115,7 @@ export function OngoingOrdersList({ className }: Props) {
         const tableId = order.tableId || order.table?.id;
         const tableName = order.table?.name ?? null;
         navigate({
-          to: "/orders",
+          to: "/",
           search: {
             tableId: tableId || undefined,
             ...(tableName ? { tableName } : {}),

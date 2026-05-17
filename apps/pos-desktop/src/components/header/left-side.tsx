@@ -38,7 +38,10 @@ const LeftSide = () => {
             variant="ghost"
             size="icon"
             iconName="Menu"
-            onClick={() => drawer.setOpen(true)}
+            onClick={(e) => {
+              (e as React.MouseEvent<HTMLButtonElement>).currentTarget.blur();
+              drawer.setOpen(true);
+            }}
             className="no-drag"
           />
           <div className="h-10 border" />

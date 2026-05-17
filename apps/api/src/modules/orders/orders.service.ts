@@ -407,78 +407,98 @@ export class OrdersService {
 
     await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
 
-    return this.prisma.$transaction(async (tx) => {
-      const year = new Date().getFullYear();
-      const sequence = await tx.orderSequence.upsert({
-        where: {
-          tenantId_branchId_year: { tenantId, branchId, year },
-        },
-        update: { lastValue: { increment: 1 } },
-        create: { tenantId, branchId, year, lastValue: 1 },
-      });
+    const currentYear = new Date().getFullYear().toString();
 
-      const orderNumber = `${year}-${String(sequence.lastValue).padStart(5, '0')}`;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // fetch/upsert sequence
+        const sequence = await tx.orderSequence.upsert({
+          where: { branchId_date: { branchId, date: currentYear } },
+          update: { lastValue: { increment: 1 } },
+          create: { tenantId, branchId, date: currentYear, lastValue: 1 },
+        });
 
-      // Create the order
-      const order = await tx.order.create({
-        data: {
-          tenantId,
-          branchId,
-          userId,
-          type: orderType,
-          status: OrderStatus.DRAFT,
-          orderNumber,
-          total,
-          discount: discount ?? 0,
-          shippingFee: shippingFee ?? 0,
-          includeVAT: includeVAT ?? false,
-          vat: vatAmount,
-          ...(tableId && { tableId }),
-          ...(customerId && { customerId }),
-          ...(shiftId && { shiftId }),
-          ...(deviceId && { deviceId }),
-          items: { create: orderItems },
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
-              modifiers: {
-                include: { modifier: true },
+        const orderNumber = `${currentYear}-${sequence.lastValue.toString().padStart(5, '0')}`;
+
+        // Create the order
+        const order = await tx.order.create({
+          data: {
+            tenantId,
+            branchId,
+            userId,
+            orderNumber,
+            type: orderType,
+            status: OrderStatus.DRAFT,
+            total,
+            discount: discount ?? 0,
+            shippingFee: shippingFee ?? 0,
+            includeVAT: includeVAT ?? false,
+            vat: vatAmount,
+            ...(tableId && { tableId }),
+            ...(customerId && { customerId }),
+            ...(shiftId && { shiftId }),
+            ...(deviceId && { deviceId }),
+            items: { create: orderItems },
+          },
+          include: {
+            items: {
+              include: {
+                product: true,
+                modifiers: {
+                  include: { modifier: true },
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      // Auto-update table status to OCCUPIED if tableId provided
-      if (tableId) {
-        // Validate table and update status if needed
-        await this.tableStatusService.markTableOccupiedIfNeeded(
-          tableId,
-          tenantId,
-          tx,
-          guestCount,
-        );
+        // Auto-update table status to OCCUPIED if tableId provided
+        if (tableId) {
+          // Validate table and update status if needed
+          await this.tableStatusService.markTableOccupiedIfNeeded(
+            tableId,
+            tenantId,
+            tx,
+            guestCount,
+          );
+        }
+
+        return order;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        // Reconcile sequence outside the failed transaction
+        const latestOrder = await this.prisma.order.findFirst({
+          where: { branchId, orderNumber: { startsWith: `${currentYear}-` } },
+          orderBy: { orderNumber: 'desc' },
+        });
+
+        if (latestOrder && latestOrder.orderNumber) {
+          const lastNum = parseInt(
+            latestOrder.orderNumber.split('-')[1] || '0',
+            10,
+          );
+          if (!isNaN(lastNum)) {
+            await this.prisma.orderSequence.upsert({
+              where: { branchId_date: { branchId, date: currentYear } },
+              update: { lastValue: lastNum }, // Next attempt will increment it
+              create: {
+                tenantId,
+                branchId,
+                date: currentYear,
+                lastValue: lastNum,
+              },
+            });
+          }
+        }
       }
 
-      return order;
-    });
-  }
-
-  /* ----------------------------------------------------
-     READ
-  ---------------------------------------------------- */
-
-  async getNextOrderNumber(tenantId: string, branchId: string) {
-    const year = new Date().getFullYear();
-    const sequence = await this.prisma.orderSequence.findFirst({
-      where: { tenantId, branchId, year },
-    });
-    const nextVal = (sequence?.lastValue || 0) + 1;
-    return {
-      orderNumber: `${year}-${String(nextVal).padStart(5, '0')}`,
-    };
+      console.error(error);
+      throw error;
+    }
   }
 
   async findOne(tenantId: string, orderId: string) {
@@ -502,6 +522,22 @@ export class OrdersService {
     return order;
   }
 
+  async getNextOrderNumber(tenantId: string, branchId: string) {
+    const currentYear = new Date().getFullYear().toString();
+    const sequence = await this.prisma.orderSequence.findUnique({
+      where: {
+        branchId_date: {
+          branchId,
+          date: currentYear,
+        },
+      },
+    });
+
+    const nextValue = (sequence?.lastValue || 0) + 1;
+    const orderNumber = `${currentYear}-${nextValue.toString().padStart(5, '0')}`;
+    return { orderNumber };
+  }
+
   async findAll(tenantId: string, params: OrderQueryParams) {
     const page = Number(params.page) || 1;
     const limit = Number(params.limit) || 10;
@@ -514,7 +550,7 @@ export class OrdersService {
       ...(params.type && { type: params.type }),
       ...(params.tableId && { tableId: params.tableId }),
       ...(params.search && {
-        orderNumber: { contains: params.search, mode: 'insensitive' },
+        id: params.search,
       }),
     };
 
@@ -2160,7 +2196,7 @@ export class OrdersService {
         tenantId,
         status: { in: this.ACTIVE_ORDER_STATUSES },
       },
-      select: { id: true, status: true, orderNumber: true },
+      select: { id: true, status: true },
     });
   }
 

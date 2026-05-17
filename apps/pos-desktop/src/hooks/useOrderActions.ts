@@ -33,6 +33,7 @@ export function useOrderActions() {
   const closeTab = useOrderStore((s) => s.closeTab);
   const activeTabId = useOrderStore((s) => s.activeTabId);
   const updateOrderId = useOrderStore((s) => s.updateOrderId);
+  const updateOrderNumber = useOrderStore((s) => s.updateOrderNumber);
   const markItemsSentToKitchen = useOrderStore((s) => s.markItemsSentToKitchen);
   const setOrderStatus = useOrderStore((s) => s.setOrderStatus);
 
@@ -111,9 +112,19 @@ export function useOrderActions() {
 
       const created = await createOrder.mutateAsync(dto);
       updateOrderId(created.id);
+      if (created.orderNumber) {
+        updateOrderNumber(created.orderNumber);
+      }
       return created.id;
     },
-    [buildOrderDto, createOrder, getActiveOrder, isLoadedOrder, updateOrderId],
+    [
+      buildOrderDto,
+      createOrder,
+      getActiveOrder,
+      isLoadedOrder,
+      updateOrderId,
+      updateOrderNumber,
+    ],
   );
 
   const getTotal = useCallback(() => {

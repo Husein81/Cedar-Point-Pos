@@ -94,8 +94,8 @@ function CustomersReportPage() {
   const rows = data?.data || [];
   const meta = data?.pagination || {
     page: 1,
-    pageSize: 10,
-    totalItems: 0,
+    limit: 10,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -311,7 +311,7 @@ function CustomersReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Customers</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} customers found
+              {meta.totalCount} customers found
             </p>
           </div>
           {/* PDF Export */}
@@ -340,7 +340,7 @@ function CustomersReportPage() {
             keys: ["name" as keyof CustomerReportRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page: page,
             pageSize: pageSize,
             totalPages: meta.totalPages,

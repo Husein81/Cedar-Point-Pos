@@ -16,13 +16,13 @@ export class FloorsService {
       where: {
         branchId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         _count: {
           select: {
             tables: {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
             },
           },
         },
@@ -36,13 +36,13 @@ export class FloorsService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         _count: {
           select: {
             tables: {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
             },
           },
         },
@@ -65,7 +65,7 @@ export class FloorsService {
       where: {
         id: floorId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -77,7 +77,7 @@ export class FloorsService {
       where: {
         floorId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       orderBy: { tableNumber: 'asc' },
     });
@@ -106,7 +106,7 @@ export class FloorsService {
         where: {
           branchId: data.branchId,
           name: data.name,
-          isDeleted: false,
+          deletedAt: null,
         },
       });
 
@@ -148,7 +148,7 @@ export class FloorsService {
         where: {
           id,
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
         },
       });
 
@@ -162,7 +162,7 @@ export class FloorsService {
           where: {
             branchId: existingFloor.branchId,
             name: data.name,
-            isDeleted: false,
+            deletedAt: null,
             NOT: { id },
           },
         });
@@ -202,11 +202,11 @@ export class FloorsService {
           where: {
             id,
             tenantId,
-            isDeleted: false,
+            deletedAt: null,
           },
           include: {
             tables: {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
               include: {
                 orders: {
                   where: {
@@ -250,10 +250,10 @@ export class FloorsService {
         await tx.table.updateMany({
           where: {
             floorId: id,
-            isDeleted: false,
+            deletedAt: null,
           },
           data: {
-            isDeleted: true,
+            deletedAt: new Date(),
           },
         });
 
@@ -261,7 +261,7 @@ export class FloorsService {
         return tx.floor.update({
           where: { id },
           data: {
-            isDeleted: true,
+            deletedAt: new Date(),
           },
         });
       });

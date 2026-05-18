@@ -438,7 +438,7 @@ export class OffersService {
           id: true,
           tenantId: true,
           isActive: true,
-          isDeleted: true,
+          deletedAt: true,
           name: true,
         },
       });
@@ -451,7 +451,7 @@ export class OffersService {
         throw new BadRequestException('Product does not belong to this tenant');
       }
 
-      if (product.isDeleted) {
+      if (product.deletedAt) {
         throw new BadRequestException(
           `Product "${product.name}" has been deleted`,
         );
@@ -606,7 +606,7 @@ export class OffersService {
                     name: true,
                     price: true,
                     isActive: true,
-                    isDeleted: true,
+                    deletedAt: true,
                   },
                 },
               },
@@ -701,7 +701,7 @@ export class OffersService {
           continue;
         }
 
-        if (offerItem.product.isDeleted) {
+        if (offerItem.product.deletedAt) {
           validationErrors.push(
             `Product "${offerItem.product.name}" has been deleted`,
           );

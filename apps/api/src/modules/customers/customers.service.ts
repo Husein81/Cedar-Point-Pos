@@ -19,7 +19,7 @@ export class CustomersService {
     // If no query, return recent customers
     if (!query || query.trim().length === 0) {
       return this.prisma.customer.findMany({
-        where: { tenantId },
+        where: { tenantId, deletedAt: null },
         orderBy: { updatedAt: 'desc' },
         take: limit,
         select: {
@@ -37,6 +37,7 @@ export class CustomersService {
     return this.prisma.customer.findMany({
       where: {
         tenantId,
+        deletedAt: null,
         OR: [
           { name: { contains: searchTerm, mode: 'insensitive' } },
           { phone: { contains: searchTerm, mode: 'insensitive' } },
@@ -63,6 +64,7 @@ export class CustomersService {
 
       const where: Prisma.CustomerWhereInput = {
         tenantId,
+        deletedAt: null,
       };
 
       const searchTerm = search?.trim();
@@ -140,6 +142,7 @@ export class CustomersService {
       where: {
         id: customerId,
         tenantId,
+        deletedAt: null,
       },
       include: {
         orders: {
@@ -290,6 +293,7 @@ export class CustomersService {
           where: {
             tenantId,
             phone: data.phone,
+            deletedAt: null,
           },
         });
 
@@ -330,8 +334,9 @@ export class CustomersService {
 
   async deleteCustomer(id: string) {
     try {
-      const result = await this.prisma.customer.delete({
+      const result = await this.prisma.customer.update({
         where: { id },
+        data: { deletedAt: new Date() },
       });
       return result;
     } catch (error) {

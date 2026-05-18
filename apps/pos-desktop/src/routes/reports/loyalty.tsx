@@ -220,8 +220,8 @@ function LoyaltyReportPage() {
   const rows = data?.data ?? [];
   const meta = data?.pagination ?? {
     page: 1,
-    pageSize: 10,
-    totalItems: 0,
+    limit: 10,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -272,7 +272,7 @@ function LoyaltyReportPage() {
         <div>
           <h2 className="text-xl font-semibold">Loyalty Transactions</h2>
           <p className="text-sm text-muted-foreground">
-            {meta.totalItems} transactions found
+            {meta.totalCount} transactions found
             {summaryData
               ? ` — ${summaryData.transactionsInPeriod} in selected period`
               : ""}
@@ -299,7 +299,7 @@ function LoyaltyReportPage() {
               keys: ["type" as keyof LoyaltyTransactionReportRow],
             }}
             pagination={{
-              rows: meta.totalItems,
+              rows: meta.totalCount,
               page,
               pageSize,
               totalPages: meta.totalPages,

@@ -50,13 +50,11 @@ export const SalesByCategoryChart = ({
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              // @ts-expect-error - Recharts ChartDataInput type compatibility
               data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
-              // @ts-expect-error - Recharts PieLabel type compatibility
-              label={renderCustomizedLabel}
+              label={renderCustomizedLabel as any}
               outerRadius={100}
               fill="#8884d8"
               dataKey="value"
@@ -69,14 +67,13 @@ export const SalesByCategoryChart = ({
               ))}
             </Pie>
             <Tooltip
-              // @ts-expect-error - Recharts Formatter type compatibility
               formatter={(
-                value: number | undefined,
-                _name: unknown,
-                props: { payload: CategoryData }
+                value?: unknown,
+                _name?: unknown,
+                props?: unknown,
               ) => [
-                `${value ?? 0} items ($${props.payload.sales.toFixed(2)})`,
-                props.payload.name,
+                `${value ?? 0} items ($${(props as { payload: CategoryData }).payload?.sales.toFixed(2)})`,
+                (props as { payload: CategoryData }).payload?.name,
               ]}
               contentStyle={{
                 backgroundColor: "rgba(255, 255, 255, 0.95)",

@@ -53,8 +53,8 @@ export const HourlyRevenueChart = ({
               tickFormatter={(value: number) => `$${value.toLocaleString()}`}
             />
             <Tooltip
-              formatter={(value: number | undefined) => [
-                `$${(value ?? 0).toFixed(2)}`,
+              formatter={(value?: unknown) => [
+                `$${(Number(value) || 0).toFixed(2)}`,
                 "Revenue",
               ]}
               contentStyle={{

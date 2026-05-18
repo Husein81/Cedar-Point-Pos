@@ -167,7 +167,7 @@ function SalesReportPage() {
         header: "Status",
         cell: ({ row }) => (
           <Badge variant={getStatusVariant(row.original.status)}>
-            {row.original.status}
+            {row.original.status.split("_").join(" ")}
           </Badge>
         ),
       },
@@ -241,8 +241,8 @@ function SalesReportPage() {
   const rows = data?.data ?? [];
   const meta = data?.pagination ?? {
     page: 1,
-    pageSize: 10,
-    totalItems: 0,
+    limit: 10,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -345,7 +345,7 @@ function SalesReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Sales Orders</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} orders found
+              {meta.totalCount} orders found
             </p>
           </div>
           <Button
@@ -369,7 +369,7 @@ function SalesReportPage() {
             keys: ["orderNumber" as keyof SalesOrderRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page: page,
             pageSize: pageSize,
             totalPages: meta.totalPages,

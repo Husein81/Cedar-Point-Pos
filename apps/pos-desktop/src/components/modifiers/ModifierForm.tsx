@@ -42,7 +42,7 @@ export const ModifierForm = ({
 
   // Filter to only show modifiable products
   const modifiableProducts =
-    products?.filter((p: Product) => p.isModifiable && !p.isDeleted) || [];
+    products?.filter((p: Product) => p.isModifiable && !p.deletedAt) || [];
 
   const isLoading = createModifier.isPending || updateModifier.isPending;
 

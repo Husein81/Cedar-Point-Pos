@@ -20,7 +20,7 @@ export class ProductsController {
 
     return await this.productsService.getProductsPaginated(tenantId, query);
   }
- 
+
   @Get('barcode/:barcode')
   async getProductByBarcode(
     @Req() req: Request & { user: { tenantId: string } },
@@ -89,13 +89,8 @@ export class ProductsController {
     };
 
     // Handle relations and imageUrl update explicitly
-    const {
-      imageUrl,
-      categoryId,
-      subcategoryId,
-      branchId: _branchId, // Exclude branchId if it's there
-      ...productData
-    } = body;
+    const { imageUrl, categoryId, subcategoryId, branchId, ...productData } =
+      body;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...productData,
@@ -104,10 +99,18 @@ export class ProductsController {
       ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
     };
 
+    if (branchId !== undefined) {
+      if (branchId) {
+        updateData.branch = { connect: { id: branchId } };
+      } else {
+        updateData.branch = { disconnect: true };
+      }
+    }
+
     return this.productsService.updateProduct(id, tenantId, updateData);
   }
 
-  @Delete(':id')
+  @Put('/delete/:id')
   deleteProduct(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     if (!id) {

@@ -3,10 +3,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import {
   type ReportQueryDto,
   ALLOWED_SORT_FIELDS,
-  type PaginatedResponse,
   type PaginationMeta,
 } from './dto/report-query.dto.js';
 import { Prisma, OrderType } from '../../generated/prisma/client.js';
+import { PaginationResponse } from '@repo/types';
 
 // ============================================================
 // Response Row Types (exported for controller return type inference)
@@ -142,23 +142,19 @@ export interface LoyaltyTransactionRow {
   actorUser: { id: string; name: string } | null;
 }
 
-// ============================================================
-// Helper Functions
-// ============================================================
-
 /**
  * Builds pagination meta from count and query params
  */
-function buildPaginationMeta(
-  totalItems: number,
+function buildPagination(
+  totalCount: number,
   page: number,
-  pageSize: number,
+  limit: number,
 ): PaginationMeta {
   return {
     page,
-    pageSize,
-    totalItems,
-    totalPages: Math.ceil(totalItems / pageSize) || 1,
+    limit,
+    totalCount,
+    totalPages: Math.ceil(totalCount / limit) || 1,
   };
 }
 
@@ -180,23 +176,10 @@ function validateSortBy(
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // ============================================================
-  // NEW LIST ENDPOINTS
-  // ============================================================
-
-  /**
-   * Sales Orders List - Paginated order rows with payments summary
-   * GET /reports/sales/orders
-   *
-   * For date filtering:
-   * - Uses createdAt as the primary filter for consistency with existing summary endpoints
-   * - completedAt is included in response for display purposes
-   */
   async getSalesOrdersList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<SalesOrderRow>> {
+  ): Promise<PaginationResponse<SalesOrderRow>> {
     const {
       from,
       to,
@@ -324,7 +307,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
+      pagination: buildPagination(totalItems, page, pageSize),
     };
   }
 
@@ -335,7 +318,7 @@ export class ReportsService {
   async getInventoryMovementsList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<InventoryMovementRow>> {
+  ): Promise<PaginationResponse<InventoryMovementRow>> {
     const {
       from,
       to,
@@ -428,7 +411,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
+      pagination: buildPagination(totalItems, page, pageSize),
     };
   }
 
@@ -441,7 +424,7 @@ export class ReportsService {
   async getTopProductsReportList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<TopProductRow>> {
+  ): Promise<PaginationResponse<TopProductRow>> {
     const {
       from,
       to,
@@ -463,9 +446,6 @@ export class ReportsService {
     // Use limit if provided, otherwise use pageSize
     const effectiveLimit = limit ?? pageSize;
 
-    // Get aggregated order items grouped by productId
-    // Note: Prisma groupBy doesn't support pagination well, so we fetch all and paginate in memory
-    // For production with large datasets, consider raw SQL or a materialized view
     const groupedProducts = await this.prisma.orderItem.groupBy({
       by: ['productId'],
       where: {
@@ -557,7 +537,7 @@ export class ReportsService {
 
     return {
       data: results,
-      meta: buildPaginationMeta(totalItems, page, limit ?? pageSize),
+      pagination: buildPagination(totalItems, page, limit ?? pageSize),
     };
   }
 
@@ -824,7 +804,7 @@ export class ReportsService {
   async getDebtsOrdersList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<DebtOrderRow>> {
+  ): Promise<PaginationResponse<DebtOrderRow>> {
     const {
       from,
       to,
@@ -905,7 +885,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
+      pagination: buildPagination(totalItems, page, pageSize),
     };
   }
 
@@ -1203,7 +1183,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: {
+      pagination: {
         page,
         pageSize,
         totalItems,
@@ -1636,7 +1616,7 @@ export class ReportsService {
   async getCustomersReportList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<CustomerReportRow>> {
+  ): Promise<PaginationResponse<CustomerReportRow>> {
     const {
       from,
       to,
@@ -1751,7 +1731,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
+      pagination: buildPagination(totalItems, page, pageSize),
     };
   }
 
@@ -2149,7 +2129,7 @@ export class ReportsService {
   async getLoyaltyTransactionsList(
     tenantId: string,
     query: ReportQueryDto,
-  ): Promise<PaginatedResponse<LoyaltyTransactionRow>> {
+  ): Promise<PaginationResponse<LoyaltyTransactionRow>> {
     const {
       from,
       to,
@@ -2211,7 +2191,7 @@ export class ReportsService {
 
     return {
       data,
-      meta: buildPaginationMeta(totalItems, page, pageSize),
+      pagination: buildPagination(totalItems, page, pageSize),
     };
   }
 }

@@ -119,15 +119,7 @@ export const ALLOWED_SORT_FIELDS = {
  */
 export interface PaginationMeta {
   page: number;
-  pageSize: number;
-  totalItems: number;
+  limit: number;
+  totalCount: number;
   totalPages: number;
-}
-
-/**
- * Generic paginated response wrapper
- */
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginationMeta;
 }

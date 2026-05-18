@@ -42,10 +42,10 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                 className="w-8 h-8 dark:invert-0 invert"
                 alt="cedar point"
               />
-              <h2 className="text-lg font-semibold text-text">
+              <span className="text-lg font-semibold text-text">
                 Cedar
                 <span className="text-primary font-bold">Point</span>
-              </h2>
+              </span>
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>
 

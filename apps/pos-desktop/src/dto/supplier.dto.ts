@@ -15,6 +15,7 @@ const SupplierDetailsSchema = SupplierSummarySchema.extend({
   currentBalance: z.number(),
   notes: z.string().nullable(),
   isActive: z.boolean(),
+  deletedAt: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   _count: z.object({

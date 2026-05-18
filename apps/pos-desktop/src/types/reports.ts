@@ -48,9 +48,11 @@ export type DateRangePreset =
 
 export interface PaginationMeta {
   page: number;
-  pageSize: number;
-  totalItems: number;
+  pageSize?: number;
+  totalItems?: number;
   totalPages: number;
+  limit?: number;
+  totalCount?: number;
 }
 
 export interface PaginatedResponse<T> {

@@ -38,7 +38,7 @@ export class TablesService {
       where: {
         branchId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         floor: {
@@ -57,7 +57,7 @@ export class TablesService {
       where: {
         floorId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       orderBy: { tableNumber: 'asc' },
     });
@@ -67,7 +67,7 @@ export class TablesService {
         where: {
           id: floorId,
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
         },
       });
 
@@ -84,7 +84,7 @@ export class TablesService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         floor: {
@@ -124,7 +124,7 @@ export class TablesService {
               id: data.floorId,
               branchId: data.branchId,
               tenantId,
-              isDeleted: false,
+              deletedAt: null,
             },
           });
 
@@ -139,7 +139,7 @@ export class TablesService {
           where: {
             branchId: data.branchId,
             tableNumber: data.tableNumber,
-            isDeleted: false,
+            deletedAt: null,
           },
         });
 
@@ -180,7 +180,7 @@ export class TablesService {
           where: {
             id,
             tenantId,
-            isDeleted: false,
+            deletedAt: null,
           },
         });
 
@@ -194,7 +194,7 @@ export class TablesService {
               id: data.floorId,
               branchId: existingTable.branchId,
               tenantId,
-              isDeleted: false,
+              deletedAt: null,
             },
           });
 
@@ -213,7 +213,7 @@ export class TablesService {
             where: {
               branchId: existingTable.branchId,
               tableNumber: data.tableNumber,
-              isDeleted: false,
+              deletedAt: null,
               NOT: { id },
             },
           });
@@ -292,7 +292,7 @@ export class TablesService {
    */
   async getActiveOrdersByTable(tableId: string, tenantId: string) {
     const table = await this.prisma.table.findFirst({
-      where: { id: tableId, tenantId, isDeleted: false },
+      where: { id: tableId, tenantId, deletedAt: null },
       select: { id: true },
     });
 
@@ -310,7 +310,7 @@ export class TablesService {
           where: {
             id,
             tenantId,
-            isDeleted: false,
+            deletedAt: null,
           },
         });
 
@@ -335,7 +335,7 @@ export class TablesService {
 
         return tx.table.update({
           where: { id },
-          data: { isDeleted: true },
+          data: { deletedAt: new Date() },
         });
       });
     } catch (error) {
@@ -348,7 +348,7 @@ export class TablesService {
       where: {
         branchId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
         isActive: true,
       },
       select: {

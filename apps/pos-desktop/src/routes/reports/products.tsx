@@ -154,8 +154,8 @@ function ProductsReportPage() {
   const rows = data?.data ?? [];
   const meta = data?.pagination ?? {
     page: 1,
-    pageSize: 25,
-    totalItems: 0,
+    limit: 25,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -228,7 +228,7 @@ function ProductsReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Top Products</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} products found
+              {meta.totalCount} products found
             </p>
           </div>
           <Button
@@ -254,7 +254,7 @@ function ProductsReportPage() {
             keys: ["productName" as keyof TopProductRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page,
             pageSize,
             totalPages: meta.totalPages,

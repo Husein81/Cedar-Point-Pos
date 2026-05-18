@@ -108,7 +108,7 @@ export const SalesOverTimeChart = ({
                             tickFormatter={(value: number) => `$${value.toLocaleString()}`}
                         />
                         <Tooltip
-                            formatter={(value: number | string | undefined) => [
+                            formatter={(value: any) => [
                                 `$${Number(value ?? 0).toFixed(2)}`,
                                 "Revenue",
                             ]}

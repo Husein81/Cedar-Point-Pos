@@ -101,10 +101,10 @@ export const PaymentMethodChart = ({
                             ))}
                         </Pie>
                         <Tooltip
-                            formatter={(value: number | undefined, _name: string, props) => {
+                            formatter={(value: any, _name: any, props: any) => {
                                 const entry = props.payload;
                                 return [
-                                    `${formatCurrency(value ?? 0)} (${entry.count} transactions)`,
+                                    `${formatCurrency(Number(value) || 0)} (${entry.count} transactions)`,
                                     entry.name,
                                 ];
                             }}

@@ -286,7 +286,7 @@ export class OrdersService {
           where: {
             id: { in: items.map((i) => i.productId) },
             tenantId,
-            isDeleted: false,
+            deletedAt: null,
           },
           select: {
             id: true,
@@ -298,7 +298,7 @@ export class OrdersService {
               where: {
                 id: { in: allModifierIds },
                 tenantId,
-                isDeleted: false,
+                deletedAt: null,
               },
             })
           : [],
@@ -1529,7 +1529,7 @@ export class OrdersService {
     }
 
     const product = await db.product.findFirst({
-      where: { id: dto.productId, tenantId, isDeleted: false },
+      where: { id: dto.productId, tenantId, deletedAt: null },
     });
     if (!product) throw new NotFoundException('Product not found');
 
@@ -1543,7 +1543,7 @@ export class OrdersService {
         where: {
           id: { in: dto.modifiers },
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
         },
         select: { id: true, price: true },
       });
@@ -1813,7 +1813,7 @@ export class OrdersService {
 
       // Verify new table exists
       const table = await tx.table.findFirst({
-        where: { id: tableId, tenantId, isDeleted: false },
+        where: { id: tableId, tenantId, deletedAt: null },
       });
       if (!table) throw new NotFoundException('Table not found');
 

@@ -8,7 +8,6 @@ import type {
   CustomersReportData,
   FinancialsReportData,
   ReportListParams,
-  PaginatedResponse,
   SalesOrderRow,
   PaymentTransactionRow,
   InventoryMovementRow,
@@ -25,11 +24,7 @@ import type {
   HourlyRevenueData,
   TopProductData,
 } from "../types/dashboard";
-
-/**
- * Reports API Client
- * Handles all reports-related API calls with proper error handling
- */
+import { PaginationResponse } from "@repo/types";
 
 interface ReportQueryParams {
   from: string;
@@ -50,10 +45,6 @@ interface ReportQueryParams {
 
 const basePath = "/reports";
 
-/**
- * Builds query params from ReportListParams
- * Converts Dates to ISO strings and filters out undefined values
- */
 function buildListParams(params: ReportListParams): ReportQueryParams {
   return {
     from: params.from.toISOString(),
@@ -74,34 +65,22 @@ function buildListParams(params: ReportListParams): ReportQueryParams {
 }
 
 export const reportsApi = {
-  // ============================================================
-  // LIST ENDPOINTS (NEW - for data-first reports)
-  // ============================================================
-
-  /**
-   * Fetch sales orders list with pagination
-   * GET /reports/sales/orders
-   */
   async getSalesOrdersList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<SalesOrderRow>> {
+  ): Promise<PaginationResponse<SalesOrderRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<SalesOrderRow>>(
+    const { data } = await api.get<PaginationResponse<SalesOrderRow>>(
       `${basePath}/sales/orders`,
       { params: queryParams },
     );
     return data;
   },
 
-  /**
-   * Fetch payment transactions list with pagination
-   * GET /reports/payments/transactions
-   */
   async getPaymentTransactionsList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<PaymentTransactionRow>> {
+  ): Promise<PaginationResponse<PaymentTransactionRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<PaymentTransactionRow>>(
+    const { data } = await api.get<PaginationResponse<PaymentTransactionRow>>(
       `${basePath}/payments/transactions`,
       { params: queryParams },
     );
@@ -114,9 +93,9 @@ export const reportsApi = {
    */
   async getInventoryMovementsList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<InventoryMovementRow>> {
+  ): Promise<PaginationResponse<InventoryMovementRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<InventoryMovementRow>>(
+    const { data } = await api.get<PaginationResponse<InventoryMovementRow>>(
       `${basePath}/inventory/movements`,
       { params: queryParams },
     );
@@ -129,9 +108,9 @@ export const reportsApi = {
    */
   async getTopProductsReport(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<TopProductRow>> {
+  ): Promise<PaginationResponse<TopProductRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<TopProductRow>>(
+    const { data } = await api.get<PaginationResponse<TopProductRow>>(
       `${basePath}/products/top`,
       { params: queryParams },
     );
@@ -144,9 +123,9 @@ export const reportsApi = {
    */
   async getDebtsOrdersList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<DebtOrderRow>> {
+  ): Promise<PaginationResponse<DebtOrderRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<DebtOrderRow>>(
+    const { data } = await api.get<PaginationResponse<DebtOrderRow>>(
       `${basePath}/debts/orders`,
       { params: queryParams },
     );
@@ -159,9 +138,9 @@ export const reportsApi = {
    */
   async getCustomersReportList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<CustomerReportRow>> {
+  ): Promise<PaginationResponse<CustomerReportRow>> {
     const queryParams = buildListParams(params);
-    const { data } = await api.get<PaginatedResponse<CustomerReportRow>>(
+    const { data } = await api.get<PaginationResponse<CustomerReportRow>>(
       `${basePath}/customers/list`,
       { params: queryParams },
     );
@@ -432,10 +411,10 @@ export const reportsApi = {
    */
   async getLoyaltyTransactionsList(
     params: ReportListParams,
-  ): Promise<PaginatedResponse<LoyaltyTransactionReportRow>> {
+  ): Promise<PaginationResponse<LoyaltyTransactionReportRow>> {
     const queryParams = buildListParams(params);
     const { data } = await api.get<
-      PaginatedResponse<LoyaltyTransactionReportRow>
+      PaginationResponse<LoyaltyTransactionReportRow>
     >(`${basePath}/loyalty/transactions`, { params: queryParams });
     return data;
   },

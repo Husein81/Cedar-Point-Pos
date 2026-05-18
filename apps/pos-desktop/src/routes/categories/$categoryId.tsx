@@ -31,7 +31,7 @@ function RouteComponent() {
   };
 
   const subcategories =
-    category?.subcategories?.filter((sub) => !sub.isDeleted) || [];
+    category?.subcategories?.filter((sub) => !sub.deletedAt) || [];
 
   if (isLoading) {
     return <DetailsSkeleton />;

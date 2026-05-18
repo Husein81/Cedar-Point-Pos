@@ -93,8 +93,8 @@ function DebtsReportPage() {
   const rows = data?.data || [];
   const meta = data?.pagination || {
     page: 1,
-    pageSize: 10,
-    totalItems: 0,
+    limit: 10,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -307,7 +307,7 @@ function DebtsReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Pending Orders (Debts)</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} pending orders found
+              {meta.totalCount} pending orders found
             </p>
           </div>
           {/* PDF Export */}
@@ -336,7 +336,7 @@ function DebtsReportPage() {
             keys: ["orderNumber" as keyof DebtOrderRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page: page,
             pageSize: pageSize,
             totalPages: meta.totalPages,

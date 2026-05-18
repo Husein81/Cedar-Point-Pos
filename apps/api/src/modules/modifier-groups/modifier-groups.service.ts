@@ -28,7 +28,7 @@ export class ModifierGroupsService {
           equals: name,
           mode: 'insensitive',
         },
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -46,7 +46,7 @@ export class ModifierGroupsService {
       },
       include: {
         modifiers: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
           select: {
             id: true,
             name: true,
@@ -79,7 +79,7 @@ export class ModifierGroupsService {
       const where: Prisma.ModifierGroupWhereInput = {
         tenantId,
         ...(type && { type }),
-        ...(!includeDeleted && { isDeleted: false }),
+        ...(!includeDeleted && { deletedAt: null }),
       };
 
       const [totalCount, modifierGroups] = await Promise.all([
@@ -88,7 +88,7 @@ export class ModifierGroupsService {
           where,
           include: {
             modifiers: {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
               select: {
                 id: true,
                 name: true,
@@ -128,11 +128,11 @@ export class ModifierGroupsService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         modifiers: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
           select: {
             id: true,
             name: true,
@@ -165,7 +165,7 @@ export class ModifierGroupsService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -182,7 +182,7 @@ export class ModifierGroupsService {
             equals: updateDto.name,
             mode: 'insensitive',
           },
-          isDeleted: false,
+          deletedAt: null,
           NOT: {
             id,
           },
@@ -204,7 +204,7 @@ export class ModifierGroupsService {
       },
       include: {
         modifiers: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
           select: {
             id: true,
             name: true,
@@ -226,7 +226,7 @@ export class ModifierGroupsService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -238,11 +238,11 @@ export class ModifierGroupsService {
     await this.prisma.$transaction([
       this.prisma.modifierGroup.update({
         where: { id },
-        data: { isDeleted: true },
+        data: { deletedAt: new Date() },
       }),
       this.prisma.modifier.updateMany({
         where: { groupId: id },
-        data: { isDeleted: true },
+        data: { deletedAt: new Date() },
       }),
     ]);
 
@@ -257,11 +257,11 @@ export class ModifierGroupsService {
       where: {
         tenantId,
         type,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         modifiers: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
           select: {
             id: true,
             name: true,

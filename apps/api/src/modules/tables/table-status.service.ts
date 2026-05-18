@@ -41,7 +41,7 @@ export class TableStatusService {
       where: {
         id: tableId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -66,7 +66,7 @@ export class TableStatusService {
         where: {
           id: tableId,
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
           status: expectedStatus, // Atomic check ensuring status hasn't changed
         },
         data: { status },
@@ -75,7 +75,7 @@ export class TableStatusService {
       if (result.count === 0) {
         // Determine if failure was due to non-existence or status mismatch
         const exists = await prismaClient.table.findFirst({
-          where: { id: tableId, tenantId, isDeleted: false },
+          where: { id: tableId, tenantId, deletedAt: null },
         });
 
         if (!exists) {
@@ -92,7 +92,7 @@ export class TableStatusService {
         where: {
           id: tableId,
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
         },
         data: { status },
       });
@@ -166,7 +166,7 @@ export class TableStatusService {
       where: {
         id: tableId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       select: {
         status: true,

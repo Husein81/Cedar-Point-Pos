@@ -153,7 +153,7 @@ model Category {
   name          String
   code          String?       @unique
   description   String?
-  isDeleted     Boolean       @default(false)
+  deletedAt     DateTime?
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   products      Product[]
   subcategories Subcategory[]
@@ -178,7 +178,7 @@ model Subcategory {
   categoryId  String
   name        String
   description String?
-  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
   products    Product[]
   category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 }
@@ -196,7 +196,7 @@ model Product {
   categoryId          String?
   subcategoryId       String?
   isActive            Boolean                     @default(true)
-  isDeleted           Boolean                     @default(false)
+  deletedAt           DateTime?                   
   isModifiable        Boolean                     @default(false)
   createdAt           DateTime                    @default(now())
   branchId            String?
@@ -435,20 +435,20 @@ model CashMovement {
 // ---------- RESTAURANT MODULE (FLOORS & TABLES) ----------
 //
 model Floor {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   tenantId  String
   branchId  String
   name      String
-  order     Int      @default(0) // For UI ordering
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  order     Int       @default(0) // For UI ordering
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   tables Table[]
 
-  @@index([branchId, isDeleted])
+  @@index([branchId, deletedAt])
 }
 
 model Table {
@@ -461,7 +461,7 @@ model Table {
   capacity    Int         @default(4)
   status      TableStatus @default(AVAILABLE)
   isActive    Boolean     @default(true)
-  isDeleted   Boolean     @default(false)
+  deletedAt   DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -470,7 +470,7 @@ model Table {
   floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
   orders Order[]
 
-  @@index([branchId, isDeleted])
+  @@index([branchId, deletedAt])
   @@index([floorId])
 }
 
@@ -479,7 +479,7 @@ model ModifierGroup {
   tenantId  String
   name      String
   type      ModifierType
-  isDeleted Boolean      @default(false)
+  deletedAt DateTime?
   modifiers Modifier[]
   tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
@@ -491,7 +491,7 @@ model Modifier {
   productId          String? // @deprecated - kept for backward compatibility
   name               String
   price              Decimal                     @default(0)
-  isDeleted          Boolean                     @default(false)
+  deletedAt          DateTime?
   group              ModifierGroup               @relation(fields: [groupId], references: [id], onDelete: Cascade)
   product            Product?                    @relation(fields: [productId], references: [id])
   tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -631,6 +631,7 @@ model Customer {
   address             String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orders              Order[]
   loyaltyAccount      LoyaltyAccount?
@@ -727,6 +728,7 @@ model Supplier {
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   purchaseOrders PurchaseOrder[]
 

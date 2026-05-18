@@ -15,13 +15,14 @@ export const OrderTypeSelector = () => {
   const { switchContext } = useKeypadStore();
   const { getActiveOrder, setOrderType, setShippingFee } = useOrderStore();
   const order = getActiveOrder();
-  const search = useSearch({ from: "/orders/" });
+  const search = useSearch({ from: "/" });
 
   useEffect(() => {
-    // If order type is set in URL (e.g. from tables page), use it
     if (search.orderType) {
       const typeFromUrl = search.orderType.toUpperCase() as OrderType;
+
       setOrderType(typeFromUrl);
+
       if (typeFromUrl === OrderType.DELIVERY) {
         switchContext("SHIPPING");
       }

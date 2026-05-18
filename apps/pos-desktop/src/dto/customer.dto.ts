@@ -11,6 +11,7 @@ export type CustomerSummary = z.infer<typeof CustomerSummarySchema>;
 
 const CustomerDetailsSchema = CustomerSummarySchema.extend({
   address: z.string().nullable(),
+  deletedAt: z.string().nullable().optional(),
   createdAt: z.string(),
   orderCount: z.number(),
 });

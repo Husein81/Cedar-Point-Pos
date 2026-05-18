@@ -211,8 +211,8 @@ export class InventoryDeductionService {
       if (available < deduction.quantity) {
         const product =
           inventory?.product ||
-          (await this.prisma.product.findUnique({
-            where: { id: deduction.productId },
+          (await this.prisma.product.findFirst({
+            where: { id: deduction.productId, deletedAt: null },
             select: { name: true },
           }));
 
@@ -284,8 +284,8 @@ export class InventoryDeductionService {
       if (available < deduction.quantity) {
         const product =
           inventory?.product ||
-          (await this.prisma.product.findUnique({
-            where: { id: deduction.productId },
+          (await this.prisma.product.findFirst({
+            where: { id: deduction.productId, deletedAt: null },
             select: { name: true },
           }));
 
@@ -386,6 +386,7 @@ export class InventoryDeductionService {
       where: {
         id: { in: items.map((i) => i.productId) },
         tenantId,
+        deletedAt: null,
       },
     });
 

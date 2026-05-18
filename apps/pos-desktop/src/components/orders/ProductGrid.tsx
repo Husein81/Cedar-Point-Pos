@@ -47,8 +47,7 @@ export const ProductGrid = () => {
     if (!products) return [];
 
     return products.filter((product) => {
-      // Only show active and non-deleted products
-      if (!product.isActive || product.isDeleted) {
+      if (!product.isActive || product.deletedAt) {
         return false;
       }
 
@@ -102,13 +101,13 @@ export const ProductGrid = () => {
 
     const categoryIdsWithProducts = new Set(
       products
-        .filter((p) => p.isActive && !p.isDeleted)
+        .filter((p) => p.isActive && !p.deletedAt)
         .map((p) => p.categoryId)
         .filter(Boolean),
     );
 
     return categories.filter(
-      (cat) => !cat.isDeleted && categoryIdsWithProducts.has(cat.id),
+      (cat) => !cat.deletedAt && categoryIdsWithProducts.has(cat.id),
     );
   }, [categories, products]);
 
@@ -126,14 +125,14 @@ export const ProductGrid = () => {
       products
         .filter(
           (p) =>
-            p.isActive && !p.isDeleted && p.categoryId === selectedCategoryId,
+            p.isActive && !p.deletedAt && p.categoryId === selectedCategoryId,
         )
         .map((p) => p.subcategoryId)
         .filter(Boolean),
     );
 
     return selectedCategory.subcategories.filter(
-      (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id),
+      (sub) => !sub.deletedAt && subcategoryIdsWithProducts.has(sub.id),
     );
   }, [selectedCategoryId, categories, products]);
 
@@ -278,7 +277,7 @@ export const ProductGrid = () => {
               <Empty title="No products found" icon="Search" />
             </div>
           ) : (
-            <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+            <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -351,7 +350,7 @@ export const ProductGrid = () => {
                   <Empty title="No products found" icon="PackageX" />
                 </div>
               ) : (
-                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                   {filteredProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}

@@ -7,11 +7,12 @@ import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import path from "path";
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: "./public/assets/icon",
+    icon: path.resolve(__dirname, "./public/assets/icon"),
   },
 
   rebuildConfig: {},
@@ -20,18 +21,18 @@ const config: ForgeConfig = {
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDMG({
-      icon: "./public/assets/icon.icns",
+      icon: path.resolve(__dirname, "./public/assets/icon.icns"),
     }),
     new MakerDeb({
       options: {
-        icon: "./public/assets/icon.png",
+        icon: path.resolve(__dirname, "./public/assets/icon.png"),
       },
     }),
     new MakerSquirrel({
       name: "CedarPoint",
       iconUrl:
         "https://github.com/Husein81/CedarPoint/tree/main/apps/pos-desktop/public/assets/icon.ico",
-      setupIcon: "./public/assets/icon.ico",
+      setupIcon: path.resolve(__dirname, "./public/assets/icon.ico"),
     }),
   ],
 
@@ -43,8 +44,7 @@ const config: ForgeConfig = {
           owner: "Husein81",
           name: "CedarPoint",
         },
-        prerelease: false,
-        draft: false,
+        prerelease: true,
       },
     },
   ],

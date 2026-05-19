@@ -292,7 +292,7 @@ export const ProductGrid = () => {
                   <button
                     key={category.id}
                     onClick={() => handleCategoryClick(category.id)}
-                    className="relative overflow-hidden  flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
+                    className="relative overflow-hidden rounded-md flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
                     style={{
                       backgroundColor: category.color?.hex
                         ? `${category.color.hex}15`

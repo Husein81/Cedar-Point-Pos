@@ -216,7 +216,7 @@ export const ProductGrid = () => {
             variant={selectedCategoryId ? "outline" : "secondary"}
             size="sm"
             onClick={() => handleCategoryClick(null)}
-            className="gap-2 h-10 px-4"
+            className="gap-2 h-10  px-4"
           >
             <Icon name="House" className="w-4 h-4" />
             Home
@@ -232,7 +232,7 @@ export const ProductGrid = () => {
                 variant={selectedSubcategoryId ? "outline" : "secondary"}
                 size="sm"
                 onClick={() => handleSubcategoryClick(null)}
-                className="gap-2 h-10 px-4"
+                className="gap-1  h-10 px-4"
               >
                 {categories?.find((c) => c.id === selectedCategoryId)?.name}
               </Button>
@@ -248,7 +248,7 @@ export const ProductGrid = () => {
               <Button
                 variant="secondary"
                 size="sm"
-                className="gap-2 h-10 px-4 pointer-events-none"
+                className="gap-1  h-10 px-4 pointer-events-none"
               >
                 {
                   categories
@@ -265,9 +265,9 @@ export const ProductGrid = () => {
       {/* Main Content Area */}
       <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5  gap-1 p-1">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
+              <Skeleton key={i} className="h-32 " />
             ))}
           </div>
         ) : searchQuery ? (
@@ -277,53 +277,70 @@ export const ProductGrid = () => {
               <Empty title="No products found" icon="Search" />
             </div>
           ) : (
-            <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
+            <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           )
         ) : !selectedCategoryId ? (
-          // Root Level: Categories Grid
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 p-1">
-            {activeCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryClick(category.id)}
-                className="relative overflow-hidden rounded-xl flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
-                style={{
-                  backgroundColor: category.color?.hex
-                    ? `${category.color.hex}15`
-                    : "var(--muted)",
-                  borderColor: category.color?.hex
-                    ? `${category.color.hex}40`
-                    : "var(--border)",
-                  color: category.color?.hex || "inherit",
-                }}
-              >
-                <Icon name="Folder" className="size-8 mb-2 opacity-80" />
-                <span className="font-bold text-xs text-center leading-tight line-clamp-2">
-                  {category.name}
-                </span>
-              </button>
-            ))}
-            {activeCategories.length === 0 && (
-              <div className="col-span-full flex items-center justify-center h-48">
-                <Empty title="No categories found" icon="FolderX" />
+          // Root Level: Categories Grid & All Products
+          <div className="space-y-6">
+            {activeCategories.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6  gap-1 p-1">
+                {activeCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id)}
+                    className="relative overflow-hidden  flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
+                    style={{
+                      backgroundColor: category.color?.hex
+                        ? `${category.color.hex}15`
+                        : "var(--muted)",
+                      borderColor: category.color?.hex
+                        ? `${category.color.hex}40`
+                        : "var(--border)",
+                      color: category.color?.hex || "inherit",
+                    }}
+                  >
+                    <Icon name="Folder" className="size-8 mb-2 opacity-80" />
+                    <span className="font-bold text-xs text-center leading-tight line-clamp-2">
+                      {category.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
+
+            {/* Products Grid */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground px-1">
+                All Products
+              </h3>
+              {filteredProducts.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <Empty title="No products found" icon="PackageX" />
+                </div>
+              ) : (
+                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           // Category Level: Subcategories & Products
           <div className="space-y-6">
             {/* Subcategories Grid */}
             {!selectedSubcategoryId && activeSubcategories.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 p-1">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1 p-1">
                 {activeSubcategories.map((sub) => (
                   <button
                     key={sub.id}
                     onClick={() => handleSubcategoryClick(sub.id)}
-                    className="relative overflow-hidden rounded-xl flex flex-col items-center justify-center p-3 transition-transform active:scale-95 border shadow-sm hover:shadow-md bg-card"
+                    className="relative overflow-hidden rounded-md flex flex-col items-center justify-center p-3 transition-transform active:scale-95 border shadow-sm hover:shadow-md bg-card"
                     style={{
                       borderColor: selectedCategoryColor
                         ? `${selectedCategoryColor}40`
@@ -350,7 +367,7 @@ export const ProductGrid = () => {
                   <Empty title="No products found" icon="PackageX" />
                 </div>
               ) : (
-                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
                   {filteredProducts.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}

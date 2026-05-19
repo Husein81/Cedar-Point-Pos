@@ -4,8 +4,7 @@ import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
 import { Button, cn, Icon, Textarea } from "@repo/ui";
-import { useNavigate } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 const ORDER_TYPE_OPTIONS = {
   RESTAURANT: [
@@ -45,7 +44,7 @@ const ItemNoteContent = ({
   }, []);
 
   return (
-    <div className="max-w-sm mx-auto flex flex-col gap-3">
+    <div className="px-2 mx-auto flex flex-col gap-3">
       {/* Quick Chips */}
       <div className="flex flex-wrap gap-1.5">
         {NOTE_CHIPS.map((chip) => (
@@ -92,7 +91,6 @@ const ItemNoteContent = ({
 };
 
 const OrderActions = () => {
-  const navigate = useNavigate();
   const { openModal, closeModal } = useModalStore();
   const { closeKeypad, context, itemId } = useKeypadStore();
   const {
@@ -157,7 +155,7 @@ const OrderActions = () => {
             )}
             onClick={() => handleSelectOrderType(opt.type)}
           >
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-background/20 shrink-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-sm-lg bg-background/20 shrink-0">
               <Icon name={opt.icon} className="w-5 h-5" />
             </div>
             <span className="flex-1 text-left font-medium">{opt.label}</span>
@@ -168,23 +166,6 @@ const OrderActions = () => {
         ))}
       </div>,
       "Select how this order will be fulfilled.",
-    );
-  };
-
-  const handleOpenModal = () => {
-    openModal(
-      "Actions",
-      <Button
-        onClick={() => {
-          navigate({ to: "/refunds" });
-          closeModal();
-        }}
-        size="lg"
-        className="flex-1"
-        iconName="RotateCw"
-      >
-        Refund
-      </Button>,
     );
   };
 
@@ -228,7 +209,7 @@ const OrderActions = () => {
         variant="ghost"
         size="sm"
         className={cn(
-          "flex items-center gap-1 px-3 font-semibold flex-1",
+          "flex items-center rounded-sm gap-1 px-3 font-semibold flex-1",
           order?.includeVAT
             ? "bg-primary/15 text-primary"
             : "text-muted-foreground hover:bg-accent/40",
@@ -247,7 +228,7 @@ const OrderActions = () => {
             size="sm"
             variant="ghost"
             className={cn(
-              "flex items-center gap-1 px-3 flex-1",
+              "flex items-center rounded-sm gap-1 px-3 flex-1",
               context === "SHIPPING"
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-accent/40",
@@ -268,7 +249,7 @@ const OrderActions = () => {
             size="sm"
             variant="ghost"
             className={cn(
-              "flex items-center gap-1 px-3 flex-1",
+              "flex items-center rounded-sm gap-1 px-3 flex-1",
               order?.items.find((i) => i.id === itemId)?.notes
                 ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-accent/40",
@@ -288,7 +269,7 @@ const OrderActions = () => {
         size="sm"
         variant="ghost"
         className={cn(
-          "flex items-center gap-1 px-3 flex-1",
+          "flex items-center gap-1 rounded-sm px-3 flex-1",
           order?.type
             ? "bg-primary/15 text-primary"
             : "text-muted-foreground hover:bg-accent/40",
@@ -297,16 +278,6 @@ const OrderActions = () => {
       >
         <Icon name="ClipboardList" className="h-4 w-4" />
         {currentTypeLabel}
-      </Button>
-
-      {/* More Actions */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0 text-primary hover:bg-accent/50"
-        onClick={handleOpenModal}
-      >
-        <Icon name="EllipsisVertical" className="h-4 w-4" />
       </Button>
     </div>
   );

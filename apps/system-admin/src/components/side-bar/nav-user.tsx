@@ -52,7 +52,7 @@ const NavUser = () => {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">System Admin</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    admin@pointverse.io
+                    admin@cedarpoint.io
                   </span>
                 </div>
               </div>

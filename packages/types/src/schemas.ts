@@ -440,6 +440,7 @@ export const OrderSchema = z.object({
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
   items: z.array(OrderItemSchema).optional(), // OrderItem[]
+  user: UserSchema,
 });
 export type Order = z.infer<typeof OrderSchema>;
 

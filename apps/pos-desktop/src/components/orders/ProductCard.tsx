@@ -104,7 +104,7 @@ const ProductCard = ({ product }: Props) => {
     <Shad.Card
       onClick={handleAddItem}
       className={cn(
-        "relative overflow-hidden rounded-md border size-40 p-0",
+        "relative overflow-hidden rounded-sm border h-40 p-0",
         "bg-background transition",
         "cursor-pointer",
         isOutOfStock

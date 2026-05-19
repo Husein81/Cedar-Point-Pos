@@ -245,6 +245,7 @@ export class ReportsService {
           subtotal: true,
           discount: true,
           total: true,
+          orderNumber: true,
           branch: {
             select: { id: true, name: true },
           },
@@ -288,7 +289,7 @@ export class ReportsService {
 
       return {
         id: order.id,
-        orderNumber: order.id,
+        orderNumber: order.orderNumber,
         type: order.type,
         status: order.status,
         createdAt: order.createdAt,

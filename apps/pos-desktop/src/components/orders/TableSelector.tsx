@@ -1,17 +1,12 @@
-import { useCallback, useEffect } from "react";
-import { useSearch } from "@tanstack/react-router";
-import { Button, Icon } from "@repo/ui";
-import { useOrderStore } from "@/store/orderStore";
-import { useModalStore } from "@/store/modalStore";
-import { useTableSelectorTransferOrder } from "@/hooks/useOrder";
-import { useActiveOrdersByTable } from "@/hooks/useTable";
-import { TableSelectorModal } from "./TableSelectorModal";
 import type { TableWithFloor } from "@/dto/tables.dto";
-import type { Order } from "@repo/types";
-
-// ============================================================================
-// TableSelector Component
-// ============================================================================
+import { useTableSelectorTransferOrder } from "@/hooks/useOrder";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
+import { Button, Icon } from "@repo/ui";
+import { useSearch } from "@tanstack/react-router";
+import { useCallback, useEffect } from "react";
+import MergeTargetSelector from "./MergeTargetSelector";
+import { TableSelectorModal } from "./TableSelectorModal";
 
 export function TableSelector() {
   const openModal = useModalStore((state) => state.openModal);
@@ -20,17 +15,13 @@ export function TableSelector() {
   const order = getActiveOrder();
   const transferOrder = useTableSelectorTransferOrder();
 
-  // Read tableId from URL search params
   const searchParams = useSearch({ from: "/" });
 
-  // Initialize table from URL params when navigating from tables page
-  // This effect runs once with the initial searchParams values
   useEffect(() => {
     const tableId = searchParams?.tableId;
     const tableName = searchParams?.tableName;
 
     if (tableId && tableName) {
-      // Create a new tab with this table (or reuse existing)
       createTabWithTable(tableId, tableName);
     }
   }, []);
@@ -172,22 +163,15 @@ export function TableSelector() {
           "Choose how to handle the current order",
         );
       } else if (hasItems && !currentOrder.tableId) {
-        // Order has items but NO table yet � just assign the table.
-        // But first check if another tab already has this table's order.
         const existingTableTab = useOrderStore
           .getState()
           .tabs.find((t) => t.order.tableId === table.id);
         if (existingTableTab) {
-          // Table already has an open tab � switch to it instead of
-          // overwriting the current order's table assignment.
           createTabWithTable(table.id, displayName);
         } else {
           setTable(table.id, displayName);
         }
       } else {
-        // Empty order � use createTabWithTable so it finds and activates
-        // any existing tab for this table (e.g. an occupied table with
-        // a server-persisted order), instead of blindly overwriting.
         createTabWithTable(table.id, displayName);
       }
     },
@@ -216,7 +200,7 @@ export function TableSelector() {
       variant={order?.tableId ? "default" : "outline"}
       size="sm"
       onClick={handleOpenModal}
-      className="h-7 text-xs gap-1.5"
+      className="h-7 text-xs rounded-sm gap-1.5"
     >
       <Icon name="Utensils" className="h-3.5 w-3.5" />
       <span className="max-w-24 truncate">
@@ -224,79 +208,5 @@ export function TableSelector() {
       </span>
       <Icon name="ChevronRight" className="h-3 w-3 ml-0.5" />
     </Button>
-  );
-}
-
-// ============================================================================
-// MergeTargetSelector � shown when target table has active orders
-// ============================================================================
-
-function MergeTargetSelector({
-  activeOrderIds,
-  tableId,
-  onSelect,
-  onCancel,
-  isPending,
-}: {
-  activeOrderIds: string[];
-  tableId: string;
-  onSelect: (mergeIntoOrderId: string) => void;
-  onCancel: () => void;
-  isPending: boolean;
-}) {
-  const { data: activeOrders = [], isLoading } =
-    useActiveOrdersByTable(tableId);
-
-  // Filter to only the orders the backend told us about (intersection)
-  const relevantOrders =
-    activeOrderIds.length > 0
-      ? activeOrders.filter((o: Order) => activeOrderIds.includes(o.id))
-      : activeOrders;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Icon name="Loader2" className="h-5 w-5 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {relevantOrders.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No active orders found on this table.
-        </p>
-      ) : (
-        relevantOrders.map((order: Order) => (
-          <Button
-            key={order.id}
-            variant="outline"
-            className="w-full justify-between gap-2"
-            disabled={isPending}
-            onClick={() => onSelect(order.id)}
-          >
-            <span className="text-sm font-medium">
-              Order #{order.orderNumber ?? order.id.slice(-6)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {order.items?.length ?? 0} item
-              {(order.items?.length ?? 0) !== 1 ? "s" : ""} &middot;{" "}
-              {order.status}
-            </span>
-          </Button>
-        ))
-      )}
-
-      <Button
-        variant="ghost"
-        className="w-full justify-start gap-2 text-muted-foreground"
-        onClick={onCancel}
-        disabled={isPending}
-      >
-        <Icon name="X" className="h-4 w-4" />
-        Cancel
-      </Button>
-    </div>
   );
 }

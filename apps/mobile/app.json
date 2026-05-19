@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pointverse.mobile"
+      "bundleIdentifier": "com.cedarpoint.mobile"
     },
     "android": {
-      "package": "com.pointverse.mobile",
+      "package": "com.cedarpoint.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

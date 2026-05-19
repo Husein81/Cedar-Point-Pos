@@ -47,7 +47,8 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   useEffect(() => {
     if (mode === "EQUAL") {
       const perPerson = Math.floor((total / splitCount) * 100) / 100;
-      const remainder = Math.round((total - perPerson * splitCount) * 100) / 100;
+      const remainder =
+        Math.round((total - perPerson * splitCount) * 100) / 100;
       const splits: Split[] = Array(splitCount)
         .fill(perPerson)
         .map((val, idx) => ({
@@ -117,9 +118,8 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
   };
 
   return (
-    <div className="sm:max-w-lg">
+    <div className="px-2">
       <Shad.DialogHeader>
-        <Shad.DialogTitle className="text-xl">Split Bill</Shad.DialogTitle>
         <Shad.DialogDescription>
           Divide payment between multiple guests
         </Shad.DialogDescription>
@@ -201,7 +201,9 @@ export const SplitBillForm = ({ total, onConfirm }: Props) => {
                   * First guest pays $
                   {formatPrice(
                     Math.round(
-                      (equalSplitAmount + (total - equalSplitAmount * splitCount)) * 100,
+                      (equalSplitAmount +
+                        (total - equalSplitAmount * splitCount)) *
+                        100,
                     ) / 100,
                   )}{" "}
                   (includes remainder)

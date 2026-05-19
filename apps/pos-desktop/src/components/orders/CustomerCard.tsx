@@ -15,8 +15,8 @@ export const CustomerCard = ({ customer, onRemove, className }: Props) => {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 px-3 py-1 rounded-sm border bg-muted/30 hover:bg-muted/50 transition-colors",
-        className
+        "flex items-center justify-between gap-3 px-3 py-1 rounded border bg-muted/30 hover:bg-muted/50 transition-colors",
+        className,
       )}
     >
       {/* Customer Info */}

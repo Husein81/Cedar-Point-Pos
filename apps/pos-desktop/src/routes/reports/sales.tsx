@@ -135,11 +135,14 @@ function SalesReportPage() {
       {
         accessorKey: "orderNumber",
         header: "Order #",
-        cell: ({ row }) => (
-          <span className="font-mono font-medium">
-            {row.original.orderNumber || "-"}
-          </span>
-        ),
+        cell: ({ row }) => {
+          console.log(row.original);
+          return (
+            <span className="font-mono font-medium">
+              {row.original.orderNumber || "-"}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "createdAt",
@@ -262,7 +265,7 @@ function SalesReportPage() {
             : 0,
       };
 
-      const tenantName = "PointVerse POS";
+      const tenantName = "CedarPoint POS";
       const branchName = appliedFilters.branchId
         ? branches.find((b) => b.id === appliedFilters.branchId)?.name
         : undefined;

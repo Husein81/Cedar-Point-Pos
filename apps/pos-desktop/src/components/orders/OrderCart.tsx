@@ -150,7 +150,7 @@ export const OrderCart = () => {
                   clearOrder();
                   closeKeypad();
                 }}
-                className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-7 rounded-sm text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <Icon name="Trash2" className="w-3.5 h-3.5 mr-1" />
                 Clear

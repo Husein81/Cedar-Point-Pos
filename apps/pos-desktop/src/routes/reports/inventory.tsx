@@ -211,7 +211,7 @@ function InventoryReportPage() {
         ),
       };
 
-      const tenantName = "Pointverse POS";
+      const tenantName = "CedarPoint POS";
       const branchName = appliedFilters.branchId
         ? branches.find((b) => b.id === appliedFilters.branchId)?.name
         : undefined;

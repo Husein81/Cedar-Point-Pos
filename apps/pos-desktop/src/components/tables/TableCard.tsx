@@ -206,7 +206,10 @@ export function TableCard({ table }: TableCardProps) {
                     </Shad.DropdownMenuItem>
                   )}
                   <Shad.DropdownMenuItem
-                    onClick={() => handleEditTable(table)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditTable(table);
+                    }}
                     className="cursor-pointer"
                   >
                     <Icon name="Pencil" className="mr-2 h-4 w-4" />

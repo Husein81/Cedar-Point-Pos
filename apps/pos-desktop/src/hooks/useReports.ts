@@ -28,12 +28,6 @@ import type {
 } from "../types/dashboard";
 import { PaginationResponse } from "@repo/types";
 
-/**
- * Reports React Query Hooks
- * Provides data fetching with caching for reports page
- * Note: Uses enabled flag to prevent auto-fetch - Apply button triggers refetch
- */
-
 // Query keys for cache management
 export const reportsKeys = {
   all: ["reports"] as const,

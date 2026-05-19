@@ -1,21 +1,18 @@
 import { AlertDialog } from "@/components/common";
 import { PaymentForm } from "@/components/orders/PaymentForm";
-import { useOrderActions } from "@/hooks/useOrderActions";
 import {
   useCustomerLoyaltyAccount,
   useLoyaltyProgram,
 } from "@/hooks/useLoyalty";
+import { useOrderActions } from "@/hooks/useOrderActions";
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
 import { BusinessType, OrderType } from "@repo/types";
 import { Button, Icon } from "@repo/ui";
-import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
-import { SplitBillForm } from "@/components/orders/SplitBillForm";
-import type { PaymentEntry } from "@/components/orders/PaymentForm";
-import { useTenantCurrencies } from "@/hooks/useCurrency";
-import { useOrderStore } from "@/store/orderStore";
-import { ReceiptModal } from "@/components/orders/ReceiptModal";
+import { useShallow } from "zustand/react/shallow";
+import OtherActions from "./OtherActions";
 
 export default function KeypadActions() {
   const { openModal } = useModalStore();
@@ -63,9 +60,6 @@ export default function KeypadActions() {
   );
   const loyaltyEligibleBase = Math.max(0, subtotalValue - discountValue);
 
-  const { data: currenciesData } = useTenantCurrencies();
-  const baseCurrencyCode = currenciesData?.baseCurrencyCode || "USD";
-
   const handlePay = () => {
     openModal(
       "Payment Form",
@@ -80,35 +74,15 @@ export default function KeypadActions() {
     );
   };
 
-  const handleSplitBill = () => {
-    openModal(
-      "Split Bill",
-      <SplitBillForm
-        total={remainingTotal}
-        onConfirm={(splits) => {
-          const payments: PaymentEntry[] = splits.map((s) => ({
-            id: crypto.randomUUID(),
-            method: s.method,
-            amount: s.amount,
-            currencyCode: baseCurrencyCode,
-            exchangeRate: 1,
-            amountInBase: s.amount,
-          }));
-          handlePaymentConfirm(payments);
-        }}
-      />,
-    );
-  };
-
-  const handlePrintReceipt = () => {
-    openModal("Receipt Preview", <ReceiptModal />);
+  const handleOpenModal = () => {
+    openModal("Actions", <OtherActions />);
   };
 
   return (
-    <div className="flex items-center border-t border-border p-2 gap-2">
+    <div className="flex items-center border-t border-border p-1 gap-1">
       <Button
         size="lg"
-        className="h-12 text-sm font-semibold"
+        className="h-12 rounded-sm text-sm font-semibold"
         disabled={
           !order?.items?.length ||
           remainingTotal <= 0 ||
@@ -121,36 +95,11 @@ export default function KeypadActions() {
         Payment
       </Button>
 
-      <Button
-        size="lg"
-        variant="outline"
-        className="px-4 h-12"
-        disabled={!order?.items?.length}
-        onClick={handlePrintReceipt}
-      >
-        <Icon name="Printer" className="w-5 h-5" />
-      </Button>
-
-      <Button
-        size="lg"
-        variant="outline"
-        className="px-4 h-12"
-        disabled={
-          !order?.items?.length ||
-          remainingTotal <= 0 ||
-          deliveryNeedsCustomer ||
-          deliveryNeedsAddress
-        }
-        onClick={handleSplitBill}
-      >
-        <Icon name="Scissors" className="w-5 h-5" />
-      </Button>
-
       {isRestaurant ? (
         <Button
           size="lg"
           variant="outline"
-          className="h-12 text-sm font-semibold"
+          className="h-12 rounded-sm text-sm font-semibold"
           disabled={
             !order?.items?.length ||
             deliveryNeedsCustomer ||
@@ -174,7 +123,7 @@ export default function KeypadActions() {
           buttonVariant="outline"
           label="Confirm"
           size="lg"
-          className="h-12 text-sm font-semibold"
+          className="h-12 rounded-sm text-sm font-semibold"
           disabled={
             !order?.items?.length ||
             total <= 0 ||
@@ -183,6 +132,14 @@ export default function KeypadActions() {
           }
         />
       )}
+
+      <Button
+        onClick={handleOpenModal}
+        variant={"outline"}
+        className="flex-1 rounded-sm h-12 text-sm font-semibold"
+      >
+        Actions
+      </Button>
     </div>
   );
 }

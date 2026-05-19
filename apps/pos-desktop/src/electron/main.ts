@@ -2,11 +2,14 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
 import { isDev } from "./utils.js";
 import { getPreloadPath } from "./pathResolver.js";
+import { updateElectronApp } from "update-electron-app";
 
 let mainWindow: BrowserWindow | null = null;
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
+
+updateElectronApp();
 
 // ✅ IPC HANDLER (ONCE)
 ipcMain.on("frame-action", (_event, action) => {

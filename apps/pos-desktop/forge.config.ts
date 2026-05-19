@@ -42,7 +42,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "Husein81",
-          name: "CedarPoint",
+          name: "Cedar-Point-Pos",
         },
         prerelease: true,
       },

@@ -4,11 +4,11 @@ import { useProducts } from "@/hooks/useProduct";
 import { useUpdateTableStatus } from "@/hooks/useTable";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
-import { OrderItem, useOrderStore } from "@/store/orderStore";
+import { useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
 import { OrderType, Product } from "@repo/types";
 import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "./InlineKeypad";
+import { InlineKeypad } from "./Keypad/InlineKeypad";
 import { CartItem } from "./CartItem";
 import { CustomerSelector } from "./CustomerSelector";
 import { ModifierModal } from "./ModifierModal";
@@ -16,6 +16,7 @@ import { TableSelector } from "./TableSelector";
 import OrderSummary from "./OrderSummary";
 import { useDeliveryCustomerEnforcement } from "./OrderTypeSelector";
 import { useAuthStore } from "@/store/authStore";
+import { OrderItem } from "@/dto/order.dto";
 
 export const OrderCart = () => {
   const {
@@ -126,7 +127,7 @@ export const OrderCart = () => {
     <div className={cn("flex flex-col h-full bg-background")}>
       {/* Cart Header */}
       <div className="flex flex-col gap-2 px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center justify-between ">
+        <div className="flex flex-col justify-between gap-1 ">
           <div className="flex items-center gap-2">
             <Icon
               name="ShoppingCart"
@@ -149,7 +150,7 @@ export const OrderCart = () => {
                   clearOrder();
                   closeKeypad();
                 }}
-                className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-7 rounded-sm text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <Icon name="Trash2" className="w-3.5 h-3.5 mr-1" />
                 Clear

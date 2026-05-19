@@ -34,10 +34,7 @@ export function OrderPage({
   const activeTableId = showBackToTables
     ? tableId
     : (order?.tableId ?? tableId);
-  const activeTableName = order?.tableName ?? null;
 
-  // Use useLayoutEffect to switch/create the table tab synchronously
-  // before the browser paints, preventing the stale-table flash.
   const tableInitRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (tableId && tableName) {
@@ -59,15 +56,13 @@ export function OrderPage({
     const active = getActiveOrder();
     if (!active) return;
 
-    const isClean = !active.tableId && active.items.length === 0;
-    const isTakeaway = active.type === OrderType.TAKEAWAY;
+    const isDineIn = !!active.tableId || active.type === OrderType.DINE_IN;
 
-    if (!isClean || !isTakeaway) {
-      if (active.items.length > 0 || active.tableId) {
-        createTab();
-      }
-
+    if (isDineIn) {
+      createTab();
       setTable(null, null);
+      setOrderType(OrderType.TAKEAWAY);
+    } else if (active.type !== OrderType.TAKEAWAY) {
       setOrderType(OrderType.TAKEAWAY);
     }
   }, [
@@ -79,35 +74,25 @@ export function OrderPage({
     setTable,
   ]);
 
+  const hasTables = activeTableId || showBackToTables;
+
   return (
     <div className="fixed top-10 inset-x-0 bottom-0 flex flex-col bg-background">
-      {/* Header with back button for table/takeaway flows */}
-      {(activeTableId || showBackToTables) && (
-        <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b bg-muted/20">
-          <div className="flex items-center gap-4">
+      <OrderTabs
+        leftElement={
+          hasTables && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => navigate({ to: "/tables" })}
-              className="gap-2 h-8"
+              className="h-7 mb-1 text-muted-foreground"
             >
-              <Icon name="ArrowLeft" className="w-4 h-4" />
-              Back to Tables
+              <Icon name="LayoutGrid" className="w-4 h-4" />
+              <span className="hidden lg:inline">Tables</span>
             </Button>
-            {activeTableId && (
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Order for:</span>
-                <span className="font-semibold text-lg">{activeTableName}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tabs - fixed at top (Hide when in specific table mode to avoid confusion, or keep specialized?) 
-          User asked for Odoo style which focuses on the table. Only show tabs if NOT in table mode.
-      */}
-      {!activeTableId && <OrderTabs className="shrink-0 px-4 pt-2" />}
+          )
+        }
+      />
 
       {/* Main layout - takes remaining height */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">

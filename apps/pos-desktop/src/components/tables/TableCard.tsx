@@ -2,13 +2,12 @@ import type { TableWithFloor } from "@/dto/tables.dto";
 import { useDeleteTable, useUpdateTableStatus } from "@/hooks/useTable";
 import { useModalStore } from "@/store/modalStore";
 import { TableStatus } from "@repo/types";
-import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
+import { SButton, Icon, Shad, cn } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useCallback, useState } from "react";
-import { AlertDialog } from "../common";
-import { STATUS_OPTIONS, statusColors, TABLE_STATUS_CONFIG } from "./config";
-import { TableForm } from "./TableForm";
 import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
+import { TableForm } from "./TableForm";
+import { STATUS_OPTIONS, TABLE_STATUS_CONFIG, statusColors } from "./config";
 
 interface TableCardProps {
   table: TableWithFloor;
@@ -33,7 +32,7 @@ export function TableCard({ table }: TableCardProps) {
 
   const handleSeatTable = () => {
     navigate({
-      to: "/orders",
+      to: "/",
       search: {
         tableId: table.id,
         tableName: table.floor
@@ -164,16 +163,20 @@ export function TableCard({ table }: TableCardProps) {
                           : option.value === "OCCUPIED"
                             ? "bg-red-500"
                             : "bg-purple-500",
-                        option.value === status && (
-                          option.value === "AVAILABLE" ? "ring-emerald-500/30" :
-                          option.value === "OCCUPIED" ? "ring-red-500/30" :
-                          "ring-purple-500/30"
-                        )
+                        option.value === status &&
+                          (option.value === "AVAILABLE"
+                            ? "ring-emerald-500/30"
+                            : option.value === "OCCUPIED"
+                              ? "ring-red-500/30"
+                              : "ring-purple-500/30"),
                       )}
                     />
                     <span className="flex-1">{option.label}</span>
                     {option.value === status && (
-                      <Icon name="Check" className="h-4 w-4 text-primary animate-in zoom-in duration-200" />
+                      <Icon
+                        name="Check"
+                        className="h-4 w-4 text-primary animate-in zoom-in duration-200"
+                      />
                     )}
                   </Shad.DropdownMenuItem>
                 ))}
@@ -183,14 +186,14 @@ export function TableCard({ table }: TableCardProps) {
             <div className="flex gap-1">
               <Shad.DropdownMenu>
                 <Shad.DropdownMenuTrigger asChild>
-                  <Button
+                  <SButton
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 transition-opacity bg-background/50 backdrop-blur-sm hover:bg-accent"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Icon name="Ellipsis" className="h-4 w-4" />
-                  </Button>
+                  </SButton>
                 </Shad.DropdownMenuTrigger>
                 <Shad.DropdownMenuContent align="end" className="w-40">
                   {status === "AVAILABLE" && (
@@ -203,7 +206,10 @@ export function TableCard({ table }: TableCardProps) {
                     </Shad.DropdownMenuItem>
                   )}
                   <Shad.DropdownMenuItem
-                    onClick={() => handleEditTable(table)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditTable(table);
+                    }}
                     className="cursor-pointer"
                   >
                     <Icon name="Pencil" className="mr-2 h-4 w-4" />
@@ -227,9 +233,9 @@ export function TableCard({ table }: TableCardProps) {
 
           {/* Main Content: Table Number */}
           <div className="py-4 flex flex-col items-center justify-center">
-              <span className="text-5xl font-black tracking-tighter text-foreground/90 group-hover:scale-110 transition-transform duration-300 inline-block">
-                {table.tableNumber}
-              </span>
+            <span className="text-5xl font-black tracking-tighter text-foreground/90 group-hover:scale-110 transition-transform duration-300 inline-block">
+              {table.tableNumber}
+            </span>
             <p className="text-sm font-semibold text-muted-foreground mt-1 truncate max-w-full">
               {table.name}
             </p>
@@ -268,7 +274,10 @@ export function TableCard({ table }: TableCardProps) {
         onOpenChange={setIsActiveOrdersOpen}
       />
 
-      <Shad.AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Shad.AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <Shad.AlertDialogContent>
           <Shad.AlertDialogHeader>
             <div className="flex items-center gap-3">
@@ -280,15 +289,16 @@ export function TableCard({ table }: TableCardProps) {
               </Shad.AlertDialogTitle>
             </div>
             <Shad.AlertDialogDescription className="mt-2">
-              This will remove table "{table.name}" from your restaurant layout. This action cannot be undone.
+              This will remove table "{table.name}" from your restaurant layout.
+              This action cannot be undone.
             </Shad.AlertDialogDescription>
           </Shad.AlertDialogHeader>
           <Shad.AlertDialogFooter className="mt-4">
             <Shad.AlertDialogCancel asChild>
-              <Button variant="ghost">Cancel</Button>
+              <SButton variant="ghost">Cancel</SButton>
             </Shad.AlertDialogCancel>
             <Shad.AlertDialogAction asChild>
-              <Button
+              <SButton
                 variant="destructive"
                 onClick={() => {
                   deleteTableMutation.mutate(table.id);
@@ -296,7 +306,7 @@ export function TableCard({ table }: TableCardProps) {
                 }}
               >
                 Delete
-              </Button>
+              </SButton>
             </Shad.AlertDialogAction>
           </Shad.AlertDialogFooter>
         </Shad.AlertDialogContent>

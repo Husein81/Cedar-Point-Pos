@@ -11,7 +11,7 @@ import {
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { FloorsService } from './floors.service.js';
-import { createFloorDto, updateFloorDto } from '../tables/dto/tables.dto.js';
+import { CreateFloorDto, UpdateFloorDto } from '../tables/dto/tables.dto.js';
 
 @Controller('floors')
 export class FloorsController {
@@ -66,15 +66,9 @@ export class FloorsController {
   @Post()
   createFloor(@Req() req: Request) {
     const user = req.user as { tenantId: string };
-    const parseResult = createFloorDto.safeParse(req.body);
+    const data = req.body as CreateFloorDto;
 
-    if (!parseResult.success) {
-      throw new BadRequestException(
-        parseResult.error.issues.map((i) => i.message).join(', '),
-      );
-    }
-
-    return this.floorsService.createFloor(parseResult.data, user.tenantId);
+    return this.floorsService.createFloor(data, user.tenantId);
   }
 
   /**
@@ -84,25 +78,15 @@ export class FloorsController {
   @Put('/:id')
   updateFloor(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { tenantId: string };
+    const data = req.body as UpdateFloorDto;
 
     if (!id) {
       throw new BadRequestException('Floor ID is required');
     }
 
-    const parseResult = updateFloorDto.safeParse(req.body);
-    if (!parseResult.success) {
-      throw new BadRequestException(
-        parseResult.error.issues.map((i) => i.message).join(', '),
-      );
-    }
-
-    return this.floorsService.updateFloor(id, parseResult.data, user.tenantId);
+    return this.floorsService.updateFloor(id, data, user.tenantId);
   }
 
-  /**
-   * Soft delete a floor (Admin/Manager only)
-   * Tables on this floor will be unassigned
-   */
   @Roles('ADMIN', 'MANAGER')
   @Delete('/:id')
   deleteFloor(@Req() req: Request, @Param('id') id: string) {

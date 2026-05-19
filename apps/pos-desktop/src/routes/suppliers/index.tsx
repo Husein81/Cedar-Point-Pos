@@ -1,5 +1,5 @@
 import { SupplierForm } from "@/components/supplier/SupplierForm";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { getSupplierColumns } from "@/config/supplierColumn";
 import { useSuppliersPaginated } from "@/hooks/useSupplier";
 import { useModalStore } from "@/store/modalStore";
@@ -32,7 +32,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading title="Suppliers" subtitle="Browse and manage all suppliers" />
+      <TitleBar title="Suppliers" subtitle="Browse and manage all suppliers" />
       <DataTable
         isLoading={isLoading}
         columns={getSupplierColumns()}

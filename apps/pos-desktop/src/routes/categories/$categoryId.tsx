@@ -1,6 +1,6 @@
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
-import { CategoryDetailsSkeleton } from "@/components/category/categorySkeleton";
-import Heading from "@/components/heading";
+import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
+import TitleBar from "@/components/title-bar";
 import { getSubcategoryColumns } from "@/config/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
 import { useModalStore } from "@/store/modalStore";
@@ -31,10 +31,10 @@ function RouteComponent() {
   };
 
   const subcategories =
-    category?.subcategories?.filter((sub) => !sub.isDeleted) || [];
+    category?.subcategories?.filter((sub) => !sub.deletedAt) || [];
 
   if (isLoading) {
-    return <CategoryDetailsSkeleton />;
+    return <DetailsSkeleton />;
   }
 
   if (!category) {
@@ -52,8 +52,8 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-4 mt-14">
-      <Heading
+    <div className="space-y-4 mt-6">
+      <TitleBar
         title={category.name}
         subtitle={category.description ?? ""}
         href={"/categories"}

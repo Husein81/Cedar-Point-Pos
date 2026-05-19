@@ -17,8 +17,7 @@ export class CreateCategoryDto {
   description?: string | null;
 
   @IsOptional()
-  @IsBoolean()
-  isDeleted?: boolean = false;
+  deletedAt?: Date | null;
 
   @IsOptional()
   @IsString()
@@ -44,8 +43,7 @@ export class UpdateCategoryDto {
   description?: string | null;
 
   @IsOptional()
-  @IsBoolean()
-  isDeleted?: boolean;
+  deletedAt?: Date | null;
 
   @IsOptional()
   @IsString()

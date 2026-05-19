@@ -188,7 +188,7 @@ function InventoryReportPage() {
   const meta = data?.pagination ?? {
     page: 1,
     pageSize: 25,
-    totalItems: 0,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -211,7 +211,7 @@ function InventoryReportPage() {
         ),
       };
 
-      const tenantName = "Pointverse POS";
+      const tenantName = "CedarPoint POS";
       const branchName = appliedFilters.branchId
         ? branches.find((b) => b.id === appliedFilters.branchId)?.name
         : undefined;
@@ -252,7 +252,7 @@ function InventoryReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Inventory Movements</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} movements found
+              {meta.totalCount} movements found
             </p>
           </div>
           <Button
@@ -278,7 +278,7 @@ function InventoryReportPage() {
             keys: ["changeType" as keyof InventoryMovementRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page,
             pageSize,
             totalPages: meta.totalPages,

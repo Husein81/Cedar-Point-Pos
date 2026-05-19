@@ -1,4 +1,4 @@
-# Pointverse POS System
+# CedarPoint POS System
 
 Pointverse is a modern, offline-first, enterprise-grade Point of Sale (POS) and ERP-like system designed for retail and restaurant businesses. It is built as a monorepo using Turborepo, ensuring scalability, maintainability, and high performance.
 
@@ -7,6 +7,7 @@ The system comprises a powerful NestJS backend, a cross-platform Electron/React 
 ## 🚀 Key Features
 
 ### 🖥️ POS Desktop Application (`apps/pos-desktop`)
+
 A robust, offline-capable desktop application built with Electron and React.
 
 - **Dashboard**: Real-time overview of sales, orders, and key metrics.
@@ -20,6 +21,7 @@ A robust, offline-capable desktop application built with Electron and React.
 - **Offline Mode**: Continue operations even when the internet connection is lost (data syncs when back online).
 
 ### ⚙️ Backend API (`apps/api`)
+
 A scalable server-side application built with NestJS.
 
 - **Modular Architecture**: Clean separation of concerns (Auth, Orders, Inventory, Users, etc.).
@@ -29,6 +31,7 @@ A scalable server-side application built with NestJS.
 - **Tenant Management**: Multi-tenancy support for managing multiple business entities.
 
 ### 🛠️ System Admin (`apps/system-admin`)
+
 A web-based administration panel for platform owners.
 
 - **Tenant Management**: Onboard and manage different businesses/tenants.
@@ -41,11 +44,13 @@ A web-based administration panel for platform owners.
 ## 🏗️ Technology Stack
 
 ### Monorepo & Build Tools
+
 - **Turborepo**: High-performance build system for monorepos.
 - **pnpm**: Fast, disk space-efficient package manager.
 - **TypeScript**: Statically typed JavaScript for type safety across the entire stack.
 
 ### Backend (`apps/api`)
+
 - **Framework**: [NestJS](https://nestjs.com/) (Node.js framework)
 - **Database**: PostgreSQL
 - **ORM**: [Prisma](https://www.prisma.io/)
@@ -54,6 +59,7 @@ A web-based administration panel for platform owners.
 - **Validation**: Class-validator & Class-transformer
 
 ### Frontend POS (`apps/pos-desktop`)
+
 - **Runtime**: [Electron](https://www.electronjs.org/)
 - **Framework**: [React](https://react.dev/)
 - **Build Tool**: [Vite](https://vitejs.dev/)
@@ -64,12 +70,14 @@ A web-based administration panel for platform owners.
 - **Data Fetching/Sync**: Supabase / TanStack Query
 
 ### Frontend System Admin (`apps/system-admin`)
+
 - **Framework**: [Next.js](https://nextjs.org/) (App Router)
 - **State Management**: Zustand
 - **Data Fetching**: TanStack Query
 - **Styling**: Tailwind CSS
 
 ### Shared Packages (`packages/`)
+
 - **@repo/ui**: Shared React component library (Shadcn UI based).
 - **@repo/types**: Shared TypeScript interfaces and DTOs.
 - **@repo/eslint-config**: Shared linting configuration.
@@ -99,6 +107,7 @@ c:\Users\fadix\POS-SYS\Pointverse
 ## ⚡ Getting Started
 
 ### Prerequisites
+
 - **Node.js**: >= 20.0.0
 - **pnpm**: >= 8.0.0 (Recommended package manager)
 - **PostgreSQL**: Local installed or Docker container
@@ -106,12 +115,14 @@ c:\Users\fadix\POS-SYS\Pointverse
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd Pointverse
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
@@ -134,11 +145,13 @@ c:\Users\fadix\POS-SYS\Pointverse
 You can run individual apps or the entire stack using Turbo.
 
 **Run All Apps (Dev Mode):**
+
 ```bash
 pnpm dev
 ```
 
 **Run Specific App:**
+
 ```bash
 # Run only Backend API
 pnpm dev --filter=api
@@ -153,6 +166,7 @@ pnpm dev --filter=admin
 ### Building for Production
 
 To build all apps and packages:
+
 ```bash
 pnpm build
 ```

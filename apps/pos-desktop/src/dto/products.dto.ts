@@ -8,7 +8,7 @@ export const CreateProductSchema = ProductSchema.omit({
   id: true,
   tenantId: true,
   createdAt: true,
-  isDeleted: true,
+  deletedAt: true,
 });
 export type CreateProductDto = z.infer<typeof CreateProductSchema>;
 

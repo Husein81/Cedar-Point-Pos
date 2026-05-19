@@ -26,14 +26,7 @@ async function bootstrap() {
         'X-Device-Id',
       ],
     });
-    app.useGlobalPipes(
-      new ZodValidationPipe(),
-      new ValidationPipe({
-        whitelist: false,
-        transform: false,
-        forbidNonWhitelisted: false,
-      }),
-    );
+    app.useGlobalPipes(new ZodValidationPipe(), new ValidationPipe());
 
     const config = new DocumentBuilder()
       .setTitle('Cedar Point API')

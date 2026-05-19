@@ -1,13 +1,13 @@
 import { ordersApi } from "@/apis/ordersApi";
-import { useModalStore } from "@/store/modalStore";
-import { useOrderStore } from "@/store/orderStore";
 import {
   AddItemDto,
   CreateOrderDto,
-  type LoyaltyRedemptionPayload,
   OrderFilters,
   PaymentDto,
+  type LoyaltyRedemptionPayload,
 } from "@/dto/order.dto";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
 import type { Order, OrderStatus } from "@repo/types";
 import {
   UseMutationResult,
@@ -18,7 +18,6 @@ import {
 } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 
 const ORDER_QUERY_KEY = ["orders"];
 const TABLE_QUERY_KEY = ["tables"];
@@ -347,10 +346,6 @@ export const useMergeOrders = () => {
   });
 };
 
-/**
- * Query hook for fetching active order by tableId
- * Useful when you want automatic refetching
- */
 export const useActiveOrderByTable = (tableId: string | null) => {
   return useQuery({
     queryKey: [...ORDER_QUERY_KEY, "active-by-table", tableId],
@@ -359,12 +354,15 @@ export const useActiveOrderByTable = (tableId: string | null) => {
   });
 };
 
-/**
- * Mutation hook for on-demand fetching of active order by tableId
- * Useful when you want to trigger the fetch imperatively (e.g., on table selection)
- */
 export const useFetchActiveOrderByTable = () => {
   return useMutation<Order | null, Error, string, unknown>({
     mutationFn: ordersApi.getActiveOrderByTableId,
+  });
+};
+export const useNextOrderNumber = (branchId: string) => {
+  return useQuery({
+    queryKey: [...ORDER_QUERY_KEY, "next-number", branchId],
+    queryFn: () => ordersApi.getNextOrderNumber(branchId),
+    enabled: !!branchId,
   });
 };

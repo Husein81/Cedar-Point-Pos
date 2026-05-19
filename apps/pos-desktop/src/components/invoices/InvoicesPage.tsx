@@ -1,4 +1,4 @@
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { getInvoiceColumns } from "@/config/invoiceColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrders } from "@/hooks/useOrder";
@@ -39,7 +39,7 @@ export function InvoicesPage() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Invoices"
         subtitle="View and manage all orders and invoices"
       />

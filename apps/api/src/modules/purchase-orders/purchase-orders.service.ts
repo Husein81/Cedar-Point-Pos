@@ -32,7 +32,7 @@ export class PurchaseOrdersService {
 
     // Verify supplier exists and belongs to tenant
     const supplier = await this.prisma.supplier.findFirst({
-      where: { id: supplierId, tenantId, isActive: true },
+      where: { id: supplierId, tenantId, deletedAt: null },
     });
 
     if (!supplier) {
@@ -54,7 +54,7 @@ export class PurchaseOrdersService {
       where: {
         id: { in: productIds },
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 

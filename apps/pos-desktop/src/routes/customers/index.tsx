@@ -1,5 +1,5 @@
 import { CustomerForm } from "@/components/customer/CustomerForm";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { getCustomerColumns } from "@/config/customerColumn";
 import { useCustomersPaginated } from "@/hooks/useCustomer";
 import { useModalStore } from "@/store/modalStore";
@@ -32,7 +32,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading title="Customers" subtitle="Browse and manage all customers" />
+      <TitleBar title="Customers" subtitle="Browse and manage all customers" />
       <DataTable
         isLoading={isLoading}
         columns={getCustomerColumns()}

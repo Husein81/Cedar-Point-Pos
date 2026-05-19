@@ -19,7 +19,7 @@ export class SuppliersService {
     // If no query, return recent suppliers
     if (!query || query.trim().length === 0) {
       return this.prisma.supplier.findMany({
-        where: { tenantId, isActive: true },
+        where: { tenantId, deletedAt: null },
         orderBy: { updatedAt: 'desc' },
         take: limit ?? 10,
         select: {
@@ -38,7 +38,7 @@ export class SuppliersService {
     return this.prisma.supplier.findMany({
       where: {
         tenantId,
-        isActive: true,
+        deletedAt: null,
         OR: [
           { name: { contains: searchTerm, mode: 'insensitive' } },
           { companyName: { contains: searchTerm, mode: 'insensitive' } },
@@ -70,7 +70,7 @@ export class SuppliersService {
 
       const where: Prisma.SupplierWhereInput = {
         tenantId,
-        isActive: true,
+        deletedAt: null,
       };
 
       const searchTerm = search?.trim();
@@ -158,7 +158,7 @@ export class SuppliersService {
       where: {
         id: supplierId,
         tenantId,
-        isActive: true,
+        deletedAt: null,
       },
       include: {
         purchaseOrders: {
@@ -238,7 +238,7 @@ export class SuppliersService {
   ) {
     // Verify supplier exists and belongs to tenant
     const supplierExists = await this.prisma.supplier.findFirst({
-      where: { id: supplierId, tenantId, isActive: true },
+      where: { id: supplierId, tenantId, deletedAt: null },
       select: { id: true },
     });
 
@@ -320,7 +320,7 @@ export class SuppliersService {
           where: {
             tenantId,
             phone: data.phone,
-            isActive: true,
+            deletedAt: null,
           },
         });
 
@@ -366,7 +366,7 @@ export class SuppliersService {
     try {
       // Verify supplier exists and belongs to tenant
       const existingSupplier = await this.prisma.supplier.findFirst({
-        where: { id, tenantId, isActive: true },
+        where: { id, tenantId, deletedAt: null },
       });
 
       if (!existingSupplier) {
@@ -379,7 +379,7 @@ export class SuppliersService {
           where: {
             tenantId,
             phone: data.phone,
-            isActive: true,
+            deletedAt: null,
             id: { not: id },
           },
         });
@@ -415,7 +415,7 @@ export class SuppliersService {
     try {
       // Verify supplier exists and belongs to tenant
       const existingSupplier = await this.prisma.supplier.findFirst({
-        where: { id, tenantId, isActive: true },
+        where: { id, tenantId, deletedAt: null },
       });
 
       if (!existingSupplier) {
@@ -425,7 +425,7 @@ export class SuppliersService {
       // Soft delete by setting isActive to false
       const result = await this.prisma.supplier.update({
         where: { id },
-        data: { isActive: false },
+        data: { deletedAt: new Date() },
       });
       return result;
     } catch (error) {

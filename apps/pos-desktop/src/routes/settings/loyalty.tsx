@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuthStore } from "@/store/authStore";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { LoyaltyProgramForm } from "@/components/loyalty/LoyaltyProgramForm";
 import { Icon, Badge, Shad } from "@repo/ui";
 import { useLoyaltyProgram } from "@/hooks/useLoyalty";
@@ -18,7 +18,7 @@ function LoyaltySettingsPage() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Loyalty Program"
         subtitle="Configure how customers earn and redeem loyalty points"
         href="/settings"

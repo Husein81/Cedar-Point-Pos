@@ -61,7 +61,7 @@ export const ProductForm = ({ product }: Props) => {
       (cat) => cat.id === selectedCategoryId,
     );
     return (
-      selectedCategory?.subcategories?.filter((sub) => !sub.isDeleted) || []
+      selectedCategory?.subcategories?.filter((sub) => !sub.deletedAt) || []
     );
   }, [categories, selectedCategoryId]);
 
@@ -76,7 +76,7 @@ export const ProductForm = ({ product }: Props) => {
       cost: product?.cost?.toString() || "",
       categoryId: product?.categoryId || "",
       subcategoryId: product?.subcategoryId || "",
-      branchId: product?.branchId || "",
+      branchId: product?.branchId || "all",
       imageUrl: product?.imageUrl || "",
       isActive: product?.isActive ?? true,
       isModifiable: product?.isModifiable ?? false,
@@ -114,7 +114,7 @@ export const ProductForm = ({ product }: Props) => {
           cost: value.cost ? value.cost : undefined,
           categoryId: value.categoryId || undefined,
           subcategoryId: value.subcategoryId || undefined,
-          branchId: value.branchId || undefined,
+          branchId: value.branchId === "all" ? (product ? null : undefined) : (value.branchId || (product ? null : undefined)),
           imageUrl: imageUrl || undefined,
           isActive: value.isActive,
           isModifiable: value.isModifiable,

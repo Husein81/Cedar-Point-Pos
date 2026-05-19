@@ -14,6 +14,7 @@ export class ProductsService {
   async getProductsByTenant(tenantId: string, branchId?: string) {
     const where: Prisma.ProductWhereInput = {
       tenantId,
+      deletedAt: null,
       ...(branchId && {
         OR: [{ branchId }, { branchId: null }],
       }),
@@ -56,6 +57,7 @@ export class ProductsService {
        */
       const where: Prisma.ProductWhereInput = {
         tenantId,
+        deletedAt: null,
         ...(branchId && {
           OR: [{ branchId }, { branchId: null }],
         }),
@@ -143,7 +145,7 @@ export class ProductsService {
       where: {
         barcode,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         category: true,
@@ -155,7 +157,7 @@ export class ProductsService {
 
   async getProductById(id: string, tenantId: string) {
     return await this.prisma.product.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, deletedAt: null },
       include: {
         category: true,
         subcategory: true,
@@ -177,7 +179,11 @@ export class ProductsService {
     }
   }
 
-  async updateProduct(id: string, tenantId: string, data: Prisma.ProductUpdateInput) {
+  async updateProduct(
+    id: string,
+    tenantId: string,
+    data: Prisma.ProductUpdateInput,
+  ) {
     try {
       const result = await this.prisma.product.update({
         where: { id, tenantId },
@@ -192,8 +198,11 @@ export class ProductsService {
 
   async deleteProduct(id: string, tenantId: string) {
     try {
-      const result = await this.prisma.product.delete({
-        where: { id, tenantId },
+      const result = await this.prisma.product.update({
+        where: { id, tenantId, deletedAt: null },
+        data: {
+          deletedAt: new Date(),
+        },
       });
       return result;
     } catch (error) {
@@ -206,9 +215,9 @@ export class ProductsService {
       const modifiers = await this.prisma.modifier.findMany({
         where: {
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
           group: {
-            isDeleted: false,
+            deletedAt: null,
           },
           productId,
         },
@@ -228,7 +237,7 @@ export class ProductsService {
 
       if (modifiers.length === 0) {
         const productExists = await this.prisma.product.findFirst({
-          where: { id: productId, tenantId, isDeleted: false },
+          where: { id: productId, tenantId, deletedAt: null },
           select: { id: true },
         });
 

@@ -1,6 +1,6 @@
 import { SkeletonCard } from "@/components/common/SkeletonCard";
 import GridPagination from "@/components/grid-pagination";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import {
   KitchenCard,
   KitchenFilters,
@@ -12,6 +12,8 @@ import { useBranchStore } from "@/store/branchStore";
 import { Empty, Shad } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useKitchenSocket } from "@/hooks/useKitchenSocket";
+import { useQueryClient } from "@tanstack/react-query";
 
 const KITCHEN_ORDERS_PER_PAGE = 12;
 
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/kitchen")({
 
 function KitchenPage() {
   const { branchId } = useBranchStore();
+  const queryClient = useQueryClient();
   const { page, setPage } = usePaginationState({
     initialPage: 1,
   });
@@ -34,6 +37,15 @@ function KitchenPage() {
     page: String(page),
     limit: String(KITCHEN_ORDERS_PER_PAGE),
   });
+
+  // Websocket integration
+  const { lastUpdate } = useKitchenSocket(branchId!);
+
+  useMemo(() => {
+    if (lastUpdate) {
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
+    }
+  }, [lastUpdate, queryClient]);
 
   const orders = data?.data ?? [];
   const totalCount = data?.pagination.totalCount ?? 0;
@@ -64,7 +76,7 @@ function KitchenPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center w-full justify-between">
-        <Heading
+        <TitleBar
           title="Kitchen Orders"
           subtitle={`${totalCount} Active Orders`}
         />
@@ -90,8 +102,8 @@ function KitchenPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, index) => (
             <SkeletonCard key={index} />
           ))}
         </div>
@@ -113,4 +125,3 @@ function KitchenPage() {
     </div>
   );
 }
-

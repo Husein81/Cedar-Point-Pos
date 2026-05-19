@@ -20,7 +20,7 @@ import {
   orderTypeConfig,
   statusConfig,
 } from "./config";
-import { OrderDetailSkeleton } from "./orderSkeleton";
+import { OrderDetailSkeleton } from "./OrderSkeleton";
 
 export function OrderDetailPage() {
   const { orderId } = useParams({ from: "/invoices/$orderId" });

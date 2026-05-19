@@ -1,163 +1,26 @@
+import {
+  BackendOrder,
+  DiscountType,
+  Order,
+  OrderDiscount,
+  OrderItem,
+  OrderItemModifier,
+  OrderTab,
+  ServerOrderWithPayments,
+} from "@/dto/order.dto";
 import { useAuthStore } from "@/store/authStore";
 import { OrderStatus, OrderType } from "@repo/types";
-import type { Order as ServerOrder } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  generateTabId,
+  renumberTabs,
+  createNewTab,
+  createEmptyOrder,
+  generateOrderId,
+} from "./config";
 
-// =====================
-// Types
-// =====================
-export type DiscountType = "PERCENTAGE" | "FIXED";
-
-export type OrderItemModifier = {
-  modifierId: string;
-  name: string;
-  price: number;
-};
-
-export type OrderItem = {
-  id: string;
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-  notes?: string;
-  imageUrl?: string | null;
-  modifiers?: OrderItemModifier[]; // Restaurant modifiers
-  discount?: {
-    value: number;
-    type: "PERCENTAGE" | "FIXED";
-  };
-  sentToKitchen?: boolean;
-};
-
-export type OrderDiscount = {
-  type: DiscountType;
-  value: number;
-};
-
-export type Order = {
-  id: string;
-  status: OrderStatus;
-  type?: OrderType;
-  items: OrderItem[];
-  discount: OrderDiscount | null;
-  shippingFee: number;
-  includeVAT: boolean;
-  paidAmount: number;
-  customerId: string | null;
-  customerName: string | null;
-  customerAddress: string | null;
-  tableId: string | null;
-  tableName: string | null;
-  notes: string;
-  createdAt: Date;
-  modifiedAt: Date;
-};
-
-export type OrderTab = {
-  id: string;
-  label: string;
-  order: Order;
-};
-
-export type ServerOrderWithPayments = ServerOrder & {
-  payments?: Array<{ amount?: number | string | null }>;
-};
-
-export type BackendOrder = {
-  id: string;
-  status: OrderStatus;
-  type?: OrderType;
-  items: Array<{
-    id: string;
-    productId: string;
-    quantity: number | string;
-    unitPrice: number | string;
-    notes?: string | null;
-    discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
-    product?: {
-      id: string;
-      name: string;
-      imageUrl?: string | null;
-    } | null;
-    modifiers?: Array<{
-      modifierId: string;
-      price: number | string;
-      modifier?: {
-        id: string;
-        name: string;
-      } | null;
-    }>;
-  }>;
-  discount?: number | null;
-  shippingFee?: number | string | null;
-  includeVAT?: boolean;
-  customerId?: string | null;
-  customer?: { name: string; address?: string | null } | null;
-  tableId?: string | null;
-  table?: { name: string } | null;
-  notes?: string | null;
-  createdAt: string | Date;
-  updatedAt?: string | Date;
-};
-
-// =====================
-// Helpers
-// =====================
-
-const generateTabId = (): string => {
-  return `tab-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-};
-
-const generateOrderId = (): string => {
-  return `order-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-};
-
-const getDefaultOrderType = (): OrderType => {
-  const businessType = useAuthStore.getState().user?.tenant?.businessType;
-  return businessType === "RETAIL" ? OrderType.RETAIL : OrderType.DINE_IN;
-};
-
-const createEmptyOrder = (overrides: Partial<Order> = {}): Order => ({
-  id: generateOrderId(),
-  status: "DRAFT",
-  items: [],
-  type: getDefaultOrderType(),
-  discount: null,
-  shippingFee: 0,
-  includeVAT: false,
-  paidAmount: 0,
-  customerId: null,
-  customerName: null,
-  customerAddress: null,
-  tableId: null,
-  tableName: null,
-  notes: "",
-  createdAt: new Date(),
-  modifiedAt: new Date(),
-  ...overrides,
-});
-
-const createNewTab = (tabNumber: number): OrderTab => ({
-  id: generateTabId(),
-  label: `Order ${tabNumber}`,
-  order: createEmptyOrder(),
-});
-
-const renumberTabs = (tabs: OrderTab[]): OrderTab[] => {
-  return tabs.map((tab, index) => ({
-    ...tab,
-    label: `Order ${index + 1}`,
-  }));
-};
-
-// =====================
-// Store State & Actions
-// =====================
-
-interface OrderStoreState {
-  // Tab management
+type OrderStoreState = {
   tabs: OrderTab[];
   activeTabId: string | null;
   maxTabs: number;
@@ -211,6 +74,7 @@ interface OrderStoreState {
 
   // Update the order ID on the active tab (e.g. after server creation)
   updateOrderId: (newId: string) => void;
+  updateOrderNumber: (newNumber: string) => void;
 
   // Load existing server order into a new tab
   loadOrder: (
@@ -226,14 +90,15 @@ interface OrderStoreState {
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
 
-  // Loading existing orders from backend
   loadExistingOrder: (backendOrder: BackendOrder) => void;
 
-  // Utility
   reset: () => void;
-}
+};
 
 const INITIAL_TAB = createNewTab(1);
+
+const getMaxTabs = () =>
+  useAuthStore.getState().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
 
 export const useOrderStore = create<OrderStoreState>()(
   persist(
@@ -241,11 +106,7 @@ export const useOrderStore = create<OrderStoreState>()(
       // Initial state
       tabs: [INITIAL_TAB],
       activeTabId: INITIAL_TAB.id,
-      maxTabs: 5,
-
-      // =====================
-      // Tab Management
-      // =====================
+      maxTabs: getMaxTabs(),
 
       createTab: () => {
         const state = get();
@@ -303,10 +164,6 @@ export const useOrderStore = create<OrderStoreState>()(
 
         // Create a new tab if we have room
         if (state.tabs.length >= state.maxTabs) {
-          // Evict a stale tab: prefer tabs with server-persisted table
-          // orders that aren't the active tab (least likely to still
-          // be relevant). This prevents silent failures when the user
-          // keeps navigating to different tables from the tables page.
           const staleTab = state.tabs.find(
             (t) =>
               t.id !== state.activeTabId &&
@@ -650,19 +507,7 @@ export const useOrderStore = create<OrderStoreState>()(
 
             return {
               ...tab,
-              order: {
-                ...tab.order,
-                items: [],
-                discount: null,
-                paidAmount: 0,
-                type: getDefaultOrderType(),
-                customerId: null,
-                customerName: null,
-                tableId: null,
-                tableName: null,
-                notes: "",
-                modifiedAt: new Date(),
-              },
+              order: { ...createEmptyOrder(), id: generateOrderId() },
             };
           }),
         });
@@ -734,10 +579,6 @@ export const useOrderStore = create<OrderStoreState>()(
           }),
         });
       },
-
-      // =====================
-      // Customer Actions
-      // =====================
 
       setCustomer: (
         customerId: string | null,
@@ -880,6 +721,25 @@ export const useOrderStore = create<OrderStoreState>()(
         });
       },
 
+      updateOrderNumber: (newNumber: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                orderNumber: newNumber,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
       loadOrder: (
         serverOrder: ServerOrderWithPayments,
         forceRefresh?: boolean,
@@ -970,6 +830,7 @@ export const useOrderStore = create<OrderStoreState>()(
           tableId: resolvedTableId,
           tableName: resolvedTableName,
           notes: "",
+          orderNumber: serverOrder.orderNumber ?? "",
           createdAt: new Date(serverOrder.createdAt),
           modifiedAt: new Date(),
         };
@@ -1161,8 +1022,11 @@ export const useOrderStore = create<OrderStoreState>()(
           tableId: backendOrder.tableId ?? null,
           tableName: backendOrder.table?.name ?? null,
           notes: backendOrder.notes || "",
+          orderNumber: backendOrder.orderNumber ?? "",
           createdAt: new Date(backendOrder.createdAt),
-          modifiedAt: new Date(backendOrder.updatedAt || backendOrder.createdAt),
+          modifiedAt: new Date(
+            backendOrder.updatedAt || backendOrder.createdAt,
+          ),
         };
 
         set({

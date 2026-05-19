@@ -25,7 +25,7 @@ export class ModifiersService {
       where: {
         id: groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -39,7 +39,7 @@ export class ModifiersService {
         where: {
           id: { in: productIds },
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
           isModifiable: true, // ✅ Only allow modifiable products
         },
       });
@@ -59,7 +59,7 @@ export class ModifiersService {
           equals: name,
           mode: Prisma.QueryMode.insensitive,
         },
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -128,7 +128,7 @@ export class ModifiersService {
       where: {
         id: groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -140,7 +140,7 @@ export class ModifiersService {
       where: {
         groupId,
         tenantId,
-        ...(!includeDeleted && { isDeleted: false }),
+        ...(!includeDeleted && { deletedAt: null }),
       },
       include: {
         productAssignments: {
@@ -171,7 +171,7 @@ export class ModifiersService {
         id,
         groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         productAssignments: {
@@ -215,7 +215,7 @@ export class ModifiersService {
         id,
         groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -230,7 +230,7 @@ export class ModifiersService {
           where: {
             id: { in: updateDto.productIds },
             tenantId,
-            isDeleted: false,
+            deletedAt: null,
             isModifiable: true,
           },
         });
@@ -252,7 +252,7 @@ export class ModifiersService {
             equals: updateDto.name,
             mode: Prisma.QueryMode.insensitive,
           },
-          isDeleted: false,
+          deletedAt: null,
           NOT: {
             id,
           },
@@ -325,7 +325,7 @@ export class ModifiersService {
         id,
         groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -335,7 +335,7 @@ export class ModifiersService {
 
     await this.prisma.modifier.update({
       where: { id },
-      data: { isDeleted: true },
+      data: { deletedAt: new Date() },
     });
 
     return { message: 'Modifier deleted successfully' };
@@ -354,7 +354,7 @@ export class ModifiersService {
       where: {
         id: groupId,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -373,7 +373,7 @@ export class ModifiersService {
         where: {
           id: { in: productIds },
           tenantId,
-          isDeleted: false,
+          deletedAt: null,
         },
       });
 
@@ -386,7 +386,7 @@ export class ModifiersService {
     const existingModifiers = await this.prisma.modifier.findMany({
       where: {
         groupId,
-        isDeleted: false,
+        deletedAt: null,
       },
       select: { name: true },
     });
@@ -433,7 +433,7 @@ export class ModifiersService {
     for (let i = 0; i < created.length; i++) {
       const modifier = created[i];
       const productIds = modifiers[i].productIds;
-      
+
       if (productIds && productIds.length > 0) {
         await this.prisma.modifierProductAssignment.createMany({
           data: productIds.map((productId) => ({

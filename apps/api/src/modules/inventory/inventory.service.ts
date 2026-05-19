@@ -78,8 +78,8 @@ export class InventoryService {
     }
 
     // Validate product exists
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, deletedAt: null },
     });
 
     if (!product) {
@@ -153,8 +153,8 @@ export class InventoryService {
     }
 
     // Validate product exists
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, deletedAt: null },
     });
 
     if (!product) {

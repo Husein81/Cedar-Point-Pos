@@ -21,7 +21,7 @@ export class CategoryService {
 
     const whereClause: Prisma.CategoryWhereInput = {
       tenantId,
-      isDeleted: false,
+      deletedAt: null,
     };
 
     if (search !== '') {
@@ -39,7 +39,7 @@ export class CategoryService {
         take: limit,
         include: {
           subcategories: {
-            where: { isDeleted: false },
+            where: { deletedAt: null },
           },
           color: true,
         },
@@ -61,7 +61,7 @@ export class CategoryService {
     return this.prisma.category.findMany({
       where: {
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
         name: search
           ? {
               contains: search,
@@ -71,7 +71,7 @@ export class CategoryService {
       },
       include: {
         subcategories: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
         },
         color: true,
       },
@@ -83,11 +83,11 @@ export class CategoryService {
       where: {
         id,
         tenantId,
-        isDeleted: false,
+        deletedAt: null,
       },
       include: {
         subcategories: {
-          where: { isDeleted: false },
+          where: { deletedAt: null },
         },
         color: true,
       },
@@ -114,7 +114,7 @@ export class CategoryService {
 
     return this.prisma.category.update({
       where: { id },
-      data: { isDeleted: true },
+      data: { deletedAt: new Date() },
     });
   }
 
@@ -124,7 +124,7 @@ export class CategoryService {
     data: Prisma.SubcategoryCreateWithoutCategoryInput,
   ) {
     const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, tenantId, isDeleted: false },
+      where: { id: categoryId, tenantId, deletedAt: null },
     });
 
     if (!category) {
@@ -148,7 +148,7 @@ export class CategoryService {
       where: {
         id,
         category: { tenantId },
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -167,7 +167,7 @@ export class CategoryService {
       where: {
         id,
         category: { tenantId },
-        isDeleted: false,
+        deletedAt: null,
       },
     });
 
@@ -177,7 +177,7 @@ export class CategoryService {
 
     return this.prisma.subcategory.update({
       where: { id },
-      data: { isDeleted: true },
+      data: { deletedAt: new Date() },
     });
   }
 }

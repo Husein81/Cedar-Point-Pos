@@ -206,8 +206,8 @@ function PaymentsReportPage() {
   const rows = data?.data ?? [];
   const meta = data?.pagination ?? {
     page: 1,
-    pageSize: 25,
-    totalItems: 0,
+    limit: 25,
+    totalCount: 0,
     totalPages: 0,
   };
 
@@ -231,7 +231,7 @@ function PaymentsReportPage() {
         byMethod,
       };
 
-      const tenantName = "Pointverse POS";
+      const tenantName = "CedarPoint POS";
       const branchName = appliedFilters.branchId
         ? branches.find((b) => b.id === appliedFilters.branchId)?.name
         : undefined;
@@ -295,7 +295,7 @@ function PaymentsReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Payment Transactions</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalItems} transactions found
+              {meta.totalCount} transactions found
             </p>
           </div>
           <Button
@@ -322,7 +322,7 @@ function PaymentsReportPage() {
             keys: ["method" as keyof PaymentTransactionRow],
           }}
           pagination={{
-            rows: meta.totalItems,
+            rows: meta.totalCount,
             page,
             pageSize,
             totalPages: meta.totalPages,

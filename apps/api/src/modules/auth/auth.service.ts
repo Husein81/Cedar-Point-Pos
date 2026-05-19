@@ -79,9 +79,12 @@ export class AuthService {
       name: user.name,
       refreshToken: String(user.refreshToken),
       username: String(user.username),
+      email: user.email,
       role: user.role,
       tenantId: String(user.tenantId),
       isActive: user.isActive,
+      phone: user.phone ?? null,
+      avatar: user.avatar ?? null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -90,9 +93,7 @@ export class AuthService {
   async adminLogin(
     { email, password }: AdminLoginDto,
     res: Response,
-  ): Promise<{
-    user: PublicUser;
-  }> {
+  ): Promise<PublicUser> {
     const user = await this.prisma.user.findUnique({
       where: { email, role: UserRole.SYSTEM_ADMIN },
     });
@@ -141,16 +142,17 @@ export class AuthService {
     });
 
     return {
-      user: {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        refreshToken,
-        role: user.role,
-        isActive: true,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      refreshToken,
+      role: user.role,
+      isActive: true,
+      phone: user.phone ?? null,
+      avatar: user.avatar ?? null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 
@@ -191,13 +193,16 @@ export class AuthService {
         id: user.id,
         name: user.name,
         username: user.username,
+        email: user.email,
         refreshToken,
         role: user.role,
-        tenantId: String(user.tenantId),
-        tenant: user.tenant,
-        isActive: user.isActive,
+        isActive: true,
+        phone: user.phone ?? null,
+        avatar: user.avatar ?? null,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        tenantId: String(user.tenantId),
+        tenant: user.tenant,
       },
     };
   }
@@ -233,7 +238,7 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: '15m',
+        expiresIn: '24h',
       }),
       this.jwtService.signAsync(payload, {
         expiresIn: '7d',

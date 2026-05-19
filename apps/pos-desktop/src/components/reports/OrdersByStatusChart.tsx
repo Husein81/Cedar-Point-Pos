@@ -107,7 +107,7 @@ export const OrdersByStatusChart = ({
                             </tspan>
                         </text>
                         <Tooltip
-                            formatter={(value: number | undefined) => [value ?? 0, "Orders"]}
+                            formatter={(value: any) => [value ?? 0, "Orders"]}
                             contentStyle={{
                                 backgroundColor: "rgba(255, 255, 255, 0.95)",
                                 border: "1px solid #e0e0e0",

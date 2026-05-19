@@ -26,7 +26,7 @@ export const OfferGroupItemForm = ({
   const addItem = useAddOfferGroupItem();
 
   const filteredProducts = (products ?? []).filter((p: Product) => {
-    if (!p.isActive || p.isDeleted) return false;
+    if (!p.isActive || p.deletedAt) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (

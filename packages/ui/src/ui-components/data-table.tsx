@@ -175,7 +175,7 @@ export function DataTable<TData, TValue>({
                   <Shad.TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="bg-background hover:bg-accent-foreground/65"
+                    className="bg-background dark:hover:bg-accent-foreground/45"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <Shad.TableCell key={cell.id}>

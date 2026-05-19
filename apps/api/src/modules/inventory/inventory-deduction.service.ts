@@ -211,8 +211,8 @@ export class InventoryDeductionService {
       if (available < deduction.quantity) {
         const product =
           inventory?.product ||
-          (await this.prisma.product.findUnique({
-            where: { id: deduction.productId },
+          (await this.prisma.product.findFirst({
+            where: { id: deduction.productId, deletedAt: null },
             select: { name: true },
           }));
 
@@ -284,8 +284,8 @@ export class InventoryDeductionService {
       if (available < deduction.quantity) {
         const product =
           inventory?.product ||
-          (await this.prisma.product.findUnique({
-            where: { id: deduction.productId },
+          (await this.prisma.product.findFirst({
+            where: { id: deduction.productId, deletedAt: null },
             select: { name: true },
           }));
 
@@ -325,14 +325,7 @@ export class InventoryDeductionService {
     const stockWarnings: StockWarningInfo[] = [];
 
     // Get order number for better history tracking
-    let orderNumber: string | undefined;
-    if (orderId) {
-      const order = await this.prisma.order.findUnique({
-        where: { id: orderId },
-        select: { orderNumber: true },
-      });
-      orderNumber = order?.orderNumber ?? undefined;
-    }
+    const orderNumber = orderId;
 
     // Execute all deductions through centralized transaction service
     for (const deduction of deductions) {
@@ -393,6 +386,7 @@ export class InventoryDeductionService {
       where: {
         id: { in: items.map((i) => i.productId) },
         tenantId,
+        deletedAt: null,
       },
     });
 

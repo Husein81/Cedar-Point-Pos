@@ -8,7 +8,7 @@ type Props = {
   actions?: React.ReactNode;
 };
 
-const Heading = ({ title, subtitle, href, actions }: Props) => {
+const TitleBar = ({ title, subtitle, href, actions }: Props) => {
   return (
     <div className="flex flex-col gap-4">
       {/* Header row */}
@@ -41,4 +41,4 @@ const Heading = ({ title, subtitle, href, actions }: Props) => {
   );
 };
 
-export default Heading;
+export default TitleBar;

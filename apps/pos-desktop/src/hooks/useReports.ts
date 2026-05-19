@@ -10,7 +10,6 @@ import type {
   FinancialsReportData,
   ReportsFilterState,
   ReportListParams,
-  PaginatedResponse,
   SalesOrderRow,
   PaymentTransactionRow,
   InventoryMovementRow,
@@ -27,12 +26,7 @@ import type {
   HourlyRevenueData,
   TopProductData,
 } from "../types/dashboard";
-
-/**
- * Reports React Query Hooks
- * Provides data fetching with caching for reports page
- * Note: Uses enabled flag to prevent auto-fetch - Apply button triggers refetch
- */
+import { PaginationResponse } from "@repo/types";
 
 // Query keys for cache management
 export const reportsKeys = {
@@ -253,7 +247,7 @@ interface ReportsQueryOptions {
 export const useSalesOrdersReport = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<SalesOrderRow>, Error> => {
+): UseQueryResult<PaginationResponse<SalesOrderRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -271,7 +265,7 @@ export const useSalesOrdersReport = (
 export const usePaymentTransactionsReport = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<PaymentTransactionRow>, Error> => {
+): UseQueryResult<PaginationResponse<PaymentTransactionRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -289,7 +283,7 @@ export const usePaymentTransactionsReport = (
 export const useInventoryMovementsReport = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<InventoryMovementRow>, Error> => {
+): UseQueryResult<PaginationResponse<InventoryMovementRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -307,7 +301,7 @@ export const useInventoryMovementsReport = (
 export const useTopProductsReportList = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<TopProductRow>, Error> => {
+): UseQueryResult<PaginationResponse<TopProductRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -325,7 +319,7 @@ export const useTopProductsReportList = (
 export const useDebtsOrdersList = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<DebtOrderRow>, Error> => {
+): UseQueryResult<PaginationResponse<DebtOrderRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -522,7 +516,7 @@ export const useReportsTopProducts = (
 export const useCustomersReportList = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<CustomerReportRow>, Error> => {
+): UseQueryResult<PaginationResponse<CustomerReportRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({
@@ -654,7 +648,7 @@ export const useLoyaltySummaryReport = (
 export const useLoyaltyTransactionsReport = (
   params: ReportListParams,
   options: ReportsQueryOptions = {},
-): UseQueryResult<PaginatedResponse<LoyaltyTransactionReportRow>, Error> => {
+): UseQueryResult<PaginationResponse<LoyaltyTransactionReportRow>, Error> => {
   const { enabled = true } = options;
 
   return useQuery({

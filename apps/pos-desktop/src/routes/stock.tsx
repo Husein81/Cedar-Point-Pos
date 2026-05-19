@@ -1,4 +1,4 @@
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { StockAdjustmentForm } from "@/components/stock/StockAdjustmentForm";
 import { stockColumns } from "@/config/stockColumn";
 import { inventoryHistoryColumns } from "@/config/inventoryHistoryColumn";
@@ -105,7 +105,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title={"Stock Management"}
         subtitle={"Manage your stock levels"}
       />

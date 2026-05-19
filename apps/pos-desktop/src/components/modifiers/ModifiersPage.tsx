@@ -3,7 +3,7 @@ import { useModalStore } from "@/store/modalStore";
 import { Button, Empty, Icon, Input, cn } from "@repo/ui";
 import { useMemo, useState } from "react";
 import { SkeletonCard } from "../common/SkeletonCard";
-import Heading from "../heading";
+import TitleBar from "../title-bar";
 import { ModifierGroupCard } from "./ModifierGroupCard";
 import { ModifierGroupForm } from "./ModifierGroupForm";
 
@@ -46,7 +46,7 @@ export const ModifiersPage = () => {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Modifiers"
         subtitle="Manage modifier groups and options for restaurant products"
       />

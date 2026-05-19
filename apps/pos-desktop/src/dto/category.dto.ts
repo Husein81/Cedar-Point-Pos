@@ -25,7 +25,7 @@ export const CategoryWithSubcategoriesSchema = CategorySchema.extend({
         categoryId: z.string(),
         name: z.string(),
         description: z.string().nullable().optional(),
-        isDeleted: z.boolean(),
+        deletedAt: z.coerce.date().nullable().optional(),
       }),
     )
     .nullable()

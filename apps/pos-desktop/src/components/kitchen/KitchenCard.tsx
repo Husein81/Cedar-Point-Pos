@@ -1,13 +1,9 @@
 import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
 import { Badge, Button, cn, Icon } from "@repo/ui";
-import { formatDistanceToNow } from "date-fns";
-import { useCallback } from "react";
-import {
-  getActionButtonStatus,
-  getOrderTypeHeaderColor,
-  getTimeColor,
-} from "./config";
+import { formatDistanceToNowStrict } from "date-fns";
+import { useCallback, useMemo } from "react";
+import { getActionButtonStatus } from "./config";
 
 type Props = {
   order: Order;
@@ -25,18 +21,38 @@ const KitchenCard = ({ order }: Props) => {
 
   const onActionButtonClick = useCallback(() => {
     const { nextStatus } = getActionButtonStatus(order.status);
+
     if (nextStatus) {
       handleStatusChange(order.id, nextStatus);
     }
   }, [order.id, order.status, handleStatusChange]);
 
+  const elapsedMinutes = useMemo(() => {
+    return Math.floor(
+      (Date.now() - new Date(order.createdAt).getTime()) / 60000,
+    );
+  }, [order.createdAt]);
 
-  const isFullyRefunded = order.status === "FULLY_REFUNDED";
+  const timerColor = useMemo(() => {
+    if (elapsedMinutes >= 30) {
+      return "bg-red-500";
+    }
 
-  
+    if (elapsedMinutes >= 15) {
+      return "bg-orange-500";
+    }
+
+    return "bg-rose-400";
+  }, [elapsedMinutes]);
+
+  const formattedTime = useMemo(() => {
+    return formatDistanceToNowStrict(new Date(order.createdAt));
+  }, [order.createdAt]);
+
   const getItemRefundInfo = (itemId: string) => {
     const item = order.items?.find((i) => i.id === itemId);
-    if (!item || !item.refundItems || item.refundItems.length === 0) {
+
+    if (!item || !item.refundItems?.length) {
       return null;
     }
 
@@ -44,182 +60,142 @@ const KitchenCard = ({ order }: Props) => {
       (sum, refund) => sum + Number(refund.quantity),
       0,
     );
-    const isFullyRefunded = totalRefunded >= Number(item.quantity);
-    const isPartiallyRefunded = totalRefunded > 0 && !isFullyRefunded;
 
     return {
       totalRefunded,
-      isFullyRefunded,
-      isPartiallyRefunded,
-      latestReason: item.refundItems[0]?.refund?.reason || null,
+      isFullyRefunded: totalRefunded >= Number(item.quantity),
+      isPartiallyRefunded:
+        totalRefunded > 0 && totalRefunded < Number(item.quantity),
     };
   };
-
-
-  const { nextStatus, buttonLabel } = getActionButtonStatus(order.status);
 
   return (
     <div
       className={cn(
-        "bg-card rounded-lg shadow-md overflow-hidden h-fit",
-        "border-2 border-transparent hover:border-primary",
-        "transition-all duration-200",
-        isFullyRefunded && "opacity-70",
+        "flex h-full flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm",
+        "transition-all duration-200 hover:shadow-md",
       )}
     >
-      {/* Colored Header */}
-      <div
-        className={cn(
-          "px-4 py-2 flex items-center justify-between",
-          getOrderTypeHeaderColor(order.type),
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-white font-bold text-lg">
-            #
-            {order.table?.tableNumber ||
-              order.orderNumber ||
-              order.id.slice(0, 4)}
+      {/* TOP HEADER */}
+      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
+        <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+          <span className="font-semibold text-zinc-700">
+            {"T" + order.table?.tableNumber || "--"}
           </span>
-          <Icon name="Circle" className="w-1 h-1 text-white fill-white" />
-          <span className="text-white text-sm">
-            {order.table?.name || order.type.replace(/_/g, " ")}
+
+          <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Icon name="ChefHat" className="size-3.5 text-zinc-400" />
+
+          <span className="text-[11px] text-zinc-500">
+            {order.user?.name || "Kitchen"}
           </span>
         </div>
-        <span className={cn("text-sm", getTimeColor(order.createdAt))}>
-          {formatDistanceToNow(new Date(order.createdAt), {
-            addSuffix: false,
-          })}
-        </span>
       </div>
 
-      {/* Order Content */}
-      <div className="p-4 space-y-3 min-h-50 relative">
-        {/* Refunded Stamp */}
-        {isFullyRefunded && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="border-4 border-red-500 text-red-500 font-bold text-4xl px-8 py-4 rotate-[-15deg] opacity-80">
-              REFUNDED
-            </div>
+      {/* CONTENT */}
+      <div className="flex flex-1 flex-col gap-3 p-3">
+        {/* STATUS */}
+        <div className="flex items-center justify-between">
+          <div className="rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-600">
+            {order.status.split("_").join(" ")}
           </div>
-        )}
 
-        {/* Items List */}
-        <div className="space-y-2 [&>div>div]:pr-3">
+          <div
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-white",
+              timerColor,
+            )}
+          >
+            <Icon name="Clock3" className="size-3" />
+
+            <span>{formattedTime}</span>
+          </div>
+        </div>
+
+        {/* ITEMS */}
+        <div className="space-y-3">
           {order.items?.map((item) => {
             const refundInfo = getItemRefundInfo(item.id);
+
+            if (refundInfo?.isFullyRefunded) {
+              return null;
+            }
+
+            const quantity = refundInfo?.isPartiallyRefunded
+              ? Number(item.quantity) - refundInfo.totalRefunded
+              : item.quantity;
+
             return (
               <div key={item.id} className="space-y-1">
+                {/* ITEM */}
                 <div className="flex items-start gap-2">
-                  {/* Quantity Badge */}
-                  <Badge
-                    variant="outline"
+                  <span className="min-w-[20px] text-sm font-semibold text-zinc-700">
+                    {quantity}x
+                  </span>
+
+                  <p
                     className={cn(
-                      "font-bold text-base min-w-8 justify-center h-7 shrink-0",
-                      refundInfo?.isFullyRefunded
-                        ? "bg-red-500/20 text-red-400 line-through border-red-500/50"
-                        : refundInfo?.isPartiallyRefunded
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/50"
-                          : "bg-primary/20 text-primary border-primary/50",
+                      "text-sm font-medium leading-5 text-zinc-800",
+                      refundInfo?.isPartiallyRefunded && "text-amber-600",
                     )}
                   >
-                    {refundInfo?.isPartiallyRefunded
-                      ? Number(item.quantity) - refundInfo.totalRefunded
-                      : item.quantity}
-                  </Badge>
-                  <div className="flex-1">
-                    <p
-                      className={cn(
-                        "font-medium text-foreground",
-                        refundInfo?.isFullyRefunded &&
-                          "text-red-400 line-through",
-                        refundInfo?.isPartiallyRefunded && "text-amber-400",
-                      )}
-                    >
-                      {item.product?.name}
-                    </p>
-
-                    {/* Modifiers */}
-                    {item.modifiers && item.modifiers.length > 0 && (
-                      <div className="mt-1 ml-1 flex flex-wrap gap-1">
-                        {item.modifiers.map((mod) => (
-                          <Badge
-                            key={mod.id}
-                            variant="secondary"
-                            className="text-xs font-normal py-0 h-5"
-                          >
-                            + {mod.modifier?.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Notes */}
-                    {item.notes && (
-                      <p className="text-xs text-gray-500 italic mt-1 ml-1">
-                        "{item.notes}"
-                      </p>
-                    )}
-
-                    {/* Refund Badge */}
-                    {refundInfo?.isFullyRefunded && (
-                      <Badge className="mt-1 bg-red-100 text-red-700 border-red-300 text-xs">
-                        REFUNDED
-                      </Badge>
-                    )}
-                    {refundInfo?.isPartiallyRefunded && (
-                      <Badge className="mt-1 bg-amber-100 text-amber-700 border-amber-300 text-xs">
-                        {refundInfo.totalRefunded} REFUNDED
-                      </Badge>
-                    )}
-
-                    {/* Refund Reason */}
-                    {refundInfo?.latestReason && (
-                      <p className="text-xs text-red-600 italic mt-1 ml-1">
-                        {refundInfo.latestReason}
-                      </p>
-                    )}
-                  </div>
+                    {item.product?.name}
+                  </p>
                 </div>
+
+                {/* MODIFIERS */}
+                {item.modifiers && item.modifiers.length > 0 && (
+                  <div className="ml-6 flex flex-col gap-1">
+                    {item.modifiers.map((mod) => (
+                      <p key={mod.id} className="text-xs text-zinc-500">
+                        - {mod.modifier?.name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* NOTES */}
+                {item.notes && (
+                  <div className="ml-6 rounded bg-amber-50 px-2 py-1">
+                    <p className="text-xs text-amber-700">{item.notes}</p>
+                  </div>
+                )}
+
+                {/* PARTIAL REFUND */}
+                {refundInfo?.isPartiallyRefunded && (
+                  <div className="ml-6">
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-[10px] text-amber-700"
+                    >
+                      {refundInfo.totalRefunded} refunded
+                    </Badge>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Footer Button */}
-      <div className="px-4 pb-4">
-        <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 uppercase font-medium">
-          <Icon name="Utensils" className="w-3 h-3" />
-          <span>
-            {order.type === "DINE_IN"
-              ? "DINE IN"
-              : order.type === "DELIVERY"
-                ? "DELIVERY"
-                : order.type === "TAKEAWAY"
-                  ? "TO GO"
-                  : order.type.replace(/_/g, " ")}
-          </span>
-        </div>
+      {/* FOOTER */}
+      <div className="border-t border-zinc-100 p-3">
         <Button
           onClick={onActionButtonClick}
-          className={cn(
-            "w-full",
-            nextStatus === OrderStatus.READY && "bg-green-600 hover:bg-green-700",
-            nextStatus === OrderStatus.COMPLETED && "bg-emerald-600 hover:bg-emerald-700",
-          )}
-          disabled={
-            nextStatus === null ||
-            updateStatusMutation.isPending ||
-            isFullyRefunded
-          }
+          disabled={updateStatusMutation.isPending}
           isSubmitting={updateStatusMutation.isPending}
+          className={cn(
+            "h-9 w-full rounded-md text-sm font-semibold text-white",
+          )}
         >
-          {buttonLabel}
+          {getActionButtonStatus(order.status).buttonLabel}
         </Button>
       </div>
     </div>
   );
 };
-export default KitchenCard;
 
+export default KitchenCard;

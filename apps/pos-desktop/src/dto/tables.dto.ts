@@ -34,7 +34,7 @@ const TableWithFloorSchema = z.object({
   capacity: z.number(),
   status: z.custom<TableStatus>(),
   isActive: z.boolean(),
-  isDeleted: z.boolean(),
+  deletedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   floor: z

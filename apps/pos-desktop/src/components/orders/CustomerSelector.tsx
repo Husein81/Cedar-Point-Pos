@@ -33,7 +33,6 @@ export const CustomerSelector = ({ className }: Props) => {
   const selectedCustomerId = order?.customerId;
   const selectedCustomerName = order?.customerName;
 
-  // Convert customers to combobox options
   const options: ComboboxOption[] = useMemo(() => {
     if (!customers) return [];
     return customers.map((customer) => ({
@@ -101,7 +100,6 @@ export const CustomerSelector = ({ className }: Props) => {
     );
   }
 
-  // Otherwise, show the combobox selector
   return (
     <div className={className}>
       <Combobox
@@ -112,7 +110,7 @@ export const CustomerSelector = ({ className }: Props) => {
         searchPlaceholder="Search by name or phone..."
         emptyText={searchQuery ? "No customers found" : "No recent customers"}
         isLoading={isLoading}
-        className="w-full h-8 text-muted-foreground"
+        className="w-full h-8 rounded-sm text-muted-foreground"
         popoverWidth="w-104"
         open={open}
         onOpenChange={setOpen}

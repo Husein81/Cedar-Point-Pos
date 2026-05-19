@@ -88,7 +88,7 @@ export class RefundsService {
       ...(params.branchId && { branchId: params.branchId }),
       ...(params.search && {
         OR: [
-          { orderNumber: { contains: params.search, mode: 'insensitive' } },
+          { id: { contains: params.search, mode: 'insensitive' } },
           {
             customer: {
               name: { contains: params.search, mode: 'insensitive' },
@@ -122,7 +122,7 @@ export class RefundsService {
 
     const data = orders.map((order) => ({
       id: order.id,
-      orderNumber: order.orderNumber,
+      orderNumber: order.id,
       createdAt: order.createdAt.toISOString(),
       completedAt: order.completedAt?.toISOString() || null,
       total: Number(order.total),
@@ -258,7 +258,7 @@ export class RefundsService {
 
     return {
       orderId: order.id,
-      orderNumber: order.orderNumber,
+      orderNumber: order.id,
       orderStatus: order.status,
       orderTotal: Number(order.total),
       canRefund,
@@ -622,7 +622,7 @@ export class RefundsService {
                         data: {
                           tenantId,
                           branchId: order.branchId,
-                          shiftId: resolvedShiftId,
+                          shiftId: resolvedShiftId ?? '',
                           deviceId: resolvedDeviceId || undefined,
                           userId,
                           type: CashMovementType.CASH_REFUND_OUT,

@@ -51,6 +51,7 @@ export class TransfersService {
       where: {
         id: { in: productIds },
         tenantId,
+        deletedAt: null,
       },
     });
 

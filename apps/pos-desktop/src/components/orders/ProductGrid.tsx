@@ -1,20 +1,11 @@
-import {
-  Button,
-  Icon,
-  Input,
-  Shad,
-  Skeleton,
-  Empty,
-  cn,
-  SButton,
-} from "@repo/ui";
-import { useProducts } from "@/hooks/useProduct";
 import { useCategories } from "@/hooks/useCategory";
+import { useProducts } from "@/hooks/useProduct";
 import { useOrderStore } from "@/store/orderStore";
-import { useState, useMemo, useRef, useEffect } from "react";
 import type { Product } from "@repo/types";
-import ProductCard from "./ProductCard";
 import { Subcategory } from "@repo/types";
+import { Button, Empty, Icon, Input, Shad, Skeleton, cn } from "@repo/ui";
+import { useEffect, useMemo, useRef, useState } from "react";
+import ProductCard from "./ProductCard";
 
 export const ProductGrid = () => {
   const { data: products, isLoading: productsLoading } = useProducts();
@@ -56,8 +47,7 @@ export const ProductGrid = () => {
     if (!products) return [];
 
     return products.filter((product) => {
-      // Only show active and non-deleted products
-      if (!product.isActive || product.isDeleted) {
+      if (!product.isActive || product.deletedAt) {
         return false;
       }
 
@@ -111,13 +101,13 @@ export const ProductGrid = () => {
 
     const categoryIdsWithProducts = new Set(
       products
-        .filter((p) => p.isActive && !p.isDeleted)
+        .filter((p) => p.isActive && !p.deletedAt)
         .map((p) => p.categoryId)
         .filter(Boolean),
     );
 
     return categories.filter(
-      (cat) => !cat.isDeleted && categoryIdsWithProducts.has(cat.id),
+      (cat) => !cat.deletedAt && categoryIdsWithProducts.has(cat.id),
     );
   }, [categories, products]);
 
@@ -135,14 +125,14 @@ export const ProductGrid = () => {
       products
         .filter(
           (p) =>
-            p.isActive && !p.isDeleted && p.categoryId === selectedCategoryId,
+            p.isActive && !p.deletedAt && p.categoryId === selectedCategoryId,
         )
         .map((p) => p.subcategoryId)
         .filter(Boolean),
     );
 
     return selectedCategory.subcategories.filter(
-      (sub) => !sub.isDeleted && subcategoryIdsWithProducts.has(sub.id),
+      (sub) => !sub.deletedAt && subcategoryIdsWithProducts.has(sub.id),
     );
   }, [selectedCategoryId, categories, products]);
 
@@ -178,7 +168,6 @@ export const ProductGrid = () => {
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // On Enter, if exactly one product matches, add it
     if (
       e.key === "Enter" &&
       filteredProducts.length === 1 &&
@@ -207,192 +196,186 @@ export const ProductGrid = () => {
             value={searchQuery}
             onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
-            className="pl-10"
+            className="pl-10 h-12 text-lg"
           />
         </div>
         <Button
           onClick={() => setIsAvailableOnly(!isAvailableOnly)}
-          variant={selectedCategoryId === null ? "default" : "outline"}
-          className="whitespace-nowrap"
+          variant={isAvailableOnly ? "default" : "outline"}
+          className="whitespace-nowrap h-12"
         >
-          Available Products
+          <Icon name="PackageCheck" className="w-5 h-5 mr-2" />
+          Available Only
         </Button>
       </div>
 
-      <div className="relative">
-        <div className="pointer-events-none absolute -left-1 top-0 h-full w-6 bg-linear-to-r from-background to-transparent z-10" />
-        <div className="pointer-events-none absolute -right-1 top-0 h-full w-6 bg-linear-to-l from-background to-transparent z-10" />
-
-        {/* Category Quick Filters */}
-        <Shad.Carousel
-          opts={{
-            align: "start",
-            dragFree: true,
-          }}
-          className="w-full"
-        >
-          <Shad.CarouselContent className="mx-6">
-            {/* All Products */}
-            <Shad.CarouselItem className="pl-2 basis-auto flex items-center gap-2">
-              <Button
-                onClick={() => handleCategoryClick(null)}
-                variant={selectedCategoryId === null ? "default" : "outline"}
-                size="lg"
-                className="whitespace-nowrap"
-                iconName="Grid2x2"
-              >
-                All Products
-              </Button>
-            </Shad.CarouselItem>
-
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <Shad.CarouselItem key={i} className="pl-2 basis-auto">
-                    <Skeleton className="h-10 w-27 rounded-md" />
-                  </Shad.CarouselItem>
-                ))
-              : activeCategories.map((category) => (
-                  <Shad.CarouselItem
-                    key={category.id}
-                    className="pl-2 basis-auto"
-                  >
-                    <SButton
-                      onClick={() => handleCategoryClick(category.id)}
-                      variant={
-                        selectedCategoryId === category.id
-                          ? "default"
-                          : "outline"
-                      }
-                      size="lg"
-                      className="whitespace-nowrap cursor-pointer"
-                      style={
-                        category.color?.hex
-                          ? {
-                              backgroundColor:
-                                selectedCategoryId === category.id
-                                  ? category.color.hex
-                                  : "transparent",
-                              borderColor: category.color.hex,
-                              color:
-                                selectedCategoryId === category.id
-                                  ? "#fff"
-                                  : category.color.hex,
-                            }
-                          : {}
-                      }
-                    >
-                      {category.name}
-                    </SButton>
-                  </Shad.CarouselItem>
-                ))}
-          </Shad.CarouselContent>
-
-          {/* Navigation Arrows */}
-          <Shad.CarouselPrevious className="-left-1" />
-          <Shad.CarouselNext className="-right-1" />
-        </Shad.Carousel>
-      </div>
-
-      {/* Subcategory Quick Filters - Only show when category has subcategories and no search active */}
-      {!searchQuery && activeSubcategories.length > 0 && (
-        <div className="relative">
-          <div className="pointer-events-none absolute -left-1 top-0 h-full w-6 bg-linear-to-r from-background to-transparent z-10" />
-          <div className="pointer-events-none absolute -right-1 top-0 h-full w-6 bg-linear-to-l from-background to-transparent z-10" />
-
-          <Shad.Carousel
-            opts={{
-              align: "start",
-              dragFree: true,
-            }}
-            className="w-full"
+      {/* Breadcrumb Navigation */}
+      {!searchQuery && (
+        <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+          <Button
+            variant={selectedCategoryId ? "outline" : "secondary"}
+            size="sm"
+            onClick={() => handleCategoryClick(null)}
+            className="gap-2 h-10  px-4"
           >
-            <Shad.CarouselContent className="mx-6">
-              {/* All (in category) */}
-              <Shad.CarouselItem className="pl-2 basis-auto">
-                <SButton
-                  onClick={() => handleSubcategoryClick(null)}
-                  variant={
-                    selectedSubcategoryId === null ? "secondary" : "ghost"
-                  }
-                  size="default"
-                  className="whitespace-nowrap text-sm cursor-pointer"
-                  style={
-                    selectedCategoryColor
-                      ? {
-                          backgroundColor:
-                            selectedSubcategoryId === null
-                              ? `${selectedCategoryColor}20`
-                              : "transparent",
-                          borderColor: selectedCategoryColor,
-                          color: selectedCategoryColor,
-                        }
-                      : {}
-                  }
-                >
-                  All
-                </SButton>
-              </Shad.CarouselItem>
+            <Icon name="House" className="w-4 h-4" />
+            Home
+          </Button>
 
-              {activeSubcategories.map((subcategory) => (
-                <Shad.CarouselItem
-                  key={subcategory.id}
-                  className="pl-2 basis-auto"
-                >
-                  <SButton
-                    onClick={() => handleSubcategoryClick(subcategory.id)}
-                    variant={
-                      selectedSubcategoryId === subcategory.id
-                        ? "secondary"
-                        : "ghost"
-                    }
-                    size="default"
-                    className="whitespace-nowrap text-sm"
-                    style={
-                      selectedCategoryColor
-                        ? {
-                            backgroundColor:
-                              selectedSubcategoryId === subcategory.id
-                                ? `${selectedCategoryColor}20`
-                                : "transparent",
-                            borderColor: selectedCategoryColor,
-                            color: selectedCategoryColor,
-                          }
-                        : {}
-                    }
-                  >
-                    {subcategory.name}
-                  </SButton>
-                </Shad.CarouselItem>
-              ))}
-            </Shad.CarouselContent>
+          {selectedCategoryId && (
+            <>
+              <Icon
+                name="ChevronRight"
+                className="w-4 h-4 text-muted-foreground"
+              />
+              <Button
+                variant={selectedSubcategoryId ? "outline" : "secondary"}
+                size="sm"
+                onClick={() => handleSubcategoryClick(null)}
+                className="gap-1  h-10 px-4"
+              >
+                {categories?.find((c) => c.id === selectedCategoryId)?.name}
+              </Button>
+            </>
+          )}
 
-            {/* Navigation Arrows */}
-            <Shad.CarouselPrevious className="-left-1" />
-            <Shad.CarouselNext className="-right-1" />
-          </Shad.Carousel>
+          {selectedSubcategoryId && (
+            <>
+              <Icon
+                name="ChevronRight"
+                className="w-4 h-4 text-muted-foreground"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-1  h-10 px-4 pointer-events-none"
+              >
+                {
+                  categories
+                    ?.find((c) => c.id === selectedCategoryId)
+                    ?.subcategories?.find((s) => s.id === selectedSubcategoryId)
+                    ?.name
+                }
+              </Button>
+            </>
+          )}
         </div>
       )}
 
-      {/* Product Grid */}
-      <Shad.ScrollArea className="flex-1 min-h-0 p-3">
+      {/* Main Content Area */}
+      <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5  gap-1 p-1">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-37 rounded-lg" />
+              <Skeleton key={i} className="h-32 " />
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="flex items-center justify-center h-48">
-            <Empty title="No products found" icon="Search" />
+        ) : searchQuery ? (
+          // Search Results Mode
+          filteredProducts.length === 0 ? (
+            <div className="flex items-center justify-center h-48">
+              <Empty title="No products found" icon="Search" />
+            </div>
+          ) : (
+            <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )
+        ) : !selectedCategoryId ? (
+          // Root Level: Categories Grid & All Products
+          <div className="space-y-6">
+            {activeCategories.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6  gap-1 p-1">
+                {activeCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id)}
+                    className="relative overflow-hidden  flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
+                    style={{
+                      backgroundColor: category.color?.hex
+                        ? `${category.color.hex}15`
+                        : "var(--muted)",
+                      borderColor: category.color?.hex
+                        ? `${category.color.hex}40`
+                        : "var(--border)",
+                      color: category.color?.hex || "inherit",
+                    }}
+                  >
+                    <Icon name="Folder" className="size-8 mb-2 opacity-80" />
+                    <span className="font-bold text-xs text-center leading-tight line-clamp-2">
+                      {category.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Products Grid */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground px-1">
+                All Products
+              </h3>
+              {filteredProducts.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <Empty title="No products found" icon="PackageX" />
+                </div>
+              ) : (
+                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="grid p-1 grid-cols-4 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-2">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          // Category Level: Subcategories & Products
+          <div className="space-y-6">
+            {/* Subcategories Grid */}
+            {!selectedSubcategoryId && activeSubcategories.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1 p-1">
+                {activeSubcategories.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => handleSubcategoryClick(sub.id)}
+                    className="relative overflow-hidden rounded-md flex flex-col items-center justify-center p-3 transition-transform active:scale-95 border shadow-sm hover:shadow-md bg-card"
+                    style={{
+                      borderColor: selectedCategoryColor
+                        ? `${selectedCategoryColor}40`
+                        : "var(--border)",
+                      color: selectedCategoryColor || "inherit",
+                    }}
+                  >
+                    <Icon
+                      name="FolderOpen"
+                      className="w-6 h-6 mb-1 opacity-70"
+                    />
+                    <span className="font-semibold text-sm text-center leading-tight line-clamp-2">
+                      {sub.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Products Grid */}
+            <div>
+              {filteredProducts.length === 0 ? (
+                <div className="flex items-center justify-center h-48">
+                  <Empty title="No products found" icon="PackageX" />
+                </div>
+              ) : (
+                <div className="grid p-1 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-        <Shad.ScrollBar />
       </Shad.ScrollArea>
     </div>
   );

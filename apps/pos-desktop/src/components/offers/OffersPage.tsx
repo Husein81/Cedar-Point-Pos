@@ -4,7 +4,7 @@ import { useModalStore } from "@/store/modalStore";
 import { Button, Empty, Icon, Input, cn } from "@repo/ui";
 import { useMemo, useState } from "react";
 import { SkeletonCard } from "../common/SkeletonCard";
-import Heading from "../heading";
+import TitleBar from "../title-bar";
 import { OfferCard } from "./OfferCard";
 import { OfferForm } from "./OfferForm";
 
@@ -45,7 +45,7 @@ export const OffersPage = () => {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Offers"
         subtitle="Manage combo offers, bundles, and meal deals"
       />

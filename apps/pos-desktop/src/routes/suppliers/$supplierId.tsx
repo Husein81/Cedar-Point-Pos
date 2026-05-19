@@ -3,6 +3,7 @@ import { Avatar, Button, DataTable, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SupplierInfo } from "@/components/supplier/SupplierInfo";
 import { getPurchaseOrderColumns } from "@/config/supplierColumn";
+import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 
 export const Route = createFileRoute("/suppliers/$supplierId")({
   component: RouteComponent,
@@ -33,11 +34,7 @@ function RouteComponent() {
     useSupplierPurchaseOrders(supplierId);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <p className="text-gray-500">Loading supplier...</p>
-      </div>
-    );
+    return <DetailsSkeleton />;
   }
 
   if (!supplier) {
@@ -132,7 +129,10 @@ function RouteComponent() {
               <Shad.CardTitle className="text-sm font-medium">
                 {stat.title}
               </Shad.CardTitle>
-              <Icon name={stat.icon} className="h-4 w-4 text-muted-foreground" />
+              <Icon
+                name={stat.icon}
+                className="h-4 w-4 text-muted-foreground"
+              />
             </Shad.CardHeader>
             <Shad.CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>

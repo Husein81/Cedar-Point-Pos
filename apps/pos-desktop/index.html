@@ -5,9 +5,9 @@
     <link rel="icon" type="image/png" href="/assets/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Point Verse</title>
-  <meta
-  http-equiv="Content-Security-Policy"
-  content="
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
     default-src 'self';
     base-uri 'self';
     object-src 'none';
@@ -15,24 +15,25 @@
     script-src 'self' 'unsafe-eval' blob:;
     style-src 'self' 'unsafe-inline';
 
-    img-src 'self' data: blob: https://*.supabase.co;
+    img-src 'self' data: blob: https://*.supabase.co https://api.dicebear.com;
     font-src 'self' data:;
 
     connect-src
       'self'
+      blob:
+      data:
       http://localhost:*
       ws://localhost:*
       https://*.supabase.co;
 
     worker-src 'self' blob:;
-    frame-src 'none';
+    frame-src 'self' blob:;
   "
-/>
-</head>
+    />
+  </head>
 
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

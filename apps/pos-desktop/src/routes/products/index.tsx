@@ -1,4 +1,4 @@
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { ProductForm } from "@/components/products/ProductForm";
 import { productColumns } from "@/config/productColumn";
 import { usePaginationState } from "@/hooks/usePaginationState";
@@ -42,7 +42,7 @@ function RouteComponent() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading title={"Products"} subtitle={"Manage your products"} />
+      <TitleBar title={"Products"} subtitle={"Manage your products"} />
 
       <DataTable
         columns={productColumns}

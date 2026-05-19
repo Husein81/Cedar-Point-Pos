@@ -25,7 +25,9 @@ export const productsApi = {
     });
     return response.data;
   },
-  getProductByBarcode: async (barcode: string): Promise<ProductWithRelations | null> => {
+  getProductByBarcode: async (
+    barcode: string,
+  ): Promise<ProductWithRelations | null> => {
     const response = await api.get(`/products/barcode/${barcode}`);
     return response.data;
   },
@@ -48,6 +50,6 @@ export const productsApi = {
   },
 
   deleteProduct: async (id: string): Promise<void> => {
-    await api.delete(`/products/${id}`);
+    await api.put(`/products/delete/${id}`);
   },
 };

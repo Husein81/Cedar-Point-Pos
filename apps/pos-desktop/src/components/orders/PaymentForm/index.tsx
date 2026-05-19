@@ -1,11 +1,13 @@
-import { Button, Icon, Input, Separator, Shad, Badge } from "@repo/ui";
-import { cn } from "@repo/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { PaymentMethod } from "@repo/types";
-import { formatPrice, generateQuickCashAmounts } from "./config";
-import { useModalStore } from "@/store/modalStore";
+import type { LoyaltyAccount, LoyaltyProgram } from "@/dto/loyalty.dto";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
-import type { LoyaltyProgram, LoyaltyAccount } from "@/dto/loyalty.dto";
+import { PaymentMethod } from "@repo/types";
+import { Button, Icon, Input, Separator, cn } from "@repo/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatPrice, generateQuickCashAmounts } from "../config";
+import PaymentFooterActions from "./PaymentFooterActions";
+import PaymentSummaryCard from "./PaymentSummaryCard";
+import PaymentsList from "./PaymentsList";
+import { PAYMENT_METHODS, estimateLoyaltyDiscount } from "./config";
 
 // Payment entry for split payments
 export type PaymentEntry = {
@@ -24,70 +26,20 @@ type Props = {
     sendToKitchenFirst?: boolean,
     loyalty?: { redeemPoints: number },
   ) => void;
-  hasUnsentItems?: boolean;
   loyaltyProgram?: LoyaltyProgram;
   loyaltyAccount?: LoyaltyAccount;
   customerId?: string | null;
   eligibleBase?: number;
 };
 
-const PAYMENT_METHODS: {
-  value: PaymentMethod;
-  label: string;
-  icon: string;
-}[] = [
-  { value: "CASH", label: "Cash", icon: "Banknote" },
-  { value: "CARD", label: "Card", icon: "CreditCard" },
-  { value: "ONLINE", label: "Online", icon: "Smartphone" },
-];
-
-// ===== Loyalty estimate (client preview) =====
-
-function estimateLoyaltyDiscount(
-  redeemPoints: number,
-  program: LoyaltyProgram | undefined,
-  eligibleBase: number,
-): { appliedDiscount: number; appliedPoints: number } {
-  if (
-    !program ||
-    !program.isEnabled ||
-    !program.redeemPointsStep ||
-    !program.redeemCurrencyPerStep ||
-    program.maxRedeemPercent == null ||
-    redeemPoints <= 0
-  ) {
-    return { appliedDiscount: 0, appliedPoints: 0 };
-  }
-
-  if (redeemPoints < (program.minRedeemPoints || 0)) {
-    return { appliedDiscount: 0, appliedPoints: 0 };
-  }
-
-  const blockCount = Math.floor(redeemPoints / program.redeemPointsStep);
-  const requestedDiscount = blockCount * program.redeemCurrencyPerStep;
-  const maxDiscountByPercent = (eligibleBase * program.maxRedeemPercent) / 100;
-  const appliedDiscount =
-    Math.floor(
-      Math.min(requestedDiscount, maxDiscountByPercent, eligibleBase) * 100,
-    ) / 100;
-  const appliedPoints =
-    Math.floor(appliedDiscount / program.redeemCurrencyPerStep) *
-    program.redeemPointsStep;
-
-  return { appliedDiscount, appliedPoints };
-}
-
 export const PaymentForm = ({
   total,
   onConfirm,
-  hasUnsentItems = false,
   loyaltyProgram,
   loyaltyAccount,
   customerId,
   eligibleBase = 0,
 }: Props) => {
-  const { closeModal } = useModalStore();
-
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
   const [givenAmount, setGivenAmount] = useState<string>("");
@@ -150,7 +102,6 @@ export const PaymentForm = ({
   }, [payments]);
 
   const remainingInBase = Math.max(0, payableTotal - totalPaidInBase);
-
   const remainingInCurrency = remainingInBase * exchangeRate;
 
   const givenValue = parseFloat(givenAmount) || 0;
@@ -245,56 +196,15 @@ export const PaymentForm = ({
   };
 
   return (
-    <div className="sm:max-w-lg">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-          <Icon name="CreditCard" className="w-5 h-5 text-primary" />
-        </div>
-        <Shad.DialogTitle>Payment</Shad.DialogTitle>
-      </div>
-
+    <div className="px-2">
       <div className="space-y-4 pt-4">
         {/* ===== SUMMARY CARDS ===== */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Total */}
-          <div className="text-center py-3 bg-muted/30 rounded-lg">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Total
-            </p>
-            <p className="text-2xl font-bold">${formatPrice(total)}</p>
-          </div>
-
-          {/* Remaining */}
-          <div
-            className={cn(
-              "text-center py-3 rounded-lg transition-colors",
-              isFullyPaid ? "bg-green-500/10" : "bg-orange-500/10",
-            )}
-          >
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
-              Remaining
-            </p>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                isFullyPaid ? "text-green-600" : "text-orange-600",
-              )}
-            >
-              {isFullyPaid ? (
-                <span className="flex items-center justify-center gap-1">
-                  <Icon name="Check" className="w-5 h-5" />
-                  Paid
-                </span>
-              ) : (
-                <>
-                  {currencySymbol}
-                  {formatPrice(remainingInCurrency)}
-                </>
-              )}
-            </p>
-          </div>
-        </div>
+        <PaymentSummaryCard
+          isFullyPaid={isFullyPaid}
+          total={total}
+          currencySymbol={currencySymbol}
+          remainingInCurrency={remainingInCurrency}
+        />
 
         {/* ===== LOYALTY REDEMPTION ===== */}
         {loyaltyProgram?.isEnabled && (
@@ -409,53 +319,13 @@ export const PaymentForm = ({
           </div>
         )}
 
-        {/* ===== PAYMENTS ADDED ===== */}
-        {payments.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                Payments
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                {payments.length}
-              </Badge>
-            </div>
-            <div className="max-h-28 overflow-y-auto space-y-1.5 pr-1">
-              {payments.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-md"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <Badge variant="outline" className="text-xs">
-                      {p.method}
-                    </Badge>
-                    <div>
-                      <span className="font-mono text-sm font-medium">
-                        {getCurrencySymbol(p.currencyCode)}{" "}
-                        {formatPrice(p.amount)}
-                      </span>
-                      {/* Show conversion if not in base currency */}
-                      {p.currencyCode !== baseCurrency?.currencyCode && (
-                        <p className="text-xs text-muted-foreground font-mono">
-                          ≈ ${formatPrice(p.amountInBase)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemovePayment(p.id)}
-                    className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Icon name="X" className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ===== PAYMENTS List ===== */}
+        <PaymentsList
+          baseCurrency={baseCurrency!}
+          payments={payments}
+          getCurrencySymbol={getCurrencySymbol}
+          handleRemovePayment={handleRemovePayment}
+        />
 
         {/* ===== ADD PAYMENT SECTION ===== */}
         {!isFullyPaid && (
@@ -562,7 +432,7 @@ export const PaymentForm = ({
                 disabled={givenValue <= 0}
                 className="flex-1"
               >
-                <Icon name="Plus" className="w-4 h-4" />
+                <Icon name="Plus" className="w-4 h-4 mr-2" />
                 Add
               </Button>
               <Button
@@ -571,58 +441,21 @@ export const PaymentForm = ({
                 disabled={remainingInBase <= 0}
                 className="flex-1"
               >
-                <Icon name="Zap" className="w-4 h-4" />
+                <Icon name="Zap" className="w-4 h-4 mr-2" />
                 Full
               </Button>
             </div>
           </>
         )}
-      </div>
 
-      {/* ===== FOOTER ACTIONS ===== */}
-      <div className="flex pt-4 gap-2">
-        <Button
-          variant="outline"
-          type="button"
-          onClick={closeModal}
-          disabled={isConfirming}
-        >
-          Cancel
-        </Button>
-
-        {hasUnsentItems ? (
-          <>
-            <Button
-              variant="outline"
-              onClick={handleConfirm}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-              isSubmitting={isConfirming}
-              className="flex-1 text-base"
-            >
-              <Icon name="CreditCard" className="w-5 h-5" />
-              Pay Only
-            </Button>
-            <Button
-              onClick={handlePayAndSend}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-              isSubmitting={isConfirming}
-              className="flex-1 text-base"
-            >
-              <Icon name="ChefHat" className="w-5 h-5" />
-              Pay & Send
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={handleConfirm}
-            disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-            isSubmitting={isConfirming}
-            className="flex-1 text-base"
-          >
-            <Icon name="Check" className="w-5 h-5" />
-            {isFullyPaid ? "Complete" : "Add Payment"}
-          </Button>
-        )}
+        {/* ===== FOOTER ACTIONS ===== */}
+        <PaymentFooterActions
+          isConfirming={isConfirming}
+          isFullyPaid={isFullyPaid}
+          payments={payments}
+          handleConfirm={handleConfirm}
+          handlePayAndSend={handlePayAndSend}
+        />
       </div>
     </div>
   );

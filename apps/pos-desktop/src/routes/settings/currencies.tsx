@@ -1,5 +1,5 @@
 import { CurrencyForm } from "@/components/currency/CurrencyForm";
-import Heading from "@/components/heading";
+import TitleBar from "@/components/title-bar";
 import { getCurrencyColumns } from "@/config/currencyColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
@@ -53,7 +53,7 @@ function CurrenciesSettingsPage() {
 
   return (
     <div className="space-y-4 pt-4">
-      <Heading
+      <TitleBar
         title="Currency Settings"
         subtitle="Manage currencies and exchange rates for your business"
         href="/settings"

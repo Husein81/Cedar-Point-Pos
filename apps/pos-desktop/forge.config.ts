@@ -28,9 +28,9 @@ const config: ForgeConfig = {
       },
     }),
     new MakerSquirrel({
-      name: "Pointverse",
+      name: "CedarPoint",
       iconUrl:
-        "https://github.com/Husein81/Pointverse/tree/main/apps/pos-desktop/public/assets/icon.ico",
+        "https://github.com/Husein81/CedarPoint/tree/main/apps/pos-desktop/public/assets/icon.ico",
       setupIcon: "./public/assets/icon.ico",
     }),
   ],
@@ -41,7 +41,7 @@ const config: ForgeConfig = {
       config: {
         repository: {
           owner: "Husein81",
-          name: "Pointverse",
+          name: "CedarPoint",
         },
         prerelease: false,
         draft: false,

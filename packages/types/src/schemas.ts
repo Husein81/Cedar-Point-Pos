@@ -70,11 +70,13 @@ export type TenantCurrenciesResponse = z.infer<
 export const UserSchema = z.object({
   id: uuid,
   name: z.string(),
-  email: z.string().email().optional(),
+  email: z.string().email().nullable(),
+  phone: z.string().nullable(),
+  avatar: z.string().url().nullable(),
   username: z.string(),
   password: z.string(),
   role: z.enum(UserRole),
-  refreshToken: z.string().optional(),
+  refreshToken: z.string().nullable(),
   isActive: z.boolean().default(true),
   createdAt: isoDate,
   updatedAt: isoDate,
@@ -124,7 +126,7 @@ export const CategorySchema = z.object({
   name: z.string(),
   code: z.string().nullable().optional(), // unique in prisma
   description: z.string().nullable().optional(),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
   colorId: uuid.nullable().optional(),
   color: Color.nullable().optional(),
 });
@@ -136,7 +138,7 @@ export const SubcategorySchema = z.object({
   categoryId: uuid,
   name: z.string(),
   description: z.string().nullable().optional(),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
 });
 export type Subcategory = z.infer<typeof SubcategorySchema>;
 
@@ -156,7 +158,7 @@ export const ProductSchema = z.object({
   category: CategorySchema.nullable().optional(),
   subcategoryId: uuid.nullable().optional(),
   isActive: z.boolean().default(true),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
   isModifiable: z.boolean().default(false),
   createdAt: isoDate,
   inventory: z
@@ -301,7 +303,7 @@ export const FloorSchema = z.object({
   branchId: uuid,
   name: z.string(),
   order: z.number().int().default(0),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });
@@ -318,7 +320,7 @@ export const TableSchema = z.object({
   capacity: z.number().int().positive().default(4),
   status: z.enum(TableStatus).default("AVAILABLE"),
   isActive: z.boolean().default(true),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
   createdAt: isoDate.optional(),
   updatedAt: isoDate.optional(),
   floor: FloorSchema.nullable().optional(), // Included when fetched with join
@@ -331,7 +333,7 @@ export const ModifierGroupSchema = z.object({
   tenantId: uuid,
   name: z.string(),
   type: z.enum(ModifierType),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
 });
 export type ModifierGroup = z.infer<typeof ModifierGroupSchema>;
 
@@ -342,7 +344,7 @@ export const ModifierSchema = z.object({
   productId: uuid.nullable().optional(),
   name: z.string(),
   price: decimal.default("0"),
-  isDeleted: z.boolean().default(false),
+  deletedAt: isoDate.nullable().optional(),
 });
 export type Modifier = z.infer<typeof ModifierSchema>;
 
@@ -401,6 +403,7 @@ export const OrderSchema = z.object({
   table: TableSchema.optional(),
   deviceId: uuid.nullable().optional(),
   customerId: uuid.nullable().optional(),
+  orderNumber: z.string().nullable().optional(),
   customer: z
     .object({
       id: uuid,
@@ -412,7 +415,6 @@ export const OrderSchema = z.object({
     .optional(),
   shiftId: uuid.nullable().optional(),
   refunds: z.array(RefundSchema).optional(),
-  orderNumber: z.string().nullable().optional(),
   type: z.enum(OrderType),
   status: z.enum(OrderStatus).default("DRAFT"),
   vat: decimal.nullable().optional(),
@@ -438,6 +440,7 @@ export const OrderSchema = z.object({
   createdAt: isoDate,
   completedAt: isoDate.nullable().optional(),
   items: z.array(OrderItemSchema).optional(), // OrderItem[]
+  user: UserSchema,
 });
 export type Order = z.infer<typeof OrderSchema>;
 
@@ -489,6 +492,7 @@ export const CustomerSchema = z.object({
   address: z.string().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
+  deletedAt: isoDate.nullable().optional(),
   loyaltyAccount: z
     .lazy(() => LoyaltyAccountSchema)
     .nullable()
@@ -511,6 +515,7 @@ export const SupplierSchema = z.object({
   isActive: z.boolean().default(true),
   createdAt: isoDate,
   updatedAt: isoDate,
+  deletedAt: isoDate.nullable().optional(),
 });
 export type Supplier = z.infer<typeof SupplierSchema>;
 
@@ -690,6 +695,17 @@ export const LoyaltyTransactionSchema = z.object({
   createdAt: isoDate,
 });
 export type LoyaltyTransaction = z.infer<typeof LoyaltyTransactionSchema>;
+
+// OrderSequence
+export const OrderSequenceSchema = z.object({
+  id: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  date: z.string(),
+  lastValue: z.number().int().default(0),
+  updatedAt: isoDate,
+});
+export type OrderSequence = z.infer<typeof OrderSequenceSchema>;
 
 // ===========================================
 //         Query Params Schema

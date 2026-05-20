@@ -5,9 +5,13 @@ import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
+import { PublisherGithub } from "@electron-forge/publisher-github";
 import { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { config as dotenvConfig } from "dotenv";
 import path from "path";
+
+dotenvConfig();
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -29,24 +33,24 @@ const config: ForgeConfig = {
       },
     }),
     new MakerSquirrel({
-      name: "CedarPoint",
+      name: "cedar_point_pos",
       iconUrl:
-        "https://github.com/Husein81/CedarPoint/tree/main/apps/pos-desktop/public/assets/icon.ico",
+        "https://github.com/Husein81/Cedar-Point-Pos/tree/main/apps/pos-desktop/public/assets/icon.ico",
       setupIcon: path.resolve(__dirname, "./public/assets/icon.ico"),
+      setupExe: "CedarPointPOS-Setup.exe",
     }),
   ],
 
   publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        repository: {
-          owner: "Husein81",
-          name: "Cedar-Point-Pos",
-        },
-        prerelease: true,
+    new PublisherGithub({
+      repository: {
+        owner: "Husein81",
+        name: "Cedar-Point-Pos",
       },
-    },
+
+      prerelease: false,
+      draft: false,
+    }),
   ],
 
   plugins: [

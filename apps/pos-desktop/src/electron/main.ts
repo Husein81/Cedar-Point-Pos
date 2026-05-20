@@ -3,6 +3,11 @@ import path from "node:path";
 import { isDev } from "./utils.js";
 import { getPreloadPath } from "./pathResolver.js";
 import { updateElectronApp } from "update-electron-app";
+import squirrelStartup from "electron-squirrel-startup";
+
+if (squirrelStartup) {
+  app.quit();
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -75,4 +80,4 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-app.setAppUserModelId("com.squirrel.husein.pointverse");
+app.setAppUserModelId("com.squirrel.CedarPointPos.CedarPointPos");

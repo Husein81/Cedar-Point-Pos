@@ -8,10 +8,8 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import { PublisherGithub } from "@electron-forge/publisher-github";
 import { ForgeConfig } from "@electron-forge/shared-types";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
-import { config as dotenvConfig } from "dotenv";
+import "dotenv/config";
 import path from "path";
-
-dotenvConfig();
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -33,11 +31,9 @@ const config: ForgeConfig = {
       },
     }),
     new MakerSquirrel({
-      name: "cedar_point_pos",
-      iconUrl:
-        "https://github.com/Husein81/Cedar-Point-Pos/tree/main/apps/pos-desktop/public/assets/icon.ico",
-      setupIcon: path.resolve(__dirname, "./public/assets/icon.ico"),
-      setupExe: "CedarPointPOS-Setup.exe",
+      name: "CedarPointPos",
+      authors: "Husein81",
+      description: "A point of sale system for Cedar Point",
     }),
   ],
 

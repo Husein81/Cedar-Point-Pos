@@ -1,14 +1,18 @@
 {
-  "name": "pos-desktop",
+  "name": "cedar-point-pos",
   "productName": "CedarPoint POS",
   "version": "1.0.0",
   "description": "CedarPoint is an offline-first POS system for retail and restaurants.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Husein81/Cedar-Point-Pos.git"
+  },
   "author": {
     "name": "Cedar Core",
     "email": "support@cedarcore.io"
   },
   "type": "module",
-  "main": ".vite/build/pos-desktop.cjs",
+  "main": ".vite/build/cedar-point-pos.cjs",
   "scripts": {
     "dev": "electron-forge start",
     "package": "electron-forge package",
@@ -22,7 +26,6 @@
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.90.1",
-    "electron-squirrel-startup": "^1.0.1",
     "lodash": "^4.17.21",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -45,6 +48,7 @@
     "@repo/typescript-config": "workspace:*",
     "@tanstack/react-router": "^1.169.1",
     "@tanstack/router-plugin": "^1.143.3",
+    "@types/electron-squirrel-startup": "^1.0.2",
     "@types/lodash": "^4.17.23",
     "@types/node": "^24.10.1",
     "@types/react": "^19",
@@ -54,6 +58,7 @@
     "dotenv": "^17.4.2",
     "electron": "^39.2.7",
     "electron-builder": "^26.0.12",
+    "electron-squirrel-startup": "^1.0.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

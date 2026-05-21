@@ -1,5 +1,5 @@
 import { Button, cn, Icon, Shad } from "@repo/ui";
-import { useTheme } from "../providers/theme-providers";
+import { useTheme } from "../../context/theme-provider";
 
 type Mode = {
   label: string;
@@ -41,7 +41,7 @@ const Appearance = () => {
               variant="outline"
               className={cn("flex-1", {
                 "border-2 border-primary dark:border-blue-500": isActive(
-                  mode.value
+                  mode.value,
                 ),
               })}
               onClick={() => setTheme(mode.value)}

@@ -348,7 +348,6 @@ function FinancialsReportPage() {
             columns={profitProductsColumns}
             data={profitProducts}
             isLoading={isProfitProductsLoading}
-            onRefetch={() => {}}
           />
         </div>
 
@@ -364,7 +363,6 @@ function FinancialsReportPage() {
             columns={bestSellersColumns}
             data={bestSellers}
             isLoading={isAllProductsLoading}
-            onRefetch={() => {}}
           />
         </div>
 
@@ -380,7 +378,6 @@ function FinancialsReportPage() {
             columns={lowPerformanceColumns}
             data={lowPerformanceProducts}
             isLoading={isAllProductsLoading}
-            onRefetch={() => {}}
           />
         </div>
 
@@ -396,7 +393,6 @@ function FinancialsReportPage() {
             columns={categoryColumns}
             data={categoryData}
             isLoading={isCategoryLoading}
-            onRefetch={() => {}}
           />
         </div>
       </div>

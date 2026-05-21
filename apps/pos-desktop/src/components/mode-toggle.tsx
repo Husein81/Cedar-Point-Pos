@@ -1,6 +1,6 @@
 import { Button, Shad } from "@repo/ui";
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "./providers/theme-providers";
+import { useTheme } from "../context/theme-provider";
 
 export function ModeToggle() {
   const { setTheme } = useTheme();

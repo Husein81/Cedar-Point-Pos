@@ -52,11 +52,9 @@ export function TablesPage() {
     setFilters((prev) => ({ ...prev, floorId: "ALL" }));
   };
 
-  // Filter tables by floor tab, status, search, and floor dropdown
   const filteredTables = useMemo(() => {
     let result = tables;
 
-    // Filter by selected floor tab (takes priority; dropdown is reset when tab changes)
     if (selectedFloorId !== null) {
       result = result.filter((table) => table.floorId === selectedFloorId);
     }
@@ -145,20 +143,10 @@ export function TablesPage() {
           </Button>
           {activeView === "dine-in" && (
             <Activity mode={isHighLevelUser ? "visible" : "hidden"}>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetchTables()}
-                >
-                  <Icon name="RefreshCw" className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleAddTable}>
-                  <Icon name="Plus" className="h-4 w-4 mr-2" />
-                  Add Table
-                </Button>
-              </div>
+              <Button size="sm" variant="outline" onClick={handleAddTable}>
+                <Icon name="Plus" className="h-4 w-4 mr-2" />
+                Add Table
+              </Button>
             </Activity>
           )}
         </div>

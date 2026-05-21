@@ -235,7 +235,7 @@ function InventoryReportPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container mx-auto w-[calc(100vw-5vw)]">
       <ReportsFilterBar
         filters={filters}
         onFiltersChange={handleFiltersChange}

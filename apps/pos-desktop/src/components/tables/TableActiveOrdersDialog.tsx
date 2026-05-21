@@ -13,14 +13,8 @@ import { ActiveOrderCard } from "./ActiveOrderCard";
 import { MiniOrderInfo } from "./MiniOrderInfo";
 import { TransferMergeView } from "./TransferMergeView";
 
-// =====================
-// Sub-views
-// =====================
 type DialogView = "orders" | "transfer" | "merge" | "transfer-merge";
 
-// =====================
-// Props
-// =====================
 interface TableActiveOrdersDialogProps {
   table: TableWithFloor;
   open: boolean;

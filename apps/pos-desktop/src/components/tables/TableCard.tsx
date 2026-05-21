@@ -75,7 +75,7 @@ export function TableCard({ table }: TableCardProps) {
     <>
       <Shad.Card
         className={cn(
-          "group relative overflow-hidden transition-all duration-300 cursor-pointer border-2",
+          "group relative size-64 overflow-hidden transition-all duration-300 cursor-pointer border-2",
           "hover:shadow-xl hover:-translate-y-1",
           statusColors[status],
           !table.isActive && "opacity-50 grayscale",

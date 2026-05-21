@@ -147,58 +147,61 @@ export function DataTable<TData, TValue>({
       {isLoading ? (
         <TableSkeleton withToolbar={isInitialLoad} />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/40 shadow-sm">
-          <Shad.Table>
-            <Shad.TableHeader className="bg-muted/30">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <Shad.TableRow
-                  key={headerGroup.id}
-                  className="hover:bg-transparent border-b border-border/60"
-                >
-                  {headerGroup.headers.map((header) => (
-                    <Shad.TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </Shad.TableHead>
-                  ))}
-                </Shad.TableRow>
-              ))}
-            </Shad.TableHeader>
-
-            <Shad.TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
+        <div className="rounded-xl border border-border/40 shadow-sm overflow-hidden">
+          <Shad.ScrollArea className="w-full **:data-[slot=table-container]:overflow-x-visible">
+            <Shad.Table>
+              <Shad.TableHeader className="bg-muted/30">
+                {table.getHeaderGroups().map((headerGroup) => (
                   <Shad.TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="bg-background dark:hover:bg-accent-foreground/45"
+                    key={headerGroup.id}
+                    className="hover:bg-transparent border-b border-border/60"
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <Shad.TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </Shad.TableCell>
+                    {headerGroup.headers.map((header) => (
+                      <Shad.TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </Shad.TableHead>
                     ))}
                   </Shad.TableRow>
-                ))
-              ) : (
-                <Shad.TableRow>
-                  <Shad.TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </Shad.TableCell>
-                </Shad.TableRow>
-              )}
-            </Shad.TableBody>
-          </Shad.Table>
+                ))}
+              </Shad.TableHeader>
+
+              <Shad.TableBody>
+                {table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <Shad.TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      className="bg-background dark:hover:bg-accent-foreground/45"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <Shad.TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </Shad.TableCell>
+                      ))}
+                    </Shad.TableRow>
+                  ))
+                ) : (
+                  <Shad.TableRow>
+                    <Shad.TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
+                    </Shad.TableCell>
+                  </Shad.TableRow>
+                )}
+              </Shad.TableBody>
+            </Shad.Table>
+            <Shad.ScrollBar orientation="horizontal" />
+          </Shad.ScrollArea>
         </div>
       )}
 

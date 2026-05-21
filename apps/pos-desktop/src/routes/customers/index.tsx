@@ -1,6 +1,6 @@
 import { CustomerForm } from "@/components/customer/CustomerForm";
 import TitleBar from "@/components/title-bar";
-import { getCustomerColumns } from "@/config/customerColumn";
+import { getCustomerColumns } from "@/config/columns/customerColumn";
 import { useCustomersPaginated } from "@/hooks/useCustomer";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";

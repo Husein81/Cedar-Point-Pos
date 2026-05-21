@@ -13,7 +13,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 import { tablesApi } from "../apis/tablesApi";
 
 const TABLE_QUERY_KEY = ["tables"] as const;

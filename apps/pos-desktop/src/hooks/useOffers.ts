@@ -13,7 +13,7 @@ import type {
 } from "@/dto/offers.dto";
 import type { PaginationResponse, QueryParams } from "@repo/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 const OFFER_QUERY_KEY = ["offers"];
 const ORDER_QUERY_KEY = ["orders"];

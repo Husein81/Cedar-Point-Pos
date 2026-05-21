@@ -4,7 +4,7 @@ import { Button, InputField, Shad } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 import { Save } from "lucide-react";
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 export function TenantForm() {
   const { user, updateUser } = useAuthStore();

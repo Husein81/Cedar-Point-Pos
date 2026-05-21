@@ -21,19 +21,16 @@ const ProductCard = ({ product }: Props) => {
     product.id,
     product.isModifiable,
   );
-  console.log("ProductCard modifiers:", modifiers);
 
   const { items } = getActiveOrder() || { items: [] };
 
   const item = items.find((i) => i.productId === product.id);
 
-  // Get branch-specific stock (more accurate than summing all branches)
   const branchInventory = product.inventory?.find(
     (inv) => inv.branchId === branchId,
   );
   const currentStock = branchInventory ? Number(branchInventory.stock) : 0;
 
-  // Fallback to total stock if no branch-specific inventory
   const totalStock =
     product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
   const displayStock = branchInventory ? currentStock : totalStock;
@@ -46,9 +43,7 @@ const ProductCard = ({ product }: Props) => {
   const isNegative = resultingStockIfAdded < 0 || isOutOfStock;
 
   const handleAddItem = () => {
-    // If product is modifiable, check if it has modifiers
     if (product.isModifiable) {
-      // If no modifiers to configure, add directly
       if (
         !modifiers ||
         !modifiers.modifierGroups ||

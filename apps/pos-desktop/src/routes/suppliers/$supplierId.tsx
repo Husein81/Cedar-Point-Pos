@@ -1,10 +1,10 @@
-import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
-import { Avatar, Button, DataTable, Icon, Shad } from "@repo/ui";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { SupplierInfo } from "@/components/supplier/SupplierInfo";
-import { getPurchaseOrderColumns } from "@/config/supplierColumn";
 import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
+import { SupplierInfo } from "@/components/supplier/SupplierInfo";
 import TitleBar from "@/components/title-bar";
+import { getPurchaseOrderColumns } from "@/config/columns/supplierColumn";
+import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
+import { Button, DataTable, Icon, Shad } from "@repo/ui";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/suppliers/$supplierId")({
   component: RouteComponent,
@@ -12,15 +12,6 @@ export const Route = createFileRoute("/suppliers/$supplierId")({
     breadcrumb: "Supplier Details",
   },
 });
-
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-};
 
 interface StatCard {
   title: string;
@@ -83,42 +74,6 @@ function RouteComponent() {
 
   return (
     <div className="space-y-6">
-      {/* <div className="flex items-center gap-4">
-        <Link to="/suppliers">
-          <Button variant="ghost" size="icon">
-            <Icon name="ArrowLeft" className="h-4 w-4" />
-          </Button>
-        </Link>
-
-        <div className="flex items-center gap-4 flex-1">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {supplier.name}
-            </h1>
-            <div className="flex items-center gap-3 text-muted-foreground mt-1 text-sm">
-              {supplier.companyName && (
-                <div className="flex items-center gap-1.5">
-                  <Icon name="Building2" className="h-3.5 w-3.5" />
-                  {supplier.companyName}
-                </div>
-              )}
-              {supplier.phone && (
-                <div className="flex items-center gap-1.5">
-                  <Icon name="Phone" className="h-3.5 w-3.5" />
-                  {supplier.phone}
-                </div>
-              )}
-              {supplier.email && (
-                <div className="flex items-center gap-1.5">
-                  <Icon name="Mail" className="h-3.5 w-3.5" />
-                  {supplier.email}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div> */}
-
       <TitleBar title={supplier.name} href="/suppliers" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

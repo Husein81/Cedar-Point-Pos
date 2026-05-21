@@ -17,7 +17,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 const ORDER_QUERY_KEY = ["orders"];
 const TABLE_QUERY_KEY = ["tables"];

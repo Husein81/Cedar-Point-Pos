@@ -5,7 +5,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 import { userApi } from "../apis/userApi";
 
 export const useUpdateProfile = (): UseMutationResult<

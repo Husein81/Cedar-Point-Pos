@@ -1,6 +1,6 @@
 import { CategoryForm } from "@/components/category/CategoryForm";
 import TitleBar from "@/components/title-bar";
-import { getCategoryColumns } from "@/config/categoryColumn";
+import { getCategoryColumns } from "@/config/columns/categoryColumn";
 import { useCategories } from "@/hooks/useCategory";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";

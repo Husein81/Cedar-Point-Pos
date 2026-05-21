@@ -1,4 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
+import { getSalesColumns } from "@/config/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useReportsSales, useSalesOrdersReport } from "@/hooks/useReports";
@@ -17,12 +18,10 @@ import {
   formatCurrency,
   formatDate,
   getDateRangeFromPreset,
-  getStatusVariant,
   getTypeLabel,
 } from "@/utils/reportHelpers";
-import { Badge, Button, DataTable } from "@repo/ui";
+import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
-import { ColumnDef } from "@tanstack/react-table";
 import { FileDown } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
@@ -130,99 +129,6 @@ function SalesReportPage() {
     [setSearchTerm, setPage],
   );
 
-  const columns: ColumnDef<SalesOrderRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "orderNumber",
-        header: "Order #",
-        cell: ({ row }) => {
-          console.log(row.original);
-          return (
-            <span className="font-mono font-medium">
-              {row.original.orderNumber || "-"}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "createdAt",
-        header: "Date",
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(row.original.completedAt ?? row.original.createdAt)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "branch",
-        header: "Branch",
-        cell: ({ row }) => row.original.branch.name,
-      },
-      {
-        accessorKey: "type",
-        header: "Type",
-        cell: ({ row }) => (
-          <Badge variant="outline">{getTypeLabel(row.original.type)}</Badge>
-        ),
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => (
-          <Badge variant={getStatusVariant(row.original.status)}>
-            {row.original.status.split("_").join(" ")}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "subtotal",
-        header: "Subtotal",
-        cell: ({ row }) => formatCurrency(row.original.subtotal),
-      },
-      {
-        accessorKey: "discount",
-        header: "Discount",
-        cell: ({ row }) => {
-          const discount = row.original.discount;
-          return discount > 0 ? (
-            <span className="text-destructive">
-              -{formatCurrency(discount)}
-            </span>
-          ) : (
-            "-"
-          );
-        },
-      },
-      {
-        accessorKey: "total",
-        header: "Total",
-        cell: ({ row }) => (
-          <span className="font-semibold">
-            {formatCurrency(row.original.total)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "paymentsSummary",
-        header: "Payment Methods",
-        cell: ({ row }) => {
-          const methods = row.original.paymentsSummary.methods;
-          if (methods.length === 0) return "-";
-          return methods.map((m) => m.method).join(", ");
-        },
-      },
-      {
-        accessorKey: "cashier",
-        header: "Cashier",
-        cell: ({ row }) =>
-          row.original.cashier?.name || (
-            <span className="text-muted-foreground">-</span>
-          ),
-      },
-    ],
-    [],
-  );
-
   const salesSummary = useMemo((): SalesSummaryData => {
     if (fullDatasetSummary) {
       return {
@@ -323,6 +229,8 @@ function SalesReportPage() {
       subtitle: "Most frequent type",
     },
   ];
+
+  const columns = getSalesColumns();
 
   return (
     <div className="space-y-6">

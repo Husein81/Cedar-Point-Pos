@@ -8,7 +8,7 @@ import type { TableWithFloor } from "@/dto/tables.dto";
 import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 import { ActiveOrderCard } from "./ActiveOrderCard";
 import { MiniOrderInfo } from "./MiniOrderInfo";
 import { TransferMergeView } from "./TransferMergeView";

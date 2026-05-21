@@ -1,32 +1,30 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button } from "@repo/ui";
-import { FileDown } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
+import { getInventoryColumns } from "@/config/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useInventoryMovementsReport } from "@/hooks/useReports";
+import type {
+  InventoryMovementRowPdf,
+  InventoryMovementsReportSummary,
+} from "@/pdf/inventory/InventoryMovementsReportPdf";
 import { exportInventoryMovementsReportPdf } from "@/pdf/utils/exportInventoryMovementsReportPdf";
 import {
   formatDate as formatDatePdf,
   formatDateTime,
 } from "@/pdf/utils/formatters";
-import {
-  getDateRangeFromPreset,
-  formatDate,
-  getChangeTypeVariant,
-  formatChangeType,
-} from "@/utils/reportHelpers";
 import type {
   DateRangePreset,
   InventoryMovementRow,
   ReportListParams,
 } from "@/types/reports";
-import type {
-  InventoryMovementRowPdf,
-  InventoryMovementsReportSummary,
-} from "@/pdf/inventory/InventoryMovementsReportPdf";
+import {
+  formatChangeType,
+  getDateRangeFromPreset,
+} from "@/utils/reportHelpers";
+import { Button, DataTable } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { FileDown } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/inventory")({
   component: InventoryReportPage,
@@ -111,86 +109,14 @@ function InventoryReportPage() {
     setSearchTerm("");
   };
 
-  const columns: ColumnDef<InventoryMovementRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "createdAt",
-        header: "Date",
-        cell: ({ row }) => (
-          <span className="text-sm">{formatDate(row.original.createdAt)}</span>
-        ),
-      },
-      {
-        accessorKey: "product",
-        header: "Product",
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.product.name}</span>
-        ),
-      },
-      {
-        accessorKey: "changeType",
-        header: "Change Type",
-        cell: ({ row }) => (
-          <Badge variant={getChangeTypeVariant(row.original.changeType)}>
-            {formatChangeType(row.original.changeType)}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "beforeStock",
-        header: "Before",
-        cell: ({ row }) => row.original.beforeStock.toFixed(2),
-      },
-      {
-        accessorKey: "afterStock",
-        header: "After",
-        cell: ({ row }) => row.original.afterStock.toFixed(2),
-      },
-      {
-        accessorKey: "adjustment",
-        header: "Adjustment",
-        cell: ({ row }) => {
-          const adj = row.original.adjustment;
-          const isPositive = adj > 0;
-          return (
-            <span
-              className={isPositive ? "text-green-600" : "text-destructive"}
-            >
-              {isPositive ? "+" : ""}
-              {adj.toFixed(2)}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "reason",
-        header: "Reason",
-        cell: ({ row }) =>
-          row.original.reason || (
-            <span className="text-muted-foreground">-</span>
-          ),
-      },
-      {
-        accessorKey: "user",
-        header: "User",
-        cell: ({ row }) => row.original.user.name,
-      },
-      {
-        accessorKey: "branch",
-        header: "Branch",
-        cell: ({ row }) => row.original.branch.name,
-      },
-    ],
-    [],
-  );
-
   const rows = data?.data ?? [];
-  const meta = data?.pagination ?? {
+  const pagination = data?.pagination ?? {
     page: 1,
     pageSize: 25,
     totalCount: 0,
     totalPages: 0,
   };
+  const columns = getInventoryColumns();
 
   const handleExportPdf = async () => {
     if (rows.length === 0) return;
@@ -252,7 +178,7 @@ function InventoryReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Inventory Movements</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalCount} movements found
+              {pagination.totalCount} movements found
             </p>
           </div>
           <Button
@@ -278,10 +204,10 @@ function InventoryReportPage() {
             keys: ["changeType" as keyof InventoryMovementRow],
           }}
           pagination={{
-            rows: meta.totalCount,
+            rows: pagination.totalCount,
             page,
             pageSize,
-            totalPages: meta.totalPages,
+            totalPages: pagination.totalPages,
             onPageChange: setPage,
             onPageSizeChange: (s) => {
               setPageSize(s);

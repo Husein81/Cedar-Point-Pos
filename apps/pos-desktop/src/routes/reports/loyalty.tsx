@@ -1,25 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { Badge, DataTable, Empty } from "@repo/ui";
-import { SummaryGrid } from "@/components/reports";
-import { ReportsFilterBar } from "@/components/reports";
+import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
+import { getLoyaltyReportColumns } from "@/config/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {
   useLoyaltySummaryReport,
   useLoyaltyTransactionsReport,
 } from "@/hooks/useReports";
-import {
-  getDateRangeFromPreset,
-  formatCurrency,
-  formatDate,
-} from "@/utils/reportHelpers";
 import type {
   DateRangePreset,
   LoyaltyTransactionReportRow,
   ReportListParams,
 } from "@/types/reports";
+import { getDateRangeFromPreset } from "@/utils/reportHelpers";
+import { DataTable, Empty } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/loyalty")({
   component: LoyaltyReportPage,
@@ -102,123 +97,10 @@ function LoyaltyReportPage() {
     setSearchTerm("");
   };
 
-  const columns: ColumnDef<LoyaltyTransactionReportRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "createdAt",
-        header: "Date",
-        cell: ({ row }) => (
-          <span className="text-sm">{formatDate(row.original.createdAt)}</span>
-        ),
-      },
-      {
-        accessorKey: "customer",
-        header: "Customer",
-        cell: ({ row }) =>
-          row.original.customer?.name || (
-            <span className="text-muted-foreground">-</span>
-          ),
-      },
-      {
-        accessorKey: "type",
-        header: "Type",
-        cell: ({ row }) => (
-          <span className="text-sm capitalize">
-            {row.original.type.toLowerCase().replace(/_/g, " ")}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "direction",
-        header: "Direction",
-        cell: ({ row }) => {
-          const dir = row.original.direction;
-          return (
-            <Badge variant={dir === "CREDIT" ? "default" : "destructive"}>
-              {dir}
-            </Badge>
-          );
-        },
-      },
-      {
-        accessorKey: "points",
-        header: "Points",
-        cell: ({ row }) => {
-          const dir = row.original.direction;
-          const pts = row.original.points;
-          return (
-            <span
-              className={`font-semibold ${dir === "CREDIT" ? "text-green-600" : "text-red-600"}`}
-            >
-              {dir === "CREDIT" ? "+" : "-"}
-              {pts.toLocaleString()}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "moneyAmount",
-        header: "Money Amount",
-        cell: ({ row }) =>
-          row.original.moneyAmount != null ? (
-            <span>{formatCurrency(row.original.moneyAmount)}</span>
-          ) : (
-            <span className="text-muted-foreground">-</span>
-          ),
-      },
-      {
-        accessorKey: "balanceAfter",
-        header: "Balance After",
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {row.original.balanceAfter.toLocaleString()}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "order",
-        header: "Order / Refund",
-        cell: ({ row }) => {
-          const { order, refund } = row.original;
-          if (order) {
-            return (
-              <span className="font-mono text-sm">
-                {order.orderNumber || order.id.slice(0, 8)}
-              </span>
-            );
-          }
-          if (refund) {
-            return (
-              <span className="font-mono text-sm text-muted-foreground">
-                Refund {refund.id.slice(0, 8)}
-              </span>
-            );
-          }
-          return <span className="text-muted-foreground">-</span>;
-        },
-      },
-      {
-        accessorKey: "actorUser",
-        header: "Actor",
-        cell: ({ row }) =>
-          row.original.actorUser?.name || (
-            <span className="text-muted-foreground">System</span>
-          ),
-      },
-      {
-        accessorKey: "reason",
-        header: "Reason",
-        cell: ({ row }) =>
-          row.original.reason || (
-            <span className="text-muted-foreground">-</span>
-          ),
-      },
-    ],
-    [],
-  );
+  const columns = getLoyaltyReportColumns();
 
   const rows = data?.data ?? [];
-  const meta = data?.pagination ?? {
+  const pagination = data?.pagination ?? {
     page: 1,
     limit: 10,
     totalCount: 0,
@@ -272,7 +154,7 @@ function LoyaltyReportPage() {
         <div>
           <h2 className="text-xl font-semibold">Loyalty Transactions</h2>
           <p className="text-sm text-muted-foreground">
-            {meta.totalCount} transactions found
+            {pagination.totalCount} transactions found
             {summaryData
               ? ` — ${summaryData.transactionsInPeriod} in selected period`
               : ""}
@@ -299,10 +181,10 @@ function LoyaltyReportPage() {
               keys: ["type" as keyof LoyaltyTransactionReportRow],
             }}
             pagination={{
-              rows: meta.totalCount,
+              rows: pagination.totalCount,
               page,
               pageSize,
-              totalPages: meta.totalPages,
+              totalPages: pagination.totalPages,
               onPageChange: setPage,
               onPageSizeChange: (s) => {
                 setPageSize(s);

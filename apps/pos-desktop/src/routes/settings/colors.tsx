@@ -4,8 +4,8 @@ import { useModalStore } from "@/store/modalStore";
 import { ColorForm } from "@/components/settings/ColorForm";
 import TitleBar from "@/components/title-bar";
 import { Button, DataTable } from "@repo/ui";
-import { getColorColumns } from "@/config/colorColumn";
-import { toast } from "sonner";
+import { getColorColumns } from "@/config/columns/colorColumn";
+import { toast } from "@repo/ui";
 
 export const Route = createFileRoute("/settings/colors")({
   component: ColorsSettingsPage,

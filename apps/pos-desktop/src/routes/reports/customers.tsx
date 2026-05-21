@@ -1,4 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
+import { getCustomerReportsColumns } from "@/config/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useCustomersReport, useCustomersReportList } from "@/hooks/useReports";
@@ -20,7 +21,6 @@ import {
 } from "@/utils/reportHelpers";
 import { Button, DataTable, Icon } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
-import { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/customers")({
@@ -168,64 +168,7 @@ function CustomersReportPage() {
   };
 
   // Table columns definition
-  const columns: ColumnDef<CustomerReportRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "name",
-        header: "Customer Name",
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
-        ),
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => row.original.email || "-",
-      },
-      {
-        accessorKey: "phone",
-        header: "Phone",
-        cell: ({ row }) => row.original.phone || "-",
-      },
-      {
-        accessorKey: "ordersCount",
-        header: "Orders",
-        cell: ({ row }) => row.original.ordersCount,
-      },
-      {
-        accessorKey: "totalSpent",
-        header: "Total Spent",
-        cell: ({ row }) => (
-          <span className="font-semibold">
-            {formatCurrency(row.original.totalSpent)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "outstandingDebt",
-        header: "Outstanding Debt",
-        cell: ({ row }) => {
-          const debt = row.original.outstandingDebt;
-          return debt > 0 ? (
-            <span className="text-destructive font-medium">
-              {formatCurrency(debt)}
-            </span>
-          ) : (
-            "-"
-          );
-        },
-      },
-      {
-        accessorKey: "lastOrderDate",
-        header: "Last Order",
-        cell: ({ row }) =>
-          row.original.lastOrderDate
-            ? formatDate(row.original.lastOrderDate)
-            : "-",
-      },
-    ],
-    [],
-  );
+  const columns = getCustomerReportsColumns();
 
   // Filter handlers
   const handleFiltersChange = useCallback(

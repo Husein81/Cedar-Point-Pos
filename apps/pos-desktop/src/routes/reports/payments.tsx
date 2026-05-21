@@ -31,6 +31,7 @@ import type {
   PaymentTransactionRowPdf,
   PaymentsTransactionsReportSummary,
 } from "@/pdf/payments/PaymentsTransactionsReportPdf";
+import { getPaymentReportColumns } from "@/config/columns/reportsColumns";
 
 export const Route = createFileRoute("/reports/payments")({
   component: PaymentsReportPage,
@@ -133,75 +134,7 @@ function PaymentsReportPage() {
     setSearchTerm("");
   };
 
-  const columns: ColumnDef<PaymentTransactionRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "id",
-        header: "Payment ID",
-        cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground font-mono">
-            {row.original.id.slice(0, 8)}...
-          </span>
-        ),
-      },
-      {
-        accessorKey: "paidAt",
-        header: "Paid At",
-        cell: ({ row }) => (
-          <span className="text-sm">{formatDate(row.original.paidAt)}</span>
-        ),
-      },
-      {
-        accessorKey: "order.orderNumber",
-        header: "Order #",
-        cell: ({ row }) => (
-          <span className="font-mono font-medium">
-            {row.original.order.orderNumber || "-"}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "order.branch",
-        header: "Branch",
-        cell: ({ row }) => row.original.order.branch.name,
-      },
-      {
-        accessorKey: "method",
-        header: "Method",
-        cell: ({ row }) => (
-          <Badge variant={getMethodVariant(row.original.method)}>
-            {row.original.method}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "currencyCode",
-        header: "Currency",
-        cell: ({ row }) => row.original.currencyCode || "USD",
-      },
-      {
-        accessorKey: "amount",
-        header: "Amount",
-        cell: ({ row }) => (
-          <span className="font-semibold">
-            {formatCurrency(
-              row.original.amount,
-              row.original.currencyCode || "USD",
-            )}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "order.user",
-        header: "Cashier",
-        cell: ({ row }) =>
-          row.original.order.user?.name || (
-            <span className="text-muted-foreground">-</span>
-          ), // Fixed: use user.name
-      },
-    ],
-    [],
-  );
+  const columns = getPaymentReportColumns();
 
   const rows = data?.data ?? [];
   const meta = data?.pagination ?? {

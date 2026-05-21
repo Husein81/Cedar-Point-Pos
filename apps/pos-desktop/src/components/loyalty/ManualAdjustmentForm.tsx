@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { useManualLoyaltyAdjustment } from "@/hooks/useLoyalty";
 import { Button, Icon, InputField, Shad } from "@repo/ui";
 import { useModalStore } from "@/store/modalStore";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 type Props = {
   customerId: string;

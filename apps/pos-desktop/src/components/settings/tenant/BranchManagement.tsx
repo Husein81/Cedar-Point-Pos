@@ -5,7 +5,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BranchForm } from "./BranchForm";
 import type { Branch } from "@repo/types";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 export function BranchManagement() {
   const queryClient = useQueryClient();

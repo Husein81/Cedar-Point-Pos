@@ -10,7 +10,7 @@ import {
   Shad,
   Skeleton,
 } from "@repo/ui";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 import { useEffect } from "react";
 
 const ENROLLMENT_MODE_OPTIONS = [

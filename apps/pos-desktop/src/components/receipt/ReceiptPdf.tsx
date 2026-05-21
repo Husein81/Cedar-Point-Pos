@@ -1,137 +1,17 @@
-import { useAuthStore } from "@/store/authStore";
 import type { Order } from "@/dto/order.dto";
+import { useAuthStore } from "@/store/authStore";
 import {
   Document,
   Page,
-  StyleSheet,
   Text,
   View,
   pdf,
+  Image,
 } from "@react-pdf/renderer";
 
-const styles = StyleSheet.create({
-  page: {
-    padding: 16,
-    fontSize: 9,
-    fontFamily: "Helvetica",
-    color: "#000",
-  },
+import { styles } from "./style-sheet";
 
-  center: {
-    alignItems: "center",
-    textAlign: "center",
-  },
-
-  title: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-
-  subtitle: {
-    fontSize: 8,
-    color: "#444",
-    marginTop: 2,
-  },
-
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#000",
-    borderBottomStyle: "dashed",
-    marginVertical: 8,
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  section: {
-    marginBottom: 8,
-  },
-
-  label: {
-    color: "#444",
-  },
-
-  value: {
-    fontWeight: "bold",
-  },
-
-  // Items
-  itemHeader: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#000",
-    paddingBottom: 4,
-    marginBottom: 6,
-  },
-
-  itemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 2,
-  },
-
-  itemName: {
-    flex: 2,
-  },
-
-  itemQty: {
-    flex: 0.5,
-    textAlign: "center",
-  },
-
-  itemPrice: {
-    flex: 1,
-    textAlign: "right",
-  },
-
-  modifiers: {
-    fontSize: 7,
-    color: "#555",
-    paddingLeft: 10,
-    marginBottom: 3,
-  },
-
-  // Totals
-  totalsBox: {
-    marginTop: 10,
-    paddingTop: 6,
-  },
-
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 3,
-  },
-
-  grandTotal: {
-    borderTopWidth: 1,
-    borderTopColor: "#000",
-    marginTop: 6,
-    paddingTop: 6,
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-
-  // Footer
-  footer: {
-    marginTop: 14,
-    alignItems: "center",
-    fontSize: 8,
-    color: "#444",
-  },
-
-  badge: {
-    fontSize: 8,
-    marginTop: 4,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: "#000",
-  },
-});
-
-interface ReceiptPdfProps {
+type Props = {
   order: Order;
   tenantName: string;
   branchName: string;
@@ -142,7 +22,7 @@ interface ReceiptPdfProps {
     points: number;
     discount: number;
   };
-}
+};
 
 export const ReceiptPdf = ({
   order,
@@ -152,7 +32,7 @@ export const ReceiptPdf = ({
   branchPhone,
   orderNumber,
   loyaltyApplied,
-}: ReceiptPdfProps) => {
+}: Props) => {
   const { user } = useAuthStore();
 
   const subtotal = order.items.reduce(
@@ -171,153 +51,204 @@ export const ReceiptPdf = ({
 
   const loyaltyDiscount = loyaltyApplied?.discount || 0;
 
-  const total = subtotal - discount + order.shippingFee + vat - loyaltyDiscount;
+  const total =
+    subtotal -
+    discount +
+    order.shippingFee +
+    vat -
+    loyaltyDiscount;
 
   return (
     <Document>
-      <Page size={[226, 800]} style={styles.page}>
-        {/* HEADER */}
-        <View style={styles.center}>
-          <Text style={styles.title}>{tenantName}</Text>
-          <Text style={styles.subtitle}>{branchName}</Text>
-          {branchAddress && (
-            <Text style={styles.subtitle}>{branchAddress}</Text>
-          )}
-          {branchPhone && (
-            <Text style={styles.subtitle}>Tel: {branchPhone}</Text>
-          )}
+      <Page size={[226, 1000]} style={styles.page}>
+        {/* ================= HEADER ================= */}
+        <View style={styles.header}>
+          {/* LOGO */}
+          {/* Replace with your logo if available */}
+          {/* <Image src="/logo.png" style={styles.logo} /> */}
+
+          <Text style={styles.logoText}>
+            {tenantName}
+          </Text>
+
+          <Text style={styles.receiptMeta}>
+            VAT Ticket #{orderNumber}
+          </Text>
+
+          <Text style={styles.receiptMeta}>
+            {new Date().toLocaleDateString()}{" "}
+            {new Date().toLocaleTimeString()}
+          </Text>
+
+          <Text style={styles.receiptMeta}>
+            Served by: {user?.name || "Cashier"}
+          </Text>
         </View>
 
-        <View style={styles.divider} />
+        {/* ================= ITEMS ================= */}
+        <View style={styles.itemsContainer}>
+          {order.items.map((item) => (
+            <View key={item.id} style={styles.itemBlock}>
+              {/* Main Row */}
+              <View style={styles.itemRow}>
+                <Text style={styles.qty}>
+                  {item.quantity}
+                </Text>
 
-        {/* ORDER INFO */}
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Order</Text>
-            <Text style={styles.value}>{orderNumber}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Date</Text>
-            <Text>{new Date().toLocaleString()}</Text>
-          </View>
-
-          {order.tableName && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Table</Text>
-              <Text>{order.tableName}</Text>
-            </View>
-          )}
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Cashier</Text>
-            <Text>{user?.name}</Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* ITEMS */}
-        <View style={styles.itemHeader}>
-          <Text style={styles.itemQty}>Qty</Text>
-          <Text style={styles.itemName}>Item</Text>
-          <Text style={styles.itemPrice}>Total</Text>
-        </View>
-
-        {order.items.map((item: any) => (
-          <View key={item.id}>
-            <View style={styles.itemRow}>
-              <Text style={styles.itemQty}>{item.quantity}</Text>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>
-                ${(item.price * item.quantity).toFixed(2)}
-              </Text>
-            </View>
-
-            {item.modifiers?.length > 0 && (
-              <View style={styles.modifiers}>
-                {item.modifiers.map((m: any) => (
-                  <Text key={m.modifierId}>
-                    + {m.name} {m.price ? `($${m.price.toFixed(2)})` : ""}
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>
+                    {item.name}
                   </Text>
-                ))}
+
+                  <Text style={styles.itemSub}>
+                    ${item.price.toFixed(2)} / Units
+                  </Text>
+                </View>
+
+                <Text style={styles.itemTotal}>
+                  $
+                  {(
+                    item.price * item.quantity
+                  ).toFixed(2)}
+                </Text>
               </View>
-            )}
-          </View>
-        ))}
 
-        <View style={styles.divider} />
+              {/* Modifiers */}
+              {item.modifiers &&
+                item.modifiers.length > 0 && (
+                  <View style={styles.modifierContainer}>
+                    {item.modifiers.map((m) => (
+                      <Text
+                        key={m.modifierId}
+                        style={styles.modifier}
+                      >
+                        + {m.name}{" "}
+                        {m.price
+                          ? `($${m.price.toFixed(2)})`
+                          : ""}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+            </View>
+          ))}
+        </View>
 
-        {/* TOTALS */}
-        <View style={styles.totalsBox}>
+        {/* ================= TOTALS ================= */}
+        <View style={styles.totals}>
           <View style={styles.totalRow}>
-            <Text>Subtotal</Text>
-            <Text>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.totalLabel}>
+              Subtotal
+            </Text>
+
+            <Text style={styles.totalValue}>
+              ${subtotal.toFixed(2)}
+            </Text>
           </View>
 
           {discount > 0 && (
             <View style={styles.totalRow}>
-              <Text>Discount</Text>
-              <Text>-${discount.toFixed(2)}</Text>
+              <Text style={styles.totalLabel}>
+                Discount
+              </Text>
+
+              <Text style={styles.totalValue}>
+                -${discount.toFixed(2)}
+              </Text>
             </View>
           )}
 
           {loyaltyDiscount > 0 && (
             <View style={styles.totalRow}>
-              <Text>Loyalty</Text>
-              <Text>-${loyaltyDiscount.toFixed(2)}</Text>
+              <Text style={styles.totalLabel}>
+                Loyalty
+              </Text>
+
+              <Text style={styles.totalValue}>
+                -${loyaltyDiscount.toFixed(2)}
+              </Text>
             </View>
           )}
 
           {order.shippingFee > 0 && (
             <View style={styles.totalRow}>
-              <Text>Delivery</Text>
-              <Text>${order.shippingFee.toFixed(2)}</Text>
+              <Text style={styles.totalLabel}>
+                Delivery
+              </Text>
+
+              <Text style={styles.totalValue}>
+                ${order.shippingFee.toFixed(2)}
+              </Text>
             </View>
           )}
 
           {order.includeVAT && (
             <View style={styles.totalRow}>
-              <Text>VAT</Text>
-              <Text>${vat.toFixed(2)}</Text>
+              <Text style={styles.totalLabel}>
+                VAT 11%
+              </Text>
+
+              <Text style={styles.totalValue}>
+                ${vat.toFixed(2)}
+              </Text>
             </View>
           )}
 
-          <View style={styles.grandTotal}>
-            <View style={styles.totalRow}>
-              <Text>TOTAL</Text>
-              <Text>${total.toFixed(2)}</Text>
-            </View>
+          <View style={styles.totalDivider} />
 
-            <View style={styles.totalRow}>
-              <Text>TOTAL LBP</Text>
-              <Text>{(total * 90000).toFixed(0)} L.L</Text>
-            </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.grandLabel}>
+              Total
+            </Text>
+
+            <Text style={styles.grandValue}>
+              ${total.toFixed(2)}
+            </Text>
+          </View>
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>
+              Card
+            </Text>
+
+            <Text style={styles.totalValue}>
+              ${total.toFixed(2)}
+            </Text>
           </View>
         </View>
 
-        {/* FOOTER */}
+        {/* ================= FOOTER ================= */}
         <View style={styles.footer}>
-          <Text>Thank you for dining with us</Text>
-          <Text>Cedar Point POS System</Text>
+          <Text style={styles.footerText}>
+            {branchName}
+          </Text>
+
+          {branchAddress && (
+            <Text style={styles.footerSub}>
+              {branchAddress}
+            </Text>
+          )}
+
+          {branchPhone && (
+            <Text style={styles.footerSub}>
+              {branchPhone}
+            </Text>
+          )}
+
+          <Text style={styles.powered}>
+            Powered by Cedar Point POS
+          </Text>
         </View>
       </Page>
     </Document>
   );
 };
 
-export const printReceipt = async (params: {
-  order: Order;
-  tenantName: string;
-  branchName: string;
-  branchAddress?: string;
-  branchPhone?: string;
-  orderNumber: string;
-  loyaltyApplied?: {
-    points: number;
-    discount: number;
-  };
-}) => {
+export const printReceipt = async (
+  params: Props & {
+    orderNumber: string;
+  },
+) => {
   const blob = await pdf(
     <ReceiptPdf
       order={params.order}
@@ -331,14 +262,19 @@ export const printReceipt = async (params: {
   ).toBlob();
 
   const url = URL.createObjectURL(blob);
-  const iframe = document.createElement("iframe");
+
+  const iframe =
+    document.createElement("iframe");
+
   iframe.style.display = "none";
   iframe.src = url;
+
   document.body.appendChild(iframe);
 
   iframe.onload = () => {
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
+
     setTimeout(() => {
       document.body.removeChild(iframe);
       URL.revokeObjectURL(url);

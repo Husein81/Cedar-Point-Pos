@@ -18,7 +18,7 @@ import { extractErrorMessage } from "@/utils/error";
 import { toItemDto } from "@/utils/financial";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { useCallback, useRef } from "react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui";
 
 export function useOrderActions() {
   const { closeModal } = useModalStore();
@@ -232,7 +232,8 @@ export function useOrderActions() {
                 branchName: branch?.name || "Main Branch",
                 branchAddress: branch?.address || "",
                 branchPhone: branch?.phone || "",
-                orderNumber: updatedOrder.orderNumber || orderNumber || "PREVIEW",
+                orderNumber:
+                  updatedOrder.orderNumber || orderNumber || "PREVIEW",
                 loyaltyApplied,
               });
             } catch (printErr) {

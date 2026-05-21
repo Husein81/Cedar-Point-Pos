@@ -1,25 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button } from "@repo/ui";
-import { FileDown } from "lucide-react";
 import { ReportsFilterBar } from "@/components/reports";
+import { getProductReportsColumns } from "@/config/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useCategories } from "@/hooks/useCategory";
-import { useTopProductsReportList } from "@/hooks/useReports";
 import { useReportPageState } from "@/hooks/useReportPageState";
-import { getDateRangeFromPreset, formatCurrency } from "@/utils/reportHelpers";
-import { exportTopProductsReportPdf } from "@/pdf/utils/exportTopProductsReportPdf";
-import { formatDate as formatDatePdf } from "@/pdf/utils/formatters";
-import type {
-  TopProductRow,
-  ReportListParams,
-  DateRangePreset,
-} from "@/types/reports";
+import { useTopProductsReportList } from "@/hooks/useReports";
 import type {
   TopProductRowPdf,
   TopProductsReportSummary,
 } from "@/pdf/products/TopProductsReportPdf";
+import { exportTopProductsReportPdf } from "@/pdf/utils/exportTopProductsReportPdf";
+import { formatDate as formatDatePdf } from "@/pdf/utils/formatters";
+import type {
+  DateRangePreset,
+  ReportListParams,
+  TopProductRow,
+} from "@/types/reports";
+import { getDateRangeFromPreset } from "@/utils/reportHelpers";
+import { Button, DataTable } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { FileDown } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/products")({
   component: ProductsReportPage,
@@ -107,52 +107,10 @@ function ProductsReportPage() {
     setSearchTerm("");
   };
 
-  const columns: ColumnDef<TopProductRow>[] = useMemo(
-    () => [
-      {
-        accessorKey: "productName",
-        header: "Product",
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.productName}</span>
-        ),
-      },
-      {
-        accessorKey: "categoryName",
-        header: "Category",
-        cell: ({ row }) =>
-          row.original.categoryName ? (
-            <Badge variant="outline">{row.original.categoryName}</Badge>
-          ) : (
-            <span className="text-muted-foreground">Uncategorized</span>
-          ),
-      },
-      {
-        accessorKey: "qtySold",
-        header: "Quantity Sold",
-        cell: ({ row }) => (
-          <span className="font-mono">{row.original.qtySold.toFixed(0)}</span>
-        ),
-      },
-      {
-        accessorKey: "revenue",
-        header: "Revenue",
-        cell: ({ row }) => (
-          <span className="font-semibold text-green-600">
-            {formatCurrency(row.original.revenue)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "avgUnitPrice",
-        header: "Avg Unit Price",
-        cell: ({ row }) => formatCurrency(row.original.avgUnitPrice),
-      },
-    ],
-    [],
-  );
+  const columns = getProductReportsColumns();
 
   const rows = data?.data ?? [];
-  const meta = data?.pagination ?? {
+  const pagination = data?.pagination ?? {
     page: 1,
     limit: 25,
     totalCount: 0,
@@ -228,7 +186,7 @@ function ProductsReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Top Products</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalCount} products found
+              {pagination.totalCount} products found
             </p>
           </div>
           <Button
@@ -254,10 +212,10 @@ function ProductsReportPage() {
             keys: ["productName" as keyof TopProductRow],
           }}
           pagination={{
-            rows: meta.totalCount,
+            rows: pagination.totalCount,
             page,
             pageSize,
-            totalPages: meta.totalPages,
+            totalPages: pagination.totalPages,
             onPageChange: setPage,
             onPageSizeChange: (s) => {
               setPageSize(s);

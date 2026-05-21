@@ -20,22 +20,30 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
   const { getActiveOrder } = useOrderStore();
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
-  const { data: branch } = useBranch(branchId || "");
+  const { data: branch, isLoading: isBranchLoading } = useBranch(
+    branchId || "",
+  );
 
   const order = getActiveOrder();
-  const { data: nextNumberData } = useNextOrderNumber(branchId!);
+  const { data: nextNumberData, isLoading: isNextNumberLoading } =
+    useNextOrderNumber(branchId!);
 
   const orderNumber =
     order?.orderNumber || nextNumberData?.orderNumber || "PREVIEW";
 
+  const isDataLoading = isBranchLoading || (branchId && isNextNumberLoading);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!isDataLoading) {
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [isDataLoading]);
 
   if (!order || !user) {
     return (
@@ -69,14 +77,16 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
   return (
     <div className="flex flex-col gap-4 h-[80vh]">
       <div className="flex-1 overflow-hidden border rounded-lg bg-muted/20 relative">
-        {!isReady ? (
+        {isDataLoading || !isReady ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/50 backdrop-blur-sm z-10">
             <Icon
               name="LoaderCircle"
               className="w-8 h-8 animate-spin text-primary"
             />
             <p className="text-sm text-muted-foreground animate-pulse">
-              Preparing your receipt...
+              {isDataLoading
+                ? "Loading branch info..."
+                : "Preparing your receipt..."}
             </p>
           </div>
         ) : null}

@@ -107,8 +107,14 @@ export class TenantService {
             update: {},
             create: {
               code: curr.code,
-              name: curr.code === 'USD' ? 'United States Dollar' : curr.code === 'LBP' ? 'Lebanese Pound' : curr.code,
-              symbol: curr.code === 'USD' ? '$' : curr.code === 'LBP' ? 'ل.ل' : '',
+              name:
+                curr.code === 'USD'
+                  ? 'United States Dollar'
+                  : curr.code === 'LBP'
+                    ? 'Lebanese Pound'
+                    : curr.code,
+              symbol:
+                curr.code === 'USD' ? '$' : curr.code === 'LBP' ? 'ل.ل' : '',
               decimalPlaces: curr.code === 'LBP' ? 0 : 2,
             },
           });
@@ -152,5 +158,20 @@ export class TenantService {
     });
 
     return { message: 'Tenant deleted successfully' };
+  }
+
+  async updateTenant(id: string, data: Prisma.TenantUpdateInput) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    return await this.prisma.tenant.update({
+      where: { id },
+      data,
+    });
   }
 }

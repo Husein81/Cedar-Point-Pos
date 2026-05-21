@@ -5,13 +5,6 @@ import { Product } from "@repo/types";
 import { Button, InputField, MultiSelectField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
-/**
- * ========================================
- * MODIFIER FORM DIALOG
- * ========================================
- * Dialog for creating/editing individual modifiers using TanStack Form
- */
-
 interface ModifierFormProps {
   groupId?: string;
   editingModifier?: {
@@ -50,7 +43,8 @@ export const ModifierForm = ({
     defaultValues: {
       name: editingModifier?.name || "",
       price: editingModifier?.price?.toString() || "0.00",
-      productIds: editingModifier?.productAssignments?.map((a) => a.productId) || [],
+      productIds:
+        editingModifier?.productAssignments?.map((a) => a.productId) || [],
     },
     onSubmit: async ({ value }) => {
       if (!groupId) return;
@@ -145,7 +139,7 @@ export const ModifierForm = ({
             placeholder="Select products (optional)"
             subLabel="💡 Leave empty to make this modifier available to all modifiable products."
             field={field}
-            options={modifiableProducts.map((product: Product) => ({
+            options={modifiableProducts.map((product) => ({
               value: product.id,
               label: product.name,
             }))}

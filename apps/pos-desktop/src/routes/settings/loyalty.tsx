@@ -17,7 +17,7 @@ function LoyaltySettingsPage() {
   const { data: program } = useLoyaltyProgram();
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="space-y-4">
       <TitleBar
         title="Loyalty Program"
         subtitle="Configure how customers earn and redeem loyalty points"

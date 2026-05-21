@@ -19,7 +19,7 @@ export const modifierApi = {
     data: {
       name: string;
       price: number;
-      productId?: string;
+      productIds?: string[];
     },
   ): Promise<Modifier> => {
     const response = await api.post(
@@ -38,7 +38,7 @@ export const modifierApi = {
     data: {
       name?: string;
       price?: number;
-      productId?: string;
+      productIds?: string[];
     },
   ): Promise<Modifier> => {
     const response = await api.put(
@@ -85,7 +85,7 @@ export const useCreateModifier = () => {
       data,
     }: {
       groupId: string;
-      data: { name: string; price: number; productId?: string };
+      data: { name: string; price: number; productIds?: string[] };
     }) => modifierApi.createModifier(groupId, data),
     onSuccess: () => {
       // Invalidate all modifier queries to refresh lists
@@ -108,7 +108,7 @@ export const useUpdateModifier = () => {
     }: {
       groupId: string;
       modifierId: string;
-      data: { name?: string; price?: number; productId?: string };
+      data: { name?: string; price?: number; productIds?: string[] };
     }) => modifierApi.updateModifier(groupId, modifierId, data),
     onSuccess: () => {
       // Invalidate all modifier queries to refresh lists

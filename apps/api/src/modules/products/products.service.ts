@@ -219,7 +219,24 @@ export class ProductsService {
           group: {
             deletedAt: null,
           },
-          productId,
+          OR: [
+            {
+              productAssignments: {
+                some: {
+                  productId,
+                },
+              },
+            },
+            {
+              AND: [
+                { productAssignments: { none: {} } },
+                { productId: productId },
+              ],
+            },
+            {
+              AND: [{ productAssignments: { none: {} } }, { productId: null }],
+            },
+          ],
         },
         include: {
           group: {

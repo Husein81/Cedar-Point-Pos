@@ -13,10 +13,10 @@ interface ModifierGroupCardProps {
   forceExpanded?: boolean;
 }
 
-export const ModifierGroupCard = ({ 
-  group, 
+export const ModifierGroupCard = ({
+  group,
   viewMode = "grid",
-  forceExpanded = true
+  forceExpanded = true,
 }: ModifierGroupCardProps) => {
   const { openModal } = useModalStore();
   const [isExpanded, setIsExpanded] = useState(forceExpanded);
@@ -32,7 +32,10 @@ export const ModifierGroupCard = ({
   const isSingle = group.type === "SINGLE";
 
   const handleEdit = () => {
-    openModal("Edit Modifier Group", <ModifierGroupForm editingGroup={group} />);
+    openModal(
+      "Edit Modifier Group",
+      <ModifierGroupForm editingGroup={group} />,
+    );
   };
 
   const handleAddModifier = () => {
@@ -42,7 +45,7 @@ export const ModifierGroupCard = ({
   const handleDelete = async () => {
     if (
       window.confirm(
-        `Are you sure you want to delete "${group.name}"? This will also delete all modifiers in this group.`
+        `Are you sure you want to delete "${group.name}"? This will also delete all modifiers in this group.`,
       )
     ) {
       deleteGroup.mutate(group.id);
@@ -50,11 +53,16 @@ export const ModifierGroupCard = ({
   };
 
   const handleEditModifier = (modifier: Modifier) => {
-    openModal("Edit Modifier", <ModifierForm groupId={group.id} editingModifier={modifier} />);
+    openModal(
+      "Edit Modifier",
+      <ModifierForm groupId={group.id} editingModifier={modifier} />,
+    );
   };
 
   const handleDeleteModifier = (modifier: Modifier) => {
-    if (window.confirm(`Are you sure you want to delete "${modifier.name}?"?`)) {
+    if (
+      window.confirm(`Are you sure you want to delete "${modifier.name}?"?`)
+    ) {
       deleteModifier.mutate({
         groupId: group.id,
         modifierId: modifier.id,
@@ -76,7 +84,7 @@ export const ModifierGroupCard = ({
                     "px-2.5 py-0.5 text-xs rounded-full font-medium whitespace-nowrap",
                     isSingle
                       ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                      : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
                   )}
                 >
                   {isSingle ? "Single Choice" : "Multiple Choice"}
@@ -119,10 +127,16 @@ export const ModifierGroupCard = ({
                     Add Modifier
                   </Shad.DropdownMenuItem>
                   <Shad.DropdownMenuItem onClick={handleEdit}>
-                    <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
+                    <Icon
+                      name="SquarePen"
+                      className="h-4 w-4 hover:text-accent"
+                    />
                     Edit Group
                   </Shad.DropdownMenuItem>
-                  <Shad.DropdownMenuItem onClick={handleDelete} variant="destructive">
+                  <Shad.DropdownMenuItem
+                    onClick={handleDelete}
+                    variant="destructive"
+                  >
                     <Icon name="Trash2" className="h-4 w-4" />
                     Delete Group
                   </Shad.DropdownMenuItem>
@@ -139,21 +153,49 @@ export const ModifierGroupCard = ({
                   key={modifier.id}
                   className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  <span className="text-sm font-medium truncate">{modifier.name}</span>
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">
+                        {modifier.name}
+                      </span>
+                      {modifier.productAssignments &&
+                      modifier.productAssignments.length > 0 ? (
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800">
+                          {modifier.productAssignments.length === 1
+                            ? modifier.productAssignments[0]?.product?.name
+                            : `${modifier.productAssignments.length} products`}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border">
+                          All products
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {modifier.price > 0 ? `+$${Number(modifier.price).toFixed(2)}` : "Free"}
+                      {modifier.price > 0
+                        ? `+$${Number(modifier.price).toFixed(2)}`
+                        : "Free"}
                     </span>
                     <Shad.DropdownMenu>
                       <Shad.DropdownMenuTrigger>
                         <Icon name="Ellipsis" className="size-3" />
                       </Shad.DropdownMenuTrigger>
                       <Shad.DropdownMenuContent align="end">
-                        <Shad.DropdownMenuItem onClick={() => handleEditModifier(modifier)}>
-                          <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
+                        <Shad.DropdownMenuItem
+                          onClick={() => handleEditModifier(modifier)}
+                        >
+                          <Icon
+                            name="SquarePen"
+                            className="h-4 w-4 hover:text-accent"
+                          />
                           Edit
                         </Shad.DropdownMenuItem>
-                        <Shad.DropdownMenuItem onClick={() => handleDeleteModifier(modifier)} variant="destructive">
+                        <Shad.DropdownMenuItem
+                          onClick={() => handleDeleteModifier(modifier)}
+                          variant="destructive"
+                        >
                           <Icon name="Trash2" className="h-4 w-4" />
                           Delete
                         </Shad.DropdownMenuItem>
@@ -175,14 +217,16 @@ export const ModifierGroupCard = ({
       <Shad.CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <Shad.CardTitle className="text-lg mb-2">{group.name}</Shad.CardTitle>
+            <Shad.CardTitle className="text-lg mb-2">
+              {group.name}
+            </Shad.CardTitle>
             <div className="flex items-center gap-2">
               <span
                 className={cn(
                   "px-2.5 py-0.5 text-xs rounded-full font-medium",
                   isSingle
                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
                 )}
               >
                 {isSingle ? "Single Choice" : "Multiple Choice"}
@@ -208,7 +252,10 @@ export const ModifierGroupCard = ({
             )}
             <Shad.DropdownMenu>
               <Shad.DropdownMenuTrigger asChild>
-                <button className="h-7 w-7 flex items-center justify-center hover:bg-accent hover:text-accent-foreground rounded-md transition-colors">
+                <button
+                  aria-label="ellipsis"
+                  className="h-7 w-7 flex items-center justify-center hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
+                >
                   <Icon name="Ellipsis" className="h-4 w-4" />
                 </button>
               </Shad.DropdownMenuTrigger>
@@ -218,10 +265,16 @@ export const ModifierGroupCard = ({
                   Add Modifier
                 </Shad.DropdownMenuItem>
                 <Shad.DropdownMenuItem onClick={handleEdit}>
-                  <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
+                  <Icon
+                    name="SquarePen"
+                    className="h-4 w-4 hover:text-accent"
+                  />
                   Edit Group
                 </Shad.DropdownMenuItem>
-                <Shad.DropdownMenuItem onClick={handleDelete} variant="destructive">
+                <Shad.DropdownMenuItem
+                  onClick={handleDelete}
+                  variant="destructive"
+                >
                   <Icon name="Trash2" className="h-4 w-4" />
                   Delete Group
                 </Shad.DropdownMenuItem>
@@ -250,21 +303,49 @@ export const ModifierGroupCard = ({
                 key={modifier.id}
                 className="flex items-center justify-between p-2.5 rounded-md bg-muted/50 hover:bg-muted transition-colors"
               >
-                <span className="text-sm font-medium truncate">{modifier.name}</span>
+                <div className="flex-1 min-w-0 pr-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium truncate">
+                      {modifier.name}
+                    </span>
+                    {modifier.productAssignments &&
+                    modifier.productAssignments.length > 0 ? (
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800">
+                        {modifier.productAssignments.length === 1
+                          ? modifier.productAssignments[0]?.product.name
+                          : `${modifier.productAssignments.length} products`}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border">
+                        All products
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {modifier.price > 0 ? `+$${Number(modifier.price).toFixed(2)}` : "Free"}
+                    {modifier.price > 0
+                      ? `+$${Number(modifier.price).toFixed(2)}`
+                      : "Free"}
                   </span>
                   <Shad.DropdownMenu>
                     <Shad.DropdownMenuTrigger>
                       <Icon name="Ellipsis" className="size-3" />
                     </Shad.DropdownMenuTrigger>
                     <Shad.DropdownMenuContent align="end">
-                      <Shad.DropdownMenuItem onClick={() => handleEditModifier(modifier)}>
-                        <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
+                      <Shad.DropdownMenuItem
+                        onClick={() => handleEditModifier(modifier)}
+                      >
+                        <Icon
+                          name="SquarePen"
+                          className="h-4 w-4 hover:text-accent"
+                        />
                         Edit
                       </Shad.DropdownMenuItem>
-                      <Shad.DropdownMenuItem onClick={() => handleDeleteModifier(modifier)} variant="destructive">
+                      <Shad.DropdownMenuItem
+                        onClick={() => handleDeleteModifier(modifier)}
+                        variant="destructive"
+                      >
                         <Icon name="Trash2" className="h-4 w-4" />
                         Delete
                       </Shad.DropdownMenuItem>

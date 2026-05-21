@@ -16,4 +16,18 @@ export const branchApi = {
     const response = await api.get<Branch[]>(`/branches/tenant/${tenantId}`);
     return response.data;
   },
+
+  createBranch: async (data: Partial<Branch>): Promise<Branch> => {
+    const response = await api.post<Branch>("/branches", data);
+    return response.data;
+  },
+
+  updateBranch: async (id: string, data: Partial<Branch>): Promise<Branch> => {
+    const response = await api.post<Branch>(`/branches/${id}`, data);
+    return response.data;
+  },
+
+  deleteBranch: async (id: string): Promise<void> => {
+    await api.delete(`/branches/${id}`);
+  },
 };

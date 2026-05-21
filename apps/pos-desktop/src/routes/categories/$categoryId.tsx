@@ -52,7 +52,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4">
       <TitleBar
         title={category.name}
         subtitle={category.description ?? ""}

@@ -12,7 +12,7 @@ export const SettingsSectionCard = ({ section, className }: Props) => {
     <Link to={section.href}>
       <Shad.Card
         className={cn(
-          "cursor-pointer rounded-lg transition-all hover:shadow-md hover:border-primary/50",
+          "cursor-pointer h-28 rounded-lg transition-all hover:shadow-md hover:border-primary/50",
           "group",
           className,
         )}

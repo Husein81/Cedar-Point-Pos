@@ -1,6 +1,13 @@
 import { useAuthStore } from "@/store/authStore";
 import type { Order } from "@/dto/order.dto";
-import { Document, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  StyleSheet,
+  Text,
+  View,
+  pdf,
+} from "@react-pdf/renderer";
 
 const styles = StyleSheet.create({
   page: {
@@ -124,6 +131,19 @@ const styles = StyleSheet.create({
   },
 });
 
+interface ReceiptPdfProps {
+  order: Order;
+  tenantName: string;
+  branchName: string;
+  branchAddress?: string;
+  branchPhone?: string;
+  orderNumber?: string;
+  loyaltyApplied?: {
+    points: number;
+    discount: number;
+  };
+}
+
 export const ReceiptPdf = ({
   order,
   tenantName,
@@ -132,7 +152,7 @@ export const ReceiptPdf = ({
   branchPhone,
   orderNumber,
   loyaltyApplied,
-}: any) => {
+}: ReceiptPdfProps) => {
   const { user } = useAuthStore();
 
   const subtotal = order.items.reduce(

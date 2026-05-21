@@ -47,11 +47,17 @@ export class ModifierGroupsService {
       include: {
         modifiers: {
           where: { deletedAt: null },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            productId: true,
+          include: {
+            productAssignments: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -89,11 +95,17 @@ export class ModifierGroupsService {
           include: {
             modifiers: {
               where: { deletedAt: null },
-              select: {
-                id: true,
-                name: true,
-                price: true,
-                productId: true,
+              include: {
+                productAssignments: {
+                  include: {
+                    product: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -133,11 +145,17 @@ export class ModifierGroupsService {
       include: {
         modifiers: {
           where: { deletedAt: null },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            productId: true,
+          include: {
+            productAssignments: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
           orderBy: {
             name: 'asc',
@@ -205,11 +223,17 @@ export class ModifierGroupsService {
       include: {
         modifiers: {
           where: { deletedAt: null },
-          select: {
-            id: true,
-            name: true,
-            price: true,
-            productId: true,
+          include: {
+            productAssignments: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

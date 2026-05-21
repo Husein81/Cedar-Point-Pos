@@ -22,7 +22,7 @@ export default function ProfilePage() {
   });
 
   return (
-    <div className="space-y-8 pt-4">
+    <div className="space-y-8">
       <TitleBar
         title="Profile Settings"
         subtitle="Manage your personal information and account details"

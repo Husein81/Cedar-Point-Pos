@@ -21,6 +21,7 @@ const ProductCard = ({ product }: Props) => {
     product.id,
     product.isModifiable,
   );
+  console.log("ProductCard modifiers:", modifiers);
 
   const { items } = getActiveOrder() || { items: [] };
 

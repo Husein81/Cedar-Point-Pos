@@ -11,7 +11,14 @@ export interface Modifier {
   name: string;
   price: number;
   groupId: string;
-  productId?: string | null;
+  productAssignments?: {
+    id: string;
+    productId: string;
+    product: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 export interface ModifierGroupItem {

@@ -345,6 +345,20 @@ export const ModifierSchema = z.object({
   name: z.string(),
   price: decimal.default("0"),
   deletedAt: isoDate.nullable().optional(),
+  productAssignments: z
+    .array(
+      z.object({
+        id: uuid,
+        productId: uuid,
+        product: z
+          .object({
+            id: uuid,
+            name: z.string(),
+          })
+          .optional(),
+      }),
+    )
+    .optional(),
 });
 export type Modifier = z.infer<typeof ModifierSchema>;
 

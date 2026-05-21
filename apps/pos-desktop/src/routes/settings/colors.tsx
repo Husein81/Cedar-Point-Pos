@@ -35,7 +35,7 @@ function ColorsSettingsPage() {
   };
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-4">
       <TitleBar
         title="Colors"
         subtitle="Manage colors for categories and products"

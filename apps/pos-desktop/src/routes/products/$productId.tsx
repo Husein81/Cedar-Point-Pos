@@ -1,4 +1,5 @@
 import { ProductForm } from "@/components/products/ProductForm";
+import TitleBar from "@/components/title-bar";
 import { useProduct } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
 import { Badge, Button, Shad } from "@repo/ui";
@@ -14,7 +15,6 @@ function RouteComponent() {
   const { data: product, isLoading } = useProduct(productId);
   const openModal = useModalStore((state) => state.openModal);
 
-  console.log("Product data:", product);
   const handleEdit = () => {
     if (product) {
       openModal("Edit Product", <ProductForm product={product} />);
@@ -44,33 +44,13 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-6 pt-4">
-      <div className="flex items-center gap-4">
-        <Link to="/products">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{product.name}</h1>
-            {product.isActive ? (
-              <Badge className="bg-green-500">Active</Badge>
-            ) : (
-              <Badge variant="destructive">Inactive</Badge>
-            )}
-            {product.isModifiable && (
-              <Badge variant="outline">Modifiable</Badge>
-            )}
-          </div>
-          {product.description && (
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {product.description}
-            </p>
-          )}
-        </div>
-        <Button onClick={handleEdit}>Edit Product</Button>
-      </div>
+    <div className="space-y-6">
+      <TitleBar
+        title={product.name}
+        subtitle={product.description ?? ""}
+        actions={<Button onClick={handleEdit}>Edit Product</Button>}
+        href="/products"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Shad.Card>

@@ -5,12 +5,14 @@ import {
   Get,
   Param,
   Post,
+  Patch,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { UserRole } from '@repo/types';
 import { TenantService } from './tenant.service.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('tenants')
@@ -47,5 +49,14 @@ export class TenantController {
   @HttpCode(HttpStatus.OK)
   deleteTenant(@Param('id') id: string) {
     return this.tenantService.deleteTenant(id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch('my-tenant')
+  updateMyTenant(
+    @CurrentTenant() tenantId: string,
+    @Body() body: Prisma.TenantUpdateInput,
+  ) {
+    return this.tenantService.updateTenant(tenantId, body);
   }
 }

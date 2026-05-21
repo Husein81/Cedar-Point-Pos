@@ -10,7 +10,7 @@ type Props = {
 
 const TitleBar = ({ title, subtitle, href, actions }: Props) => {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pt-4">
       {/* Header row */}
       <div className="flex flex-col gap-4 sm:flex-row py-2 sm:items-center sm:justify-between">
         {/* Left section */}

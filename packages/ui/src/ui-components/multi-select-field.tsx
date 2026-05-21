@@ -21,10 +21,6 @@ interface MultiSelectFieldProps {
   subLabel?: string;
 }
 
-/**
- * MultiSelectField - Multi-select dropdown component for forms
- * Allows selection of multiple items with visual badge display
- */
 const MultiSelectField = ({
   label,
   placeholder = "Select items...",
@@ -104,13 +100,13 @@ const MultiSelectField = ({
                     return (
                       <Shad.CommandItem
                         key={option.value}
-                        value={option.value}
+                        value={`${option.label} ${option.value}`}
                         onSelect={() => toggleSelection(option.value)}
-                        className="cursor-pointer"
+                        className="cursor-pointer gap-2"
                       >
                         <Checkbox
                           checked={isSelected}
-                          onChange={() => toggleSelection(option.value)}
+                          className="pointer-events-none"
                         />
                         <span>{option.label}</span>
                       </Shad.CommandItem>

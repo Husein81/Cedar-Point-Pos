@@ -295,7 +295,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-6">
       {/* Enhanced Header */}
       <div className="flex items-center gap-4">
         <Link to="/customers">

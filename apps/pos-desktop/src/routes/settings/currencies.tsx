@@ -52,7 +52,7 @@ function CurrenciesSettingsPage() {
   const totalCurrencies = currencies.length;
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="space-y-4">
       <TitleBar
         title="Currency Settings"
         subtitle="Manage currencies and exchange rates for your business"

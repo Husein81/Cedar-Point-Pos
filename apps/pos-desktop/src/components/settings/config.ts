@@ -35,6 +35,14 @@ export const settingsSections: SettingsSection[] = [
     showFor: ["RETAIL", "RESTAURANT"],
   },
   {
+    id: "tenant",
+    label: "Tenant Details",
+    description: "Manage your tenant details",
+    icon: "Building2",
+    href: "/settings/tenant",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
+  {
     id: "profile",
     label: "Profile",
     description: "View and manage your personal account details",

@@ -79,9 +79,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   refresh(@Req() req: Request) {
     const user = req.user as User;
-    const refreshToken =
+    const refreshToken = String(
       req.headers.authorization?.replace('Bearer ', '') ||
-      req.cookies?.sa_refresh_token;
+        req.cookies?.sa_refresh_token,
+    );
 
     return this.authService.refreshTokens(user.id, refreshToken);
   }

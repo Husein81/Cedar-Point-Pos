@@ -2,7 +2,7 @@ import { useCreateCategory, useUpdateCategory } from "@/hooks/useCategory";
 import { useColors } from "@/hooks/useColor";
 import { useModalStore } from "@/store/modalStore";
 import type { Category } from "@repo/types";
-import { Button, InputField, SelectField, TextareaField } from "@repo/ui";
+import { Button, InputField, Shad, TextareaField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 
 type Props = {
@@ -17,6 +17,7 @@ export const CategoryForm = ({ category }: Props) => {
 
   const colorOptions = colors.map((c) => ({
     value: c.id,
+    hex: c.hex,
     label: c.name,
   }));
 
@@ -104,12 +105,25 @@ export const CategoryForm = ({ category }: Props) => {
 
       <form.Field name="colorId">
         {(field) => (
-          <SelectField
-            label="Color"
-            field={field}
-            options={colorOptions}
-            placeholder="Select a color"
-          />
+          <Shad.Select
+            onValueChange={(value) => field.handleChange(value)}
+            defaultValue={field.state.value}
+          >
+            <Shad.SelectTrigger className="w-full">
+              <Shad.SelectValue placeholder="Select a color" />
+            </Shad.SelectTrigger>
+            <Shad.SelectContent>
+              {colorOptions.map((option) => (
+                <Shad.SelectItem key={option.value} value={option.value}>
+                  <div
+                    style={{ backgroundColor: option.hex }}
+                    className="mr-2 h-3 w-3 rounded-full"
+                  />
+                  {option.label}
+                </Shad.SelectItem>
+              ))}
+            </Shad.SelectContent>
+          </Shad.Select>
         )}
       </form.Field>
 

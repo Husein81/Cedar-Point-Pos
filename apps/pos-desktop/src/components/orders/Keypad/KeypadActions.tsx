@@ -123,7 +123,7 @@ export default function KeypadActions() {
           buttonVariant="outline"
           label="Confirm"
           size="lg"
-          className="h-12 rounded-sm text-sm font-semibold"
+          className="flex-1 h-12 rounded-sm text-sm font-semibold"
           disabled={
             !order?.items?.length ||
             total <= 0 ||

@@ -7,3 +7,5 @@ export { TableFilters } from "./TableFilters";
 export { TablesStatsCards } from "./TablesStatsCards";
 export { TablesPage } from "./TablesPage";
 export { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
+export { FloorManagementModal } from "./FloorManagementModal";
+

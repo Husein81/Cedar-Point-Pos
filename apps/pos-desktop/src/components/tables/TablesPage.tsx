@@ -1,4 +1,4 @@
-import { Button, Empty, Icon } from "@repo/ui";
+import { Button, cn, Empty, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { Activity, useMemo, useState } from "react";
 
@@ -30,11 +30,7 @@ export function TablesPage() {
   const navigate = useNavigate();
 
   // Data fetching
-  const {
-    data: tables = [],
-    isLoading: isLoadingTables,
-    refetch: refetchTables,
-  } = useTablesByBranch();
+  const { data: tables = [], isLoading: isLoadingTables } = useTablesByBranch();
   const { data: floors = [], isLoading: isLoadingFloors } = useFloorsByBranch();
 
   // UI State
@@ -102,27 +98,30 @@ export function TablesPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between">
-        <div className="flex items-center gap-1 bg-muted/40 p-1 w-fit rounded-lg border">
+        <div className="flex items-center rounded-md border bg-muted p-1 w-fit">
           <Button
             variant={activeView === "dine-in" ? "secondary" : "ghost"}
             size="sm"
-            className={
+            className={cn(
+              "rounded-sm px-4",
               activeView === "dine-in"
-                ? "rounded-md shadow-sm bg-background hover:bg-background text-foreground"
-                : "rounded-md hover:bg-background hover:text-foreground text-muted-foreground"
-            }
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground",
+            )}
             onClick={() => setActiveView("dine-in")}
           >
             Dine In
           </Button>
+
           <Button
             variant={activeView === "orders" ? "secondary" : "ghost"}
             size="sm"
-            className={
+            className={cn(
+              "px-4",
               activeView === "orders"
-                ? "rounded-md shadow-sm bg-background hover:bg-background text-foreground"
-                : "rounded-md hover:bg-background hover:text-foreground text-muted-foreground"
-            }
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground",
+            )}
             onClick={() => setActiveView("orders")}
           >
             Orders
@@ -154,6 +153,13 @@ export function TablesPage() {
 
       {activeView === "dine-in" ? (
         <>
+          {/* Filters */}
+          <TableFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            floors={floors.map((f) => ({ id: f.id, name: f.name }))}
+          />
+
           {/* Floor Tabs */}
           <FloorTabs
             floors={floors}
@@ -162,18 +168,10 @@ export function TablesPage() {
             isLoading={isLoadingFloors}
           />
 
-          {/* Filters */}
-          <TableFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            floors={floors.map((f) => ({ id: f.id, name: f.name }))}
-          />
-
           {/* Table Grid */}
           <TableGrid tables={filteredTables} isLoading={isLoadingTables} />
         </>
       ) : (
-        /* Orders Tab Content */
         <OngoingOrdersList />
       )}
     </div>

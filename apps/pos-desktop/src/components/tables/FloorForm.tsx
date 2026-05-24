@@ -9,11 +9,14 @@ import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
 import { useCreateFloor, useUpdateFloor } from "@/hooks/useFloor";
 
-interface FloorFormProps {
+type Props = {
   floor?: FloorWithTableCount;
-}
+  onDelete?: () => void;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+};
 
-export function FloorForm({ floor }: FloorFormProps) {
+export function FloorForm({ floor, onDelete, onSuccess, onCancel }: Props) {
   const { closeModal } = useModalStore();
   const { branchId } = useBranchStore();
 
@@ -22,12 +25,23 @@ export function FloorForm({ floor }: FloorFormProps) {
 
   const handleFloorSubmit = (data: CreateFloorDto | UpdateFloorDto) => {
     if (floor) {
-      updateFloorMutation.mutate({
-        id: floor.id,
-        data: data as UpdateFloorDto,
-      });
+      updateFloorMutation.mutate(
+        {
+          id: floor.id,
+          data: data as UpdateFloorDto,
+        },
+        {
+          onSuccess: () => {
+            onSuccess?.();
+          },
+        },
+      );
     } else {
-      createFloorMutation.mutate(data as CreateFloorDto);
+      createFloorMutation.mutate(data as CreateFloorDto, {
+        onSuccess: () => {
+          onSuccess?.();
+        },
+      });
     }
   };
 
@@ -91,7 +105,7 @@ export function FloorForm({ floor }: FloorFormProps) {
       />
 
       <div className="flex justify-between gap-2 pt-4">
-        {/* <div>
+        <div>
           {floor && onDelete && (
             <Button
               type="button"
@@ -103,9 +117,9 @@ export function FloorForm({ floor }: FloorFormProps) {
               Delete Floor
             </Button>
           )}
-        </div> */}
+        </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={closeModal}>
+          <Button type="button" variant="outline" onClick={onCancel || closeModal}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>

@@ -3,7 +3,16 @@ import { useProducts } from "@/hooks/useProduct";
 import { useOrderStore } from "@/store/orderStore";
 import type { Product } from "@repo/types";
 import { Subcategory } from "@repo/types";
-import { Button, Empty, Icon, Input, Shad, Skeleton, cn } from "@repo/ui";
+import {
+  Button,
+  Empty,
+  Icon,
+  Input,
+  SButton,
+  Shad,
+  Skeleton,
+  cn,
+} from "@repo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
 
@@ -289,25 +298,23 @@ export const ProductGrid = () => {
             {activeCategories.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6  gap-1 p-1">
                 {activeCategories.map((category) => (
-                  <button
+                  <SButton
                     key={category.id}
+                    variant="outline"
                     onClick={() => handleCategoryClick(category.id)}
-                    className="relative overflow-hidden rounded-md flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
+                    className="h-20 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-md flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
                     style={{
-                      backgroundColor: category.color?.hex
-                        ? `${category.color.hex}15`
-                        : "var(--muted)",
                       borderColor: category.color?.hex
                         ? `${category.color.hex}40`
                         : "var(--border)",
                       color: category.color?.hex || "inherit",
                     }}
                   >
-                    <Icon name="Folder" className="size-8 mb-2 opacity-80" />
+                    <Icon name="Folder" className="opacity-80" />
                     <span className="font-bold text-xs text-center leading-tight line-clamp-2">
                       {category.name}
                     </span>
-                  </button>
+                  </SButton>
                 ))}
               </div>
             )}
@@ -337,10 +344,11 @@ export const ProductGrid = () => {
             {!selectedSubcategoryId && activeSubcategories.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-1 p-1">
                 {activeSubcategories.map((sub) => (
-                  <button
+                  <SButton
                     key={sub.id}
+                    variant={"outline"}
                     onClick={() => handleSubcategoryClick(sub.id)}
-                    className="relative overflow-hidden rounded-md flex flex-col items-center justify-center p-3 transition-transform active:scale-95 border shadow-sm hover:shadow-md bg-card"
+                    className="h-20 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-md flex flex-col items-center justify-center p-4 transition-transform active:scale-95 border shadow-sm hover:shadow-md"
                     style={{
                       borderColor: selectedCategoryColor
                         ? `${selectedCategoryColor}40`
@@ -348,14 +356,11 @@ export const ProductGrid = () => {
                       color: selectedCategoryColor || "inherit",
                     }}
                   >
-                    <Icon
-                      name="FolderOpen"
-                      className="w-6 h-6 mb-1 opacity-70"
-                    />
+                    <Icon name="FolderOpen" className="mb-1 opacity-70" />
                     <span className="font-semibold text-sm text-center leading-tight line-clamp-2">
                       {sub.name}
                     </span>
-                  </button>
+                  </SButton>
                 ))}
               </div>
             )}

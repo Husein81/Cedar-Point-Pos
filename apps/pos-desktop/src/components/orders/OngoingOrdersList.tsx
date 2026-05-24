@@ -2,7 +2,16 @@ import { useOrders } from "@/hooks/useOrder";
 import { useBranchStore } from "@/store/branchStore";
 import { useOrderStore } from "@/store/orderStore";
 import type { Order, OrderStatus } from "@repo/types";
-import { Badge, Button, cn, Empty, Icon, Input, Select } from "@repo/ui";
+import {
+  Badge,
+  Button,
+  cn,
+  Empty,
+  Icon,
+  Input,
+  Select,
+  Separator,
+} from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useCallback, useMemo, useState } from "react";
@@ -180,6 +189,8 @@ export function OngoingOrdersList({ className }: Props) {
       </div>
 
       {/* Orders List */}
+      <Separator />
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -196,7 +207,7 @@ export function OngoingOrdersList({ className }: Props) {
           description="All orders have been completed or there are no active orders."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredOrders.map((order) => (
             <OrderCard
               key={order.id}

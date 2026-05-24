@@ -83,15 +83,6 @@ export const InlineKeypad = () => {
     [config.decimals, config.minValue, maxValue],
   );
 
-  const validate = useCallback(() => {
-    const n = parse(value);
-    if (!config.allowZero && n === 0) return false;
-    if (n < config.minValue) return false;
-    if (n > maxValue) return false;
-    if (safeContext === "DISCOUNT_PERCENT" && n > 100) return false;
-    return true;
-  }, [config.allowZero, config.minValue, maxValue, parse, safeContext, value]);
-
   const clearEntry = useCallback(() => {
     setMode("IDLE");
     setValue(String(config.allowZero ? 0 : config.minValue));
@@ -200,7 +191,6 @@ export const InlineKeypad = () => {
 
   useEffect(() => {
     if (mode !== "APPEND") return;
-    if (!validate()) return;
 
     let cancelled = false;
 
@@ -219,7 +209,7 @@ export const InlineKeypad = () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [applyKeypadValue, clamp, mode, parse, validate, value]);
+  }, [applyKeypadValue, clamp, mode, parse, value]);
 
   const isDiscountContext =
     safeContext === "DISCOUNT" ||

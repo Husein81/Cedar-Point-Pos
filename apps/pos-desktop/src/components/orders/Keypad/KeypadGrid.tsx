@@ -247,7 +247,7 @@ export default function KeypadGrid({
     safeContext === "DISCOUNT_FIXED";
 
   return (
-    <div className="flex-1 grid grid-cols-4 gap-0.5 p-px">
+    <div className="flex-1 grid grid-cols-4">
       {keypad.map((key) => {
         const isActive =
           key.context !== "NULL" &&
@@ -260,7 +260,7 @@ export default function KeypadGrid({
             variant={key.variant ?? "outline"}
             onClick={key.onClick}
             className={cn(
-              "h-10 2xl:h-12 rounded-sm text-lg dark:hover:bg-primary",
+              "h-11 2xl:h-12 rounded-none text-lg dark:hover:bg-primary",
               isActive && "bg-primary/15 text-primary ring-1 ring-primary/30",
             )}
           >

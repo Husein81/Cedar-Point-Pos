@@ -212,7 +212,7 @@ const OrderActions = () => {
           "flex items-center rounded-sm gap-1 px-3 font-semibold flex-1",
           order?.includeVAT
             ? "bg-primary/15 text-primary"
-            : "text-muted-foreground hover:bg-accent/40",
+            : "text-muted-foreground ",
         )}
         onClick={toggleVAT}
       >
@@ -231,7 +231,7 @@ const OrderActions = () => {
               "flex items-center rounded-sm gap-1 px-3 flex-1",
               context === "SHIPPING"
                 ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40",
+                : "text-muted-foreground",
             )}
             onClick={handleOpenShippingFee}
           >
@@ -252,7 +252,7 @@ const OrderActions = () => {
               "flex items-center rounded-sm gap-1 px-3 flex-1",
               order?.items.find((i) => i.id === itemId)?.notes
                 ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent/40",
+                : "text-muted-foreground",
             )}
             onClick={handleOpenItemNote}
           >

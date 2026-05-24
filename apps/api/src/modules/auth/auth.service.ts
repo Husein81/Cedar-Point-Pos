@@ -228,7 +228,7 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async generateTokens(user: any) {
+  async generateTokens(user: User) {
     const payload: JwtPayload = {
       id: user.id,
       username: user.username,

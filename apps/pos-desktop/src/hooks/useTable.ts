@@ -45,9 +45,6 @@ export const useTablesByFloor = (
   });
 };
 
-/**
- * Get table statistics for the current branch
- */
 export const useTableStats = () => {
   const { branchId } = useBranchStore();
 

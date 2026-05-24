@@ -1,5 +1,5 @@
 import { kitchenApi } from "@/apis/kitchen";
-import { queryClient } from "@/components/providers";
+import { queryClient } from "@/lib/queryClient";
 import { OrderStatus } from "@repo/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 

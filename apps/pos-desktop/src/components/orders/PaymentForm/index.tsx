@@ -30,6 +30,8 @@ type Props = {
   loyaltyAccount?: LoyaltyAccount;
   customerId?: string | null;
   eligibleBase?: number;
+  /** When true, restricts to cash-only and hides loyalty */
+  offlineMode?: boolean;
 };
 
 export const PaymentForm = ({
@@ -39,11 +41,17 @@ export const PaymentForm = ({
   loyaltyAccount,
   customerId,
   eligibleBase = 0,
+  offlineMode = false,
 }: Props) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
   const [selectedCurrencyCode, setSelectedCurrencyCode] = useState<string>("");
   const [givenAmount, setGivenAmount] = useState<string>("");
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
+
+  // Offline mode: restrict to cash only
+  const availablePaymentMethods = offlineMode
+    ? PAYMENT_METHODS.filter((m) => m.value === "CASH")
+    : PAYMENT_METHODS;
 
   const [redeemPointsInput, setRedeemPointsInput] = useState<string>("");
   const redeemPointsValue = parseInt(redeemPointsInput, 10) || 0;
@@ -357,7 +365,7 @@ export const PaymentForm = ({
 
             {/* Payment Method */}
             <div className="grid grid-cols-4 gap-2">
-              {PAYMENT_METHODS.map((method) => (
+              {availablePaymentMethods.map((method) => (
                 <Button
                   key={method.value}
                   variant={
@@ -455,6 +463,7 @@ export const PaymentForm = ({
           payments={payments}
           handleConfirm={handleConfirm}
           handlePayAndSend={handlePayAndSend}
+          offlineMode={offlineMode}
         />
       </div>
     </div>

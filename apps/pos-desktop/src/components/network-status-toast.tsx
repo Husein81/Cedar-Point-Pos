@@ -1,76 +1,32 @@
 import { toast } from "@repo/ui";
-import axios from "axios";
 import { useEffect, useRef } from "react";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 export function NetworkStatusToast() {
-  // Prevent duplicate toasts
+  const { isOnline } = useNetworkStatus();
   const previousStatus = useRef<boolean | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    if (previousStatus.current === null) {
+      previousStatus.current = isOnline;
+      return;
+    }
 
-    const checkInternetConnection = async (): Promise<boolean> => {
-      try {
-        const response = await axios.get(
-          "https://pointverse-api.vercel.app/test",
-          {
-            timeout: 5000,
-          },
-        );
+    if (isOnline && previousStatus.current === false) {
+      toast.success("You are back online");
+    }
 
-        return response.status === 200;
-      } catch {
-        return false;
-      }
-    };
+    if (!isOnline && previousStatus.current === true) {
+      toast.error(
+        "You are offline. Orders will be queued and synced when you reconnect.",
+        {
+          duration: 6000,
+        },
+      );
+    }
 
-    const checkConnection = async () => {
-      if (!navigator.onLine) {
-        if (!mounted) return;
-
-        if (previousStatus.current !== false) {
-          toast.error("You are offline. Some features may not work.");
-        }
-
-        previousStatus.current = false;
-
-        return;
-      }
-
-      const online = await checkInternetConnection();
-
-      if (!mounted) return;
-
-      // Show toast only when status changes
-      if (online && previousStatus.current === false) {
-        toast.success("You are back online");
-      }
-
-      if (!online && previousStatus.current !== false) {
-        toast.error("You are offline. Some features may not work.");
-      }
-
-      previousStatus.current = online;
-    };
-
-    checkConnection();
-
-    const interval = setInterval(checkConnection, 5000);
-
-    window.addEventListener("online", checkConnection);
-
-    window.addEventListener("offline", checkConnection);
-
-    return () => {
-      mounted = false;
-
-      clearInterval(interval);
-
-      window.removeEventListener("online", checkConnection);
-
-      window.removeEventListener("offline", checkConnection);
-    };
-  }, []);
+    previousStatus.current = isOnline;
+  }, [isOnline]);
 
   return null;
 }

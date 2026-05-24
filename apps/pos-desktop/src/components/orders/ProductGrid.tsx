@@ -15,11 +15,13 @@ import {
 } from "@repo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 export const ProductGrid = () => {
   const { data: products, isLoading: productsLoading } = useProducts();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { addItem } = useOrderStore();
+  const { isOnline, lastOnlineAt } = useNetworkStatus();
 
   const [isAvailableOnly, setIsAvailableOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -217,6 +219,17 @@ export const ProductGrid = () => {
           Available Only
         </Button>
       </div>
+
+      {/* Cache freshness badge — shown when offline and data is from cache */}
+      {!isOnline && products && lastOnlineAt && (
+        <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 px-1">
+          <Icon name="Database" className="w-3.5 h-3.5" />
+          <span>
+            Catalog cached · last synced{" "}
+            {Math.round((Date.now() - lastOnlineAt) / 60_000)} min ago
+          </span>
+        </div>
+      )}
 
       {/* Breadcrumb Navigation */}
       {!searchQuery && (

@@ -212,7 +212,7 @@ function ReceiptPreviewPageComponent() {
           </div> */}
 
           {/* New Transaction / Back to Register CTA */}
-          <div className="bg-card border rounded-xl p-6 shadow-md flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="bg-card border rounded-lg p-6 shadow-md flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="space-y-1 text-center sm:text-left">
               <h3 className="font-semibold text-base">
                 Ready for the Next Customer?
@@ -227,7 +227,7 @@ function ReceiptPreviewPageComponent() {
               onClick={handleNewOrder}
               className="h-14 w-full sm:w-auto px-8 text-base font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 bg-primary text-primary-foreground hover:bg-primary/95"
             >
-              <Icon name="PlusCircle" className="size-5" />
+              <Icon name="Plus" className="size-5" />
               Start New Order
             </Button>
           </div>

@@ -15,7 +15,9 @@ export const useCategories = (params?: QueryParams):UseQueryResult<CategoryWithS
   return useQuery({
     queryKey: [...CATEGORY_QUERY_KEY, params],
     queryFn: () => categoryApi.getCategories(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days — kept for offline use
+    networkMode: "offlineFirst",
   });
 };
 

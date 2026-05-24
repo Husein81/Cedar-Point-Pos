@@ -1,7 +1,7 @@
 import type { LoyaltyAccount, LoyaltyProgram } from "@/dto/loyalty.dto";
 import { useActiveTenantCurrencies } from "@/hooks/useCurrency";
 import { PaymentMethod } from "@repo/types";
-import { Button, Icon, Input, Separator, cn } from "@repo/ui";
+import { Button, Icon, Input, Separator } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatPrice, generateQuickCashAmounts } from "../config";
 import PaymentFooterActions from "./PaymentFooterActions";

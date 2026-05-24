@@ -5,7 +5,7 @@ import { StyleSheet } from "@react-pdf/renderer";
 export const styles = StyleSheet.create({
   page: {
     paddingTop: 18,
-    paddingBottom: 24,
+    paddingBottom: 14,
     paddingHorizontal: 18,
     fontSize: 9,
     fontFamily: "Helvetica",
@@ -22,7 +22,6 @@ export const styles = StyleSheet.create({
   logo: {
     width: 42,
     height: 42,
-    marginBottom: 8,
   },
 
   logoText: {

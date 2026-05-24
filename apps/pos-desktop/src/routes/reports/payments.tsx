@@ -1,37 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, Badge, Button, Icon } from "@repo/ui";
-import { SummaryGrid } from "@/components/reports";
-import { ReportsFilterBar } from "@/components/reports";
+import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
+import { getPaymentReportColumns } from "@/constants/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {
   usePaymentTransactionsReport,
   usePaymentsReport,
 } from "@/hooks/useReports";
+import type {
+  PaymentTransactionRowPdf,
+  PaymentsTransactionsReportSummary,
+} from "@/pdf/payments/PaymentsTransactionsReportPdf";
 import { exportPaymentsTransactionsReportPdf } from "@/pdf/utils/exportPaymentsTransactionsReportPdf";
 import {
   formatDate as formatDatePdf,
   formatDateTime,
 } from "@/pdf/utils/formatters";
-import {
-  getDateRangeFromPreset,
-  formatCurrency,
-  formatDate,
-  getMethodVariant,
-  getTypeLabel,
-} from "@/utils/reportHelpers";
 import type {
   DateRangePreset,
   PaymentTransactionRow,
   ReportListParams,
 } from "@/types/reports";
-import type {
-  PaymentTransactionRowPdf,
-  PaymentsTransactionsReportSummary,
-} from "@/pdf/payments/PaymentsTransactionsReportPdf";
-import { getPaymentReportColumns } from "@/config/columns/reportsColumns";
+import {
+  formatCurrency,
+  getDateRangeFromPreset,
+  getTypeLabel,
+} from "@/utils/reportHelpers";
+import { Button, DataTable, Icon } from "@repo/ui";
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useMemo } from "react";
 
 export const Route = createFileRoute("/reports/payments")({
   component: PaymentsReportPage,
@@ -137,7 +133,7 @@ function PaymentsReportPage() {
   const columns = getPaymentReportColumns();
 
   const rows = data?.data ?? [];
-  const meta = data?.pagination ?? {
+  const pagination = data?.pagination ?? {
     page: 1,
     limit: 25,
     totalCount: 0,
@@ -228,7 +224,7 @@ function PaymentsReportPage() {
           <div>
             <h2 className="text-xl font-semibold">Payment Transactions</h2>
             <p className="text-sm text-muted-foreground">
-              {meta.totalCount} transactions found
+              {pagination.totalCount} transactions found
             </p>
           </div>
           <Button
@@ -255,10 +251,10 @@ function PaymentsReportPage() {
             keys: ["method" as keyof PaymentTransactionRow],
           }}
           pagination={{
-            rows: meta.totalCount,
+            rows: pagination.totalCount,
             page,
             pageSize,
-            totalPages: meta.totalPages,
+            totalPages: pagination.totalPages,
             onPageChange: setPage,
             onPageSizeChange: (s) => {
               setPageSize(s);

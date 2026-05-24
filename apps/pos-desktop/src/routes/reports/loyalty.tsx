@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getLoyaltyReportColumns } from "@/config/columns/reportsColumns";
+import { getLoyaltyReportColumns } from "@/constants/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {

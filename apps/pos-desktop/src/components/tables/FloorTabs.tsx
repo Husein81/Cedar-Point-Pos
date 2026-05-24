@@ -29,7 +29,7 @@ export function FloorTabs({
     return (
       <div className="flex gap-2">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-10 w-28 rounded-md" />
+          <Skeleton key={index} className="h-10 w-28 rounded-md bg-muted/85" />
         ))}
       </div>
     );

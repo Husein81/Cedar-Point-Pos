@@ -1,5 +1,5 @@
 import { ReportsFilterBar } from "@/components/reports";
-import { getProductReportsColumns } from "@/config/columns/reportsColumns";
+import { getProductReportsColumns } from "@/constants/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useCategories } from "@/hooks/useCategory";
 import { useReportPageState } from "@/hooks/useReportPageState";

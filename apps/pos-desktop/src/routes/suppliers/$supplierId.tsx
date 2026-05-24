@@ -1,7 +1,7 @@
 import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import { SupplierInfo } from "@/components/supplier/SupplierInfo";
 import TitleBar from "@/components/title-bar";
-import { getPurchaseOrderColumns } from "@/config/columns/supplierColumn";
+import { getPurchaseOrderColumns } from "@/constants/columns/supplierColumn";
 import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
 import { Button, DataTable, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";

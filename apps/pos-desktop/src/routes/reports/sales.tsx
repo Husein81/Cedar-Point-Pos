@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getSalesColumns } from "@/config/columns/reportsColumns";
+import { getSalesColumns } from "@/constants/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useReportsSales, useSalesOrdersReport } from "@/hooks/useReports";

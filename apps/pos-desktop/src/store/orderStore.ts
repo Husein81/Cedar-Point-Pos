@@ -20,6 +20,19 @@ import {
   generateOrderId,
 } from "./config";
 
+type LastCompletedOrder = {
+  order: Order;
+  orderNumber: string;
+  tenantName: string;
+  branchName: string;
+  branchAddress?: string;
+  branchPhone?: string;
+  loyaltyApplied?: {
+    points: number;
+    discount: number;
+  };
+};
+
 type OrderStoreState = {
   tabs: OrderTab[];
   activeTabId: string | null;
@@ -92,6 +105,8 @@ type OrderStoreState = {
 
   loadExistingOrder: (backendOrder: BackendOrder) => void;
 
+  lastCompletedOrder?: LastCompletedOrder;
+  setLastCompletedOrder: (data?: LastCompletedOrder) => void;
   reset: () => void;
 };
 
@@ -107,6 +122,8 @@ export const useOrderStore = create<OrderStoreState>()(
       tabs: [INITIAL_TAB],
       activeTabId: INITIAL_TAB.id,
       maxTabs: getMaxTabs(),
+      lastCompletedOrder: undefined,
+      setLastCompletedOrder: (data) => set({ lastCompletedOrder: data }),
 
       createTab: () => {
         const state = get();

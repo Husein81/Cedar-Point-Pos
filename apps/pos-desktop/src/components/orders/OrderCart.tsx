@@ -14,7 +14,7 @@ import { CustomerSelector } from "./CustomerSelector";
 import { ModifierModal } from "./ModifierModal";
 import { TableSelector } from "./TableSelector";
 import OrderSummary from "./OrderSummary";
-import { useDeliveryCustomerEnforcement } from "./OrderTypeSelector";
+import { useDeliveryCustomerEnforcement } from "@/hooks/useDeliveryCustomerEnforcement";
 import { useAuthStore } from "@/store/authStore";
 import { OrderItem } from "@/dto/order.dto";
 
@@ -158,6 +158,7 @@ export const OrderCart = () => {
             )}
           </div>
         </div>
+
         <CustomerSelector />
       </div>
 

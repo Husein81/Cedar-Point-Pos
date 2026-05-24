@@ -105,7 +105,7 @@ export function TablesPage() {
             className={cn(
               "rounded-sm px-4",
               activeView === "dine-in"
-                ? "bg-background shadow-sm text-foreground"
+                ? "bg-background hover:bg-background/65  shadow-sm text-foreground"
                 : "text-muted-foreground",
             )}
             onClick={() => setActiveView("dine-in")}
@@ -119,7 +119,7 @@ export function TablesPage() {
             className={cn(
               "px-4",
               activeView === "orders"
-                ? "bg-background shadow-sm text-foreground"
+                ? "bg-background hover:bg-background/65 shadow-sm text-foreground"
                 : "text-muted-foreground",
             )}
             onClick={() => setActiveView("orders")}

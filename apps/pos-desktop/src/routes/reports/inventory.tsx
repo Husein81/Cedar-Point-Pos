@@ -1,5 +1,5 @@
 import { ReportsFilterBar } from "@/components/reports";
-import { getInventoryColumns } from "@/config/columns/reportsColumns";
+import { getInventoryColumns } from "@/constants/columns/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useInventoryMovementsReport } from "@/hooks/useReports";

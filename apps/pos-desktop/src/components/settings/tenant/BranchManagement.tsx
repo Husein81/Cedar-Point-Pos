@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { branchApi } from "@/apis/branchApi";
-import { Shad, Button, Icon } from "@repo/ui";
+import { Shad, Button, Icon, Skeleton } from "@repo/ui";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BranchForm } from "./BranchForm";
@@ -65,11 +65,10 @@ export function BranchManagement() {
       </Shad.CardHeader>
       <Shad.CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Icon
-              name="Loader2"
-              className="h-6 w-6 animate-spin text-muted-foreground"
-            />
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="w-full h-18 bg-muted/60 " />
+            ))}
           </div>
         ) : branches && branches.length > 0 ? (
           <div className="space-y-4">

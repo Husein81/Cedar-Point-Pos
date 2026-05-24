@@ -62,11 +62,6 @@ export const getSalesColumns = (): ColumnDef<SalesOrderRow>[] => [
     ),
   },
   {
-    accessorKey: "subtotal",
-    header: "Subtotal",
-    cell: ({ row }) => formatCurrency(row.original.subtotal),
-  },
-  {
     accessorKey: "discount",
     header: "Discount",
     cell: ({ row }) => {
@@ -268,11 +263,11 @@ export const getProductReportsColumns = (): ColumnDef<TopProductRow>[] => [
 export const getPaymentReportColumns =
   (): ColumnDef<PaymentTransactionRow>[] => [
     {
-      accessorKey: "id",
-      header: "Payment ID",
+      accessorKey: "order.orderNumber",
+      header: "Order #",
       cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground font-mono">
-          {row.original.id.slice(0, 8)}...
+        <span className="font-mono font-medium">
+          {row.original.order.orderNumber || "-"}
         </span>
       ),
     },
@@ -281,15 +276,6 @@ export const getPaymentReportColumns =
       header: "Paid At",
       cell: ({ row }) => (
         <span className="text-sm">{formatDate(row.original.paidAt)}</span>
-      ),
-    },
-    {
-      accessorKey: "order.orderNumber",
-      header: "Order #",
-      cell: ({ row }) => (
-        <span className="font-mono font-medium">
-          {row.original.order.orderNumber || "-"}
-        </span>
       ),
     },
     {

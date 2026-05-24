@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as RefundsRouteImport } from './routes/refunds'
+import { Route as ReceiptPreviewRouteImport } from './routes/receipt-preview'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -59,6 +60,11 @@ const StockRoute = StockRouteImport.update({
 const RefundsRoute = RefundsRouteImport.update({
   id: '/refunds',
   path: '/refunds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReceiptPreviewRoute = ReceiptPreviewRouteImport.update({
+  id: '/receipt-preview',
+  path: '/receipt-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentsRoute = PaymentsRouteImport.update({
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
+  '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
+  '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/kitchen': typeof KitchenRoute
   '/payments': typeof PaymentsRoute
+  '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
+    | '/receipt-preview'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
+    | '/receipt-preview'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/kitchen'
     | '/payments'
+    | '/receipt-preview'
     | '/refunds'
     | '/stock'
     | '/tables'
@@ -467,6 +479,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   KitchenRoute: typeof KitchenRoute
   PaymentsRoute: typeof PaymentsRoute
+  ReceiptPreviewRoute: typeof ReceiptPreviewRoute
   RefundsRoute: typeof RefundsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/refunds'
       fullPath: '/refunds'
       preLoaderRoute: typeof RefundsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/receipt-preview': {
+      id: '/receipt-preview'
+      path: '/receipt-preview'
+      fullPath: '/receipt-preview'
+      preLoaderRoute: typeof ReceiptPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payments': {
@@ -781,6 +801,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   KitchenRoute: KitchenRoute,
   PaymentsRoute: PaymentsRoute,
+  ReceiptPreviewRoute: ReceiptPreviewRoute,
   RefundsRoute: RefundsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,

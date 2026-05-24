@@ -7,6 +7,7 @@ import {
   useLoyaltyProgram,
   useCustomerLoyaltyAccount,
 } from "@/hooks/useLoyalty";
+import { Activity } from "react";
 
 const Row = ({
   label,
@@ -91,14 +92,16 @@ const OrderSummary = () => {
 
   return (
     <div className="space-y-1">
-      <Separator />
-
+      <Activity
+        mode={
+          orderDiscount > 0 || isDelivery || order?.includeVAT
+            ? "visible"
+            : "hidden"
+        }
+      >
+        <Separator />
+      </Activity>
       <div className="space-y-1 px-2">
-        <Row
-          label="Subtotal"
-          value={`$${formatPrice(subtotalAfterItemDiscounts)}`}
-        />
-
         {orderDiscount > 0 && (
           <Row
             label="Order Discount"

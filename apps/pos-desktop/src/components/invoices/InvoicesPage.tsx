@@ -1,5 +1,5 @@
 import TitleBar from "@/components/title-bar";
-import { getInvoiceColumns } from "@/config/columns/invoiceColumn";
+import { getInvoiceColumns } from "@/constants/columns/invoiceColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrders } from "@/hooks/useOrder";
 import { Button, DataTable, Icon, Select } from "@repo/ui";

@@ -50,7 +50,7 @@ export interface ComboboxProps {
   /** Render custom option content */
   renderOption?: (
     option: ComboboxOption,
-    isSelected: boolean
+    isSelected: boolean,
   ) => React.ReactNode;
 }
 
@@ -136,9 +136,9 @@ export function Combobox({
           {/* Loading state */}
           {isLoading ? (
             <div className="p-2 space-y-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full bg-muted" />
+              <Skeleton className="h-8 w-full bg-muted" />
+              <Skeleton className="h-8 w-full bg-muted" />
             </div>
           ) : (
             <Shad.ScrollArea className="h-60">
@@ -178,7 +178,7 @@ export function Combobox({
                                 name="Check"
                                 className={cn(
                                   "ml-auto h-4 w-4 shrink-0",
-                                  isSelected ? "opacity-100" : "opacity-0"
+                                  isSelected ? "opacity-100" : "opacity-0",
                                 )}
                               />
                             </>

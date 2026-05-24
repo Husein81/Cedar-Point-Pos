@@ -19,6 +19,7 @@ import { toItemDto } from "@/utils/financial";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { useCallback, useRef } from "react";
 import { toast } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
 
 export function useOrderActions() {
   const { closeModal } = useModalStore();
@@ -26,6 +27,7 @@ export function useOrderActions() {
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
   const { data: branch } = useBranch(branchId || "");
+  const navigate = useNavigate();
 
   const getActiveOrder = useOrderStore((s) => s.getActiveOrder);
   const getDiscountAmount = useOrderStore((s) => s.getDiscountAmount);
@@ -39,6 +41,7 @@ export function useOrderActions() {
   const updateOrderNumber = useOrderStore((s) => s.updateOrderNumber);
   const markItemsSentToKitchen = useOrderStore((s) => s.markItemsSentToKitchen);
   const setOrderStatus = useOrderStore((s) => s.setOrderStatus);
+  const setLastCompletedOrder = useOrderStore((s) => s.setLastCompletedOrder);
 
   const createOrder = useCreateOrder();
   const processPayment = useProcessPayment();
@@ -165,10 +168,29 @@ export function useOrderActions() {
 
         // ── Optimistic: clear UI immediately ──
         const tabToClose = activeTabId;
+
+        setLastCompletedOrder({
+          order: active,
+          orderNumber: active.orderNumber || "PREVIEW",
+          tenantName: user.tenant?.name || "Cedar Point",
+          branchName: branch?.name || "Main Branch",
+          branchAddress: branch?.address || "",
+          branchPhone: branch?.phone || "",
+          loyaltyApplied:
+            loyalty && loyalty.redeemPoints > 0
+              ? {
+                  points: loyalty.redeemPoints,
+                  discount: 0,
+                }
+              : undefined,
+        });
+
         closeKeypad();
         closeModal();
         if (tabToClose) closeTab(tabToClose);
         clearOrder();
+
+        navigate({ to: "/receipt-preview" });
 
         // ── Background sync ──
         (async () => {
@@ -217,6 +239,30 @@ export function useOrderActions() {
               loyalty,
             });
 
+            // Update store with final official server response details
+            const finalOrderNumber =
+              updatedOrder.orderNumber || orderNumber || "PREVIEW";
+            setLastCompletedOrder({
+              order: {
+                ...active,
+                paidAmount: Number((updatedOrder as any).paidAmount || 0),
+                status: updatedOrder.status,
+                orderNumber: finalOrderNumber,
+              },
+              orderNumber: finalOrderNumber,
+              tenantName: user.tenant?.name || "Cedar Point",
+              branchName: branch?.name || "Main Branch",
+              branchAddress: branch?.address || "",
+              branchPhone: branch?.phone || "",
+              loyaltyApplied:
+                loyalty && loyalty.redeemPoints > 0
+                  ? {
+                      points: loyalty.redeemPoints,
+                      discount: Number(updatedOrder.discount || 0),
+                    }
+                  : undefined,
+            });
+
             try {
               let loyaltyApplied = undefined;
               if (loyalty && loyalty.redeemPoints > 0) {
@@ -232,8 +278,7 @@ export function useOrderActions() {
                 branchName: branch?.name || "Main Branch",
                 branchAddress: branch?.address || "",
                 branchPhone: branch?.phone || "",
-                orderNumber:
-                  updatedOrder.orderNumber || orderNumber || "PREVIEW",
+                orderNumber: finalOrderNumber,
                 loyaltyApplied,
               });
             } catch (printErr) {
@@ -265,6 +310,8 @@ export function useOrderActions() {
       user?.tenant?.businessType,
       user?.tenantId,
       withPaymentLock,
+      navigate,
+      setLastCompletedOrder,
     ],
   );
 

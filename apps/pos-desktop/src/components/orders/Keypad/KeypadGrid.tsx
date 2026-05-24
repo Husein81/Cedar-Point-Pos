@@ -260,7 +260,7 @@ export default function KeypadGrid({
             variant={key.variant ?? "outline"}
             onClick={key.onClick}
             className={cn(
-              "h-11 2xl:h-12 rounded-none text-lg dark:hover:bg-primary",
+              "h-11 2xl:h-12 rounded-none text-lg dark:hover:bg-primary hover:text-white",
               isActive && "bg-primary/15 text-primary ring-1 ring-primary/30",
             )}
           >
@@ -268,7 +268,7 @@ export default function KeypadGrid({
               <Icon
                 name={key.icon}
                 className={cn(
-                  "w-5 h-5 mb-1 text-muted-foreground hover:text-white",
+                  "w-5 h-5 mb-1",
                   key.variant === "destructive" && "text-white",
                   isActive && "text-primary",
                 )}

@@ -1,7 +1,7 @@
 import { SubcategoryForm } from "@/components/category/SubcategoryForm";
 import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import TitleBar from "@/components/title-bar";
-import { getSubcategoryColumns } from "@/config/columns/subcategoryColumn";
+import { getSubcategoryColumns } from "@/constants/columns/subcategoryColumn";
 import { useCategory } from "@/hooks/useCategory";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";

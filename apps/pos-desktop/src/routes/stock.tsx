@@ -1,7 +1,7 @@
 import TitleBar from "@/components/title-bar";
 import { StockAdjustmentForm } from "@/components/stock/StockAdjustmentForm";
-import { stockColumns } from "@/config/columns/stockColumn";
-import { inventoryHistoryColumns } from "@/config/columns/inventoryHistoryColumn";
+import { stockColumns } from "@/constants/columns/stockColumn";
+import { inventoryHistoryColumns } from "@/constants/columns/inventoryHistoryColumn";
 import {
   useInventoryByBranch,
   useLowStock,

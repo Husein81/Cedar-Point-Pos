@@ -59,7 +59,7 @@ export default function ProfilePage() {
       >
         <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
           {/* LEFT SIDEBAR */}
-          <Shad.Card className="h-fit border-muted/60">
+          <Shad.Card className="h-fit rounded-md border-muted/60">
             <Shad.CardContent className="px-6 pb-6">
               <div className="-mt-14 flex flex-col items-center text-center">
                 <Avatar
@@ -153,7 +153,7 @@ export default function ProfilePage() {
           {/* MAIN CONTENT */}
           <div className="space-y-6">
             {/* PERSONAL INFO */}
-            <Shad.Card>
+            <Shad.Card className="rounded-md">
               <Shad.CardHeader className="border-b">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border bg-background p-2">
@@ -251,7 +251,7 @@ export default function ProfilePage() {
             </Shad.Card>
 
             {/* ACCOUNT INFO */}
-            <Shad.Card>
+            <Shad.Card className="rounded-md">
               <Shad.CardHeader className="border-b">
                 <div className="flex items-center gap-3">
                   <div className="rounded-lg border bg-background p-2">
@@ -270,7 +270,7 @@ export default function ProfilePage() {
 
               <Shad.CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2 rounded-xl border p-4">
+                  <div className="space-y-2 rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Icon name="BadgeCheck" className="size-4" />
                       <span className="text-sm">Role</span>
@@ -287,7 +287,7 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  <div className="space-y-2 rounded-xl border p-4">
+                  <div className="space-y-2 rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Icon name="Activity" className="size-4" />
                       <span className="text-sm">Status</span>

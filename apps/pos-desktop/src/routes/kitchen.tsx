@@ -102,8 +102,8 @@ function KitchenPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, index) => (
             <SkeletonCard key={index} />
           ))}
         </div>
@@ -114,7 +114,7 @@ function KitchenPage() {
           icon={"ChefHat"}
         />
       ) : (
-        <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {filteredAndSortedOrders.map((order) => (
             <div key={order.id} className="break-inside-avoid mb-4">
               <KitchenCard order={order} />

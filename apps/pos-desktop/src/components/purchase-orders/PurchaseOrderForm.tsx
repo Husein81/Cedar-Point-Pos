@@ -1,13 +1,22 @@
-import { useCreatePurchaseOrder } from "@/hooks/usePurchaseOrder";
-import { useProducts } from "@/hooks/useProduct";
-import { useSearchSuppliers } from "@/hooks/useSupplier";
+import type { PurchaseOrderItemForm } from "@/dto/purchaseOrder.dto";
 import { useBranches } from "@/hooks/useBranch";
+import { useProducts } from "@/hooks/useProduct";
+import { useCreatePurchaseOrder } from "@/hooks/usePurchaseOrder";
+import { useSearchSuppliers } from "@/hooks/useSupplier";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
-import { Button, Combobox, InputField, TextareaField } from "@repo/ui";
+import {
+  Button,
+  Combobox,
+  Icon,
+  Input,
+  InputField,
+  Label,
+  Separator,
+  TextareaField,
+} from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
-import type { PurchaseOrderItemForm } from "@/dto/purchaseOrder.dto";
 
 const EMPTY_ITEM: PurchaseOrderItemForm = {
   productId: "",
@@ -77,103 +86,109 @@ export const PurchaseOrderForm = () => {
         e.stopPropagation();
         form.handleSubmit();
       }}
-      className="space-y-4"
+      className="space-y-6 px-2 pb-2"
     >
-      {/* Supplier */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">
-          Supplier <span className="text-destructive">*</span>
-        </label>
-        <form.Field
-          name="supplierId"
-          validators={{
-            onChange: ({ value }) =>
-              !value ? "Supplier is required" : undefined,
-          }}
-        >
-          {(field) => (
-            <>
-              <Combobox
-                options={supplierOptions}
-                value={field.state.value}
-                onValueChange={(val) => field.handleChange(val ?? "")}
-                placeholder="Select supplier..."
-                searchPlaceholder="Search suppliers..."
-                isLoading={suppliersLoading}
-                searchQuery={supplierSearch}
-                onSearchChange={setSupplierSearch}
-                shouldFilter={false}
-              />
-              {field.state.meta.errors.length > 0 && (
-                <p className="text-sm text-destructive">
-                  {field.state.meta.errors[0]}
-                </p>
+      {/* Section: Order details */}
+      <section className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>
+              Supplier <span className="text-destructive">*</span>
+            </Label>
+            <form.Field
+              name="supplierId"
+              validators={{
+                onChange: ({ value }) =>
+                  !value ? "Supplier is required" : undefined,
+              }}
+            >
+              {(field) => (
+                <>
+                  <Combobox
+                    options={supplierOptions}
+                    value={field.state.value}
+                    onValueChange={(val) => field.handleChange(val ?? "")}
+                    placeholder="Select supplier..."
+                    searchPlaceholder="Search suppliers..."
+                    isLoading={suppliersLoading}
+                    searchQuery={supplierSearch}
+                    onSearchChange={setSupplierSearch}
+                    shouldFilter={false}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-destructive">
+                      {field.state.meta.errors[0]}
+                    </p>
+                  )}
+                </>
               )}
-            </>
+            </form.Field>
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              Branch <span className="text-destructive">*</span>
+            </Label>
+            <form.Field
+              name="branchId"
+              validators={{
+                onChange: ({ value }) =>
+                  !value ? "Branch is required" : undefined,
+              }}
+            >
+              {(field) => (
+                <>
+                  <Combobox
+                    options={branchOptions}
+                    value={field.state.value}
+                    onValueChange={(val) => field.handleChange(val ?? "")}
+                    placeholder="Select branch..."
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-destructive">
+                      {field.state.meta.errors[0]}
+                    </p>
+                  )}
+                </>
+              )}
+            </form.Field>
+          </div>
+        </div>
+
+        <form.Field name="orderNumber">
+          {(field) => (
+            <InputField
+              label="Order Number"
+              field={field}
+              placeholder="e.g. PO-2024-001 (optional)"
+            />
           )}
         </form.Field>
-      </div>
 
-      {/* Branch */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">
-          Branch <span className="text-destructive">*</span>
-        </label>
-        <form.Field
-          name="branchId"
-          validators={{
-            onChange: ({ value }) =>
-              !value ? "Branch is required" : undefined,
-          }}
-        >
+        <form.Field name="notes">
           {(field) => (
-            <>
-              <Combobox
-                options={branchOptions}
-                value={field.state.value}
-                onValueChange={(val) => field.handleChange(val ?? "")}
-                placeholder="Select branch..."
-              />
-              {field.state.meta.errors.length > 0 && (
-                <p className="text-sm text-destructive">
-                  {field.state.meta.errors[0]}
-                </p>
-              )}
-            </>
+            <TextareaField
+              label="Notes"
+              field={field}
+              placeholder="Any notes for this purchase order"
+            />
           )}
         </form.Field>
-      </div>
+      </section>
 
-      {/* Order Number */}
-      <form.Field name="orderNumber">
-        {(field) => (
-          <InputField
-            label="Order Number"
-            field={field}
-            placeholder="e.g. PO-2024-001 (optional)"
-          />
-        )}
-      </form.Field>
+      <Separator />
 
-      {/* Notes */}
-      <form.Field name="notes">
-        {(field) => (
-          <TextareaField
-            label="Notes"
-            field={field}
-            placeholder="Any notes for this purchase order"
-          />
-        )}
-      </form.Field>
-
-      {/* Items */}
+      {/* Section: Items */}
       <form.Field name="items" mode="array">
         {(field) => (
-          <div className="space-y-3">
+          <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">
-                Items <span className="text-destructive">*</span>
-              </label>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold">Items</h3>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {field.state.value.length}
+                </span>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -189,181 +204,191 @@ export const PurchaseOrderForm = () => {
               {field.state.value.map((_, i) => (
                 <div
                   key={i}
-                  className="border rounded-lg p-3 space-y-3 bg-muted/30"
+                  className="group rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Item {i + 1}
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {i + 1}
                     </span>
                     {field.state.value.length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        iconName="Trash2"
                         onClick={() => field.removeValue(i)}
-                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                      />
+                        className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Icon name="Trash2" className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
 
-                  {/* Product */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">
-                      Product <span className="text-destructive">*</span>
-                    </label>
-                    <form.Field
-                      name={`items[${i}].productId`}
-                      validators={{
-                        onChange: ({ value }) =>
-                          !value ? "Product is required" : undefined,
-                      }}
-                    >
-                      {(subField) => (
-                        <>
-                          <Combobox
-                            options={productOptions}
-                            value={subField.state.value}
-                            onValueChange={(val) =>
-                              subField.handleChange(val ?? "")
-                            }
-                            placeholder="Select product..."
-                            searchPlaceholder="Search products..."
-                          />
-                          {subField.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-destructive">
-                              {subField.state.meta.errors[0]}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </form.Field>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs">
+                        Product <span className="text-destructive">*</span>
+                      </Label>
+                      <form.Field
+                        name={`items[${i}].productId`}
+                        validators={{
+                          onChange: ({ value }) =>
+                            !value ? "Product is required" : undefined,
+                        }}
+                      >
+                        {(subField) => (
+                          <>
+                            <Combobox
+                              options={productOptions}
+                              value={subField.state.value}
+                              onValueChange={(val) =>
+                                subField.handleChange(val ?? "")
+                              }
+                              placeholder="Select product..."
+                              searchPlaceholder="Search products..."
+                            />
+                            {subField.state.meta.errors.length > 0 && (
+                              <p className="text-xs text-destructive">
+                                {subField.state.meta.errors[0]}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </form.Field>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <form.Field
+                        name={`items[${i}].quantity`}
+                        validators={{
+                          onChange: ({ value }) =>
+                            value <= 0 ? "Must be > 0" : undefined,
+                        }}
+                      >
+                        {(subField) => (
+                          <div className="space-y-2">
+                            <Label className="text-xs">
+                              Quantity{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0.001"
+                              step="any"
+                              title="Quantity"
+                              placeholder="0"
+                              value={subField.state.value}
+                              onChange={(e) =>
+                                subField.handleChange(
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                            />
+                            {subField.state.meta.errors.length > 0 && (
+                              <p className="text-xs text-destructive">
+                                {subField.state.meta.errors[0]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+
+                      <form.Field
+                        name={`items[${i}].unitCost`}
+                        validators={{
+                          onChange: ({ value }) =>
+                            value < 0 ? "Cannot be negative" : undefined,
+                        }}
+                      >
+                        {(subField) => (
+                          <div className="space-y-2">
+                            <Label className="text-xs">
+                              Unit Cost{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="any"
+                              title="Unit cost"
+                              placeholder="0.00"
+                              value={subField.state.value}
+                              onChange={(e) =>
+                                subField.handleChange(
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                            />
+                            {subField.state.meta.errors.length > 0 && (
+                              <p className="text-xs text-destructive">
+                                {subField.state.meta.errors[0]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+
+                      <form.Subscribe
+                        selector={(state) => [
+                          state.values.items[i]?.quantity,
+                          state.values.items[i]?.unitCost,
+                        ]}
+                      >
+                        {([qty, cost]) => {
+                          const total = (qty ?? 0) * (cost ?? 0);
+                          return (
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">
+                                Line Total
+                              </Label>
+                              <div className="flex h-9 items-center justify-end rounded-md border border-dashed border-input bg-background px-3 text-sm font-semibold tabular-nums">
+                                ${total.toFixed(2)}
+                              </div>
+                            </div>
+                          );
+                        }}
+                      </form.Subscribe>
+                    </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Quantity */}
-                    <form.Field
-                      name={`items[${i}].quantity`}
-                      validators={{
-                        onChange: ({ value }) =>
-                          value <= 0 ? "Must be greater than 0" : undefined,
-                      }}
-                    >
-                      {(subField) => (
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium">
-                            Quantity <span className="text-destructive">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            min="0.001"
-                            step="any"
-                            title="Quantity"
-                            placeholder="0"
-                            value={subField.state.value}
-                            onChange={(e) =>
-                              subField.handleChange(
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                          {subField.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-destructive">
-                              {subField.state.meta.errors[0]}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </form.Field>
-
-                    {/* Unit Cost */}
-                    <form.Field
-                      name={`items[${i}].unitCost`}
-                      validators={{
-                        onChange: ({ value }) =>
-                          value < 0 ? "Cannot be negative" : undefined,
-                      }}
-                    >
-                      {(subField) => (
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium">
-                            Unit Cost <span className="text-destructive">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            title="Unit cost"
-                            placeholder="0.00"
-                            value={subField.state.value}
-                            onChange={(e) =>
-                              subField.handleChange(
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                          {subField.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-destructive">
-                              {subField.state.meta.errors[0]}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </form.Field>
-                  </div>
-
-                  {/* Computed total for this item */}
-                  <form.Subscribe
-                    selector={(state) => [
-                      state.values.items[i]?.quantity,
-                      state.values.items[i]?.unitCost,
-                    ]}
-                  >
-                    {([qty, cost]) => {
-                      const total = (qty ?? 0) * (cost ?? 0);
-                      return (
-                        <p className="text-xs text-muted-foreground text-right">
-                          Total:{" "}
-                          <span className="font-medium text-foreground">
-                            ${total.toFixed(2)}
-                          </span>
-                        </p>
-                      );
-                    }}
-                  </form.Subscribe>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </form.Field>
 
-      {/* Grand total */}
-      <form.Subscribe
-        selector={(state) => state.values.items}
-      >
+      <Separator />
+
+      {/* Footer: Grand total + actions */}
+      <form.Subscribe selector={(state) => state.values.items}>
         {(items) => {
           const grandTotal = items.reduce(
             (sum, item) => sum + (item.quantity ?? 0) * (item.unitCost ?? 0),
             0
           );
+          const itemCount = items.length;
           return (
-            <div className="flex justify-between items-center border-t pt-3">
-              <span className="font-medium">Total</span>
-              <span className="text-lg font-bold">${grandTotal.toFixed(2)}</span>
+            <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground">
+                  {itemCount} {itemCount === 1 ? "item" : "items"}
+                </span>
+                <span className="text-sm font-medium">Order Total</span>
+              </div>
+              <span className="text-2xl font-bold tabular-nums">
+                ${grandTotal.toFixed(2)}
+              </span>
             </div>
           );
         }}
       </form.Subscribe>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={closeModal}>
           Cancel
         </Button>
         <Button
           type="submit"
+          iconName="Check"
           isSubmitting={createMutation.isPending}
           disabled={createMutation.isPending}
         >

@@ -1,28 +1,49 @@
 import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
-import { UserRole } from '@repo/types';
+import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
-import type { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
+import { CreatePurchaseOrderSchema } from './dto/create-purchase-order.dto.js';
+import { UpdatePurchaseOrderSchema } from './dto/update-purchase-order.dto.js';
 import { PurchaseOrdersService } from './purchase-orders.service.js';
 
 @Controller('purchase-orders')
 export class PurchaseOrdersController {
-  constructor(
-    private readonly purchaseOrdersService: PurchaseOrdersService,
-  ) {}
+  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
+
+  /**
+   * Get paginated list of purchase orders
+   */
+  @Get('paginated')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  findAllPaginated(@CurrentTenant() tenantId: string, @Req() req: Request) {
+    const query = req.query as QueryParams & {
+      status?: string;
+      supplierId?: string;
+      branchId?: string;
+    };
+    return this.purchaseOrdersService.getPurchaseOrdersPaginated(
+      tenantId,
+      query,
+    );
+  }
 
   /**
    * Create a new purchase order with items
    */
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  create(@Req() req: Request, @Body() createDto: CreatePurchaseOrderDto) {
-    const user = req.user as { tenantId: string; id: string };
+  create(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+    @Body() body: unknown,
+  ) {
+    const dto = CreatePurchaseOrderSchema.parse(body);
+    const { id: userId } = req.user as { id: string };
     return this.purchaseOrdersService.createPurchaseOrder(
-      user.tenantId,
-      user.id,
-      createDto,
+      tenantId,
+      userId,
+      dto,
     );
   }
 
@@ -31,9 +52,8 @@ export class PurchaseOrdersController {
    */
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  findOne(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.purchaseOrdersService.getPurchaseOrder(user.tenantId, id);
+  findOne(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.purchaseOrdersService.getPurchaseOrder(tenantId, id);
   }
 
   /**
@@ -42,16 +62,12 @@ export class PurchaseOrdersController {
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   update(
-    @Req() req: Request,
+    @CurrentTenant() tenantId: string,
     @Param('id') id: string,
-    @Body() updateDto: UpdatePurchaseOrderDto,
+    @Body() body: unknown,
   ) {
-    const user = req.user as { tenantId: string };
-    return this.purchaseOrdersService.updatePurchaseOrder(
-      user.tenantId,
-      id,
-      updateDto,
-    );
+    const dto = UpdatePurchaseOrderSchema.parse(body);
+    return this.purchaseOrdersService.updatePurchaseOrder(tenantId, id, dto);
   }
 
   /**
@@ -59,11 +75,15 @@ export class PurchaseOrdersController {
    */
   @Post(':id/receive')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  receive(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string; id: string };
+  receive(
+    @CurrentTenant() tenantId: string,
+    @Req() req: Request,
+    @Param('id') id: string,
+  ) {
+    const { id: userId } = req.user as { id: string };
     return this.purchaseOrdersService.receivePurchaseOrder(
-      user.tenantId,
-      user.id,
+      tenantId,
+      userId,
       id,
     );
   }
@@ -73,8 +93,7 @@ export class PurchaseOrdersController {
    */
   @Post(':id/cancel')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  cancel(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { tenantId: string };
-    return this.purchaseOrdersService.cancelPurchaseOrder(user.tenantId, id);
+  cancel(@CurrentTenant() tenantId: string, @Param('id') id: string) {
+    return this.purchaseOrdersService.cancelPurchaseOrder(tenantId, id);
   }
 }

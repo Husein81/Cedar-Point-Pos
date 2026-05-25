@@ -317,6 +317,7 @@ export class InventoryTransactionService {
 
       case 'REFUND':
       case 'TRANSFER_IN':
+      case 'PURCHASE_IN':
         // Add back to stock
         afterStock = beforeStock + quantity;
         adjustment = quantity;

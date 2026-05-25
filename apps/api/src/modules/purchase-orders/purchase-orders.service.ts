@@ -12,6 +12,7 @@ import type {
   PurchaseOrderItemDto,
 } from './dto/create-purchase-order.dto.js';
 import type { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
+import type { QueryParams } from '@repo/types';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -62,10 +63,11 @@ export class PurchaseOrdersService {
       throw new BadRequestException('One or more products not found');
     }
 
-    // Calculate total amount from items
+    // Calculate total amount from items using Decimal for precision
     const totalAmount = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitCost,
-      0,
+      (sum, item) =>
+        sum.plus(new Prisma.Decimal(item.quantity).times(item.unitCost)),
+      new Prisma.Decimal(0),
     );
 
     // Create purchase order with items in transaction
@@ -84,7 +86,7 @@ export class PurchaseOrdersService {
               productId: item.productId,
               quantity: item.quantity,
               unitCost: item.unitCost,
-              totalCost: item.quantity * item.unitCost,
+              totalCost: new Prisma.Decimal(item.quantity).times(item.unitCost),
               notes: item.notes,
             })),
           },
@@ -122,6 +124,106 @@ export class PurchaseOrdersService {
     });
 
     return purchaseOrder;
+  }
+
+  /**
+   * Get paginated list of purchase orders
+   */
+  async getPurchaseOrdersPaginated(
+    tenantId: string,
+    params: QueryParams & {
+      status?: string;
+      supplierId?: string;
+      branchId?: string;
+    },
+  ) {
+    const {
+      search,
+      sort,
+      order,
+      page: rawPage,
+      limit: rawLimit,
+      status,
+      supplierId,
+      branchId,
+    } = params;
+
+    const page = Math.max(Number(rawPage) || 1, 1);
+    const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PurchaseOrderWhereInput = {
+      tenantId,
+      ...(supplierId && { supplierId }),
+      ...(branchId && { branchId }),
+      ...(status && { status: status as PurchaseOrderStatus }),
+    };
+
+    const searchTerm = search?.trim();
+    if (searchTerm) {
+      where.OR = [
+        {
+          orderNumber: {
+            contains: searchTerm,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
+        {
+          supplier: {
+            name: { contains: searchTerm, mode: Prisma.QueryMode.insensitive },
+          },
+        },
+        {
+          supplier: {
+            companyName: {
+              contains: searchTerm,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        },
+      ];
+    }
+
+    const sortableFields: Record<string, true> = {
+      orderedAt: true,
+      totalAmount: true,
+      status: true,
+      orderNumber: true,
+    };
+
+    const sortField = sort && sortableFields[sort] ? sort : 'orderedAt';
+    const sortOrder: Prisma.SortOrder = order === 'asc' ? 'asc' : 'desc';
+
+    const [totalCount, data] = await this.prisma.$transaction([
+      this.prisma.purchaseOrder.count({ where }),
+      this.prisma.purchaseOrder.findMany({
+        where,
+        orderBy: { [sortField]: sortOrder },
+        skip,
+        take: limit,
+        include: {
+          supplier: {
+            select: { id: true, name: true, companyName: true },
+          },
+          branch: {
+            select: { id: true, name: true },
+          },
+          _count: {
+            select: { items: true },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    };
   }
 
   /**
@@ -246,11 +348,8 @@ export class PurchaseOrdersService {
     const purchaseOrder = await this.prisma.purchaseOrder.findFirst({
       where: { id, tenantId },
       include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
+        items: true,
+        supplier: { select: { name: true } },
       },
     });
 
@@ -266,20 +365,19 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Cannot receive cancelled purchase order');
     }
 
+    const orderRef = purchaseOrder.orderNumber || id;
+    const reason = `PO ${orderRef} from ${purchaseOrder.supplier.name}`;
+
     // Update inventory for each item
     for (const item of purchaseOrder.items) {
-      const quantity = Number(item.quantity);
-
       await this.inventoryTransactionService.executeTransaction({
         tenantId,
         branchId: purchaseOrder.branchId,
         productId: item.productId,
         userId,
-        changeType: 'REFUND', // Using REFUND to add stock
-        quantity,
-        reason: `Purchase Order ${id} received from ${purchaseOrder.supplierId}`,
-        referenceId: id,
-        referenceType: 'PURCHASE_ORDER',
+        changeType: 'PURCHASE_IN',
+        quantity: Number(item.quantity),
+        reason,
         allowNegativeStock: false,
       });
     }

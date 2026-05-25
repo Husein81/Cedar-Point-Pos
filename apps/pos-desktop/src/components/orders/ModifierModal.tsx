@@ -1,7 +1,6 @@
 import { useProductModifiers } from "@/hooks/useModifiers";
 import { useModifierSelection } from "@/hooks/useModifierSelection";
 import { useModalStore } from "@/store/modalStore";
-import { useNetworkStatus } from "@/context/NetworkContext";
 import {
   ModifierGroup as ModifierGroupType,
   SelectedModifier,
@@ -24,13 +23,10 @@ export const ModifierModal = ({
   onConfirm,
 }: Props) => {
   const { closeModal } = useModalStore();
-  const { isOnline, lastOnlineAt } = useNetworkStatus();
   const [quantity, setQuantity] = useState(initialQuantity);
 
-  // Fetch modifiers for this product
   const { data: groups, isLoading } = useProductModifiers(product.id);
 
-  // Modifier selection logic
   const { selectedModifiers, totalModifierPrice, toggleModifier, isSelected } =
     useModifierSelection({
       groups,
@@ -56,15 +52,6 @@ export const ModifierModal = ({
     <div className="flex flex-col h-full">
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {!isOnline && groups && lastOnlineAt && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 mb-4 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-md">
-            <Icon name="Database" className="w-3.5 h-3.5" />
-            <span>
-              Modifiers loaded from cache · last synced{" "}
-              {Math.round((Date.now() - lastOnlineAt) / 60_000)} min ago
-            </span>
-          </div>
-        )}
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-muted-foreground">Loading modifiers...</div>
@@ -208,7 +195,7 @@ export const ModifierGroup = ({
               onClick={() => toggleModifier(group.id, modifier.id, group.type)}
               className={cn(
                 "inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all",
-                "border border-border hover:border-primary/50",
+                "border border-border hover:border-primary/50 hover:text-white",
                 checked
                   ? "bg-primary text-white border-primary"
                   : "bg-background text-foreground",

@@ -1,7 +1,6 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import type { CreateOrderDto } from "@/dto/order.dto";
-import type { PaymentMethod } from "@repo/types";
+import type { OrderStatus, PaymentMethod } from "@repo/types";
 
 export type QueuedOpStatus = "PENDING" | "SYNCING" | "FAILED";
 
@@ -30,6 +29,15 @@ export type QueuedOperation =
   | {
       type: "CREATE_AND_CONFIRM";
       payload: { orderDto: CreateOrderDto };
+      localId: string;
+      timestamp: number;
+      retries: number;
+      status: QueuedOpStatus;
+      label: string;
+    }
+  | {
+      type: "UPDATE_ORDER_STATUS";
+      payload: { orderId: string; status: OrderStatus };
       localId: string;
       timestamp: number;
       retries: number;
@@ -64,76 +72,100 @@ type OfflineQueueState = {
 
 export const MAX_RETRIES = 3;
 
-export const useOfflineQueueStore = create<OfflineQueueState>()(
-  persist(
-    (set, get) => ({
-      queue: [],
-      isSyncing: false,
+export const useOfflineQueueStore = create<OfflineQueueState>()((set, get) => ({
+  queue: [],
+  isSyncing: false,
 
-      enqueue: (op) => {
-        const newOp: QueuedOperation = {
-          ...op,
-          timestamp: Date.now(),
-          retries: 0,
-          status: "PENDING",
-        } as QueuedOperation;
+  enqueue: async (op) => {
+    const newOp: QueuedOperation = {
+      ...op,
+      timestamp: Date.now(),
+      retries: 0,
+      status: "PENDING",
+    } as QueuedOperation;
 
-        set((state) => ({ queue: [...state.queue, newOp] }));
-      },
+    set((state) => ({ queue: [...state.queue, newOp] }));
+    if (window.api?.sync) {
+      await window.api.sync.enqueue({
+        ...newOp,
+        payload: JSON.stringify(newOp.payload),
+      });
+    }
+  },
 
-      dequeue: (localId) => {
-        set((state) => ({
-          queue: state.queue.filter((op) => op.localId !== localId),
-        }));
-      },
+  dequeue: async (localId) => {
+    set((state) => ({
+      queue: state.queue.filter((op) => op.localId !== localId),
+    }));
+    if (window.api?.sync) {
+      await window.api.sync.dequeue(localId);
+    }
+  },
 
-      markSyncing: (syncing) => set({ isSyncing: syncing }),
+  markSyncing: (syncing) => set({ isSyncing: syncing }),
 
-      incrementRetry: (localId) => {
-        set((state) => ({
-          queue: state.queue.map((op) =>
-            op.localId === localId ? { ...op, retries: op.retries + 1 } : op,
-          ),
-        }));
-      },
+  incrementRetry: async (localId) => {
+    set((state) => ({
+      queue: state.queue.map((op) =>
+        op.localId === localId ? { ...op, retries: op.retries + 1 } : op,
+      ),
+    }));
+    if (window.api?.sync) {
+      await window.api.sync.incrementRetry(localId);
+    }
+  },
 
-      markFailed: (localId) => {
-        set((state) => ({
-          queue: state.queue.map((op) =>
-            op.localId === localId ? { ...op, status: "FAILED" } : op,
-          ),
-        }));
-      },
+  markFailed: async (localId) => {
+    set((state) => ({
+      queue: state.queue.map((op) =>
+        op.localId === localId ? { ...op, status: "FAILED" } : op,
+      ),
+    }));
+    if (window.api?.sync) {
+      await window.api.sync.markFailed(localId);
+    }
+  },
 
-      setStatus: (localId, status) => {
-        set((state) => ({
-          queue: state.queue.map((op) =>
-            op.localId === localId ? { ...op, status } : op,
-          ),
-        }));
-      },
+  setStatus: async (localId, status) => {
+    set((state) => ({
+      queue: state.queue.map((op) =>
+        op.localId === localId ? { ...op, status } : op,
+      ),
+    }));
+    if (window.api?.sync) {
+      await window.api.sync.setStatus(localId, status);
+    }
+  },
 
-      pendingCount: () => {
-        const { queue } = get();
-        return queue.filter(
-          (op) => op.status === "PENDING" || op.status === "SYNCING",
-        ).length;
-      },
+  pendingCount: () => {
+    const { queue } = get();
+    return queue.filter(
+      (op) => op.status === "PENDING" || op.status === "SYNCING",
+    ).length;
+  },
 
-      failedCount: () => {
-        const { queue } = get();
-        return queue.filter((op) => op.status === "FAILED").length;
-      },
+  failedCount: () => {
+    const { queue } = get();
+    return queue.filter((op) => op.status === "FAILED").length;
+  },
 
-      clearFailed: () => {
-        set((state) => ({
-          queue: state.queue.filter((op) => op.status !== "FAILED"),
-        }));
-      },
-    }),
-    {
-      name: "pos-offline-queue",
-      storage: createJSONStorage(() => localStorage),
-    },
-  ),
-);
+  clearFailed: async () => {
+    set((state) => ({
+      queue: state.queue.filter((op) => op.status !== "FAILED"),
+    }));
+    if (window.api?.sync) {
+      await window.api.sync.clearFailed();
+    }
+  },
+}));
+
+// Initialize queue from SQLite on load
+if (typeof window !== "undefined" && window.api?.sync) {
+  window.api.sync.getAll().then((rows) => {
+    const parsedQueue = rows.map((row) => ({
+      ...row,
+      payload: JSON.parse(row.payload),
+    }));
+    useOfflineQueueStore.setState({ queue: parsedQueue });
+  });
+}

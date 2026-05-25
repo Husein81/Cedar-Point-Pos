@@ -38,7 +38,8 @@ persistQueryClient({
         key === "categories" ||
         key === "tables" ||
         key === "floors" ||
-        key === "modifiers"
+        key === "modifiers" ||
+        key === "branches"
       );
     },
   },

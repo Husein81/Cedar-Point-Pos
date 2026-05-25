@@ -4,6 +4,8 @@ import { isDev } from "./utils.js";
 import { getPreloadPath } from "./pathResolver.js";
 import { updateElectronApp } from "update-electron-app";
 import squirrelStartup from "electron-squirrel-startup";
+import { getDatabase } from "./database/index.js";
+import * as syncQueue from "./database/syncQueue.js";
 
 if (squirrelStartup) {
   app.quit();
@@ -36,6 +38,23 @@ ipcMain.on("frame-action", (_event, action) => {
       break;
   }
 });
+
+// ✅ SYNC QUEUE IPC HANDLERS
+ipcMain.handle("sync:enqueue", (_event, op) => syncQueue.enqueueOperation(op));
+ipcMain.handle("sync:dequeue", (_event, localId) =>
+  syncQueue.dequeueOperation(localId),
+);
+ipcMain.handle("sync:setStatus", (_event, localId, status) =>
+  syncQueue.setOperationStatus(localId, status),
+);
+ipcMain.handle("sync:incrementRetry", (_event, localId) =>
+  syncQueue.incrementOperationRetry(localId),
+);
+ipcMain.handle("sync:markFailed", (_event, localId) =>
+  syncQueue.markOperationFailed(localId),
+);
+ipcMain.handle("sync:clearFailed", () => syncQueue.clearFailedOperations());
+ipcMain.handle("sync:getAll", () => syncQueue.getAllOperations());
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -70,7 +89,10 @@ const createWindow = () => {
   }
 };
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  getDatabase(); // Initialize SQLite on startup
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

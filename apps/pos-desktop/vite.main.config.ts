@@ -7,7 +7,7 @@ export default defineConfig({
       formats: ["cjs"], // ✅ REQUIRED
     },
     rollupOptions: {
-      external: ["electron"],
+      external: ["electron", "better-sqlite3"],
     },
   },
 });

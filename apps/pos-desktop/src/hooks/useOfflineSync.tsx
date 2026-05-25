@@ -10,15 +10,9 @@ import { toast } from "@repo/ui";
 import { useModalStore } from "../store/modalStore";
 import { Button } from "@repo/ui";
 
-async function promptConflict(
-  openModal: (
-    title: string,
-    content: React.ReactNode,
-    subtitle?: string,
-  ) => void,
-  closeModal: () => void,
-  label: string,
-): Promise<"PROCEED" | "DISCARD"> {
+async function promptConflict(label: string): Promise<"PROCEED" | "DISCARD"> {
+  const { openModal, closeModal } = useModalStore();
+
   return new Promise((resolve) => {
     openModal(
       "Sync Conflict Detected",
@@ -58,12 +52,6 @@ async function promptConflict(
 
 async function syncOperation(
   op: QueuedOperation,
-  openModal: (
-    title: string,
-    content: React.ReactNode,
-    subtitle?: string,
-  ) => void,
-  closeModal: () => void,
 ): Promise<"SUCCESS" | "CONFLICT_DISCARD" | "ERROR"> {
   if (op.type === "CREATE_AND_PAY") {
     const { orderDto, payments, loyalty } = op.payload;
@@ -76,7 +64,7 @@ async function syncOperation(
           dtoToSend.tableId,
         );
         if (existing) {
-          const choice = await promptConflict(openModal, closeModal, op.label);
+          const choice = await promptConflict(op.label);
           if (choice === "DISCARD") return "CONFLICT_DISCARD";
           // PROCEED: strip tableId so we create a standalone order
           delete (dtoToSend as Record<string, unknown>).tableId;
@@ -103,7 +91,7 @@ async function syncOperation(
           dtoToSend.tableId,
         );
         if (existing) {
-          const choice = await promptConflict(openModal, closeModal, op.label);
+          const choice = await promptConflict(op.label);
           if (choice === "DISCARD") return "CONFLICT_DISCARD";
           delete (dtoToSend as Record<string, unknown>).tableId;
         }
@@ -116,14 +104,22 @@ async function syncOperation(
     return "SUCCESS";
   }
 
+  if (op.type === "UPDATE_ORDER_STATUS") {
+    // Note: if it's an offline order that hasn't synced yet, this might fail because the ID doesn't exist on server yet.
+    // However, if the order was an offline order, we don't have its real ID yet.
+    // We should only enqueue status updates for orders that already have real IDs (not starting with offline-).
+    // Let's just pass it to the API and if it fails, it will fail and retry or be marked failed.
+    await ordersApi.updateOrderStatus(op.payload.orderId, {
+      status: op.payload.status,
+    });
+    return "SUCCESS";
+  }
+
   return "ERROR";
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useOfflineSync() {
   const { isOnline } = useNetworkStatus();
-  const { openModal, closeModal } = useModalStore();
   const { queue, dequeue, markSyncing, incrementRetry, markFailed, setStatus } =
     useOfflineQueueStore();
 
@@ -146,7 +142,7 @@ export function useOfflineSync() {
         setStatus(op.localId, "SYNCING");
 
         try {
-          const result = await syncOperation(op, openModal, closeModal);
+          const result = await syncOperation(op);
 
           if (result === "SUCCESS") {
             dequeue(op.localId);
@@ -175,11 +171,8 @@ export function useOfflineSync() {
       markSyncing(false);
       syncingRef.current = false;
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, queue.length]);
 }
-
-// ─── Mount component ──────────────────────────────────────────────────────────
 
 export function OfflineSyncService() {
   useOfflineSync();

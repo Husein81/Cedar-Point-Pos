@@ -72,7 +72,7 @@ const KitchenCard = ({ order }: Props) => {
   return (
     <div
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm",
+        "flex flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm",
         "transition-all duration-200 hover:shadow-md",
       )}
     >
@@ -80,7 +80,7 @@ const KitchenCard = ({ order }: Props) => {
       <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
         <div className="flex items-center gap-2 text-[11px] text-zinc-500">
           <span className="font-semibold text-zinc-700">
-            {"T" + order.table?.tableNumber || "--"}
+            {order.table?.tableNumber ?? "--"}
           </span>
 
           <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
@@ -99,8 +99,13 @@ const KitchenCard = ({ order }: Props) => {
       <div className="flex flex-1 flex-col gap-3 p-3">
         {/* STATUS */}
         <div className="flex items-center justify-between">
-          <div className="rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-600">
-            {order.status.split("_").join(" ")}
+          <div
+            className={cn(
+              "rounded-md bg-zinc-100 px-2 py-1 text-[11px] capitalize  font-medium text-zinc-600",
+              order.status === "COMPLETED" && "bg-success text-white",
+            )}
+          >
+            {order.status.split("_").join(" ").toLocaleLowerCase()}
           </div>
 
           <div
@@ -185,7 +190,9 @@ const KitchenCard = ({ order }: Props) => {
       <div className="border-t border-zinc-100 p-3">
         <Button
           onClick={onActionButtonClick}
-          disabled={updateStatusMutation.isPending}
+          disabled={
+            updateStatusMutation.isPending || order.status === "COMPLETED"
+          }
           isSubmitting={updateStatusMutation.isPending}
           className={cn(
             "h-9 w-full rounded-md text-sm font-semibold text-white",

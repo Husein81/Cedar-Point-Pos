@@ -18,9 +18,7 @@ const NetworkContext = createContext<NetworkContextValue>({
   lastOnlineAt: null,
 });
 
-const API_PING_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/test`
-  : "https://pointverse-api.vercel.app/test";
+const API_PING_URL = `${import.meta.env.VITE_API_URL}/test`;
 
 const POLL_INTERVAL_MS = 5_000;
 

@@ -1,8 +1,8 @@
-import { OrderType } from "@repo/types";
+import { OrderStatus } from "@repo/types";
 import { Button, cn } from "@repo/ui";
 
 export interface KitchenFilters {
-  orderType: OrderType | "ALL";
+  orderStatus: OrderStatus | "ALL";
 }
 
 interface KitchenFiltersProps {
@@ -10,38 +10,39 @@ interface KitchenFiltersProps {
   onFiltersChange: (filters: KitchenFilters) => void;
 }
 
-const ORDER_TYPE_OPTIONS: Array<{
+const ORDER_STATUS_OPTIONS: Array<{
   label: string;
-  value: OrderType | "ALL";
+  value: OrderStatus | "ALL";
 }> = [
   { label: "All", value: "ALL" },
-  { label: "Dine In", value: OrderType.DINE_IN },
-  { label: "Delivery", value: OrderType.DELIVERY },
-  { label: "Takeaway", value: OrderType.TAKEAWAY },
+  { label: "Sent to Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
+  { label: "Preparing", value: OrderStatus.IN_PROGRESS },
+  { label: "Ready", value: OrderStatus.READY },
+  { label: "Confirmed", value: OrderStatus.CONFIRMED },
 ];
 
 export function KitchenFilters({
   filters,
   onFiltersChange,
 }: KitchenFiltersProps) {
-  const handleOrderTypeChange = (value: OrderType | "ALL") => {
+  const handleOrderStatusChange = (value: OrderStatus | "ALL") => {
     onFiltersChange({
       ...filters,
-      orderType: value,
+      orderStatus: value,
     });
   };
 
   return (
     <div className="flex items-center gap-1 p-1 bg-muted rounded-lg w-fit">
-      {ORDER_TYPE_OPTIONS.map((option) => (
+      {ORDER_STATUS_OPTIONS.map((option) => (
         <Button
           key={option.value}
-          variant={filters.orderType === option.value ? "default" : "ghost"}
+          variant={filters.orderStatus === option.value ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleOrderTypeChange(option.value)}
+          onClick={() => handleOrderStatusChange(option.value)}
           className={cn(
             "relative",
-            filters.orderType === option.value && "shadow-sm",
+            filters.orderStatus === option.value && "shadow-sm",
           )}
         >
           {option.label}
@@ -50,4 +51,3 @@ export function KitchenFilters({
     </div>
   );
 }
-

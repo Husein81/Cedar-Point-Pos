@@ -86,17 +86,17 @@ export class KitchenService {
     const where: Prisma.OrderWhereInput = {
       tenantId,
       ...(branchId && { branchId }),
-      status: {
-        in: [
-          'CONFIRMED',
-          'IN_PROGRESS',
-          'SENT_TO_KITCHEN',
-          'READY',
-          'PAID',
-          'PARTIALLY_PAID',
-          'FULLY_REFUNDED',
-        ],
-      },
+      // status: {
+      //   in: [
+      //     'CONFIRMED',
+      //     'IN_PROGRESS',
+      //     'SENT_TO_KITCHEN',
+      //     'READY',
+      //     'PAID',
+      //     'PARTIALLY_PAID',
+      //     'FULLY_REFUNDED',
+      //   ],
+      // },
       createdAt: {
         gte: twentyFourHoursAgo,
       },

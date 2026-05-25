@@ -67,6 +67,8 @@ export const useActiveOrdersByTable = (
     queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
     queryFn: () => tablesApi.getActiveOrdersByTable(tableId!),
     staleTime: 30_000,
+    gcTime: 24 * 60 * 60 * 1000,
+    networkMode: "offlineFirst",
     enabled: !!tableId,
   });
 };

@@ -114,6 +114,11 @@ export const getActionButtonStatus = (
         nextStatus: null,
         buttonLabel: "Order Fully Refunded",
       };
+    case OrderStatus.COMPLETED:
+      return {
+        nextStatus: null,
+        buttonLabel: "Completed",
+      };
     default:
       return {
         nextStatus: null,
@@ -121,4 +126,3 @@ export const getActionButtonStatus = (
       };
   }
 };
-

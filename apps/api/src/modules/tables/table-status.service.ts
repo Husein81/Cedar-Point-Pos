@@ -15,9 +15,6 @@ import {
 export class TableStatusService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Active order statuses that keep a table occupied
-   */
   private readonly ACTIVE_ORDER_STATUSES: OrderStatus[] = [
     OrderStatus.DRAFT,
     OrderStatus.PENDING,

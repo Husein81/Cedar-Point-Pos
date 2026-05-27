@@ -24,7 +24,9 @@ const POLL_INTERVAL_MS = 5_000;
 
 async function checkServerReachable(): Promise<boolean> {
   try {
-    const res = await axios.get(API_PING_URL, { timeout: 4000 });
+    const res = await axios.get(API_PING_URL, {
+      timeout: 4000,
+    });
     return res.status >= 200 && res.status < 500;
   } catch {
     return false;
@@ -83,9 +85,9 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
   }, [update]);
 
   return (
-    <NetworkContext.Provider value={{ isOnline, lastOnlineAt }}>
+    <NetworkContext value={{ isOnline, lastOnlineAt }}>
       {children}
-    </NetworkContext.Provider>
+    </NetworkContext>
   );
 }
 

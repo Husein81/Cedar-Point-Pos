@@ -52,6 +52,7 @@
     "@repo/typescript-config": "workspace:*",
     "@tanstack/react-router": "^1.169.1",
     "@tanstack/router-plugin": "^1.143.3",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/lodash": "^4.17.23",
     "@types/node": "^24.10.1",

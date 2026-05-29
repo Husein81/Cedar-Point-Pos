@@ -50,13 +50,14 @@ function KitchenPage() {
   const orders = data?.data ?? [];
   const totalCount = data?.pagination.totalCount ?? 0;
 
-  // Filter and sort orders: filter by status, oldest first, refunded orders at the bottom
   const filteredAndSortedOrders = useMemo(() => {
     let filtered = orders;
 
     // Apply order status filter
     if (filters.orderStatus !== "ALL") {
-      filtered = filtered.filter((order) => order.status === filters.orderStatus);
+      filtered = filtered.filter(
+        (order) => order.status === filters.orderStatus,
+      );
     }
 
     // Sort: oldest first, refunded orders at the bottom

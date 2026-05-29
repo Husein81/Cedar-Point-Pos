@@ -9,7 +9,7 @@ import {
   computeItemRefundInfo,
 } from "@/utils/invoiceFinancials";
 import { OrderStatus } from "@repo/types";
-import { Badge, Button, Icon, Separator, Shad } from "@repo/ui";
+import { Badge, Button, Icon, Separator, Shad, toast } from "@repo/ui";
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Download, RotateCcw } from "lucide-react";
 import { useMemo } from "react";
@@ -21,6 +21,14 @@ import {
   statusConfig,
 } from "./config";
 import { OrderDetailSkeleton } from "./OrderSkeleton";
+import { pdf } from "@react-pdf/renderer";
+import { ReceiptPdf } from "@/components/receipt/ReceiptPdf";
+import { useAuthStore } from "@/store/authStore";
+import { useBranchStore } from "@/store/branchStore";
+import { useBranch } from "@/hooks/useBranch";
+import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
+import { ReceiptPreviewModal } from "@/components/invoices/ReceiptPreviewModal";
+import { BackendOrder } from "@/dto/order.dto";
 
 export function OrderDetailPage() {
   const { orderId } = useParams({ from: "/invoices/$orderId" });
@@ -46,10 +54,74 @@ export function OrderDetailPage() {
   const mc = (value: number) =>
     buildMultiCurrencyAmounts(value, tenantCurrencies, baseCurrencyCode);
 
+  const { user } = useAuthStore();
+  const { branchId } = useBranchStore();
+  const { data: branch } = useBranch(branchId || "");
+
   const handleRefund = () => {
     openModal(
       "Create Refund",
       <RefundForm orderId={orderId} onSuccess={() => refetch()} />,
+    );
+  };
+
+  const handleExportPDF = async () => {
+    if (!order) return;
+    try {
+      const clientOrder = mapBackendOrderToClientOrder(order as BackendOrder);
+      let loyaltyApplied = undefined;
+      if (order.loyaltyRedeemedPoints > 0) {
+        loyaltyApplied = {
+          points: order.loyaltyRedeemedPoints,
+          discount: Number(order.loyaltyRedeemedAmount || 0),
+        };
+      }
+      const blob = await pdf(
+        <ReceiptPdf
+          order={clientOrder}
+          tenantName={user?.tenant?.name || "Cedar Point"}
+          branchName={branch?.name || "Main Branch"}
+          branchAddress={branch?.address || ""}
+          branchPhone={branch?.phone || ""}
+          orderNumber={order.orderNumber || order.id.slice(0, 8)}
+          loyaltyApplied={loyaltyApplied}
+        />,
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Invoice-${order.orderNumber || order.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("PDF exported successfully.");
+    } catch (err) {
+      toast.error("Failed to export PDF.");
+    }
+  };
+
+  const handlePreviewAndPrint = () => {
+    if (!order) return;
+    let loyaltyApplied = undefined;
+    if (order.loyaltyRedeemedPoints > 0) {
+      loyaltyApplied = {
+        points: order.loyaltyRedeemedPoints,
+        discount: Number(order.loyaltyRedeemedAmount || 0),
+      };
+    }
+    openModal(
+      `Receipt Preview #${order.orderNumber || order.id.slice(0, 8)}`,
+      <ReceiptPreviewModal
+        order={order}
+        tenantName={user?.tenant?.name || "Cedar Point"}
+        branchName={branch?.name || "Main Branch"}
+        branchAddress={branch?.address || ""}
+        branchPhone={branch?.phone || ""}
+        orderNumber={order.orderNumber || order.id.slice(0, 8)}
+        loyaltyApplied={loyaltyApplied}
+      />,
     );
   };
 
@@ -357,9 +429,21 @@ export function OrderDetailPage() {
 
           {/* ── Actions ────────────────────────────────────────── */}
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              className="gap-2"
+            >
               <Download className="w-4 h-4" />
               Export PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handlePreviewAndPrint}
+              className="gap-2"
+            >
+              <Icon name="Printer" className="w-4 h-4" />
+              Print & Preview
             </Button>
             {canRefund && (
               <Button onClick={handleRefund} className="gap-2">

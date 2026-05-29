@@ -9,6 +9,7 @@ import { ordersApi } from "../apis/ordersApi";
 import { toast } from "@repo/ui";
 import { useModalStore } from "../store/modalStore";
 import { Button } from "@repo/ui";
+import { extractErrorMessage } from "../utils/error";
 
 async function promptConflict(label: string): Promise<"PROCEED" | "DISCARD"> {
   const { openModal, closeModal } = useModalStore();
@@ -115,6 +116,18 @@ async function syncOperation(
     return "SUCCESS";
   }
 
+  if (op.type === "UPDATE_AND_PAY") {
+    const { orderId, newItems, payments, loyalty } = op.payload;
+    if (newItems && newItems.length > 0) {
+      await ordersApi.batchAddItemsToOrder(orderId, newItems);
+    }
+    await ordersApi.processPayment(orderId, {
+      payments,
+      ...(loyalty ? { loyalty } : {}),
+    });
+    return "SUCCESS";
+  }
+
   return "ERROR";
 }
 
@@ -129,14 +142,15 @@ export function useOfflineSync() {
   useEffect(() => {
     prevOnlineRef.current = isOnline;
 
-    const hasPending = queue.some((op) => op.status === "PENDING");
-    if (!isOnline || !hasPending || syncingRef.current) return;
+    const runSync = async () => {
+      if (!isOnline || syncingRef.current) return;
 
-    (async () => {
+      const currentQueue = useOfflineQueueStore.getState().queue;
+      const pending = currentQueue.filter((op) => op.status === "PENDING");
+      if (pending.length === 0) return;
+
       syncingRef.current = true;
       markSyncing(true);
-
-      const pending = queue.filter((op) => op.status === "PENDING");
 
       for (const op of pending) {
         setStatus(op.localId, "SYNCING");
@@ -151,18 +165,25 @@ export function useOfflineSync() {
             dequeue(op.localId);
             toast.info(`Offline order discarded: ${op.label}`);
           }
-        } catch {
+        } catch (error) {
+          console.error("Sync operation failed for", op.label, ":", error);
+          const errorMsg = extractErrorMessage(error, "Unknown error");
           incrementRetry(op.localId);
 
-          if (op.retries + 1 >= MAX_RETRIES) {
+          const updatedOp = useOfflineQueueStore
+            .getState()
+            .queue.find((o) => o.localId === op.localId);
+          const currentRetries = updatedOp ? updatedOp.retries : op.retries;
+
+          if (currentRetries >= MAX_RETRIES) {
             markFailed(op.localId);
             toast.error(
-              `Failed to sync "${op.label}" after ${MAX_RETRIES} attempts. Review it in the queue.`,
+              `Failed to sync "${op.label}" after ${MAX_RETRIES} attempts. Error: ${errorMsg}`,
               { duration: 10_000 },
             );
           } else {
             setStatus(op.localId, "PENDING");
-            toast.error(`Sync attempt failed for "${op.label}". Will retry.`);
+            toast.error(`Sync attempt failed for "${op.label}": ${errorMsg}. Will retry.`);
             break;
           }
         }
@@ -170,7 +191,17 @@ export function useOfflineSync() {
 
       markSyncing(false);
       syncingRef.current = false;
-    })();
+    };
+
+    // Run sync immediately when queue length or online status changes
+    runSync();
+
+    // Set up standard 15-second retry interval for outstanding pending items
+    const interval = setInterval(() => {
+      runSync();
+    }, 15_000);
+
+    return () => clearInterval(interval);
   }, [isOnline, queue.length]);
 }
 

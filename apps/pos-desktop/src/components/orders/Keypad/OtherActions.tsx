@@ -1,14 +1,11 @@
-import { Button, Icon } from "@repo/ui";
 import { useModalStore } from "@/store/modalStore";
-import { useNavigate } from "@tanstack/react-router";
-import { ReceiptModal } from "../ReceiptModal";
 import { useOrderStore } from "@/store/orderStore";
-import { SplitBillForm } from "../SplitBillForm";
-import { useTenantCurrencies } from "@/hooks/useCurrency";
-import { PaymentEntry } from "../PaymentForm";
-import { useShallow } from "zustand/react/shallow";
-import { useOrderActions } from "@/hooks/useOrderActions";
 import { OrderType } from "@repo/types";
+import { Button, Icon, toast } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
+import { useShallow } from "zustand/react/shallow";
+import { ReceiptModal } from "../ReceiptModal";
+import { SplitBillForm } from "../SplitBillForm";
 
 type Action = {
   key: string;
@@ -24,24 +21,20 @@ export default function OtherActions() {
 
   const { openModal, closeModal } = useModalStore();
 
-  const { order, subtotalValue, discountValue, vatValue } = useOrderStore(
-    useShallow((s) => {
-      const activeOrder = s.getActiveOrder();
+  const { order, subtotalValue, discountValue, vatValue, splitToNewTab } =
+    useOrderStore(
+      useShallow((s) => {
+        const activeOrder = s.getActiveOrder();
 
-      return {
-        order: activeOrder,
-        subtotalValue: s.getOrderSubtotal(),
-        discountValue: s.getDiscountAmount(),
-        vatValue: s.getVATAmount(),
-      };
-    }),
-  );
-
-  const { handlePaymentConfirm } = useOrderActions();
-
-  const { data: currenciesData } = useTenantCurrencies();
-
-  const baseCurrencyCode = currenciesData?.baseCurrencyCode || "USD";
+        return {
+          order: activeOrder,
+          subtotalValue: s.getOrderSubtotal(),
+          discountValue: s.getDiscountAmount(),
+          vatValue: s.getVATAmount(),
+          splitToNewTab: s.splitToNewTab,
+        };
+      }),
+    );
 
   const shippingFee = order?.shippingFee ?? 0;
 
@@ -60,21 +53,18 @@ export default function OtherActions() {
     !order?.customerAddress;
 
   const handleSplitBill = () => {
+    if (!order) return;
     openModal(
       "Split Bill",
       <SplitBillForm
-        total={remainingTotal}
-        onConfirm={(splits) => {
-          const payments: PaymentEntry[] = splits.map((s) => ({
-            id: crypto.randomUUID(),
-            method: s.method,
-            amount: s.amount,
-            currencyCode: baseCurrencyCode,
-            exchangeRate: 1,
-            amountInBase: s.amount,
-          }));
-
-          handlePaymentConfirm(payments);
+        order={order}
+        onConfirm={(items) => {
+          const newTabId = splitToNewTab(items);
+          if (newTabId) {
+            toast.success("Items split into a new tab");
+          } else {
+            toast.error("Failed to split items");
+          }
         }}
       />,
     );

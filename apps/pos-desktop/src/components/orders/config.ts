@@ -1,4 +1,4 @@
-import { TableStatus } from "@repo/types";
+import { OrderStatus, TableStatus } from "@repo/types";
 
 export type KeypadContext =
   | "QUANTITY"
@@ -161,4 +161,71 @@ export const generateQuickCashAmounts = (total: number) => {
     .filter((v) => v > total)
     .sort((a, b) => a - b)
     .slice(0, 6);
+};
+
+export const ONGOING_STATUSES: OrderStatus[] = [
+  "DRAFT",
+  "ON_HOLD",
+  "PENDING",
+  "CONFIRMED",
+  "SENT_TO_KITCHEN",
+  "IN_PROGRESS",
+  "READY",
+  "COMPLETED",
+];
+
+export const STATUS_FILTER_OPTIONS = [
+  { label: "All Ongoing", value: "ALL" },
+  { label: "Draft", value: "DRAFT" },
+  { label: "Pending", value: "PENDING" },
+  { label: "Sent to Kitchen", value: "SENT_TO_KITCHEN" },
+  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Ready", value: "READY" },
+  { label: "Confirmed", value: "CONFIRMED" },
+  { label: "On Hold", value: "ON_HOLD" },
+  { label: "Completed", value: "COMPLETED" },
+];
+
+export const STATUS_BADGE_CONFIG: Record<
+  string,
+  { label: string; className: string }
+> = {
+  DRAFT: {
+    label: "Draft",
+    className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+  },
+  ON_HOLD: {
+    label: "On Hold",
+    className:
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+  },
+  PENDING: {
+    label: "Pending",
+    className:
+      "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  },
+  SENT_TO_KITCHEN: {
+    label: "Kitchen",
+    className:
+      "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+  },
+  IN_PROGRESS: {
+    label: "In Progress",
+    className:
+      "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+  },
+  READY: {
+    label: "Ready",
+    className:
+      "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  },
+  COMPLETED: {
+    label: "Completed",
+    className:
+      "bg-green-200 text-gray-800 dark:bg-green-700 dark:text-gray-200",
+  },
 };

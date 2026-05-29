@@ -16,12 +16,8 @@ import {
 export const ordersApi = {
   // Create a new order
   createOrder: async (data: CreateOrderDto): Promise<Order> => {
-    try {
-      const response = await api.post<Order>("/orders", data);
-      return response.data;
-    } catch (error) {
-      throw new Error("Failed to create order");
-    }
+    const response = await api.post<Order>("/orders", data);
+    return response.data;
   },
 
   // Get all orders with filters

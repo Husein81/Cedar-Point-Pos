@@ -66,7 +66,7 @@ function QueueModal() {
               className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30"
             >
               <Icon
-                name="AlertTriangle"
+                name="TriangleAlert"
                 className="w-4 h-4 shrink-0 text-destructive"
               />
               <div className="flex-1 min-w-0">
@@ -125,7 +125,7 @@ export function OfflineQueueBadge() {
     >
       <Icon
         name={
-          hasFailed ? "AlertTriangle" : isSyncing ? "RefreshCw" : "CloudOff"
+          hasFailed ? "TriangleAlert" : isSyncing ? "RefreshCw" : "CloudOff"
         }
         className={cn("w-3 h-3", isSyncing && "animate-spin")}
       />

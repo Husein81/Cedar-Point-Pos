@@ -19,6 +19,7 @@ const ORDER_STATUS_OPTIONS: Array<{
   { label: "Preparing", value: OrderStatus.IN_PROGRESS },
   { label: "Ready", value: OrderStatus.READY },
   { label: "Confirmed", value: OrderStatus.CONFIRMED },
+  { label: "Completed", value: OrderStatus.COMPLETED },
 ];
 
 export function KitchenFilters({

@@ -2,15 +2,18 @@ import { getDatabase } from "./index.js";
 
 export type QueuedOpStatus = "PENDING" | "SYNCING" | "FAILED";
 
-export interface SyncOperationRow {
-  localId: string;
-  type: string;
-  payload: string; // JSON string
-  status: QueuedOpStatus;
-  retries: number;
-  label: string;
-  timestamp: number;
-}
+export type SyncOperationRow = {
+  id?: string;
+  entityId?: string;
+  entityType?: string;
+  operationType?: OperationType;
+  payload?: string; // JSON string
+  status?: QueuedOpStatus;
+  retries?: number;
+  label?: string;
+  timestamp?: number;
+  createdAt?: number;
+};
 
 export function enqueueOperation(op: any) {
   const db = getDatabase();
@@ -18,7 +21,8 @@ export function enqueueOperation(op: any) {
   const id = op.localId;
   const entityType = "ORDER"; // POS is order-first
   const operationType = op.type;
-  const payload = typeof op.payload === "string" ? op.payload : JSON.stringify(op.payload);
+  const payload =
+    typeof op.payload === "string" ? op.payload : JSON.stringify(op.payload);
   const status = op.status || "PENDING";
   const retries = op.retries || 0;
   const maxRetries = 10;
@@ -28,7 +32,8 @@ export function enqueueOperation(op: any) {
   // Extract entityId dynamically
   let entityId = id;
   try {
-    const parsed = typeof op.payload === "string" ? JSON.parse(op.payload) : op.payload;
+    const parsed =
+      typeof op.payload === "string" ? JSON.parse(op.payload) : op.payload;
     if (parsed) {
       if (parsed.orderId) {
         entityId = parsed.orderId;
@@ -53,7 +58,18 @@ export function enqueueOperation(op: any) {
       updatedAt = excluded.updatedAt
   `);
 
-  stmt.run(id, entityType, operationType, entityId, payload, status, retries, maxRetries, createdAt, updatedAt);
+  stmt.run(
+    id,
+    entityType,
+    operationType,
+    entityId,
+    payload,
+    status,
+    retries,
+    maxRetries,
+    createdAt,
+    updatedAt,
+  );
 }
 
 export function dequeueOperation(id: string) {
@@ -64,43 +80,57 @@ export function dequeueOperation(id: string) {
 
 export function setOperationStatus(id: string, status: QueuedOpStatus) {
   const db = getDatabase();
-  const stmt = db.prepare("UPDATE sync_operations SET status = ?, updatedAt = ? WHERE id = ?");
+  const stmt = db.prepare(
+    "UPDATE sync_operations SET status = ?, updatedAt = ? WHERE id = ?",
+  );
   stmt.run(status, Date.now(), id);
 }
 
 export function incrementOperationRetry(id: string) {
   const db = getDatabase();
-  const stmt = db.prepare("UPDATE sync_operations SET retries = retries + 1, updatedAt = ? WHERE id = ?");
+  const stmt = db.prepare(
+    "UPDATE sync_operations SET retries = retries + 1, updatedAt = ? WHERE id = ?",
+  );
   stmt.run(Date.now(), id);
 }
 
 export function markOperationFailed(id: string) {
   const db = getDatabase();
-  const stmt = db.prepare("UPDATE sync_operations SET status = 'FAILED', updatedAt = ? WHERE id = ?");
+  const stmt = db.prepare(
+    "UPDATE sync_operations SET status = 'FAILED', updatedAt = ? WHERE id = ?",
+  );
   stmt.run(Date.now(), id);
 }
 
 export function clearFailedOperations() {
   const db = getDatabase();
-  const stmt = db.prepare("DELETE FROM sync_operations WHERE status = 'FAILED'");
+  const stmt = db.prepare(
+    "DELETE FROM sync_operations WHERE status = 'FAILED'",
+  );
   stmt.run();
 }
+type OperationType =
+  | "CREATED_AND_PAY"
+  | "CREATED_AND_CONFIRM"
+  | "UPDATE_ORDER_STATUS"
+  | "UPDATE_AND_PAY";
 
 export function getAllOperations(): SyncOperationRow[] {
   const db = getDatabase();
-  const stmt = db.prepare("SELECT * FROM sync_operations ORDER BY createdAt ASC");
-  const rows = stmt.all() as any[];
+  const stmt = db.prepare(
+    "SELECT * FROM sync_operations ORDER BY createdAt ASC",
+  );
+  const rows = stmt.all() as SyncOperationRow[];
 
   return rows.map((row) => {
-    // Generate dynamic label since database table does not store it
-    let label = "Sync Operation";
-    if (row.operationType === "CREATE_AND_PAY") {
-      label = "Create & Pay Order";
-    } else if (row.operationType === "CREATE_AND_CONFIRM") {
-      label = "Create & Confirm Order";
-    } else if (row.operationType === "UPDATE_ORDER_STATUS") {
-      label = "Update Order Status";
-    }
+    const config = {
+      CREATED_AND_PAY: "Creat & Pay Order",
+      CREATED_AND_CONFIRM: "Create & Confirm Order",
+      UPDATE_ORDER_STATUS: "Update Order Status",
+      UPDATE_AND_PAY: "Update & Pay Order",
+    } as Record<OperationType, string>;
+
+    const label = config[row.operationType ?? "CREATED_AND_CONFIRM"];
 
     return {
       localId: row.id,
@@ -109,7 +139,7 @@ export function getAllOperations(): SyncOperationRow[] {
       status: row.status,
       retries: row.retries,
       timestamp: row.createdAt,
-      label: label,
+      label,
     };
   });
 }

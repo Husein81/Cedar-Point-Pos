@@ -128,7 +128,7 @@ export const LoyaltyProgramForm = ({ canEdit }: Props) => {
   if (isError) {
     return (
       <div className="flex items-center gap-2 text-destructive p-4">
-        <Icon name="AlertTriangle" className="w-5 h-5" />
+        <Icon name="TriangleAlert" className="w-5 h-5" />
         <span>Failed to load loyalty program configuration.</span>
       </div>
     );

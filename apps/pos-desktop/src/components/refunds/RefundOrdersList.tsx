@@ -112,11 +112,11 @@ export const RefundOrdersList = () => {
               {/* Top Row: Order # + Status */}
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-sm">
-                  #{order.orderNumber || order.id.slice(-8)}
+                  #{order.orderNumber}
                 </span>
                 {/* TODO */}
                 <Badge className={`${getStatusBadge(order.status).className}`}>
-                  {getStatusBadge(order.status).label}
+                  {getStatusBadge(order.status).label.split("_").join(" ")}
                 </Badge>
               </div>
 
@@ -127,7 +127,7 @@ export const RefundOrdersList = () => {
                 </span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Icon name="CreditCard" className="w-3 h-3" />
-                  {formatPaymentMethod(order.paymentMethod)}
+                  {formatPaymentMethod(order.paymentMethod!)}
                 </span>
               </div>
 

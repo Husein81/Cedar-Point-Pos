@@ -200,10 +200,6 @@ const initialState: RefundStoreState = {
   isRefundLocked: false,
 };
 
-// =====================
-// Store Implementation
-// =====================
-
 export const useRefundStore = create<RefundStore>()(
   devtools(
     (set, get) => ({

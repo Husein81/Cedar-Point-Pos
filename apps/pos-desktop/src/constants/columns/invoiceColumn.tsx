@@ -2,11 +2,16 @@ import Actions from "@/components/common/Actions";
 import { RefundForm } from "@/components/refunds";
 import { useModalStore } from "@/store/modalStore";
 import { Order, OrderStatus, TenantCurrency } from "@repo/types";
-import { Icon } from "@repo/ui";
+import { Icon, toast } from "@repo/ui";
 import { ColumnDef } from "@tanstack/react-table";
 import { useNavigate } from "@tanstack/react-router";
-
-// ─── Status Config ───────────────────────────────────────────────
+import { useAuthStore } from "@/store/authStore";
+import { useBranchStore } from "@/store/branchStore";
+import { useBranch } from "@/hooks/useBranch";
+import { printReceipt } from "@/components/receipt/ReceiptPdf";
+import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
+import { ReceiptPreviewModal } from "@/components/invoices/ReceiptPreviewModal";
+import { BackendOrder } from "@/dto/order.dto";
 
 const statusConfig: Record<
   string,
@@ -42,11 +47,6 @@ const orderTypeConfig: Record<string, { label: string; icon: string }> = {
   RETAIL: { label: "Retail", icon: "Store" },
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────
-
-/**
- * Compute the net total for an order (original - refunds)
- */
 function getNetTotal(order: Order): number {
   const originalTotal = Number(order.total);
   const totalRefunded = (order.refunds || []).reduce(
@@ -57,9 +57,6 @@ function getNetTotal(order: Order): number {
   return originalTotal - totalRefunded;
 }
 
-/**
- * Format a price in a specific currency using its symbol
- */
 function formatWithCurrency(
   amount: number,
   currencyCode: string,
@@ -76,19 +73,15 @@ function formatWithCurrency(
   return `${formatted} ${currencyCode}`;
 }
 
-// ─── Column Factory ──────────────────────────────────────────────
-
 export function getInvoiceColumns(
   tenantCurrencies: TenantCurrency[],
   baseCurrencyCode: string,
 ): ColumnDef<Order>[] {
-  // Find secondary currencies (active, non-default)
   const secondaryCurrencies = tenantCurrencies.filter(
     (tc) => tc.isActive && !tc.isDefault,
   );
 
   return [
-    // ── Order # ─────────────────────────────────────────────────
     {
       accessorKey: "orderNumber",
       header: "Order #",
@@ -99,7 +92,6 @@ export function getInvoiceColumns(
       ),
     },
 
-    // ── Type ────────────────────────────────────────────────────
     {
       accessorKey: "type",
       header: "Type",
@@ -117,8 +109,6 @@ export function getInvoiceColumns(
         );
       },
     },
-
-    // ── Customer ────────────────────────────────────────────────
     {
       accessorKey: "customer.name",
       header: "Customer",
@@ -129,7 +119,6 @@ export function getInvoiceColumns(
       ),
     },
 
-    // ── Status Pill ─────────────────────────────────────────────
     {
       accessorKey: "status",
       header: "Status",
@@ -155,8 +144,6 @@ export function getInvoiceColumns(
         );
       },
     },
-
-    // ── Items ───────────────────────────────────────────────────
     {
       accessorKey: "items",
       header: "Items",
@@ -170,8 +157,6 @@ export function getInvoiceColumns(
         );
       },
     },
-
-    // ── Total (multi-currency, refund-aware) ────────────────────
     {
       accessorKey: "total",
       header: "Total",
@@ -216,8 +201,6 @@ export function getInvoiceColumns(
         );
       },
     },
-
-    // ── Date ────────────────────────────────────────────────────
     {
       accessorKey: "createdAt",
       header: "Date",
@@ -233,16 +216,15 @@ export function getInvoiceColumns(
         </span>
       ),
     },
-
-    // ── Actions ─────────────────────────────────────────────────
     {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const navigate = useNavigate();
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         const { openModal } = useModalStore();
+        const { user } = useAuthStore();
+        const { branchId } = useBranchStore();
+        const { data: branch } = useBranch(branchId || "");
 
         const order = row.original;
         const canRefund =
@@ -253,6 +235,54 @@ export function getInvoiceColumns(
           openModal("Create Refund", <RefundForm orderId={order.id} />);
         };
 
+        const handlePrint = async () => {
+          try {
+            const clientOrder = mapBackendOrderToClientOrder(
+              order as BackendOrder,
+            );
+            let loyaltyApplied = undefined;
+            if (order.loyaltyRedeemedPoints > 0) {
+              loyaltyApplied = {
+                points: order.loyaltyRedeemedPoints,
+                discount: Number(order.loyaltyRedeemedAmount || 0),
+              };
+            }
+            await printReceipt({
+              order: clientOrder,
+              tenantName: user?.tenant?.name || "Cedar Point",
+              branchName: branch?.name || "Main Branch",
+              branchAddress: branch?.address || "",
+              branchPhone: branch?.phone || "",
+              orderNumber: order.orderNumber || order.id.slice(0, 8),
+              loyaltyApplied,
+            });
+          } catch (err) {
+            toast.error("Failed to print receipt.");
+          }
+        };
+
+        const handlePreview = () => {
+          let loyaltyApplied = undefined;
+          if (order.loyaltyRedeemedPoints > 0) {
+            loyaltyApplied = {
+              points: order.loyaltyRedeemedPoints,
+              discount: Number(order.loyaltyRedeemedAmount || 0),
+            };
+          }
+          openModal(
+            `Preview Invoice #${order.orderNumber || order.id.slice(0, 8)}`,
+            <ReceiptPreviewModal
+              order={order}
+              tenantName={user?.tenant?.name || "Cedar Point"}
+              branchName={branch?.name || "Main Branch"}
+              branchAddress={branch?.address || ""}
+              branchPhone={branch?.phone || ""}
+              orderNumber={order.orderNumber || order.id.slice(0, 8)}
+              loyaltyApplied={loyaltyApplied}
+            />,
+          );
+        };
+
         const actions = [
           {
             title: "View Order",
@@ -260,9 +290,14 @@ export function getInvoiceColumns(
             onClick: () => navigate({ to: `/invoices/${order.id}` }),
           },
           {
+            title: "Preview Invoice",
+            icon: "Search",
+            onClick: handlePreview,
+          },
+          {
             title: "Print Invoice",
             icon: "Printer",
-            onClick: () => {},
+            onClick: handlePrint,
           },
         ];
 

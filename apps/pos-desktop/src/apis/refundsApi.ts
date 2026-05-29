@@ -18,9 +18,10 @@ export const refundsApi = {
 
   // Get orders eligible for refund (PAID, COMPLETED, PARTIALLY_REFUNDED)
   getRefundableOrders: async (
-    filters?: RefundableOrdersFilters
+    filters?: RefundableOrdersFilters,
   ): Promise<PaginationResponse<RefundableOrderSummary>> => {
     const response = await api.get("/refunds/orders", { params: filters });
+    console.log(response.data);
     return response.data;
   },
 

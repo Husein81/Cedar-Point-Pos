@@ -23,7 +23,6 @@ export type QueuedOperation =
       timestamp: number;
       retries: number;
       status: QueuedOpStatus;
-      /** Human-readable description shown in the queue badge */
       label: string;
     }
   | {
@@ -38,6 +37,20 @@ export type QueuedOperation =
   | {
       type: "UPDATE_ORDER_STATUS";
       payload: { orderId: string; status: OrderStatus };
+      localId: string;
+      timestamp: number;
+      retries: number;
+      status: QueuedOpStatus;
+      label: string;
+    }
+  | {
+      type: "UPDATE_AND_PAY";
+      payload: {
+        orderId: string;
+        newItems?: any[];
+        payments: PaymentDto[];
+        loyalty?: { redeemPoints: number };
+      };
       localId: string;
       timestamp: number;
       retries: number;

@@ -203,21 +203,46 @@ export function useOrderActions() {
               ? `Table ${active.tableName}`
               : `Order (${new Date().toLocaleTimeString()})`;
 
-          enqueue({
-            type: "CREATE_AND_PAY",
-            localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            label,
-            payload: {
-              orderDto: dto,
-              payments: payments.map((p) => ({
-                amount: p.amount,
-                method: p.method,
-                currencyCode: p.currencyCode,
-                exchangeRate: p.exchangeRate,
-              })),
-              ...(loyalty ? { loyalty } : {}),
-            },
-          });
+          const wasLoaded = isLoadedOrder(active);
+
+          if (wasLoaded) {
+            const unsyncedLocal = active.items
+              .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+              .map(toItemDto);
+
+            enqueue({
+              type: "UPDATE_AND_PAY",
+              localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              label,
+              payload: {
+                orderId: active.id,
+                newItems: unsyncedLocal.length > 0 ? unsyncedLocal : undefined,
+                payments: payments.map((p) => ({
+                  amount: p.amount,
+                  method: p.method,
+                  currencyCode: p.currencyCode,
+                  exchangeRate: p.exchangeRate,
+                })),
+                ...(loyalty ? { loyalty } : {}),
+              },
+            });
+          } else {
+            enqueue({
+              type: "CREATE_AND_PAY",
+              localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              label,
+              payload: {
+                orderDto: dto,
+                payments: payments.map((p) => ({
+                  amount: p.amount,
+                  method: p.method,
+                  currencyCode: p.currencyCode,
+                  exchangeRate: p.exchangeRate,
+                })),
+                ...(loyalty ? { loyalty } : {}),
+              },
+            });
+          }
 
           toast.info(
             "Order saved offline. It will sync automatically when you reconnect.",
@@ -374,12 +399,23 @@ export function useOrderActions() {
           ? `Table ${active.tableName}`
           : `Order (${new Date().toLocaleTimeString()})`;
 
-        enqueue({
-          type: "CREATE_AND_CONFIRM",
-          localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          label,
-          payload: { orderDto: dto },
-        });
+        const wasLoaded = isLoadedOrder(active);
+
+        if (wasLoaded) {
+          enqueue({
+            type: "UPDATE_ORDER_STATUS",
+            localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            label,
+            payload: { orderId: active.id, status: OrderStatus.PENDING },
+          });
+        } else {
+          enqueue({
+            type: "CREATE_AND_CONFIRM",
+            localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            label,
+            payload: { orderDto: dto },
+          });
+        }
 
         toast.info(
           "Order queued offline. Will sync when you reconnect.",

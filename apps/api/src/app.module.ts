@@ -24,6 +24,7 @@ import { RefundsModule } from './modules/refunds/refunds.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
+import { StaffModule } from './modules/staff/staff.module.js';
 import { SystemAdminModule } from './modules/system-admin/system-admin.module.js';
 import { TablesModule } from './modules/tables/tables.module.js';
 import { TenantModule } from './modules/tenant/tenant.module.js';
@@ -71,6 +72,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     RefundsModule,
     ReportsModule,
     ShiftsModule,
+    StaffModule,
     SystemAdminModule,
   ],
   controllers: [AppController],

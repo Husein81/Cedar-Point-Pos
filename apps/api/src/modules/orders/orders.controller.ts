@@ -15,10 +15,13 @@ import {
   OrderStatus,
   OrderType,
   SortOrder,
+  StaffActivityAction,
+  StaffActivityModule,
   UserRole,
   PaymentMethod,
 } from '@repo/types';
 import type { Request } from 'express';
+import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import { AddItemDto } from './dto/add-item.dto.js';
 import { AssignTableDto } from './dto/assign-table.dto.js';
 import { CreateOrderDto, ProcessPaymentDto } from './dto/create-order.dto.js';
@@ -133,6 +136,10 @@ export class OrdersController {
    */
   @Patch(':id/status')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.ORDER_CANCELLED, StaffActivityModule.ORDERS, {
+    when: (req) =>
+      (req.body as { status?: OrderStatus })?.status === OrderStatus.CANCELLED,
+  })
   updateStatus(
     @Req() req: Request,
     @Param('id') id: string,
@@ -171,6 +178,9 @@ export class OrdersController {
    */
   @Patch(':id/discount')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.DISCOUNT_APPLIED, StaffActivityModule.ORDERS, {
+    when: (req) => Number((req.body as { discount?: number })?.discount) > 0,
+  })
   updateDiscount(
     @Req() req: Request,
     @Param('id') id: string,

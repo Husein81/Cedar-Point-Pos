@@ -76,6 +76,9 @@ export const UserSchema = z.object({
   username: z.string(),
   password: z.string(),
   role: z.enum(UserRole),
+  hasPosAccess: z.boolean().optional(), // POS register access, separate from isActive
+  branchId: uuid.nullable().optional(), // default branch assignment
+  lastLoginAt: isoDate.nullable().optional(),
   refreshToken: z.string().nullable(),
   isActive: z.boolean().default(true),
   createdAt: isoDate,
@@ -85,7 +88,108 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
+// PublicUser never exposes the password or the POS PIN hash.
 export type PublicUser = Omit<User, "password">;
+
+// ===========================================
+//         Staff Schemas
+// ===========================================
+
+// A POS PIN is a 4-6 digit numeric code (hashed server-side, never stored raw).
+const pin = z
+  .string()
+  .regex(/^\d{4,6}$/, "PIN must be 4 to 6 digits");
+
+export const CreateStaffSchema = z.object({
+  name: z.string().min(1),
+  username: z.string().min(3),
+  password: z.string().min(6),
+  role: z.enum(UserRole),
+  branchId: uuid.optional(),
+  email: z.string().email().optional(),
+  phone: z.string().min(1).optional(),
+  avatar: z.string().url().optional(),
+  hasPosAccess: z.boolean().default(true),
+});
+export type CreateStaffInput = z.infer<typeof CreateStaffSchema>;
+
+// All identity fields are optional on update; security flags are toggled via
+// dedicated endpoints, not here.
+export const UpdateStaffSchema = z.object({
+  name: z.string().min(1).optional(),
+  role: z.enum(UserRole).optional(),
+  branchId: uuid.nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().min(1).nullable().optional(),
+  avatar: z.string().url().nullable().optional(),
+});
+export type UpdateStaffInput = z.infer<typeof UpdateStaffSchema>;
+
+export const PinLoginSchema = z.object({
+  staffId: uuid,
+  pin,
+  deviceId: z.string().optional(),
+});
+export type PinLoginInput = z.infer<typeof PinLoginSchema>;
+
+export const SetPinSchema = z.object({
+  pin,
+});
+export type SetPinInput = z.infer<typeof SetPinSchema>;
+
+// Query-string booleans arrive as the literal strings "true"/"false"; a plain
+// z.coerce.boolean() would treat "false" as true, so normalize explicitly.
+const queryBoolean = z.preprocess((value) => {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+}, z.boolean().optional());
+
+// Filters for the paginated staff list.
+export const StaffQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  search: z.string().optional(),
+  role: z.enum(UserRole).optional(),
+  branchId: uuid.optional(),
+  isActive: queryBoolean,
+  hasPosAccess: queryBoolean,
+});
+export type StaffQuery = z.infer<typeof StaffQuerySchema>;
+
+// Filters for the paginated activity-log query.
+export const StaffActivityQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  module: z.string().optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+});
+export type StaffActivityQuery = z.infer<typeof StaffActivityQuerySchema>;
+
+export const StaffActivityLogSchema = z.object({
+  id: uuid,
+  staffId: uuid,
+  tenantId: uuid,
+  branchId: uuid.nullable().optional(),
+  action: z.string(),
+  module: z.string(),
+  metadata: z.unknown().nullable().optional(),
+  createdAt: isoDate,
+});
+export type StaffActivityLog = z.infer<typeof StaffActivityLogSchema>;
+
+export const StaffSessionSchema = z.object({
+  id: uuid,
+  staffId: uuid,
+  tenantId: uuid,
+  branchId: uuid,
+  deviceId: z.string().nullable().optional(),
+  startedAt: isoDate,
+  endedAt: isoDate.nullable().optional(),
+  isActive: z.boolean(),
+});
+export type StaffSession = z.infer<typeof StaffSessionSchema>;
 
 // Branch
 export const BranchSchema = z.object({

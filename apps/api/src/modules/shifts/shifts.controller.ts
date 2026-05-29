@@ -8,9 +8,10 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { UserRole } from '@repo/types';
+import { StaffActivityAction, StaffActivityModule, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import { ShiftsService } from './shifts.service.js';
 import { openShiftDto, type OpenShiftDto } from './dto/open-shift.dto.js';
 import {
@@ -56,6 +57,7 @@ export class ShiftsController {
    */
   @Post('open')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.SHIFT_OPENED, StaffActivityModule.SHIFTS)
   openShift(@Req() req: Request, @Body() body: OpenShiftDto) {
     const dto = this.parse(openShiftDto, body);
     const user = req.user as { tenantId: string; id: string };
@@ -138,6 +140,7 @@ export class ShiftsController {
    */
   @Post(':id/close')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.SHIFT_CLOSED, StaffActivityModule.SHIFTS)
   closeShift(
     @Req() req: Request,
     @Param('id') id: string,
@@ -187,6 +190,7 @@ export class ShiftsController {
    */
   @Post(':id/cash-movements')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.DRAWER_OPENED, StaffActivityModule.SHIFTS)
   createCashMovement(
     @Req() req: Request,
     @Param('id') id: string,

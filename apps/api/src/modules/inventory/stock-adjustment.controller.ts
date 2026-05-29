@@ -8,10 +8,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { StaffActivityAction, StaffActivityModule } from '@repo/types';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto.js';
 import { StockAdjustmentService } from './stock-adjustment.service.js';
 
@@ -27,6 +29,7 @@ export class StockAdjustmentController {
    */
   @Post()
   @Roles('ADMIN', 'MANAGER')
+  @LogActivity(StaffActivityAction.STOCK_ADJUSTED, StaffActivityModule.INVENTORY)
   async adjustStock(
     @Req() req: Request,
     @Body() adjustmentDto: CreateStockAdjustmentDto,

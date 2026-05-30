@@ -9,6 +9,9 @@ import {
 import { PurchaseOrderStatus } from "@repo/types";
 import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+
+type PendingAction = "receive" | "cancel" | null;
 
 export const Route = createFileRoute("/purchase-orders/$purchaseOrderId")({
   component: RouteComponent,
@@ -22,6 +25,7 @@ function RouteComponent() {
   const { data: po, isLoading } = usePurchaseOrder(purchaseOrderId);
   const receiveMutation = useReceivePurchaseOrder();
   const cancelMutation = useCancelPurchaseOrder();
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   if (isLoading) {
     return <DetailsSkeleton />;
@@ -47,22 +51,13 @@ function RouteComponent() {
     po.status === PurchaseOrderStatus.ORDERED;
   const canCancel = canReceive;
 
-  const handleReceive = async () => {
-    if (
-      window.confirm(
-        "Mark this purchase order as received? This will update inventory stock levels."
-      )
-    ) {
+  const handleConfirm = async () => {
+    if (pendingAction === "receive") {
       await receiveMutation.mutateAsync(po.id);
-    }
-  };
-
-  const handleCancel = async () => {
-    if (
-      window.confirm("Are you sure you want to cancel this purchase order?")
-    ) {
+    } else if (pendingAction === "cancel") {
       await cancelMutation.mutateAsync(po.id);
     }
+    setPendingAction(null);
   };
 
   return (
@@ -83,7 +78,7 @@ function RouteComponent() {
         <div className="flex gap-2">
           {canReceive && (
             <Button
-              onClick={handleReceive}
+              onClick={() => setPendingAction("receive")}
               isSubmitting={receiveMutation.isPending}
               disabled={receiveMutation.isPending}
               iconName="PackageCheck"
@@ -94,7 +89,7 @@ function RouteComponent() {
           {canCancel && (
             <Button
               variant="destructive"
-              onClick={handleCancel}
+              onClick={() => setPendingAction("cancel")}
               isSubmitting={cancelMutation.isPending}
               disabled={cancelMutation.isPending}
               iconName="X"
@@ -244,6 +239,41 @@ function RouteComponent() {
           </div>
         </Shad.CardContent>
       </Shad.Card>
+
+      <Shad.AlertDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => !open && setPendingAction(null)}
+      >
+        <Shad.AlertDialogContent>
+          <Shad.AlertDialogHeader>
+            <Shad.AlertDialogTitle>
+              {pendingAction === "receive"
+                ? "Mark as received?"
+                : "Cancel purchase order?"}
+            </Shad.AlertDialogTitle>
+            <Shad.AlertDialogDescription>
+              {pendingAction === "receive"
+                ? "This will add the ordered quantities to inventory stock. This action cannot be undone."
+                : "This will cancel the purchase order. Inventory will not be affected."}
+            </Shad.AlertDialogDescription>
+          </Shad.AlertDialogHeader>
+          <Shad.AlertDialogFooter>
+            <Shad.AlertDialogCancel>Cancel</Shad.AlertDialogCancel>
+            <Shad.AlertDialogAction
+              onClick={handleConfirm}
+              className={
+                pendingAction === "cancel"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : undefined
+              }
+            >
+              {pendingAction === "receive"
+                ? "Mark as Received"
+                : "Cancel Order"}
+            </Shad.AlertDialogAction>
+          </Shad.AlertDialogFooter>
+        </Shad.AlertDialogContent>
+      </Shad.AlertDialog>
     </div>
   );
 }

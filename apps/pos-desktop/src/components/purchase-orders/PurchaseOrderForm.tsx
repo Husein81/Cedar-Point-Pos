@@ -1,4 +1,6 @@
 import type { PurchaseOrderItemForm } from "@/dto/purchaseOrder.dto";
+import { ProductForm } from "@/components/products/ProductForm";
+import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { useBranches } from "@/hooks/useBranch";
 import { useProducts } from "@/hooks/useProduct";
 import { useCreatePurchaseOrder } from "@/hooks/usePurchaseOrder";
@@ -13,6 +15,7 @@ import {
   InputField,
   Label,
   Separator,
+  Shad,
   TextareaField,
 } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
@@ -31,6 +34,11 @@ export const PurchaseOrderForm = () => {
   const createMutation = useCreatePurchaseOrder();
 
   const [supplierSearch, setSupplierSearch] = useState("");
+  const [supplierFormOpen, setSupplierFormOpen] = useState(false);
+  // Tracks which item row triggered the "add product" flow, so we can
+  // auto-fill that row's productId after creation.
+  const [productFormIndex, setProductFormIndex] = useState<number | null>(null);
+
   const { data: supplierResults, isLoading: suppliersLoading } =
     useSearchSuppliers(supplierSearch, true);
 
@@ -105,6 +113,7 @@ export const PurchaseOrderForm = () => {
               {(field) => (
                 <>
                   <Combobox
+                    className="w-full"
                     options={supplierOptions}
                     value={field.state.value}
                     onValueChange={(val) => field.handleChange(val ?? "")}
@@ -114,6 +123,17 @@ export const PurchaseOrderForm = () => {
                     searchQuery={supplierSearch}
                     onSearchChange={setSupplierSearch}
                     shouldFilter={false}
+                    footer={
+                      <Shad.CommandGroup>
+                        <Shad.CommandItem
+                          onSelect={() => setSupplierFormOpen(true)}
+                          className="cursor-pointer text-primary"
+                        >
+                          <Icon name="Plus" className="h-4 w-4" />
+                          <span className="font-medium">Add new supplier</span>
+                        </Shad.CommandItem>
+                      </Shad.CommandGroup>
+                    }
                   />
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-xs text-destructive">
@@ -139,6 +159,7 @@ export const PurchaseOrderForm = () => {
               {(field) => (
                 <>
                   <Combobox
+                    className="w-full"
                     options={branchOptions}
                     value={field.state.value}
                     onValueChange={(val) => field.handleChange(val ?? "")}
@@ -238,6 +259,7 @@ export const PurchaseOrderForm = () => {
                         {(subField) => (
                           <>
                             <Combobox
+                              className="w-full"
                               options={productOptions}
                               value={subField.state.value}
                               onValueChange={(val) =>
@@ -245,6 +267,19 @@ export const PurchaseOrderForm = () => {
                               }
                               placeholder="Select product..."
                               searchPlaceholder="Search products..."
+                              footer={
+                                <Shad.CommandGroup>
+                                  <Shad.CommandItem
+                                    onSelect={() => setProductFormIndex(i)}
+                                    className="cursor-pointer text-primary"
+                                  >
+                                    <Icon name="Plus" className="h-4 w-4" />
+                                    <span className="font-medium">
+                                      Add new product
+                                    </span>
+                                  </Shad.CommandItem>
+                                </Shad.CommandGroup>
+                              }
                             />
                             {subField.state.meta.errors.length > 0 && (
                               <p className="text-xs text-destructive">
@@ -395,6 +430,62 @@ export const PurchaseOrderForm = () => {
           Create Purchase Order
         </Button>
       </div>
+
+      {/* Inline "add new supplier" dialog — keeps the parent PO modal mounted */}
+      <Shad.Dialog
+        open={supplierFormOpen}
+        onOpenChange={setSupplierFormOpen}
+      >
+        <Shad.DialogContent
+          aria-describedby={undefined}
+          className="min-w-2xl w-full"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <Shad.DialogHeader className="px-4">
+            <Shad.DialogTitle>New Supplier</Shad.DialogTitle>
+          </Shad.DialogHeader>
+          <Shad.ScrollArea className="max-h-[calc(100vh-10rem)] p-2">
+            <SupplierForm
+              onCreated={(supplier) => {
+                form.setFieldValue("supplierId", supplier.id);
+                setSupplierSearch("");
+                setSupplierFormOpen(false);
+              }}
+            />
+            <Shad.ScrollBar />
+          </Shad.ScrollArea>
+        </Shad.DialogContent>
+      </Shad.Dialog>
+
+      {/* Inline "add new product" dialog — bound to the item row that triggered it */}
+      <Shad.Dialog
+        open={productFormIndex !== null}
+        onOpenChange={(open) => !open && setProductFormIndex(null)}
+      >
+        <Shad.DialogContent
+          aria-describedby={undefined}
+          className="min-w-2xl w-full"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <Shad.DialogHeader className="px-4">
+            <Shad.DialogTitle>New Product</Shad.DialogTitle>
+          </Shad.DialogHeader>
+          <Shad.ScrollArea className="max-h-[calc(100vh-10rem)] p-2">
+            <ProductForm
+              onCreated={(product) => {
+                if (productFormIndex !== null) {
+                  form.setFieldValue(
+                    `items[${productFormIndex}].productId`,
+                    product.id
+                  );
+                }
+                setProductFormIndex(null);
+              }}
+            />
+            <Shad.ScrollBar />
+          </Shad.ScrollArea>
+        </Shad.DialogContent>
+      </Shad.Dialog>
     </form>
   );
 };

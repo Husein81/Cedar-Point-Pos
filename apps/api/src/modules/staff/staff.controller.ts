@@ -10,6 +10,8 @@ import {
 import {
   CreateStaffSchema,
   SetPinSchema,
+  StaffActivityAction,
+  StaffActivityModule,
   StaffActivityQuerySchema,
   StaffQuerySchema,
   UpdateStaffSchema,
@@ -19,6 +21,7 @@ import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { validateWith } from '../common/zod-validate.js';
+import { LogActivity } from './decorators/log-activity.decorator.js';
 import { StaffService } from './staff.service.js';
 
 @Controller('staff')
@@ -36,6 +39,7 @@ export class StaffController {
 
   @Post()
   @Roles(UserRole.ADMIN)
+  @LogActivity(StaffActivityAction.STAFF_CREATED, StaffActivityModule.STAFF)
   createStaff(@CurrentTenant() tenantId: string, @Body() body: unknown) {
     return this.staffService.createStaff(
       tenantId,
@@ -51,6 +55,7 @@ export class StaffController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(StaffActivityAction.STAFF_UPDATED, StaffActivityModule.STAFF)
   updateStaff(
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
@@ -67,12 +72,21 @@ export class StaffController {
 
   @Patch(':id/toggle-active')
   @Roles(UserRole.ADMIN)
-  toggleActive(@CurrentTenant() tenantId: string, @Param('id') id: string) {
-    return this.staffService.toggleActive(tenantId, id);
+  @LogActivity(
+    StaffActivityAction.STAFF_ACTIVE_TOGGLED,
+    StaffActivityModule.STAFF,
+  )
+  toggleActive(
+    @CurrentTenant() tenantId: string,
+    @CurrentRole() actorRole: UserRole,
+    @Param('id') id: string,
+  ) {
+    return this.staffService.toggleActive(tenantId, actorRole, id);
   }
 
   @Patch(':id/toggle-pos')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(StaffActivityAction.STAFF_POS_TOGGLED, StaffActivityModule.STAFF)
   togglePosAccess(
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
@@ -88,6 +102,7 @@ export class StaffController {
    */
   @Patch(':id/set-pin')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(StaffActivityAction.STAFF_PIN_SET, StaffActivityModule.STAFF)
   setPin(
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
@@ -112,9 +127,16 @@ export class StaffController {
     );
   }
 
-  /** Force-close a POS session by its own id (the resource being acted on). */
-  @Post('sessions/:sessionId/end')
+  /**
+   * Force-close a POS session by its own id (the resource being acted on).
+   * Idempotent state change, so `PATCH` — consistent with the toggle endpoints.
+   */
+  @Patch('sessions/:sessionId/end')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(
+    StaffActivityAction.STAFF_SESSION_ENDED,
+    StaffActivityModule.STAFF,
+  )
   endSession(
     @CurrentTenant() tenantId: string,
     @Param('sessionId') sessionId: string,

@@ -26,7 +26,14 @@ async function bootstrap() {
         'X-Device-Id',
       ],
     });
-    app.useGlobalPipes(new ZodValidationPipe(), new ValidationPipe());
+    // `whitelist` strips properties without a validation decorator, so
+    // class-validator DTOs (CreateUserDto, LoginDto, ...) can't be used to
+    // mass-assign unexpected fields. Zod DTOs are unaffected (the Zod pipe
+    // runs first; ValidationPipe is a no-op for non-class metatypes).
+    app.useGlobalPipes(
+      new ZodValidationPipe(),
+      new ValidationPipe({ whitelist: true }),
+    );
 
     const config = new DocumentBuilder()
       .setTitle('Cedar Point API')

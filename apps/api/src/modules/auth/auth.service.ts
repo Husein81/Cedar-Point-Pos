@@ -83,10 +83,17 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Explicitly pick allowed fields — never spread the DTO into Prisma, so a
+    // client cannot mass-assign columns like `pinHash`, `refreshToken`, or
+    // flip `isActive`. (undefined `role`/`tenantId` are ignored by Prisma.)
     const user = await this.prisma.user.create({
       data: {
-        ...data,
+        username,
+        name: data.name,
+        email: data.email,
         password: hashedPassword,
+        role,
+        tenantId,
         isActive: true,
       },
     });
@@ -330,9 +337,16 @@ export class AuthService {
         where: { id: deviceId, tenantId },
         select: { branchId: true },
       });
-      if (device) {
-        return device.branchId;
+      // An explicit deviceId must resolve to a device in this tenant. Never
+      // silently fall back to the default branch — that would bind the session
+      // to the wrong branch without telling the terminal.
+      if (!device) {
+        throw new BadRequestException({
+          message: 'POS device not found for this tenant',
+          code: 'DEVICE_NOT_FOUND',
+        });
       }
+      return device.branchId;
     }
 
     if (defaultBranchId) {
@@ -352,7 +366,7 @@ export class AuthService {
    * leak even if the Prisma model gains or renames a sensitive column. PIN
    * login issues no refresh token, so it is returned as null.
    */
-  private toPublicUser(user: PrismaUser): PublicUser {
+  toPublicUser(user: PrismaUser): PublicUser {
     return {
       id: user.id,
       name: user.name,
@@ -370,31 +384,39 @@ export class AuthService {
   }
 
   async logout(token: string): Promise<{ message: string }> {
-    // Decode the token to read the fields we need (decode is generic).
-    const decoded = this.jwtService.decode<{
-      exp?: number;
-      id?: string;
-      sessionId?: string;
-    }>(token);
+    // Verify the SIGNATURE before acting on the token's claims. `decode()` alone
+    // is unauthenticated, so a forged payload could otherwise clear another
+    // user's refresh token or close their session. Expiration is ignored on
+    // purpose — logging out a stale but authentic token is legitimate.
+    let payload: { exp?: number; id?: string; sessionId?: string };
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        ignoreExpiration: true,
+      });
+    } catch {
+      // Forged, tampered, or otherwise unverifiable token: nothing to trust.
+      return { message: 'Logged out successfully' };
+    }
 
-    if (decoded?.exp) {
-      const timeTokenExpiresIn = decoded.exp * 1000 - Date.now();
+    if (payload.exp) {
+      const timeTokenExpiresIn = payload.exp * 1000 - Date.now();
       if (timeTokenExpiresIn > 0) {
         this.tokenBlacklistService.blacklist(token, timeTokenExpiresIn);
       }
     }
 
-    if (decoded?.id) {
-      await this.prisma.user.update({
-        where: { id: decoded.id },
+    if (payload.id) {
+      // updateMany so a deleted user never makes logout throw.
+      await this.prisma.user.updateMany({
+        where: { id: payload.id },
         data: { refreshToken: null },
       });
     }
 
     // Close the POS PIN session bound to this token (if any) so it does not
     // linger as "active" after the terminal logs out.
-    if (decoded?.sessionId) {
-      await this.closeStaffSession(decoded.sessionId);
+    if (payload.sessionId) {
+      await this.closeStaffSession(payload.sessionId);
     }
 
     return { message: 'Logged out successfully' };

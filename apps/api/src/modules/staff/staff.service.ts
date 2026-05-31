@@ -213,8 +213,11 @@ export class StaffService {
   }
 
   /** Flip `isActive`. Deactivating also revokes POS access. */
-  async toggleActive(tenantId: string, staffId: string) {
+  async toggleActive(tenantId: string, actorRole: UserRole, staffId: string) {
     const staff = await this.findStaffOrThrow(tenantId, staffId);
+    // Same hierarchy gate as the other mutations, so this stays safe even if
+    // the route guard is later widened beyond ADMIN.
+    assertCanManageRole(actorRole, staff.role);
     const nextActive = !staff.isActive;
 
     // Never let the tenant deactivate its last remaining admin (lockout).

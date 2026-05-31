@@ -15,6 +15,8 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "@repo/ui";
 import { tablesApi } from "../apis/tablesApi";
+import { useOfflineQueueStore } from "@/store/offlineQueueStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 const TABLE_QUERY_KEY = ["tables"] as const;
 
@@ -171,6 +173,8 @@ export const useUpdateTable = () => {
  */
 export const useUpdateTableStatus = () => {
   const queryClient = useQueryClient();
+  const { enqueue } = useOfflineQueueStore();
+  const { isOnline } = useNetworkStatus();
 
   return useMutation<
     TableWithFloor,
@@ -178,7 +182,18 @@ export const useUpdateTableStatus = () => {
     { id: string; status: TableStatus },
     { previousTables?: unknown; queryKey: string[] }
   >({
-    mutationFn: ({ id, status }) => tablesApi.updateTableStatus(id, { status }),
+    mutationFn: async ({ id, status }) => {
+      if (!isOnline) {
+        enqueue({
+          type: "UPDATE_TABLE_STATUS",
+          localId: `offline-table-status-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          label: `Update table status to ${status}`,
+          payload: { tableId: id, status },
+        });
+        return { id, status } as any;
+      }
+      return tablesApi.updateTableStatus(id, { status });
+    },
 
     onMutate: async ({ id, status }) => {
       const branchId = useBranchStore.getState().branchId;

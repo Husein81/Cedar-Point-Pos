@@ -6,6 +6,7 @@ import {
   type QueuedOperation,
 } from "../store/offlineQueueStore";
 import { ordersApi } from "../apis/ordersApi";
+import { tablesApi } from "../apis/tablesApi";
 import { toast } from "@repo/ui";
 import { useModalStore } from "../store/modalStore";
 import { Button } from "@repo/ui";
@@ -124,6 +125,13 @@ async function syncOperation(
     await ordersApi.processPayment(orderId, {
       payments,
       ...(loyalty ? { loyalty } : {}),
+    });
+    return "SUCCESS";
+  }
+
+  if (op.type === "UPDATE_TABLE_STATUS") {
+    await tablesApi.updateTableStatus(op.payload.tableId, {
+      status: op.payload.status,
     });
     return "SUCCESS";
   }

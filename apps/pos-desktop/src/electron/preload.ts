@@ -1,6 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from "electron";
+import { Operation } from "./database/syncQueue";
 
 contextBridge.exposeInMainWorld("electron", {
   sendFrameAction: (action: "MINIMIZE" | "MAXIMIZE" | "CLOSE") => {
@@ -10,11 +11,14 @@ contextBridge.exposeInMainWorld("electron", {
 
 contextBridge.exposeInMainWorld("api", {
   sync: {
-    enqueue: (op: any) => ipcRenderer.invoke("sync:enqueue", op),
+    enqueue: (op: Operation) => ipcRenderer.invoke("sync:enqueue", op),
     dequeue: (localId: string) => ipcRenderer.invoke("sync:dequeue", localId),
-    setStatus: (localId: string, status: string) => ipcRenderer.invoke("sync:setStatus", localId, status),
-    incrementRetry: (localId: string) => ipcRenderer.invoke("sync:incrementRetry", localId),
-    markFailed: (localId: string) => ipcRenderer.invoke("sync:markFailed", localId),
+    setStatus: (localId: string, status: string) =>
+      ipcRenderer.invoke("sync:setStatus", localId, status),
+    incrementRetry: (localId: string) =>
+      ipcRenderer.invoke("sync:incrementRetry", localId),
+    markFailed: (localId: string) =>
+      ipcRenderer.invoke("sync:markFailed", localId),
     clearFailed: () => ipcRenderer.invoke("sync:clearFailed"),
     getAll: () => ipcRenderer.invoke("sync:getAll"),
   },

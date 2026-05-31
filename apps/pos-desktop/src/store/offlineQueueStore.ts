@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { CreateOrderDto } from "@/dto/order.dto";
-import type { OrderStatus, PaymentMethod } from "@repo/types";
+import type { OrderStatus, PaymentMethod, TableStatus } from "@repo/types";
 
 export type QueuedOpStatus = "PENDING" | "SYNCING" | "FAILED";
 
@@ -51,6 +51,15 @@ export type QueuedOperation =
         payments: PaymentDto[];
         loyalty?: { redeemPoints: number };
       };
+      localId: string;
+      timestamp: number;
+      retries: number;
+      status: QueuedOpStatus;
+      label: string;
+    }
+  | {
+      type: "UPDATE_TABLE_STATUS";
+      payload: { tableId: string; status: TableStatus };
       localId: string;
       timestamp: number;
       retries: number;

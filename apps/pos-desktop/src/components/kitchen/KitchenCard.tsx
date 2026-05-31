@@ -2,7 +2,7 @@ import { useUpdateKitchenStatus } from "@/hooks/useKitchen";
 import { Order, OrderStatus } from "@repo/types";
 import { Badge, Button, cn, Icon } from "@repo/ui";
 import { formatDistanceToNowStrict } from "date-fns";
-import { useCallback, useMemo } from "react";
+import { Activity, useCallback, useMemo } from "react";
 import { getActionButtonStatus } from "./config";
 
 type Props = {
@@ -74,6 +74,10 @@ const KitchenCard = ({ order }: Props) => {
       className={cn(
         "flex flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm",
         "transition-all duration-200 hover:shadow-md",
+        {
+          "border-success": order.status === "COMPLETED",
+          "border-error": order.status === "CANCELLED",
+        },
       )}
     >
       {/* TOP HEADER */}
@@ -187,20 +191,20 @@ const KitchenCard = ({ order }: Props) => {
       </div>
 
       {/* FOOTER */}
-      <div className="border-t border-zinc-100 p-3">
-        <Button
-          onClick={onActionButtonClick}
-          disabled={
-            updateStatusMutation.isPending || order.status === "COMPLETED"
-          }
-          isSubmitting={updateStatusMutation.isPending}
-          className={cn(
-            "h-9 w-full rounded-md text-sm font-semibold text-white",
-          )}
-        >
-          {getActionButtonStatus(order.status).buttonLabel}
-        </Button>
-      </div>
+      <Activity mode={order.status === "COMPLETED" ? "hidden" : "visible"}>
+        <div className="border-t border-zinc-100 p-3">
+          <Button
+            onClick={onActionButtonClick}
+            disabled={updateStatusMutation.isPending}
+            isSubmitting={updateStatusMutation.isPending}
+            className={cn(
+              "h-9 w-full rounded-md text-sm font-semibold text-white",
+            )}
+          >
+            {getActionButtonStatus(order.status).buttonLabel}
+          </Button>
+        </div>
+      </Activity>
     </div>
   );
 };

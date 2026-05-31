@@ -1,6 +1,12 @@
 import { getDatabase } from "./index.js";
 
 export type QueuedOpStatus = "PENDING" | "SYNCING" | "FAILED";
+export type OperationType =
+  | "CREATED_AND_PAY"
+  | "CREATED_AND_CONFIRM"
+  | "UPDATE_ORDER_STATUS"
+  | "UPDATE_AND_PAY"
+  | "UPDATE_TABLE_STATUS";
 
 export type SyncOperationRow = {
   id?: string;
@@ -15,7 +21,16 @@ export type SyncOperationRow = {
   createdAt?: number;
 };
 
-export function enqueueOperation(op: any) {
+export type Operation = {
+  localId: string;
+  type: OperationType;
+  payload: object | string;
+  status: QueuedOpStatus;
+  retries: number;
+  timestamp: number;
+};
+
+export function enqueueOperation(op: Operation) {
   const db = getDatabase();
 
   const id = op.localId;
@@ -109,11 +124,6 @@ export function clearFailedOperations() {
   );
   stmt.run();
 }
-type OperationType =
-  | "CREATED_AND_PAY"
-  | "CREATED_AND_CONFIRM"
-  | "UPDATE_ORDER_STATUS"
-  | "UPDATE_AND_PAY";
 
 export function getAllOperations(): SyncOperationRow[] {
   const db = getDatabase();
@@ -128,6 +138,7 @@ export function getAllOperations(): SyncOperationRow[] {
       CREATED_AND_CONFIRM: "Create & Confirm Order",
       UPDATE_ORDER_STATUS: "Update Order Status",
       UPDATE_AND_PAY: "Update & Pay Order",
+      UPDATE_TABLE_STATUS: "Update Table Status",
     } as Record<OperationType, string>;
 
     const label = config[row.operationType ?? "CREATED_AND_CONFIRM"];

@@ -1,35 +1,21 @@
 import { OrderStatus } from "@repo/types";
 import { Button, cn } from "@repo/ui";
+import { ORDER_STATUS_OPTIONS } from "./config";
 
-export interface KitchenFilters {
+export type KitchenFilters = {
   orderStatus: OrderStatus | "ALL";
-}
+};
 
-interface KitchenFiltersProps {
+type Props = {
   filters: KitchenFilters;
   onFiltersChange: (filters: KitchenFilters) => void;
-}
+};
 
-const ORDER_STATUS_OPTIONS: Array<{
-  label: string;
-  value: OrderStatus | "ALL";
-}> = [
-  { label: "All", value: "ALL" },
-  { label: "Sent to Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
-  { label: "Preparing", value: OrderStatus.IN_PROGRESS },
-  { label: "Ready", value: OrderStatus.READY },
-  { label: "Confirmed", value: OrderStatus.CONFIRMED },
-  { label: "Completed", value: OrderStatus.COMPLETED },
-];
-
-export function KitchenFilters({
-  filters,
-  onFiltersChange,
-}: KitchenFiltersProps) {
-  const handleOrderStatusChange = (value: OrderStatus | "ALL") => {
+export function KitchenFilters({ filters, onFiltersChange }: Props) {
+  const handleOrderStatusChange = (value: KitchenFilters) => {
     onFiltersChange({
       ...filters,
-      orderStatus: value,
+      orderStatus: value.orderStatus,
     });
   };
 
@@ -40,7 +26,7 @@ export function KitchenFilters({
           key={option.value}
           variant={filters.orderStatus === option.value ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleOrderStatusChange(option.value)}
+          onClick={() => handleOrderStatusChange({ orderStatus: option.value })}
           className={cn(
             "relative",
             filters.orderStatus === option.value && "shadow-sm",

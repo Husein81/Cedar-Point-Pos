@@ -2,9 +2,8 @@ import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
-import logo from "/assets/logo.png";
-import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import { useOptionalDrawer } from "../layouts/client-layout";
 
 const LeftSide = () => {
@@ -29,14 +28,11 @@ const LeftSide = () => {
 
   return (
     <div className="flex items-center gap-4">
-      {isAuthenticated &&
-      drawer &&
-      user?.role !== "CASHIER" &&
-      user?.role !== "KITCHEN" ? (
+      {isAuthenticated && drawer && user?.role !== "KITCHEN" ? (
         <>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             iconName="Menu"
             onClick={(e) => {
               (e as React.MouseEvent<HTMLButtonElement>).currentTarget.blur();
@@ -56,7 +52,7 @@ const LeftSide = () => {
               await logoutMutation.mutateAsync();
               navigate({ to: "/auth" });
             }}
-            className=" no-drag"
+            className="no-drag"
           />
           <div className="h-10 border" />
         </>
@@ -68,4 +64,5 @@ const LeftSide = () => {
     </div>
   );
 };
+
 export default LeftSide;

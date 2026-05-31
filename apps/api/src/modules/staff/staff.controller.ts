@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateStaffSchema,
+  SetPinSchema,
   StaffActivityQuerySchema,
   StaffQuerySchema,
   UpdateStaffSchema,
@@ -80,6 +81,23 @@ export class StaffController {
     return this.staffService.togglePosAccess(tenantId, actorRole, id);
   }
 
+  /**
+   * Set or reset a staff member's POS PIN. Scoped to the caller's tenant and
+   * gated by the role hierarchy so a manager cannot set a PIN on an admin
+   * account (which would let them PIN-login with admin privileges).
+   */
+  @Patch(':id/set-pin')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  setPin(
+    @CurrentTenant() tenantId: string,
+    @CurrentRole() actorRole: UserRole,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const { pin } = validateWith(SetPinSchema, body);
+    return this.staffService.setPin(tenantId, actorRole, id, pin);
+  }
+
   @Get(':id/activity')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   getActivity(
@@ -94,11 +112,12 @@ export class StaffController {
     );
   }
 
-  @Post(':id/end-session')
+  /** Force-close a POS session by its own id (the resource being acted on). */
+  @Post('sessions/:sessionId/end')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   endSession(
     @CurrentTenant() tenantId: string,
-    @Param('id') sessionId: string,
+    @Param('sessionId') sessionId: string,
   ) {
     return this.staffService.endSession(tenantId, sessionId);
   }

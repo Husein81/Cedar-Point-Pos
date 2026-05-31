@@ -2,14 +2,12 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PublicUser, User, UserRole } from '@repo/types';
 import bcrypt from 'bcrypt';
 import type { PinLoginInput } from '@repo/types';
-import { assertCanManageRole } from '../common/role-authorization.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto, LoginDto } from './dto/user.dto.js';
 import type { AdminLoginDto } from './dto/admin-login.dto.js';
@@ -22,12 +20,21 @@ export interface JwtPayload {
   username: string;
   tenantId?: string;
   role: UserRole;
+  /** Present only for POS PIN logins, so `logout()` can close the StaffSession. */
+  sessionId?: string;
 }
 
 /** POS PIN sessions are short-lived; the terminal re-authenticates per shift. */
 const POS_PIN_TOKEN_TTL = '8h';
-/** Cost factor for hashing PINs at rest (matches password hashing). */
-const PIN_SALT_ROUNDS = 12;
+
+/**
+ * A pre-computed, valid bcrypt hash (cost 12) compared against when a PIN login
+ * targets an unknown / PIN-less staff record. Running the same bcrypt work on
+ * every path keeps the response time uniform so timing cannot be used to
+ * enumerate which staff IDs exist. It never matches a real PIN.
+ */
+const DUMMY_PIN_HASH =
+  '$2b$12$vaFuGQqGzkaKYHTT6a7JVOANjpoLLZdVgFdWbuDmIl44a/Ss2UOy.';
 
 @Injectable()
 export class AuthService {
@@ -231,14 +238,25 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { id: staffId } });
 
-    // Generic failure for unknown / tenant-less staff to avoid enumeration.
-    if (!user || !user.tenantId) {
+    // Always run exactly one bcrypt comparison — against the real hash when
+    // present, otherwise a dummy hash — so the response time never reveals
+    // whether a staff ID exists or has a PIN set (timing-based enumeration).
+    const isPinValid = await bcrypt.compare(
+      pin,
+      user?.pinHash ?? DUMMY_PIN_HASH,
+    );
+
+    // Unknown staff, tenant-less staff, no PIN configured, and a wrong PIN all
+    // collapse into one indistinguishable failure.
+    if (!user || !user.tenantId || !user.pinHash || !isPinValid) {
       throw new UnauthorizedException({
         message: 'Invalid PIN',
         code: 'INVALID_PIN',
       });
     }
 
+    // Account-status reasons are disclosed only once the PIN is proven correct,
+    // so they cannot be probed without valid credentials.
     if (!user.isActive) {
       throw new UnauthorizedException({
         message: 'Account is deactivated',
@@ -253,37 +271,15 @@ export class AuthService {
       });
     }
 
-    if (!user.pinHash) {
-      throw new UnauthorizedException({
-        message: 'PIN not set',
-        code: 'PIN_NOT_SET',
-      });
-    }
-
-    const isPinValid = await bcrypt.compare(pin, user.pinHash);
-    if (!isPinValid) {
-      throw new UnauthorizedException({
-        message: 'Invalid PIN',
-        code: 'INVALID_PIN',
-      });
-    }
-
     const branchId = await this.resolvePosBranchId(
       user.tenantId,
       user.branchId,
       deviceId,
     );
 
-    const payload: JwtPayload = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      tenantId: user.tenantId,
-    };
-    const accessToken = await this.jwtService.signAsync(payload, {
-      expiresIn: POS_PIN_TOKEN_TTL,
-    });
-
+    // Create the session before signing the token so its id can be embedded in
+    // the payload; logout() reads it back to close the session and avoid
+    // orphaned "active" rows.
     const session = await this.prisma.staffSession.create({
       data: {
         staffId: user.id,
@@ -292,6 +288,17 @@ export class AuthService {
         deviceId: deviceId ?? null,
       },
       select: { id: true },
+    });
+
+    const payload: JwtPayload = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      tenantId: user.tenantId,
+      sessionId: session.id,
+    };
+    const accessToken = await this.jwtService.signAsync(payload, {
+      expiresIn: POS_PIN_TOKEN_TTL,
     });
 
     await this.prisma.user.update({
@@ -307,39 +314,11 @@ export class AuthService {
   }
 
   /**
-   * Set or reset a staff member's POS PIN. Scoped to the caller's tenant, and
-   * gated by the role hierarchy so a manager cannot set a PIN on an admin
-   * account (which would let them PIN-login with admin privileges).
-   */
-  async setPin(
-    tenantId: string,
-    actorRole: UserRole,
-    userId: string,
-    pin: string,
-  ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId },
-      select: { id: true, role: true },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Staff member not found');
-    }
-
-    assertCanManageRole(actorRole, user.role);
-
-    const pinHash = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { pinHash },
-    });
-
-    return { message: 'PIN updated successfully' };
-  }
-
-  /**
    * Resolve which branch a POS session belongs to: prefer the device's branch
    * (validated within the tenant), then fall back to the staff default branch.
+   *
+   * Only reachable after the PIN has been validated, so the BRANCH_REQUIRED
+   * outcome cannot be used to enumerate staff IDs — a wrong PIN never gets here.
    */
   private async resolvePosBranchId(
     tenantId: string,
@@ -367,28 +346,36 @@ export class AuthService {
   }
 
   /**
-   * Strip secrets before returning a user to any client. The stored
-   * `refreshToken` is a bcrypt hash and must never be exposed; PIN login does
-   * not issue a refresh token, so it is nulled out.
+   * Project a user onto the public shape returned to clients. Built by
+   * explicitly picking safe fields (never spread-then-overwrite), so secrets
+   * — `password`, `pinHash`, and the bcrypt-hashed `refreshToken` — can never
+   * leak even if the Prisma model gains or renames a sensitive column. PIN
+   * login issues no refresh token, so it is returned as null.
    */
   private toPublicUser(user: PrismaUser): PublicUser {
-    const {
-      password: _password,
-      pinHash: _pinHash,
-      refreshToken: _refreshToken,
-      ...rest
-    } = user;
-    void _password;
-    void _pinHash;
-    void _refreshToken;
-    return { ...rest, refreshToken: null };
+    return {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      avatar: user.avatar,
+      role: user.role,
+      isActive: user.isActive,
+      tenantId: user.tenantId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      refreshToken: null,
+    };
   }
 
   async logout(token: string): Promise<{ message: string }> {
     // Decode the token to read the fields we need (decode is generic).
-    const decoded = this.jwtService.decode<{ exp?: number; id?: string }>(
-      token,
-    );
+    const decoded = this.jwtService.decode<{
+      exp?: number;
+      id?: string;
+      sessionId?: string;
+    }>(token);
 
     if (decoded?.exp) {
       const timeTokenExpiresIn = decoded.exp * 1000 - Date.now();
@@ -404,7 +391,24 @@ export class AuthService {
       });
     }
 
+    // Close the POS PIN session bound to this token (if any) so it does not
+    // linger as "active" after the terminal logs out.
+    if (decoded?.sessionId) {
+      await this.closeStaffSession(decoded.sessionId);
+    }
+
     return { message: 'Logged out successfully' };
+  }
+
+  /**
+   * Idempotently close a POS StaffSession. Uses `updateMany` so a missing or
+   * already-closed session never throws — logout must always succeed.
+   */
+  private async closeStaffSession(sessionId: string): Promise<void> {
+    await this.prisma.staffSession.updateMany({
+      where: { id: sessionId, isActive: true },
+      data: { isActive: false, endedAt: new Date() },
+    });
   }
 
   async generateTokens(user: User) {

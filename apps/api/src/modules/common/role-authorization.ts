@@ -29,9 +29,15 @@ export function assertAssignableRole(role: UserRole): void {
 
 /**
  * Enforce that the acting user may manage an account with `targetRole` (or
- * assign `targetRole` to one). Only ADMIN may touch privileged accounts
- * (ADMIN/MANAGER); MANAGER is limited to non-privileged staff. This blocks a
- * manager from escalating themselves or others to admin.
+ * assign `targetRole` to one):
+ * - ADMIN may manage any assignable role (including other admins/managers).
+ * - MANAGER may manage only non-privileged staff (cashiers, kitchen, ...),
+ *   which blocks a manager from escalating themselves or others to admin.
+ * - Any other (non-privileged) actor may not manage staff at all.
+ *
+ * Self-contained by design: it never assumes an upstream guard already
+ * restricted the caller, so it is safe to call from anywhere (defense in depth).
+ * See `role-authorization.spec.ts` for the full decision table.
  */
 export function assertCanManageRole(
   actorRole: UserRole,
@@ -43,9 +49,16 @@ export function assertCanManageRole(
     return;
   }
 
-  if (isPrivilegedRole(targetRole)) {
-    throw new ForbiddenException(
-      'Managers cannot manage or assign admin or manager accounts',
-    );
+  if (actorRole === UserRole.MANAGER) {
+    if (isPrivilegedRole(targetRole)) {
+      throw new ForbiddenException(
+        'Managers cannot manage or assign admin or manager accounts',
+      );
+    }
+    return;
   }
+
+  throw new ForbiddenException(
+    'You do not have permission to manage staff accounts',
+  );
 }

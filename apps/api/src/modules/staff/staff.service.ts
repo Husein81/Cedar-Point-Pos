@@ -20,6 +20,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const PASSWORD_SALT_ROUNDS = 12;
+/** Cost factor for hashing POS PINs at rest (matches password hashing). */
+const PIN_SALT_ROUNDS = 12;
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -137,6 +139,11 @@ export class StaffService {
       dto.password,
       PASSWORD_SALT_ROUNDS,
     );
+    // Hash the PIN up front when supplied so the account is POS-ready on
+    // creation; otherwise it stays null until set via PATCH /staff/:id/set-pin.
+    const pinHash = dto.pin
+      ? await bcrypt.hash(dto.pin, PIN_SALT_ROUNDS)
+      : null;
 
     try {
       const created = await this.prisma.user.create({
@@ -151,6 +158,7 @@ export class StaffService {
           avatar: dto.avatar ?? null,
           branchId: dto.branchId ?? null,
           hasPosAccess: dto.hasPosAccess,
+          pinHash,
         },
         select: STAFF_SELECT,
       });
@@ -260,6 +268,29 @@ export class StaffService {
     });
 
     return this.toStaffView(updated);
+  }
+
+  /**
+   * Set or reset a staff member's POS PIN, gated by the role hierarchy so a
+   * manager cannot set a PIN on an admin account (which would let them
+   * PIN-login with admin privileges).
+   */
+  async setPin(
+    tenantId: string,
+    actorRole: UserRole,
+    staffId: string,
+    pin: string,
+  ): Promise<{ message: string }> {
+    const staff = await this.findStaffOrThrow(tenantId, staffId);
+    assertCanManageRole(actorRole, staff.role);
+
+    const pinHash = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: staffId },
+      data: { pinHash },
+    });
+
+    return { message: 'PIN updated successfully' };
   }
 
   /** Paginated activity log for a staff member, filterable by module and date. */

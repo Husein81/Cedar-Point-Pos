@@ -101,6 +101,9 @@ export const CreateStaffSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
   role: z.enum(UserRole),
+  // Optional PIN so a staff member is POS-ready on creation. Omit it to create
+  // the account first and set the PIN later via PATCH /staff/:id/set-pin.
+  pin: pin.optional(),
   branchId: uuid.optional(),
   email: z.string().email().optional(),
   phone: z.string().min(1).optional(),

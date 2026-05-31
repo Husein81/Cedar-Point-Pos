@@ -107,7 +107,7 @@ model User {
   cashMovements       CashMovement[]
   shiftSchedules      ShiftSchedule[]
   schedulesPublished  ShiftSchedule[]      @relation("SchedulePublishedBy")
-   activityLogs        StaffActivityLog[]
+  activityLogs        StaffActivityLog[]
   staffSessions       StaffSession[]
   branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)

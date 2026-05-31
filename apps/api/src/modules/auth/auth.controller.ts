@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Param,
   Post,
   Req,
   Res,
@@ -12,8 +11,6 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator.js';
-import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
-import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { validateWith } from '../common/zod-validate.js';
 import { AuthService } from './auth.service.js';
 import { CreateUserDto, LoginDto } from './dto/user.dto.js';
@@ -21,14 +18,7 @@ import type { AdminLoginDto } from './dto/admin-login.dto.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UserRole } from '../../generated/prisma/client.js';
 import { AuthGuard } from '@nestjs/passport';
-import {
-  PinLoginSchema,
-  SetPinSchema,
-  User,
-  type UserRole as UserRoleType,
-  type PinLoginInput,
-  type SetPinInput,
-} from '@repo/types';
+import { PinLoginSchema, User, type PinLoginInput } from '@repo/types';
 import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
@@ -73,23 +63,6 @@ export class AuthController {
   pinLogin(@Body() body: unknown) {
     const dto: PinLoginInput = validateWith(PinLoginSchema, body);
     return this.authService.pinLogin(dto);
-  }
-
-  /**
-   * Set or reset a staff member's POS PIN. Restricted to ADMIN / MANAGER,
-   * scoped to the caller's tenant, and gated by the role hierarchy.
-   */
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @Post(':id/set-pin')
-  @HttpCode(HttpStatus.OK)
-  setPin(
-    @Param('id') id: string,
-    @Body() body: unknown,
-    @CurrentTenant() tenantId: string,
-    @CurrentRole() actorRole: UserRoleType,
-  ) {
-    const dto: SetPinInput = validateWith(SetPinSchema, body);
-    return this.authService.setPin(tenantId, actorRole, id, dto.pin);
   }
 
   @Public()

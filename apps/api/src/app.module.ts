@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller.js';
+import { ActivityLogInterceptor } from './modules/staff/interceptors/activity-log.interceptor.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { BranchesModule } from './modules/branches/branches.module.js';
@@ -88,6 +89,15 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    // Intentionally global: an APP_INTERCEPTOR is applied to every handler no
+    // matter where it is declared, so it lives here (a single binding) rather
+    // than in StaffModule. It is a no-op for handlers without `@LogActivity`,
+    // only doing a cheap Reflector lookup per request. Injects ActivityLogService,
+    // which StaffModule exports.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ActivityLogInterceptor,
     },
   ],
 })

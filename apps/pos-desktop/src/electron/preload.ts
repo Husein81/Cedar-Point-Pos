@@ -18,4 +18,7 @@ contextBridge.exposeInMainWorld("api", {
     clearFailed: () => ipcRenderer.invoke("sync:clearFailed"),
     getAll: () => ipcRenderer.invoke("sync:getAll"),
   },
+  net: {
+    checkStatus: () => ipcRenderer.invoke("net:checkStatus"),
+  },
 });

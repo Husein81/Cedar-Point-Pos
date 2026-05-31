@@ -19,18 +19,45 @@ const NetworkContext = createContext<NetworkContextValue>({
 });
 
 const API_PING_URL = `${import.meta.env.VITE_API_URL}/test`;
-
 const POLL_INTERVAL_MS = 5_000;
 
-async function checkServerReachable(): Promise<boolean> {
+async function pingServer(): Promise<boolean> {
   try {
-    const res = await axios.get(API_PING_URL, {
-      timeout: 4000,
+    const response = await axios.get(API_PING_URL, {
+      timeout: POLL_INTERVAL_MS,
     });
-    return res.status >= 200 && res.status < 500;
+
+    return response.status >= 200 && response.status < 500;
   } catch {
     return false;
   }
+}
+
+async function checkNetwork(): Promise<boolean> {
+  const networkApi = window.api?.net;
+
+  if (!networkApi?.checkStatus) {
+    return true;
+  }
+
+  try {
+    const { hasInterface, lookupSuccess } = await networkApi.checkStatus();
+
+    return hasInterface && lookupSuccess;
+  } catch (error) {
+    console.error("Electron network check failed:", error);
+    return false;
+  }
+}
+
+export async function checkNetworkStatus(): Promise<boolean> {
+  const hasNetwork = await checkNetwork();
+
+  if (!hasNetwork) {
+    return false;
+  }
+
+  return pingServer();
 }
 
 export function NetworkProvider({ children }: { children: React.ReactNode }) {
@@ -59,7 +86,7 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
       if (!navigator.onLine) {
         update(false);
       } else {
-        const reachable = await checkServerReachable();
+        const reachable = await checkNetwork();
         if (mounted) update(reachable);
       }
 

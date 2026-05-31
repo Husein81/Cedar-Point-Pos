@@ -15,6 +15,12 @@ interface Window {
       clearFailed: () => Promise<void>;
       getAll: () => Promise<any[]>;
     };
+    net?: {
+      checkStatus: () => Promis<{
+        hasInterface: boolean;
+        lookupSuccess: boolean;
+      }>;
+    };
   };
 }
 

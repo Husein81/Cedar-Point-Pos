@@ -3,6 +3,7 @@ import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { validateBody } from '../common/utils/validate-body.js';
 import { CreatePurchaseOrderSchema } from './dto/create-purchase-order.dto.js';
 import { UpdatePurchaseOrderSchema } from './dto/update-purchase-order.dto.js';
 import { PurchaseOrdersService } from './purchase-orders.service.js';
@@ -33,18 +34,9 @@ export class PurchaseOrdersController {
    */
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  create(
-    @CurrentTenant() tenantId: string,
-    @Req() req: Request,
-    @Body() body: unknown,
-  ) {
-    const dto = CreatePurchaseOrderSchema.parse(body);
-    const { id: userId } = req.user as { id: string };
-    return this.purchaseOrdersService.createPurchaseOrder(
-      tenantId,
-      userId,
-      dto,
-    );
+  create(@CurrentTenant() tenantId: string, @Body() body: unknown) {
+    const dto = validateBody(CreatePurchaseOrderSchema, body);
+    return this.purchaseOrdersService.createPurchaseOrder(tenantId, dto);
   }
 
   /**
@@ -66,7 +58,7 @@ export class PurchaseOrdersController {
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    const dto = UpdatePurchaseOrderSchema.parse(body);
+    const dto = validateBody(UpdatePurchaseOrderSchema, body);
     return this.purchaseOrdersService.updatePurchaseOrder(tenantId, id, dto);
   }
 

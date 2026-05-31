@@ -171,9 +171,12 @@ export class InventoryTransactionService {
   }
 
   /**
-   * Helper: Execute transaction within an existing Prisma transaction
+   * Execute transaction within an existing Prisma transaction.
+   * Callers that need to atomically commit multiple inventory mutations
+   * alongside other work (e.g. purchase order receive, transfers) should
+   * use this inside their own `prisma.$transaction(async (tx) => ...)`.
    */
-  private async executeTransactionInTx(
+  async executeTransactionInTx(
     tx: Prisma.TransactionClient,
     input: InventoryTransactionInput,
   ): Promise<TransactionResult> {

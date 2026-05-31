@@ -2,11 +2,13 @@ import type { PurchaseOrderItemForm } from "@/dto/purchaseOrder.dto";
 import { ProductForm } from "@/components/products/ProductForm";
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import { useBranches } from "@/hooks/useBranch";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useProducts } from "@/hooks/useProduct";
 import { useCreatePurchaseOrder } from "@/hooks/usePurchaseOrder";
 import { useSearchSuppliers } from "@/hooks/useSupplier";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
+import { formatCurrency } from "@/utils/reportHelpers";
 import {
   Button,
   Combobox,
@@ -21,12 +23,18 @@ import {
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 
-const EMPTY_ITEM: PurchaseOrderItemForm = {
+// `_uid` is a client-side stable identifier used as the React key when
+// rendering item rows. Without it, using the array index causes input state
+// to bleed between rows when an item in the middle is removed.
+type FormItem = PurchaseOrderItemForm & { _uid: string };
+
+const buildEmptyItem = (): FormItem => ({
+  _uid: crypto.randomUUID(),
   productId: "",
   quantity: 1,
   unitCost: 0,
   notes: undefined,
-};
+});
 
 export const PurchaseOrderForm = () => {
   const closeModal = useModalStore((state) => state.closeModal);
@@ -44,6 +52,8 @@ export const PurchaseOrderForm = () => {
 
   const { data: branches } = useBranches();
   const { data: products } = useProducts();
+  const { data: currencyData } = useTenantCurrencies();
+  const baseCurrencyCode = currencyData?.baseCurrencyCode || "USD";
 
   const supplierOptions =
     supplierResults?.map((s) => ({
@@ -68,7 +78,7 @@ export const PurchaseOrderForm = () => {
       branchId: currentBranchId ?? "",
       orderNumber: "",
       notes: "",
-      items: [{ ...EMPTY_ITEM }] as PurchaseOrderItemForm[],
+      items: [buildEmptyItem()] as FormItem[],
     },
     onSubmit: async ({ value }) => {
       await createMutation.mutateAsync({
@@ -76,6 +86,7 @@ export const PurchaseOrderForm = () => {
         branchId: value.branchId,
         orderNumber: value.orderNumber || undefined,
         notes: value.notes || undefined,
+        // Strip the client-side `_uid` — the API DTO doesn't accept it.
         items: value.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -215,16 +226,16 @@ export const PurchaseOrderForm = () => {
                 variant="outline"
                 size="sm"
                 iconName="Plus"
-                onClick={() => field.pushValue({ ...EMPTY_ITEM })}
+                onClick={() => field.pushValue(buildEmptyItem())}
               >
                 Add Item
               </Button>
             </div>
 
             <div className="space-y-3">
-              {field.state.value.map((_, i) => (
+              {field.state.value.map((item, i) => (
                 <div
-                  key={i}
+                  key={item._uid}
                   className="group rounded-lg border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -376,7 +387,7 @@ export const PurchaseOrderForm = () => {
                                 Line Total
                               </Label>
                               <div className="flex h-9 items-center justify-end rounded-md border border-dashed border-input bg-background px-3 text-sm font-semibold tabular-nums">
-                                ${total.toFixed(2)}
+                                {formatCurrency(total, baseCurrencyCode)}
                               </div>
                             </div>
                           );
@@ -410,7 +421,7 @@ export const PurchaseOrderForm = () => {
                 <span className="text-sm font-medium">Order Total</span>
               </div>
               <span className="text-2xl font-bold tabular-nums">
-                ${grandTotal.toFixed(2)}
+                {formatCurrency(grandTotal, baseCurrencyCode)}
               </span>
             </div>
           );

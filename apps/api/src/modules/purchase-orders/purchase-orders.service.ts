@@ -14,6 +14,22 @@ import type {
 import type { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
 import type { QueryParams } from '@repo/types';
 
+const PURCHASE_ORDER_INCLUDE = {
+  items: {
+    include: {
+      product: {
+        select: { id: true, name: true, sku: true, barcode: true },
+      },
+    },
+  },
+  supplier: {
+    select: { id: true, name: true, companyName: true },
+  },
+  branch: {
+    select: { id: true, name: true },
+  },
+} satisfies Prisma.PurchaseOrderInclude;
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
@@ -26,10 +42,18 @@ export class PurchaseOrdersService {
    */
   async createPurchaseOrder(
     tenantId: string,
-    userId: string,
     createDto: CreatePurchaseOrderDto,
   ) {
     const { supplierId, branchId, items, notes, orderNumber } = createDto;
+
+    // Reject duplicate productIds — the schema's @@unique([purchaseOrderId, productId])
+    // would otherwise surface a raw Prisma P2002 error to the client.
+    const productIds = items.map((item) => item.productId);
+    if (new Set(productIds).size !== productIds.length) {
+      throw new BadRequestException(
+        'Duplicate products in items — merge them into a single line',
+      );
+    }
 
     // Verify supplier exists and belongs to tenant
     const supplier = await this.prisma.supplier.findFirst({
@@ -40,9 +64,9 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Supplier not found');
     }
 
-    // Verify branch exists and belongs to tenant
+    // Verify branch exists, belongs to tenant, and is not soft-deleted
     const branch = await this.prisma.branch.findFirst({
-      where: { id: branchId, tenantId },
+      where: { id: branchId, tenantId, isDeleted: false },
     });
 
     if (!branch) {
@@ -50,13 +74,13 @@ export class PurchaseOrdersService {
     }
 
     // Verify all products exist and belong to tenant
-    const productIds = items.map((item) => item.productId);
     const products = await this.prisma.product.findMany({
       where: {
         id: { in: productIds },
         tenantId,
         deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (products.length !== productIds.length) {
@@ -70,60 +94,29 @@ export class PurchaseOrdersService {
       new Prisma.Decimal(0),
     );
 
-    // Create purchase order with items in transaction
-    const purchaseOrder = await this.prisma.$transaction(async (tx) => {
-      const po = await tx.purchaseOrder.create({
-        data: {
-          tenantId,
-          branchId,
-          supplierId,
-          orderNumber,
-          totalAmount,
-          status: PurchaseOrderStatus.PENDING,
-          notes,
-          items: {
-            create: items.map((item: PurchaseOrderItemDto) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitCost: item.unitCost,
-              totalCost: new Prisma.Decimal(item.quantity).times(item.unitCost),
-              notes: item.notes,
-            })),
-          },
+    // Prisma's nested `items.create` is atomic on its own — no outer
+    // $transaction needed.
+    return this.prisma.purchaseOrder.create({
+      data: {
+        tenantId,
+        branchId,
+        supplierId,
+        orderNumber,
+        totalAmount,
+        status: PurchaseOrderStatus.PENDING,
+        notes,
+        items: {
+          create: items.map((item: PurchaseOrderItemDto) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+            totalCost: new Prisma.Decimal(item.quantity).times(item.unitCost),
+            notes: item.notes,
+          })),
         },
-        include: {
-          items: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  sku: true,
-                  barcode: true,
-                },
-              },
-            },
-          },
-          supplier: {
-            select: {
-              id: true,
-              name: true,
-              companyName: true,
-            },
-          },
-          branch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      return po;
+      },
+      include: PURCHASE_ORDER_INCLUDE,
     });
-
-    return purchaseOrder;
   }
 
   /**
@@ -152,11 +145,19 @@ export class PurchaseOrdersService {
     const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
+    // Only accept status values that match the enum — otherwise an arbitrary
+    // string would silently return zero rows.
+    const validStatuses = Object.values(PurchaseOrderStatus) as string[];
+    const statusFilter =
+      status && validStatuses.includes(status)
+        ? (status as PurchaseOrderStatus)
+        : undefined;
+
     const where: Prisma.PurchaseOrderWhereInput = {
       tenantId,
       ...(supplierId && { supplierId }),
       ...(branchId && { branchId }),
-      ...(status && { status: status as PurchaseOrderStatus }),
+      ...(statusFilter && { status: statusFilter }),
     };
 
     const searchTerm = search?.trim();
@@ -282,6 +283,14 @@ export class PurchaseOrdersService {
     id: string,
     updateDto: UpdatePurchaseOrderDto,
   ) {
+    // RECEIVED has inventory side effects — it must go through
+    // receivePurchaseOrder, not the generic update.
+    if (updateDto.status === PurchaseOrderStatus.RECEIVED) {
+      throw new BadRequestException(
+        'Use POST /purchase-orders/:id/receive to mark as received',
+      );
+    }
+
     // Verify purchase order exists and belongs to tenant
     const existingPO = await this.prisma.purchaseOrder.findFirst({
       where: { id, tenantId },
@@ -302,47 +311,25 @@ export class PurchaseOrdersService {
       );
     }
 
-    const updated = await this.prisma.purchaseOrder.update({
+    return this.prisma.purchaseOrder.update({
       where: { id },
       data: {
         ...(updateDto.notes !== undefined && { notes: updateDto.notes }),
         ...(updateDto.status && { status: updateDto.status }),
-        ...(updateDto.orderNumber && { orderNumber: updateDto.orderNumber }),
+        ...(updateDto.orderNumber !== undefined && {
+          orderNumber: updateDto.orderNumber || null,
+        }),
       },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                barcode: true,
-              },
-            },
-          },
-        },
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-            companyName: true,
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      include: PURCHASE_ORDER_INCLUDE,
     });
-
-    return updated;
   }
 
   /**
-   * Mark purchase order as received and update inventory
+   * Mark purchase order as received and update inventory.
+   *
+   * All item inventory mutations and the PO status update run in a single
+   * Prisma transaction so a mid-loop failure can't leave the inventory
+   * partially incremented with the PO still PENDING.
    */
   async receivePurchaseOrder(tenantId: string, userId: string, id: string) {
     const purchaseOrder = await this.prisma.purchaseOrder.findFirst({
@@ -368,57 +355,35 @@ export class PurchaseOrdersService {
     const orderRef = purchaseOrder.orderNumber || id;
     const reason = `PO ${orderRef} from ${purchaseOrder.supplier.name}`;
 
-    // Update inventory for each item
-    for (const item of purchaseOrder.items) {
-      await this.inventoryTransactionService.executeTransaction({
-        tenantId,
-        branchId: purchaseOrder.branchId,
-        productId: item.productId,
-        userId,
-        changeType: 'PURCHASE_IN',
-        quantity: Number(item.quantity),
-        reason,
-        allowNegativeStock: false,
-      });
-    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        for (const item of purchaseOrder.items) {
+          await this.inventoryTransactionService.executeTransactionInTx(tx, {
+            tenantId,
+            branchId: purchaseOrder.branchId,
+            productId: item.productId,
+            userId,
+            changeType: 'PURCHASE_IN',
+            quantity: Number(item.quantity),
+            reason,
+            allowNegativeStock: false,
+          });
+        }
 
-    // Update purchase order status
-    const updated = await this.prisma.purchaseOrder.update({
-      where: { id },
-      data: {
-        status: PurchaseOrderStatus.RECEIVED,
-        receivedAt: new Date(),
+        return tx.purchaseOrder.update({
+          where: { id },
+          data: {
+            status: PurchaseOrderStatus.RECEIVED,
+            receivedAt: new Date(),
+          },
+          include: PURCHASE_ORDER_INCLUDE,
+        });
       },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                barcode: true,
-              },
-            },
-          },
-        },
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-            companyName: true,
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        timeout: 30_000,
       },
-    });
-
-    return updated;
+    );
   }
 
   /**
@@ -441,40 +406,10 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Purchase order already cancelled');
     }
 
-    const updated = await this.prisma.purchaseOrder.update({
+    return this.prisma.purchaseOrder.update({
       where: { id },
-      data: {
-        status: PurchaseOrderStatus.CANCELLED,
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                barcode: true,
-              },
-            },
-          },
-        },
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-            companyName: true,
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      data: { status: PurchaseOrderStatus.CANCELLED },
+      include: PURCHASE_ORDER_INCLUDE,
     });
-
-    return updated;
   }
 }

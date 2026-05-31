@@ -1,10 +1,13 @@
 import { PurchaseOrderActions } from "@/components/purchase-orders/PurchaseOrderActions";
 import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
 import type { PurchaseOrderSummary } from "@/dto/purchaseOrder.dto";
+import { formatCurrency } from "@/utils/reportHelpers";
 import { Badge } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
-export const getPurchaseOrdersColumns = (): ColumnDef<PurchaseOrderSummary>[] => [
+export const getPurchaseOrdersColumns = (
+  baseCurrencyCode: string,
+): ColumnDef<PurchaseOrderSummary>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
@@ -68,7 +71,7 @@ export const getPurchaseOrdersColumns = (): ColumnDef<PurchaseOrderSummary>[] =>
     header: "Total",
     cell: ({ row }) => (
       <div className="font-medium">
-        ${Number(row.original.totalAmount).toFixed(2)}
+        {formatCurrency(Number(row.original.totalAmount), baseCurrencyCode)}
       </div>
     ),
   },

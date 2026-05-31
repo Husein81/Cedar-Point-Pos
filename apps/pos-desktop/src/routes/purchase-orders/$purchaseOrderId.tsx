@@ -2,16 +2,14 @@ import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import TitleBar from "@/components/title-bar";
 import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
 import {
-  useCancelPurchaseOrder,
-  usePurchaseOrder,
-  useReceivePurchaseOrder,
-} from "@/hooks/usePurchaseOrder";
-import { PurchaseOrderStatus } from "@repo/types";
+  PurchaseOrderConfirmDialog,
+  usePurchaseOrderActions,
+} from "@/components/purchase-orders/PurchaseOrderConfirmDialog";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
+import { usePurchaseOrder } from "@/hooks/usePurchaseOrder";
+import { formatCurrency } from "@/utils/reportHelpers";
 import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-
-type PendingAction = "receive" | "cancel" | null;
 
 export const Route = createFileRoute("/purchase-orders/$purchaseOrderId")({
   component: RouteComponent,
@@ -23,9 +21,16 @@ export const Route = createFileRoute("/purchase-orders/$purchaseOrderId")({
 function RouteComponent() {
   const { purchaseOrderId } = Route.useParams();
   const { data: po, isLoading } = usePurchaseOrder(purchaseOrderId);
-  const receiveMutation = useReceivePurchaseOrder();
-  const cancelMutation = useCancelPurchaseOrder();
-  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const {
+    pendingAction,
+    setPendingAction,
+    canReceive,
+    canCancel,
+    isPending,
+    confirm,
+  } = usePurchaseOrderActions(po?.status ?? "");
+  const { data: currencyData } = useTenantCurrencies();
+  const baseCurrencyCode = currencyData?.baseCurrencyCode || "USD";
 
   if (isLoading) {
     return <DetailsSkeleton />;
@@ -46,19 +51,6 @@ function RouteComponent() {
   }
 
   const statusConfig = getPurchaseOrderStatusConfig(po.status);
-  const canReceive =
-    po.status === PurchaseOrderStatus.PENDING ||
-    po.status === PurchaseOrderStatus.ORDERED;
-  const canCancel = canReceive;
-
-  const handleConfirm = async () => {
-    if (pendingAction === "receive") {
-      await receiveMutation.mutateAsync(po.id);
-    } else if (pendingAction === "cancel") {
-      await cancelMutation.mutateAsync(po.id);
-    }
-    setPendingAction(null);
-  };
 
   return (
     <div className="space-y-6">
@@ -79,8 +71,7 @@ function RouteComponent() {
           {canReceive && (
             <Button
               onClick={() => setPendingAction("receive")}
-              isSubmitting={receiveMutation.isPending}
-              disabled={receiveMutation.isPending}
+              disabled={isPending}
               iconName="PackageCheck"
             >
               Mark as Received
@@ -90,8 +81,7 @@ function RouteComponent() {
             <Button
               variant="destructive"
               onClick={() => setPendingAction("cancel")}
-              isSubmitting={cancelMutation.isPending}
-              disabled={cancelMutation.isPending}
+              disabled={isPending}
               iconName="X"
             >
               Cancel Order
@@ -168,7 +158,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-2xl font-bold">
-              ${Number(po.totalAmount).toFixed(2)}
+              {formatCurrency(Number(po.totalAmount), baseCurrencyCode)}
             </div>
             <p className="text-xs text-muted-foreground">
               {po.items.length} item{po.items.length !== 1 ? "s" : ""}
@@ -217,10 +207,10 @@ function RouteComponent() {
                       {Number(item.quantity).toLocaleString()}
                     </td>
                     <td className="py-3 text-right">
-                      ${Number(item.unitCost).toFixed(2)}
+                      {formatCurrency(Number(item.unitCost), baseCurrencyCode)}
                     </td>
                     <td className="py-3 text-right font-medium">
-                      ${Number(item.totalCost).toFixed(2)}
+                      {formatCurrency(Number(item.totalCost), baseCurrencyCode)}
                     </td>
                   </tr>
                 ))}
@@ -231,7 +221,7 @@ function RouteComponent() {
                     Grand Total
                   </td>
                   <td className="py-3 text-right font-bold text-lg">
-                    ${Number(po.totalAmount).toFixed(2)}
+                    {formatCurrency(Number(po.totalAmount), baseCurrencyCode)}
                   </td>
                 </tr>
               </tfoot>
@@ -240,40 +230,13 @@ function RouteComponent() {
         </Shad.CardContent>
       </Shad.Card>
 
-      <Shad.AlertDialog
-        open={pendingAction !== null}
-        onOpenChange={(open) => !open && setPendingAction(null)}
-      >
-        <Shad.AlertDialogContent>
-          <Shad.AlertDialogHeader>
-            <Shad.AlertDialogTitle>
-              {pendingAction === "receive"
-                ? "Mark as received?"
-                : "Cancel purchase order?"}
-            </Shad.AlertDialogTitle>
-            <Shad.AlertDialogDescription>
-              {pendingAction === "receive"
-                ? "This will add the ordered quantities to inventory stock. This action cannot be undone."
-                : "This will cancel the purchase order. Inventory will not be affected."}
-            </Shad.AlertDialogDescription>
-          </Shad.AlertDialogHeader>
-          <Shad.AlertDialogFooter>
-            <Shad.AlertDialogCancel>Cancel</Shad.AlertDialogCancel>
-            <Shad.AlertDialogAction
-              onClick={handleConfirm}
-              className={
-                pendingAction === "cancel"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  : undefined
-              }
-            >
-              {pendingAction === "receive"
-                ? "Mark as Received"
-                : "Cancel Order"}
-            </Shad.AlertDialogAction>
-          </Shad.AlertDialogFooter>
-        </Shad.AlertDialogContent>
-      </Shad.AlertDialog>
+      <PurchaseOrderConfirmDialog
+        poId={po.id}
+        pendingAction={pendingAction}
+        isPending={isPending}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirm}
+      />
     </div>
   );
 }

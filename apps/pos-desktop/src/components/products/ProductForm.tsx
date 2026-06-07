@@ -19,12 +19,14 @@ import { useAdjustStock } from "@/hooks/useStock";
 import { useState, useRef, useMemo } from "react";
 import { useBranchesByTenant } from "@/hooks/useBranch";
 import { uploadProductImage } from "@/lib/uploadImage";
+import type { Product } from "@repo/types";
 
 type Props = {
   product?: ProductWithRelations;
+  onCreated?: (product: Product) => void;
 };
 
-export const ProductForm = ({ product }: Props) => {
+export const ProductForm = ({ product, onCreated }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const { branchId } = useBranchStore();
   const { user } = useAuthStore();
@@ -121,6 +123,7 @@ export const ProductForm = ({ product }: Props) => {
         };
 
         let productId: string;
+        let createdProduct: Product | null = null;
 
         if (product) {
           // Update existing product
@@ -128,8 +131,8 @@ export const ProductForm = ({ product }: Props) => {
           productId = product.id;
         } else {
           // Create new product
-          const newProduct = await createMutation.mutateAsync(data);
-          productId = newProduct.id;
+          createdProduct = await createMutation.mutateAsync(data);
+          productId = createdProduct.id;
         }
 
         // Handle stock adjustment separately using inventory transaction service
@@ -161,6 +164,12 @@ export const ProductForm = ({ product }: Props) => {
           } finally {
             setIsAdjustingStock(false);
           }
+        }
+
+        if (createdProduct && onCreated) {
+          // Caller (e.g. an inline dialog) controls dismissal.
+          onCreated(createdProduct);
+          return;
         }
 
         closeModal();

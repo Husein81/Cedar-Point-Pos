@@ -904,6 +904,7 @@ enum InventoryChangeType {
   MANUAL_ADJUST
   TRANSFER_OUT
   TRANSFER_IN
+  PURCHASE_IN
 }
 
 enum OrderType {

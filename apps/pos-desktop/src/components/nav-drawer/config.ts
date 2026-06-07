@@ -114,6 +114,14 @@ export const sidebarSections: SidebarSection[] = [
     label: "Finance",
     items: [
       {
+        label: "Purchase Orders",
+        icon: "ClipboardList",
+        href: "/purchase-orders",
+        tooltip: "Purchase Orders",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
+      },
+      {
         label: "Invoices",
         icon: "FileText",
         href: "/invoices",

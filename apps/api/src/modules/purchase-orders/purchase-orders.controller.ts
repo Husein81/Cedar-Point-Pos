@@ -3,9 +3,8 @@ import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import { validateBody } from '../common/utils/validate-body.js';
-import { CreatePurchaseOrderSchema } from './dto/create-purchase-order.dto.js';
-import { UpdatePurchaseOrderSchema } from './dto/update-purchase-order.dto.js';
+import type { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
+import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
 import { PurchaseOrdersService } from './purchase-orders.service.js';
 
 @Controller('purchase-orders')
@@ -34,8 +33,11 @@ export class PurchaseOrdersController {
    */
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  create(@CurrentTenant() tenantId: string, @Body() body: unknown) {
-    const dto = validateBody(CreatePurchaseOrderSchema, body);
+  create(
+    @CurrentTenant() tenantId: string,
+    @Body()
+    dto: CreatePurchaseOrderDto,
+  ) {
     return this.purchaseOrdersService.createPurchaseOrder(tenantId, dto);
   }
 
@@ -56,9 +58,9 @@ export class PurchaseOrdersController {
   update(
     @CurrentTenant() tenantId: string,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body()
+    dto: UpdatePurchaseOrderDto,
   ) {
-    const dto = validateBody(UpdatePurchaseOrderSchema, body);
     return this.purchaseOrdersService.updatePurchaseOrder(tenantId, id, dto);
   }
 

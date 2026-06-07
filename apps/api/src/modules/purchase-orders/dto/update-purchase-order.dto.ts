@@ -1,9 +1,16 @@
 import { PurchaseOrderStatus } from '@repo/types';
-import { z } from 'zod';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-export const UpdatePurchaseOrderSchema = z.object({
-  notes: z.string().optional(),
-  status: z.enum(PurchaseOrderStatus).optional(),
-  orderNumber: z.string().optional(),
-});
-export type UpdatePurchaseOrderDto = z.infer<typeof UpdatePurchaseOrderSchema>;
+export class UpdatePurchaseOrderDto {
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @IsEnum(PurchaseOrderStatus)
+  @IsOptional()
+  status?: PurchaseOrderStatus;
+
+  @IsString()
+  @IsOptional()
+  orderNumber?: string;
+}

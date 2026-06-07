@@ -84,7 +84,6 @@ const ProductCard = ({ product }: Props) => {
         isOutOfStock && "opacity-50 grayscale cursor-not-allowed",
       )}
     >
-      {/* IMAGE (Odoo-style dominant visual) */}
       <div className="relative aspect-square w-full bg-gray-50">
         {product.imageUrl ? (
           <img
@@ -98,18 +97,15 @@ const ProductCard = ({ product }: Props) => {
           </div>
         )}
 
-        {/* PRICE (Odoo style floating tag) */}
         <div className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
           ${formatPrice(Number(product.price))}
         </div>
 
-        <Activity mode={product.isModifiable ? "visible" : "visible"}>
+        <Activity mode={product.isModifiable ? "visible" : "hidden"}>
           <div className="absolute right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
             <Icon name="Settings2" className="size-4" />
           </div>
         </Activity>
-
-        {/* QTY (small, bottom-right like Odoo cart indicator) */}
 
         {/* OUT OF STOCK */}
         <Activity mode={isOutOfStock ? "visible" : "hidden"}>
@@ -121,13 +117,11 @@ const ProductCard = ({ product }: Props) => {
         </Activity>
       </div>
 
-      {/* FOOTER (very minimal like Odoo) */}
       <div className="flex items-center justify-between gap-2 px-2 py-1">
         <p className="truncate text-xs font-medium text-gray-700">
           {product.name}
         </p>
 
-        {/* add button (subtle Odoo style) */}
         <div
           className={cn("flex h-7 w-7 items-center justify-center rounded-md")}
         >
@@ -139,7 +133,6 @@ const ProductCard = ({ product }: Props) => {
         </div>
       </div>
 
-      {/* CATEGORY STRIP (very subtle like Odoo variants) */}
       {product.category?.color && (
         <div
           className="h-1 w-full"

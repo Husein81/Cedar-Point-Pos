@@ -1,6 +1,7 @@
 import { Shad } from "@repo/ui";
-import NavDrawer from "../nav-drawer";
 import { createContext, useContext, useState } from "react";
+import NavDrawer from "../nav-drawer";
+import OfflineBanner from "../OfflineBanner";
 
 type Props = {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ const ClientLayout = ({ children }: Props) => {
       <NavDrawer open={open} onOpenChange={setOpen} />
       <div className="flex-1 h-full overflow-hidden">
         <Shad.ScrollArea className="h-full">
+          <OfflineBanner />
           <div className="px-6 py-8 mx-auto">{children}</div>
           <Shad.ScrollBar />
         </Shad.ScrollArea>

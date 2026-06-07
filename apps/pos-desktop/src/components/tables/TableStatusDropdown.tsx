@@ -2,6 +2,7 @@ import { useUpdateTableStatus } from "@/hooks/useTable";
 import { TableStatus } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
 import { STATUS_OPTIONS } from "./config";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 export default function TableStatusDropdown({
   tableId,
@@ -11,6 +12,7 @@ export default function TableStatusDropdown({
   status: TableStatus;
 }) {
   const updateStatusMutation = useUpdateTableStatus();
+  const { isOnline } = useNetworkStatus();
 
   const handleStatusChange = (newStatus: TableStatus) => {
     if (newStatus === status) return;
@@ -63,7 +65,7 @@ export default function TableStatusDropdown({
               e.stopPropagation();
               handleStatusChange(option.value);
             }}
-            disabled={option.value === status || updateStatusMutation.isPending}
+            disabled={!isOnline || option.value === status || updateStatusMutation.isPending}
           >
             <div
               className={cn(

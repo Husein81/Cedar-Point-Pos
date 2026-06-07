@@ -1,5 +1,5 @@
-import { useAuthStore } from "@/store/authStore";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
+import { useAuthStore } from "@/store/authStore";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Header } from "../header";

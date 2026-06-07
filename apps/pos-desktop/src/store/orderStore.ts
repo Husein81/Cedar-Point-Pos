@@ -33,16 +33,25 @@ type LastCompletedOrder = {
   };
 };
 
-type OrderStoreState = {
+type SplitItem = {
+  itemId: string;
+  quantity: number;
+};
+
+type State = {
   tabs: OrderTab[];
   activeTabId: string | null;
   maxTabs: number;
+  lastCompletedOrder?: LastCompletedOrder;
+};
 
+type Actions = {
   // Tab actions
   createTab: () => string | null;
   createTabWithTable: (tableId: string, tableName: string) => string | null;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
+  splitToNewTab: (splits: SplitItem[]) => string | null;
 
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
@@ -105,24 +114,22 @@ type OrderStoreState = {
 
   loadExistingOrder: (backendOrder: BackendOrder) => void;
 
-  lastCompletedOrder?: LastCompletedOrder;
   setLastCompletedOrder: (data?: LastCompletedOrder) => void;
   reset: () => void;
 };
 
+type OrderStore = State & Actions;
+
 const INITIAL_TAB = createNewTab(1);
 
-const getMaxTabs = () =>
-  useAuthStore.getState().user?.tenant?.businessType === "RETAIL" ? 5 : 15;
-
-export const useOrderStore = create<OrderStoreState>()(
+export const useOrderStore = create<OrderStore>()(
   persist(
     (set, get) => ({
-      // Initial state
       tabs: [INITIAL_TAB],
       activeTabId: INITIAL_TAB.id,
-      maxTabs: getMaxTabs(),
+      maxTabs: 15,
       lastCompletedOrder: undefined,
+
       setLastCompletedOrder: (data) => set({ lastCompletedOrder: data }),
 
       createTab: () => {
@@ -284,6 +291,83 @@ export const useOrderStore = create<OrderStoreState>()(
           tabs: renumberedTabs,
           activeTabId: newActiveTabId,
         });
+      },
+
+      splitToNewTab: (splits: { itemId: string; quantity: number }[]) => {
+        const state = get();
+        if (!state.activeTabId) return null;
+        if (state.tabs.length >= state.maxTabs) return null;
+
+        const currentTab = state.tabs.find((t) => t.id === state.activeTabId);
+        if (!currentTab) return null;
+
+        const splitItems: OrderItem[] = [];
+        const remainingItems: OrderItem[] = [];
+
+        currentTab.order.items.forEach((item) => {
+          const split = splits.find((s) => s.itemId === item.id);
+          if (split && split.quantity > 0) {
+            const qtyToSplit = Math.min(item.quantity, split.quantity);
+            if (qtyToSplit > 0) {
+              // Add to split items
+              splitItems.push({
+                ...item,
+                quantity: qtyToSplit,
+                id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              });
+            }
+
+            const qtyRemaining = item.quantity - qtyToSplit;
+            if (qtyRemaining > 0) {
+              remainingItems.push({ ...item, quantity: qtyRemaining });
+            }
+          } else {
+            remainingItems.push(item);
+          }
+        });
+
+        if (splitItems.length === 0) return null;
+
+        const newTabNumber = state.tabs.length + 1;
+        const newTab: OrderTab = {
+          id: generateTabId(),
+          label: `Split from ${currentTab.label}`,
+          order: {
+            ...createEmptyOrder({
+              type: currentTab.order.type || OrderType.DINE_IN,
+            }),
+            tableId: currentTab.order.tableId,
+            tableName: currentTab.order.tableName,
+            customerId: currentTab.order.customerId,
+            customerName: currentTab.order.customerName,
+            customerAddress: currentTab.order.customerAddress,
+            items: splitItems,
+          },
+        };
+
+        const updatedTabs = renumberTabs(
+          state.tabs
+            .map((t) =>
+              t.id === state.activeTabId
+                ? {
+                    ...t,
+                    order: {
+                      ...t.order,
+                      items: remainingItems,
+                      modifiedAt: new Date(),
+                    },
+                  }
+                : t,
+            )
+            .concat(newTab),
+        );
+
+        set({
+          tabs: updatedTabs,
+          activeTabId: newTab.id,
+        });
+
+        return newTab.id;
       },
 
       setActiveTab: (tabId: string) => {

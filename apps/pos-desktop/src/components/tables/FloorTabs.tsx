@@ -4,6 +4,7 @@ import { useModalStore } from "@/store/modalStore";
 import { Button, Icon, Skeleton } from "@repo/ui";
 import { FloorTab } from "./FloorTab";
 import { FloorManagementModal } from "./FloorManagementModal";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 interface FloorTabsProps {
   floors: FloorWithTableCount[];
@@ -20,6 +21,7 @@ export function FloorTabs({
 }: FloorTabsProps) {
   const { isHighLevelUser } = useAuthStore();
   const { openModal } = useModalStore();
+  const { isOnline } = useNetworkStatus();
 
   const handleManageFloors = () => {
     openModal("Manage Floors", <FloorManagementModal />);
@@ -66,6 +68,7 @@ export function FloorTabs({
           variant="outline"
           onClick={handleManageFloors}
           className="whitespace-nowrap"
+          disabled={!isOnline}
         >
           <Icon name="Settings2" className="w-4 h-4 mr-2" />
           Manage Floors

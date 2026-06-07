@@ -29,7 +29,7 @@ function KitchenPage() {
   });
 
   const [filters, setFilters] = useState<KitchenFiltersType>({
-    orderType: "ALL",
+    orderStatus: "ALL",
   });
 
   const { data, isLoading, error } = useGetKitchenOrders({
@@ -50,13 +50,14 @@ function KitchenPage() {
   const orders = data?.data ?? [];
   const totalCount = data?.pagination.totalCount ?? 0;
 
-  // Filter and sort orders: filter by type, oldest first, refunded orders at the bottom
   const filteredAndSortedOrders = useMemo(() => {
     let filtered = orders;
 
-    // Apply order type filter
-    if (filters.orderType !== "ALL") {
-      filtered = filtered.filter((order) => order.type === filters.orderType);
+    // Apply order status filter
+    if (filters.orderStatus !== "ALL") {
+      filtered = filtered.filter(
+        (order) => order.status === filters.orderStatus,
+      );
     }
 
     // Sort: oldest first, refunded orders at the bottom
@@ -71,7 +72,7 @@ function KitchenPage() {
       // Otherwise, sort by createdAt (oldest first)
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-  }, [orders, filters.orderType]);
+  }, [orders, filters.orderStatus]);
 
   return (
     <div className="p-6 space-y-6">
@@ -102,8 +103,8 @@ function KitchenPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, index) => (
             <SkeletonCard key={index} />
           ))}
         </div>
@@ -114,7 +115,7 @@ function KitchenPage() {
           icon={"ChefHat"}
         />
       ) : (
-        <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {filteredAndSortedOrders.map((order) => (
             <div key={order.id} className="break-inside-avoid mb-4">
               <KitchenCard order={order} />

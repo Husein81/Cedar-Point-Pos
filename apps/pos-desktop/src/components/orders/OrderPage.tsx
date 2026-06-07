@@ -1,10 +1,10 @@
 import { OrderCart } from "@/components/orders/OrderCart";
 import { OrderTabs } from "@/components/orders/OrderTabs";
 import { ProductGrid } from "@/components/orders/ProductGrid";
-import { Separator, Button, Icon } from "@repo/ui";
-import { useNavigate } from "@tanstack/react-router";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
+import { Button, Icon, Separator } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 type Props = {

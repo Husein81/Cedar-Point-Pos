@@ -25,10 +25,8 @@ export const ModifierModal = ({
   const { closeModal } = useModalStore();
   const [quantity, setQuantity] = useState(initialQuantity);
 
-  // Fetch modifiers for this product
   const { data: groups, isLoading } = useProductModifiers(product.id);
 
-  // Modifier selection logic
   const { selectedModifiers, totalModifierPrice, toggleModifier, isSelected } =
     useModifierSelection({
       groups,
@@ -197,7 +195,7 @@ export const ModifierGroup = ({
               onClick={() => toggleModifier(group.id, modifier.id, group.type)}
               className={cn(
                 "inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all",
-                "border border-border hover:border-primary/50",
+                "border border-border hover:border-primary/50 hover:text-white",
                 checked
                   ? "bg-primary text-white border-primary"
                   : "bg-background text-foreground",

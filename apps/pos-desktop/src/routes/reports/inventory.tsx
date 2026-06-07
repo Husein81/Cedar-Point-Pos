@@ -152,7 +152,11 @@ function InventoryReportPage() {
       });
 
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventory-movements-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Inventory PDF export failed:", error);
     } finally {

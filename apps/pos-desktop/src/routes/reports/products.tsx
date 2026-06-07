@@ -157,7 +157,11 @@ function ProductsReportPage() {
       });
 
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `top-products-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Top Products PDF export failed:", error);
     } finally {

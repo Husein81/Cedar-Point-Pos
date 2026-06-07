@@ -31,7 +31,7 @@ export function TableActiveOrdersDialog({
   const { createTabWithTable } = useOrderStore();
 
   const { data: activeOrders = [], isLoading } = useActiveOrdersByTable(
-    open ? table.id : null,
+    table.id,
   );
   const { data: allTables = [] } = useTablesByBranch();
 

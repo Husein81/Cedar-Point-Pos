@@ -122,3 +122,13 @@ export const getActionButtonStatus = (
   }
 };
 
+export const ORDER_STATUS_OPTIONS: Array<{
+  label: string;
+  value: OrderStatus | "ALL";
+}> = [
+  { label: "All", value: "ALL" },
+  { label: "Sent to Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
+  { label: "Preparing", value: OrderStatus.IN_PROGRESS },
+  { label: "Ready", value: OrderStatus.READY },
+  { label: "Completed", value: OrderStatus.COMPLETED },
+];

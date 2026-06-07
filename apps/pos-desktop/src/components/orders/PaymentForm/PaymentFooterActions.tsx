@@ -9,6 +9,7 @@ type Props = {
   payments: PaymentEntry[];
   handleConfirm: () => void;
   handlePayAndSend: () => void;
+  offlineMode?: boolean;
 };
 
 export default function PaymentFooterActions({
@@ -17,6 +18,7 @@ export default function PaymentFooterActions({
   payments,
   handleConfirm,
   handlePayAndSend,
+  offlineMode = false,
 }: Props) {
   const { closeModal } = useModalStore();
   const { getUnsentItems } = useOrderStore();
@@ -24,51 +26,62 @@ export default function PaymentFooterActions({
   const hasUnsentItems = getUnsentItems().length > 0;
 
   return (
-    <div className="flex pt-4 gap-2 border-t mt-4">
-      <Button
-        variant="outline"
-        type="button"
-        onClick={closeModal}
-        disabled={isConfirming}
-      >
-        Cancel
-      </Button>
+    <div className="flex flex-col gap-2 pt-4 border-t mt-4">
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          type="button"
+          onClick={closeModal}
+          disabled={isConfirming}
+        >
+          Cancel
+        </Button>
 
-      {hasUnsentItems ? (
-        <>
+        {/* When offline, "Pay & Send" is unavailable — kitchen requires connection */}
+        {hasUnsentItems && !offlineMode ? (
+          <>
+            <Button
+              variant="outline"
+              onClick={handleConfirm}
+              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              isSubmitting={isConfirming}
+              className="flex-1 text-base"
+            >
+              <Icon name="CreditCard" className="w-5 h-5 mr-2" />
+              Pay Only
+            </Button>
+            <Button
+              onClick={handlePayAndSend}
+              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              isSubmitting={isConfirming}
+              className="flex-1 text-base"
+            >
+              <Icon name="ChefHat" className="w-5 h-5 mr-2" />
+              Pay & Send
+            </Button>
+          </>
+        ) : (
           <Button
-            variant="outline"
             onClick={handleConfirm}
             disabled={!isFullyPaid || payments.length === 0 || isConfirming}
             isSubmitting={isConfirming}
             className="flex-1 text-base"
           >
-            <Icon name="CreditCard" className="w-5 h-5 mr-2" />
-            Pay Only
+            <Icon
+              name={isFullyPaid ? "Check" : "Plus"}
+              className="w-5 h-5 mr-2"
+            />
+            {isFullyPaid ? "Complete Order" : "Add Payment"}
           </Button>
-          <Button
-            onClick={handlePayAndSend}
-            disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-            isSubmitting={isConfirming}
-            className="flex-1 text-base"
-          >
-            <Icon name="ChefHat" className="w-5 h-5 mr-2" />
-            Pay & Send
-          </Button>
-        </>
-      ) : (
-        <Button
-          onClick={handleConfirm}
-          disabled={!isFullyPaid || payments.length === 0 || isConfirming}
-          isSubmitting={isConfirming}
-          className="flex-1 text-base"
-        >
-          <Icon
-            name={isFullyPaid ? "Check" : "Plus"}
-            className="w-5 h-5 mr-2"
-          />
-          {isFullyPaid ? "Complete Order" : "Add Payment"}
-        </Button>
+        )}
+      </div>
+
+      {/* Offline notice */}
+      {offlineMode && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <Icon name="WifiOff" className="w-3.5 h-3.5 shrink-0" />
+          Payment will be queued offline and synced when you reconnect.
+        </p>
       )}
     </div>
   );

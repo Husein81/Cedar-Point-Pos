@@ -68,16 +68,11 @@ export class RefundsService {
     });
   }
 
-  /**
-   * Get orders eligible for refund
-   * Returns orders with status COMPLETED
-   */
   async getRefundableOrders(tenantId: string, params: RefundableOrdersParams) {
     const page = params.page || 1;
     const limit = params.limit || 20;
     const skip = (page - 1) * limit;
 
-    // Build where clause for refundable orders
     const where: Prisma.OrderWhereInput = {
       tenantId,
       ...(params.status && {
@@ -122,7 +117,7 @@ export class RefundsService {
 
     const data = orders.map((order) => ({
       id: order.id,
-      orderNumber: order.id,
+      orderNumber: order.orderNumber,
       createdAt: order.createdAt.toISOString(),
       completedAt: order.completedAt?.toISOString() || null,
       total: Number(order.total),
@@ -213,8 +208,6 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    // ✅ OPTIMIZED: Single batch query instead of N queries
-    // Get all refunded quantities in ONE query using groupBy
     const refundedMap = await this.getRefundedQuantitiesMap(
       undefined,
       order.items.map((i) => i.id),
@@ -258,7 +251,7 @@ export class RefundsService {
 
     return {
       orderId: order.id,
-      orderNumber: order.id,
+      orderNumber: order.orderNumber,
       orderStatus: order.status,
       orderTotal: Number(order.total),
       canRefund,

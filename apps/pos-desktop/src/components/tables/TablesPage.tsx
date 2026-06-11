@@ -20,6 +20,7 @@ import {
 import type { TableFilters as TableFiltersType } from "@/components/tables/TableFilters";
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 type ActiveView = "dine-in" | "orders";
 
@@ -28,6 +29,7 @@ export function TablesPage() {
   const { branchId } = useBranchStore();
   const { openModal } = useModalStore();
   const navigate = useNavigate();
+  const { isOnline, lastOnlineAt } = useNetworkStatus();
 
   // Data fetching
   const { data: tables = [], isLoading: isLoadingTables } = useTablesByBranch();
@@ -142,7 +144,12 @@ export function TablesPage() {
           </Button>
           {activeView === "dine-in" && (
             <Activity mode={isHighLevelUser ? "visible" : "hidden"}>
-              <Button size="sm" variant="outline" onClick={handleAddTable}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddTable}
+                disabled={!isOnline}
+              >
                 <Icon name="Plus" className="h-4 w-4 mr-2" />
                 Add Table
               </Button>
@@ -153,6 +160,17 @@ export function TablesPage() {
 
       {activeView === "dine-in" ? (
         <>
+          {/* Cache freshness badge */}
+          {!isOnline && tables.length > 0 && lastOnlineAt && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md w-fit animate-in fade-in slide-in-from-top-1 duration-300">
+              <Icon name="Database" className="w-3.5 h-3.5" />
+              <span>
+                Table layout cached · last synced{" "}
+                {Math.round((Date.now() - lastOnlineAt) / 60_000)} min ago
+              </span>
+            </div>
+          )}
+
           {/* Filters */}
           <TableFilters
             filters={filters}

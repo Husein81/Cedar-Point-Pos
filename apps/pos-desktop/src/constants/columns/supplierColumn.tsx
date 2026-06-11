@@ -2,7 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge, Checkbox } from "@repo/ui";
 import { SupplierActions } from "@/components/supplier/SupplierActions";
 import type { SupplierDetails, SupplierPurchaseOrder } from "@/dto/supplier.dto";
-import { getPurchaseOrderStatusConfig } from "@/components/supplier/config";
+import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
 
 export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
   {

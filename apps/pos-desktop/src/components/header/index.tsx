@@ -1,9 +1,10 @@
 import { useAuthStore } from "@/store/authStore";
 import { Button, cn, Icon } from "@repo/ui";
 import { Activity, useId } from "react";
-import { BranchSelector } from "../common";
+import { BranchSelector, OfflineQueueBadge } from "../common";
 import LeftSide from "./left-side";
 import { frameActions } from "./config";
+import { useNetworkStatus } from "@/context/NetworkContext";
 
 export function Header() {
   const { user } = useAuthStore();
@@ -18,7 +19,9 @@ export function Header() {
         </Activity>
 
         <Activity mode={user?.tenantId ? "visible" : "hidden"}>
-          <div className="no-drag">
+          <div className="no-drag flex items-center gap-2">
+            <OfflineQueueBadge />
+            <NetworkDot />
             <BranchSelector />
           </div>
         </Activity>
@@ -46,6 +49,19 @@ export function Header() {
         ))}
       </div>
     </header>
+  );
+}
+
+function NetworkDot() {
+  const { isOnline } = useNetworkStatus();
+  return (
+    <span
+      title={isOnline ? "Online" : "Offline"}
+      className={cn(
+        "inline-block w-2 h-2 rounded-full shrink-0 transition-colors",
+        isOnline ? "bg-green-500" : "bg-red-500 animate-pulse",
+      )}
+    />
   );
 }
 

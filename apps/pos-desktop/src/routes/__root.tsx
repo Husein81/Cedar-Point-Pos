@@ -1,9 +1,9 @@
 import { Modal, UnderConstruction } from "@/components/common";
 import MainLayout from "@/components/layouts/main-layout";
+import { OfflineSyncService } from "@/hooks/useOfflineSync";
 import { Shad } from "@repo/ui";
 import { createRootRoute } from "@tanstack/react-router";
 import Providers from "../components/providers";
-import { NetworkStatusToast } from "@/components/network-status-toast";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -18,7 +18,7 @@ function RootLayout() {
         <Shad.ScrollBar />
       </Shad.ScrollArea>
       <Modal />
-      <NetworkStatusToast />
+      <OfflineSyncService />
     </Providers>
   );
 }

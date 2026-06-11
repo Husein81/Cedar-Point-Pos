@@ -8,6 +8,7 @@ import { useOrderActions } from "@/hooks/useOrderActions";
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
 import { BusinessType, OrderType } from "@repo/types";
 import { Button, Icon } from "@repo/ui";
 import { useMemo } from "react";
@@ -33,6 +34,7 @@ export default function KeypadActions() {
   }, [order?.items]);
 
   const { user } = useAuthStore();
+  const { isOnline } = useNetworkStatus();
 
   const {
     handlePaymentConfirm,
@@ -66,10 +68,11 @@ export default function KeypadActions() {
       <PaymentForm
         total={remainingTotal}
         onConfirm={handlePaymentConfirm}
-        loyaltyProgram={loyaltyProgram}
-        loyaltyAccount={loyaltyAccount}
+        loyaltyProgram={isOnline ? loyaltyProgram : undefined}
+        loyaltyAccount={isOnline ? loyaltyAccount : undefined}
         customerId={order?.customerId}
         eligibleBase={loyaltyEligibleBase}
+        offlineMode={!isOnline}
       />,
     );
   };
@@ -80,9 +83,10 @@ export default function KeypadActions() {
 
   return (
     <div className="flex items-center border-t border-border p-1 gap-1">
+      {/* Pay button — offline shows a cash-only label */}
       <Button
         size="lg"
-        className="h-12 rounded-sm text-sm font-semibold"
+        className="h-12 rounded-sm text-sm font-semibold relative"
         disabled={
           !order?.items?.length ||
           remainingTotal <= 0 ||
@@ -92,10 +96,11 @@ export default function KeypadActions() {
         onClick={handlePay}
       >
         <Icon name="CreditCard" className="w-5 h-5 mr-2" />
-        Payment
+        {!isOnline ? "Pay (Cash)" : "Payment"}
       </Button>
 
       {isRestaurant ? (
+        /* Send to Kitchen — disabled when offline */
         <Button
           size="lg"
           variant="outline"
@@ -103,12 +108,14 @@ export default function KeypadActions() {
           disabled={
             !order?.items?.length ||
             deliveryNeedsCustomer ||
-            deliveryNeedsAddress
+            deliveryNeedsAddress ||
+            !isOnline
           }
           onClick={handleSendToKitchen}
         >
+          {!isOnline && <Icon name="WifiOff" />}
           Send to Kitchen
-          {hasUnsentItems && (
+          {hasUnsentItems && isOnline && (
             <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
               {unsentItems.length}
             </span>

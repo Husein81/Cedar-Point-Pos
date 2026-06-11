@@ -17,6 +17,7 @@ export const InventoryChangeType = {
   MANUAL_ADJUST: "MANUAL_ADJUST", // Manual adjustment
   TRANSFER_OUT: "TRANSFER_OUT", // Stock transferred to another branch
   TRANSFER_IN: "TRANSFER_IN", // Stock received from another branch
+  PURCHASE_IN: "PURCHASE_IN", // Stock received from a purchase order
 } as const;
 export type InventoryChangeType =
   (typeof InventoryChangeType)[keyof typeof InventoryChangeType];

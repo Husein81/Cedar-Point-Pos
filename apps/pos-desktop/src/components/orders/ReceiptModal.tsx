@@ -75,7 +75,7 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
   };
 
   return (
-    <div className="flex flex-col gap-4 h-[80vh]">
+    <div className="flex flex-col gap-4 h-[75vh]">
       <div className="flex-1 overflow-hidden border rounded-lg bg-muted/20 relative">
         {isDataLoading || !isReady ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/50 backdrop-blur-sm z-10">
@@ -104,12 +104,15 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
         </PDFViewer>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={handlePrint} disabled={!isReady}>
-          <Icon name="Printer" className="w-4 h-4 mr-2" />
-          Print Receipt
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        className="h-12"
+        onClick={handlePrint}
+        disabled={!isReady}
+      >
+        <Icon name="Printer" className="w-4 h-4 mr-2" />
+        Print Receipt
+      </Button>
     </div>
   );
 };

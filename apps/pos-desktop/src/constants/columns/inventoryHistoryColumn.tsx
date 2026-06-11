@@ -40,6 +40,7 @@ export const inventoryHistoryColumns: ColumnDef<
         REFUND: { label: "Refund", variant: "default" },
         TRANSFER_OUT: { label: "Transfer Out", variant: "destructive" },
         TRANSFER_IN: { label: "Transfer In", variant: "default" },
+        PURCHASE_IN: { label: "Purchase In", variant: "default" },
       };
 
       const config = variants[type] || {

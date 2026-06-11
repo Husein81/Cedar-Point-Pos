@@ -1,6 +1,5 @@
 import { Icon, cn } from "@repo/ui";
 import { formatPrice } from "../config";
-import { useOrderStore } from "@/store/orderStore";
 
 type Props = {
   isFullyPaid: boolean;
@@ -8,6 +7,7 @@ type Props = {
   currencySymbol: string;
   remainingInCurrency: number;
 };
+
 export default function PaymentSummaryCard({
   isFullyPaid,
   total,

@@ -175,7 +175,11 @@ function PaymentsReportPage() {
       });
 
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payments-transactions-report-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Payments PDF export failed:", error);
     } finally {

@@ -16,7 +16,9 @@ export const useProducts = () => {
   return useQuery({
     queryKey: [...PRODUCT_QUERY_KEY, branchId],
     queryFn: () => productsApi.getProducts(branchId || undefined),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days — kept for offline use
+    networkMode: "offlineFirst",
     enabled: !!branchId,
   });
 };
@@ -28,7 +30,9 @@ export const useProductsPaginated = (params?: QueryParams) => {
     queryKey: [...PRODUCT_QUERY_KEY, "paginated", params, branchId],
     queryFn: () =>
       productsApi.getProductsPaginated(params, branchId || undefined),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+    networkMode: "offlineFirst",
     enabled: !!branchId,
   });
 };

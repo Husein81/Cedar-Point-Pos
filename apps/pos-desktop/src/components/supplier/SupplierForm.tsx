@@ -5,13 +5,14 @@ import {
 import { useModalStore } from "@/store/modalStore";
 import { Button, InputField, TextareaField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
-import type { SupplierDetails } from "@/dto/supplier.dto";
+import type { SupplierDetails, SupplierSummary } from "@/dto/supplier.dto";
 
 type Props = {
   supplier?: SupplierDetails;
+  onCreated?: (supplier: SupplierSummary) => void;
 };
 
-export const SupplierForm = ({ supplier }: Props) => {
+export const SupplierForm = ({ supplier, onCreated }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const createMutation = useCreateSupplier();
   const updateMutation = useUpdateSupplier();
@@ -42,7 +43,7 @@ export const SupplierForm = ({ supplier }: Props) => {
             },
           });
         } else {
-          await createMutation.mutateAsync({
+          const created = await createMutation.mutateAsync({
             name: value.name,
             companyName: value.companyName || null,
             phone: value.phone || null,
@@ -51,6 +52,11 @@ export const SupplierForm = ({ supplier }: Props) => {
             category: value.category || null,
             notes: value.notes || null,
           });
+          if (onCreated) {
+            // Caller (e.g. an inline dialog) controls dismissal.
+            onCreated(created);
+            return;
+          }
         }
         closeModal();
       } catch (error) {

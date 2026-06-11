@@ -5,6 +5,7 @@ import { TableStatus } from "@repo/types";
 import { Icon, SButton, cn } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
+import { useNetworkStatus } from "@/context/NetworkContext";
 import { AlertDialog } from "../common";
 import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
 import { TableForm } from "./TableForm";
@@ -16,6 +17,7 @@ interface TableCardProps {
 
 export function TableCard({ table }: TableCardProps) {
   const { openModal } = useModalStore();
+  const { isOnline } = useNetworkStatus();
 
   const knownStatuses = Object.values(TableStatus) as string[];
   const status: TableStatus = knownStatuses.includes(table.status)
@@ -89,6 +91,7 @@ export function TableCard({ table }: TableCardProps) {
                 }}
                 variant={"ghost"}
                 size={"icon-sm"}
+                disabled={!isOnline}
               >
                 <Icon name="Pencil" className="h-4 w-4" />
               </SButton>
@@ -129,6 +132,7 @@ export function TableCard({ table }: TableCardProps) {
               variant="delete"
               buttonVariant="destructive"
               className="size-8"
+              disabled={!isOnline}
             />
           </div>
         </div>

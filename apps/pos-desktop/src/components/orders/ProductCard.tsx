@@ -3,7 +3,7 @@ import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
 import { Product } from "@repo/types";
-import { cn, Icon, Shad } from "@repo/ui";
+import { cn, Icon } from "@repo/ui";
 import { useProductModifiers } from "@/hooks/useModifiers";
 import { formatPrice } from "./config";
 import { ModifierModal } from "./ModifierModal";
@@ -17,58 +17,35 @@ const ProductCard = ({ product }: Props) => {
   const { addItem, getActiveOrder } = useOrderStore();
   const { openModal } = useModalStore();
   const { branchId } = useBranchStore();
+
   const { data: modifiers } = useProductModifiers(
     product.id,
     product.isModifiable,
   );
 
   const { items } = getActiveOrder() || { items: [] };
-
   const item = items.find((i) => i.productId === product.id);
 
-  const branchInventory = product.inventory?.find(
-    (inv) => inv.branchId === branchId,
-  );
-  const currentStock = branchInventory ? Number(branchInventory.stock) : 0;
+  const stock =
+    product.inventory?.find((i) => i.branchId === branchId)?.stock ??
+    product.inventory?.reduce((a, b) => a + Number(b.stock), 0) ??
+    0;
 
-  const totalStock =
-    product.inventory?.reduce((sum, inv) => sum + Number(inv.stock), 0) ?? 0;
-  const displayStock = branchInventory ? currentStock : totalStock;
+  const isOutOfStock = Number(stock) <= 0;
+  const qty = item?.quantity ?? 0;
 
-  const isOutOfStock = displayStock <= 0;
+  const handleAdd = () => {
+    if (isOutOfStock) return;
 
-  // Calculate resulting stock after adding one more (or current cart quantity + 1)
-  const cartQuantity = item?.quantity ?? 0;
-  const resultingStockIfAdded = displayStock - (cartQuantity + 1);
-  const isNegative = resultingStockIfAdded < 0 || isOutOfStock;
-
-  const handleAddItem = () => {
-    if (product.isModifiable) {
-      if (
-        !modifiers ||
-        !modifiers.modifierGroups ||
-        modifiers.modifierGroups.length === 0
-      ) {
-        addItem({
-          productId: product.id,
-          name: product.name,
-          price: Number(product.price) || 0,
-          quantity: 1,
-          imageUrl: product.imageUrl,
-        });
-        return;
-      }
-
-      // Has modifiers, show modal
+    if (product.isModifiable && modifiers?.modifierGroups?.length) {
       openModal(
-        product?.name,
+        product.name,
         <ModifierModal product={product} onConfirm={handleModifierConfirm} />,
-        "Customize your item",
+        "Customize",
       );
       return;
     }
 
-    // Otherwise add directly
     addItem({
       productId: product.id,
       name: product.name,
@@ -97,76 +74,72 @@ const ProductCard = ({ product }: Props) => {
   };
 
   return (
-    <Shad.Card
-      onClick={handleAddItem}
+    <button
+      onClick={handleAdd}
+      disabled={isOutOfStock}
       className={cn(
-        "relative overflow-hidden rounded-sm border h-40 p-0",
-        "bg-background transition",
-        "cursor-pointer",
-        isOutOfStock
-          ? "opacity-60"
-          : "hover:ring-1 hover:ring-primary/40 active:scale-[0.98]",
-        isNegative && !isOutOfStock && "ring-1 ring-amber-400",
+        "group relative flex flex-col overflow-hidden rounded-lg border bg-white text-left",
+        "transition active:scale-[0.98]",
+        "hover:shadow-md hover:border-primary/30",
+        isOutOfStock && "opacity-50 grayscale cursor-not-allowed",
       )}
     >
-      {/* Cart quantity badge */}
-      {item && (
-        <div
-          className={cn(
-            "absolute bottom-2 right-1 px-2 py-0.5 rounded-md backdrop-blur text-xs font-bold shadow",
-            isNegative
-              ? "bg-amber-500/90 text-white"
-              : "bg-accent/40 text-primary",
-          )}
-        >
-          {`${item.quantity}`}
-        </div>
-      )}
-
-      {/* IMAGE (≈ 85–90%) */}
-      <div className="relative h-2/3 w-full bg-muted">
+      <div className="relative aspect-square w-full bg-gray-50">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
             draggable={false}
-            loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted/40">
-            <Icon name="Package" className="w-8 h-8 text-muted-foreground/60" />
+          <div className="flex h-full w-full items-center justify-center">
+            <Icon name="Package" className="h-10 w-10 text-gray-300" />
           </div>
         )}
 
-        {/* PRICE OVERLAY */}
-        <div className="absolute top-1 right-1 px-2 py-0.5 rounded-md bg-background/90 backdrop-blur text-xs font-bold text-primary shadow">
+        <div className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
           ${formatPrice(Number(product.price))}
         </div>
 
-        {/* OUT OF STOCK OVERLAY */}
+        <Activity mode={product.isModifiable ? "visible" : "hidden"}>
+          <div className="absolute right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
+            <Icon name="Settings2" className="size-4" />
+          </div>
+        </Activity>
+
+        {/* OUT OF STOCK */}
         <Activity mode={isOutOfStock ? "visible" : "hidden"}>
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="px-3 py-1 text-xs font-semibold text-white bg-destructive rounded">
-              OUT OF STOCK
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <span className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-red-500">
+              Unavailable
             </span>
           </div>
         </Activity>
       </div>
-      <div className="px-2 flex items-center">
-        <p className="text-xs font-medium truncate leading-tight">
+
+      <div className="flex items-center justify-between gap-2 px-2 py-1">
+        <p className="truncate text-xs font-medium text-gray-700">
           {product.name}
         </p>
-      </div>
-      <Activity mode={product.category?.color ? "visible" : "hidden"}>
+
         <div
-          className="rounded-lg"
-          style={{
-            border: `2px solid ${product.category?.color?.hex || "transparent"}`,
-          }}
+          className={cn("flex h-7 w-7 items-center justify-center rounded-md")}
+        >
+          {qty > 0 && (
+            <div className="absolute bottom-2 right-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-white shadow">
+              {qty}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {product.category?.color && (
+        <div
+          className="h-1 w-full"
+          style={{ background: product.category.color.hex }}
         />
-      </Activity>
-    </Shad.Card>
+      )}
+    </button>
   );
 };
 

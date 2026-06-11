@@ -1,47 +1,35 @@
-import { OrderType } from "@repo/types";
+import { OrderStatus } from "@repo/types";
 import { Button, cn } from "@repo/ui";
+import { ORDER_STATUS_OPTIONS } from "./config";
 
-export interface KitchenFilters {
-  orderType: OrderType | "ALL";
-}
+export type KitchenFilters = {
+  orderStatus: OrderStatus | "ALL";
+};
 
-interface KitchenFiltersProps {
+type Props = {
   filters: KitchenFilters;
   onFiltersChange: (filters: KitchenFilters) => void;
-}
+};
 
-const ORDER_TYPE_OPTIONS: Array<{
-  label: string;
-  value: OrderType | "ALL";
-}> = [
-  { label: "All", value: "ALL" },
-  { label: "Dine In", value: OrderType.DINE_IN },
-  { label: "Delivery", value: OrderType.DELIVERY },
-  { label: "Takeaway", value: OrderType.TAKEAWAY },
-];
-
-export function KitchenFilters({
-  filters,
-  onFiltersChange,
-}: KitchenFiltersProps) {
-  const handleOrderTypeChange = (value: OrderType | "ALL") => {
+export function KitchenFilters({ filters, onFiltersChange }: Props) {
+  const handleOrderStatusChange = (value: KitchenFilters) => {
     onFiltersChange({
       ...filters,
-      orderType: value,
+      orderStatus: value.orderStatus,
     });
   };
 
   return (
     <div className="flex items-center gap-1 p-1 bg-muted rounded-lg w-fit">
-      {ORDER_TYPE_OPTIONS.map((option) => (
+      {ORDER_STATUS_OPTIONS.map((option) => (
         <Button
           key={option.value}
-          variant={filters.orderType === option.value ? "default" : "ghost"}
+          variant={filters.orderStatus === option.value ? "default" : "ghost"}
           size="sm"
-          onClick={() => handleOrderTypeChange(option.value)}
+          onClick={() => handleOrderStatusChange({ orderStatus: option.value })}
           className={cn(
             "relative",
-            filters.orderType === option.value && "shadow-sm",
+            filters.orderStatus === option.value && "shadow-sm",
           )}
         >
           {option.label}
@@ -50,4 +38,3 @@ export function KitchenFilters({
     </div>
   );
 }
-

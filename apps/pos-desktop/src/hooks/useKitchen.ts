@@ -1,5 +1,7 @@
 import { kitchenApi } from "@/apis/kitchen";
-import { queryClient } from "@/components/providers";
+import { useOfflineQueueStore } from "@/store/offlineQueueStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
+import { queryClient } from "@/lib/queryClient";
 import { OrderStatus } from "@repo/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -19,14 +21,30 @@ export const useGetKitchenOrders = ({
   });
 
 export const useUpdateKitchenStatus = () => {
+  const { enqueue } = useOfflineQueueStore();
+  const { isOnline } = useNetworkStatus();
+
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       orderId,
       status,
     }: {
       orderId: string;
       status: OrderStatus;
-    }) => kitchenApi.updateOrderStatus(orderId, status),
+    }) => {
+      if (!isOnline && orderId.startsWith("offline-")) {
+        return { orderId, status };
+      } else if (!isOnline) {
+        enqueue({
+          type: "UPDATE_ORDER_STATUS",
+          localId: `offline-kitchen-status-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          label: `Update Kitchen Status to ${status}`,
+          payload: { orderId, status },
+        });
+        return { orderId, status, branchId: "" };
+      }
+      return kitchenApi.updateOrderStatus(orderId, status);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["kitchen-orders", data.branchId],

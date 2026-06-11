@@ -1,16 +1,18 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/context/theme-provider";
+import { NetworkProvider } from "@/context/NetworkContext";
 import { Toaster } from "@repo/ui";
-import { NetworkStatusToast } from "../network-status-toast";
+import { queryClient } from "@/lib/queryClient";
 
-export const queryClient = new QueryClient();
 const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        {children}
-        <Toaster />
-      </ThemeProvider>
+      <NetworkProvider>
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </NetworkProvider>
     </QueryClientProvider>
   );
 };

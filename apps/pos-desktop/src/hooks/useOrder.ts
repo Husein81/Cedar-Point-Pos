@@ -1,4 +1,6 @@
 import { ordersApi } from "@/apis/ordersApi";
+import { useOfflineQueueStore } from "@/store/offlineQueueStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
 import {
   AddItemDto,
   CreateOrderDto,
@@ -83,9 +85,24 @@ export const useProcessPayment = () => {
 
 export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
+  const { enqueue } = useOfflineQueueStore();
+  const { isOnline } = useNetworkStatus();
 
   return useMutation<Order, Error, { id: string; status: OrderStatus }>({
-    mutationFn: ({ id, status }) => ordersApi.updateOrderStatus(id, { status }),
+    mutationFn: async ({ id, status }) => {
+      if (!isOnline && id.startsWith("offline-")) {
+        return { id, status } as Order;
+      } else if (!isOnline) {
+        enqueue({
+          type: "UPDATE_ORDER_STATUS",
+          localId: `offline-status-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          label: `Update status to ${status}`,
+          payload: { orderId: id, status },
+        });
+        return { id, status } as Order;
+      }
+      return ordersApi.updateOrderStatus(id, { status });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
@@ -350,6 +367,9 @@ export const useActiveOrderByTable = (tableId: string | null) => {
   return useQuery({
     queryKey: [...ORDER_QUERY_KEY, "active-by-table", tableId],
     queryFn: () => ordersApi.getActiveOrderByTableId(tableId!),
+    staleTime: 30_000,
+    gcTime: 24 * 60 * 60 * 1000,
+    networkMode: "offlineFirst",
     enabled: !!tableId,
   });
 };

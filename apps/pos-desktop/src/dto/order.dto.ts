@@ -1,3 +1,4 @@
+import { PaymentEntry } from "@/components/orders/PaymentForm";
 import {
   OrderStatus,
   OrderType,
@@ -148,31 +149,34 @@ export type ServerOrderWithPayments = ServerOrder & {
   payments?: Array<{ amount?: number | string | null }>;
 };
 
+type BackendOrderItem = {
+  id: string;
+  productId: string;
+  quantity: number | string;
+  unitPrice: number | string;
+  notes?: string | null;
+  discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
+  product?: {
+    id: string;
+    name: string;
+    imageUrl?: string | null;
+  } | null;
+  modifiers?: Array<{
+    modifierId: string;
+    price: number | string;
+    modifier?: {
+      id: string;
+      name: string;
+    } | null;
+  }>;
+};
+
 export type BackendOrder = {
   id: string;
   status: OrderStatus;
   type?: OrderType;
-  items: Array<{
-    id: string;
-    productId: string;
-    quantity: number | string;
-    unitPrice: number | string;
-    notes?: string | null;
-    discount?: { value: number; type: "PERCENTAGE" | "FIXED" } | null;
-    product?: {
-      id: string;
-      name: string;
-      imageUrl?: string | null;
-    } | null;
-    modifiers?: Array<{
-      modifierId: string;
-      price: number | string;
-      modifier?: {
-        id: string;
-        name: string;
-      } | null;
-    }>;
-  }>;
+  items: BackendOrderItem[];
+  payments?: PaymentEntry[];
   discount?: number | null;
   shippingFee?: number | string | null;
   includeVAT?: boolean;

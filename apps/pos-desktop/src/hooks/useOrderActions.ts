@@ -14,6 +14,8 @@ import { useBranchStore } from "@/store/branchStore";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
+import { useOfflineQueueStore } from "@/store/offlineQueueStore";
+import { useNetworkStatus } from "@/context/NetworkContext";
 import { extractErrorMessage } from "@/utils/error";
 import { toItemDto } from "@/utils/financial";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
@@ -28,6 +30,8 @@ export function useOrderActions() {
   const { branchId } = useBranchStore();
   const { data: branch } = useBranch(branchId || "");
   const navigate = useNavigate();
+  const { isOnline } = useNetworkStatus();
+  const { enqueue } = useOfflineQueueStore();
 
   const getActiveOrder = useOrderStore((s) => s.getActiveOrder);
   const getDiscountAmount = useOrderStore((s) => s.getDiscountAmount);
@@ -146,6 +150,8 @@ export function useOrderActions() {
     return subtotal - discount + shippingFee + vat;
   }, [getActiveOrder, getDiscountAmount, getOrderSubtotal, getVATAmount]);
 
+  // ─── handlePaymentConfirm ─────────────────────────────────────────────────
+
   const handlePaymentConfirm = useCallback(
     async (
       payments: PaymentEntry[],
@@ -155,7 +161,6 @@ export function useOrderActions() {
       await withPaymentLock(async () => {
         if (payments.length === 0) return;
 
-        // Capture state BEFORE any optimistic mutation
         const active = getActiveOrder();
         if (!active || !branchId || !user?.tenantId) return;
 
@@ -166,22 +171,18 @@ export function useOrderActions() {
         if (active.type === OrderType.DELIVERY && !active.customerAddress)
           return;
 
-        // ── Optimistic: clear UI immediately ──
+        // Optimistic: clear UI immediately
         const tabToClose = activeTabId;
-
         setLastCompletedOrder({
           order: active,
-          orderNumber: active.orderNumber || "PREVIEW",
+          orderNumber: active.orderNumber || "PENDING SYNC",
           tenantName: user.tenant?.name || "Cedar Point",
           branchName: branch?.name || "Main Branch",
           branchAddress: branch?.address || "",
           branchPhone: branch?.phone || "",
           loyaltyApplied:
             loyalty && loyalty.redeemPoints > 0
-              ? {
-                  points: loyalty.redeemPoints,
-                  discount: 0,
-                }
+              ? { points: loyalty.redeemPoints, discount: 0 }
               : undefined,
         });
 
@@ -189,10 +190,68 @@ export function useOrderActions() {
         closeModal();
         if (tabToClose) closeTab(tabToClose);
         clearOrder();
-
         navigate({ to: "/receipt-preview" });
 
-        // ── Background sync ──
+        // ── OFFLINE PATH ─────────────────────────────────────────────────────
+        if (!isOnline) {
+          const dto = buildOrderDto(active);
+          if (!dto) return;
+
+          const label = active.orderNumber
+            ? `#${active.orderNumber}`
+            : active.tableName
+              ? `Table ${active.tableName}`
+              : `Order (${new Date().toLocaleTimeString()})`;
+
+          const wasLoaded = isLoadedOrder(active);
+
+          if (wasLoaded) {
+            const unsyncedLocal = active.items
+              .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+              .map(toItemDto);
+
+            enqueue({
+              type: "UPDATE_AND_PAY",
+              localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              label,
+              payload: {
+                orderId: active.id,
+                newItems: unsyncedLocal.length > 0 ? unsyncedLocal : undefined,
+                payments: payments.map((p) => ({
+                  amount: p.amount,
+                  method: p.method,
+                  currencyCode: p.currencyCode,
+                  exchangeRate: p.exchangeRate,
+                })),
+                ...(loyalty ? { loyalty } : {}),
+              },
+            });
+          } else {
+            enqueue({
+              type: "CREATE_AND_PAY",
+              localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              label,
+              payload: {
+                orderDto: dto,
+                payments: payments.map((p) => ({
+                  amount: p.amount,
+                  method: p.method,
+                  currencyCode: p.currencyCode,
+                  exchangeRate: p.exchangeRate,
+                })),
+                ...(loyalty ? { loyalty } : {}),
+              },
+            });
+          }
+
+          toast.info(
+            "Order saved offline. It will sync automatically when you reconnect.",
+            { duration: 7000 },
+          );
+          return;
+        }
+
+        // ── ONLINE PATH ───────────────────────────────────────────────────────
         (async () => {
           try {
             if (
@@ -239,7 +298,6 @@ export function useOrderActions() {
               loyalty,
             });
 
-            // Update store with final official server response details
             const finalOrderNumber =
               updatedOrder.orderNumber || orderNumber || "PREVIEW";
             setLastCompletedOrder({
@@ -297,14 +355,17 @@ export function useOrderActions() {
       batchAddItemsToOrder,
       branch,
       branchId,
+      buildOrderDto,
       clearOrder,
       closeKeypad,
       closeModal,
       closeTab,
+      enqueue,
       getActiveOrder,
       getOrCreateOrderId,
       getTotal,
       isLoadedOrder,
+      isOnline,
       processPayment,
       sendToKitchen,
       user?.tenant?.businessType,
@@ -315,21 +376,55 @@ export function useOrderActions() {
     ],
   );
 
+  // ─── handleConfirmWithoutPayment ──────────────────────────────────────────
+
   const handleConfirmWithoutPayment = useCallback(async () => {
     await withPaymentLock(async () => {
-      // Capture BEFORE optimistic mutation
       const active = getActiveOrder();
       if (!active || !branchId || !user?.tenantId) return;
       if (!active.items?.length || getTotal() <= 0) return;
 
-      // ── Optimistic: clear UI immediately ──
       clearOrder();
       closeKeypad();
       closeModal();
       if (activeTabId) closeTab(activeTabId);
       toast.info("Confirming order...");
 
-      // ── Background sync ──
+      // ── OFFLINE PATH ──────────────────────────────────────────────────────
+      if (!isOnline) {
+        const dto = buildOrderDto(active);
+        if (!dto) return;
+
+        const label = active.tableName
+          ? `Table ${active.tableName}`
+          : `Order (${new Date().toLocaleTimeString()})`;
+
+        const wasLoaded = isLoadedOrder(active);
+
+        if (wasLoaded) {
+          enqueue({
+            type: "UPDATE_ORDER_STATUS",
+            localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            label,
+            payload: { orderId: active.id, status: OrderStatus.PENDING },
+          });
+        } else {
+          enqueue({
+            type: "CREATE_AND_CONFIRM",
+            localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            label,
+            payload: { orderDto: dto },
+          });
+        }
+
+        toast.info(
+          "Order queued offline. Will sync when you reconnect.",
+          { duration: 7000 },
+        );
+        return;
+      }
+
+      // ── ONLINE PATH ───────────────────────────────────────────────────────
       (async () => {
         try {
           const syncedOrder = await getOrCreateOrderId(active);
@@ -352,20 +447,33 @@ export function useOrderActions() {
   }, [
     activeTabId,
     branchId,
+    buildOrderDto,
     clearOrder,
     closeKeypad,
     closeModal,
     closeTab,
+    enqueue,
     getActiveOrder,
     getOrCreateOrderId,
     getTotal,
+    isOnline,
     updateOrderStatus,
     user?.tenantId,
     withPaymentLock,
   ]);
 
+  // ─── handleSendToKitchen ──────────────────────────────────────────────────
+
   const handleSendToKitchen = useCallback(async () => {
-    // Capture BEFORE any mutation
+    // When offline, kitchen sync is blocked — the caller must check isOnline first.
+    if (!isOnline) {
+      toast.error(
+        "You are offline. Please connect to the internet to send orders to the kitchen.",
+        { duration: 6000 },
+      );
+      return;
+    }
+
     const active = getActiveOrder();
     if (!active || !branchId || !user?.tenantId) return;
     if (!active.items?.length) return;
@@ -382,13 +490,12 @@ export function useOrderActions() {
     const unsentCount = unsentItems.length;
     const wasLoadedOrder = isLoadedOrder(active);
 
-    // ── Optimistic: mark sent immediately ──
+    // Optimistic: mark sent immediately
     markItemsSentToKitchen();
     toast.success(
       `Sending ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen...`,
     );
 
-    // ── Background sync ──
     (async () => {
       try {
         const syncedOrder = await getOrCreateOrderId(active);
@@ -423,6 +530,7 @@ export function useOrderActions() {
     getActiveOrder,
     getOrCreateOrderId,
     isLoadedOrder,
+    isOnline,
     markItemsSentToKitchen,
     sendToKitchen,
     setOrderStatus,
@@ -440,5 +548,8 @@ export function useOrderActions() {
     getDiscountAmount,
     getVATAmount,
     getTotal,
+
+    /** Exposed so callers can conditionally render UI */
+    isOnline,
   };
 }

@@ -51,21 +51,17 @@ export const useCreateRefund = () => {
 
   return useMutation({
     mutationFn: (data: CreateRefundDto) => refundsApi.createRefund(data),
-    // ✅ OPTIMIZED: Optimistic update for instant UI feedback
     onMutate: async (variables) => {
-      // Cancel outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({
         queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
       });
 
-      // Snapshot previous value
       const previousData = queryClient.getQueryData([
         ...REFUND_QUERY_KEY,
         "refundable",
         variables.orderId,
       ]);
 
-      // Optimistically update refundable info
       queryClient.setQueryData(
         [...REFUND_QUERY_KEY, "refundable", variables.orderId],
         (old: any) => {
@@ -106,7 +102,7 @@ export const useCreateRefund = () => {
       return { previousData };
     },
     onError: (err, variables, context) => {
-      // Rollback on error
+      console.error("Failed:", err);
       if (context?.previousData) {
         queryClient.setQueryData(
           [...REFUND_QUERY_KEY, "refundable", variables.orderId],
@@ -115,7 +111,6 @@ export const useCreateRefund = () => {
       }
     },
     onSuccess: (_, variables) => {
-      // ✅ OPTIMIZED: Targeted invalidations instead of blanket refetch
       queryClient.invalidateQueries({
         queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
       });
@@ -125,11 +120,8 @@ export const useCreateRefund = () => {
       queryClient.invalidateQueries({
         queryKey: [...REFUND_QUERY_KEY, "orders"],
       });
-      // Invalidate inventory (refund restores stock)
       queryClient.invalidateQueries({ queryKey: ["stock"] });
-      // Invalidate order queries so status badge updates
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      // Invalidate order-specific refund list
       queryClient.invalidateQueries({
         queryKey: [...REFUND_QUERY_KEY, "order", variables.orderId],
       });

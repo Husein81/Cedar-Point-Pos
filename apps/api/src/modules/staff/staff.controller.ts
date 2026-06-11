@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateStaffSchema,
+  ResetPasswordSchema,
   SetPinSchema,
   StaffActivityAction,
   StaffActivityModule,
@@ -111,6 +112,28 @@ export class StaffController {
   ) {
     const { pin } = validateWith(SetPinSchema, body);
     return this.staffService.setPin(tenantId, actorRole, id, pin);
+  }
+
+  /**
+   * Reset a staff member's login password. Scoped to the caller's tenant and
+   * gated by the role hierarchy so a manager cannot reset an admin's password
+   * (which would let them take over the account). The existing refresh token is
+   * revoked server-side so prior password-login sessions can no longer refresh.
+   */
+  @Patch(':id/reset-password')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(
+    StaffActivityAction.STAFF_PASSWORD_RESET,
+    StaffActivityModule.STAFF,
+  )
+  resetPassword(
+    @CurrentTenant() tenantId: string,
+    @CurrentRole() actorRole: UserRole,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const { password } = validateWith(ResetPasswordSchema, body);
+    return this.staffService.resetPassword(tenantId, actorRole, id, password);
   }
 
   @Get(':id/activity')

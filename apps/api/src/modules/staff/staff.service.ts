@@ -296,6 +296,29 @@ export class StaffService {
     return { message: 'PIN updated successfully' };
   }
 
+  /**
+   * Reset a staff member's login password, gated by the role hierarchy so a
+   * manager cannot reset an admin's password. Clearing `refreshToken` revokes
+   * any active password-login session so it can no longer be refreshed.
+   */
+  async resetPassword(
+    tenantId: string,
+    actorRole: UserRole,
+    staffId: string,
+    password: string,
+  ): Promise<{ message: string }> {
+    const staff = await this.findStaffOrThrow(tenantId, staffId);
+    assertCanManageRole(actorRole, staff.role);
+
+    const hashedPassword = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: staffId },
+      data: { password: hashedPassword, refreshToken: null },
+    });
+
+    return { message: 'Password reset successfully' };
+  }
+
   /** Paginated activity log for a staff member, filterable by module and date. */
   async getActivityLogs(
     tenantId: string,

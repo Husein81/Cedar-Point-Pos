@@ -111,6 +111,19 @@ export const sidebarSections: SidebarSection[] = [
     ],
   },
   {
+    label: "Management",
+    items: [
+      {
+        label: "Staff",
+        icon: "Users",
+        href: "/staff",
+        tooltip: "Staff Management",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
+      },
+    ],
+  },
+  {
     label: "Finance",
     items: [
       {

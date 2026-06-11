@@ -136,6 +136,13 @@ export const SetPinSchema = z.object({
 });
 export type SetPinInput = z.infer<typeof SetPinSchema>;
 
+// Admin/manager resets a staff member's login password. Mirrors the password
+// constraint on CreateStaffSchema; never stored or returned raw.
+export const ResetPasswordSchema = z.object({
+  password: z.string().min(6),
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+
 // Query-string booleans arrive as the literal strings "true"/"false"; a plain
 // z.coerce.boolean() would treat "false" as true, so normalize explicitly.
 const queryBoolean = z.preprocess((value) => {

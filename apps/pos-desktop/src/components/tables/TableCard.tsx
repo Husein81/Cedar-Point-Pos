@@ -1,13 +1,14 @@
-import type { TableWithFloor } from "@/dto/tables.dto";
-import { useDeleteTable } from "@/hooks/useTable";
-import { useModalStore } from "@/store/modalStore";
-import { TableStatus } from "@repo/types";
-import { Icon, SButton, cn } from "@repo/ui";
-import { useNavigate } from "@tanstack/react-router";
-import React, { useState } from "react";
 import { useNetworkStatus } from "@/context/NetworkContext";
+import type { ServerOrderWithPayments } from "@/dto/order.dto";
+import type { TableWithFloor } from "@/dto/tables.dto";
+import { useActiveOrdersByTable, useDeleteTable } from "@/hooks/useTable";
+import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
+import { TableStatus } from "@repo/types";
+import { Icon, SButton, cn, toast } from "@repo/ui";
+import { useNavigate } from "@tanstack/react-router";
+import React from "react";
 import { AlertDialog } from "../common";
-import { TableActiveOrdersDialog } from "./TableActiveOrdersDialog";
 import { TableForm } from "./TableForm";
 import TableStatusDropdown from "./TableStatusDropdown";
 
@@ -19,6 +20,8 @@ export function TableCard({ table }: TableCardProps) {
   const { openModal } = useModalStore();
   const { isOnline } = useNetworkStatus();
 
+  const { data: activeOrders } = useActiveOrdersByTable(table.id);
+
   const knownStatuses = Object.values(TableStatus) as string[];
   const status: TableStatus = knownStatuses.includes(table.status)
     ? (table.status as TableStatus)
@@ -26,8 +29,7 @@ export function TableCard({ table }: TableCardProps) {
   const navigate = useNavigate();
 
   const deleteTableMutation = useDeleteTable();
-
-  const [isActiveOrdersOpen, setIsActiveOrdersOpen] = useState(false);
+  const { loadOrder, createTabWithTable } = useOrderStore();
 
   const handleEditTable = (table: TableWithFloor) =>
     openModal("Edit Table", <TableForm table={table} />);
@@ -44,22 +46,59 @@ export function TableCard({ table }: TableCardProps) {
     });
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = async (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("[data-dropdown]")) {
       return;
     }
 
     if (status === "OCCUPIED") {
-      setIsActiveOrdersOpen(true);
+      try {
+        // Fetch active orders
+
+        if (activeOrders && activeOrders.length > 0) {
+          // Sort to find the latest order
+          const sortedOrders = [...activeOrders].sort((a, b) => {
+            const aAny = a as any;
+            const bAny = b as any;
+            const dateA = aAny.updatedAt
+              ? new Date(aAny.updatedAt).getTime()
+              : new Date(aAny.createdAt).getTime();
+            const dateB = bAny.updatedAt
+              ? new Date(bAny.updatedAt).getTime()
+              : new Date(bAny.createdAt).getTime();
+            return dateB - dateA; // Descending
+          });
+
+          const latestOrder = sortedOrders[0];
+
+          const tabId = loadOrder(latestOrder as ServerOrderWithPayments);
+          if (tabId) {
+            navigate({
+              to: "/",
+              search: { tableId: table.id },
+            });
+          }
+        } else {
+          // Fallback
+          handleSeatTable();
+        }
+      } catch (error) {
+        toast.error("Failed to load active order");
+        console.error(error);
+      }
       return;
     }
 
+    const tableName = table.floor
+      ? `${table.floor.name} - ${table.name}`
+      : table.name;
+    createTabWithTable(table.id, tableName);
     handleSeatTable();
   };
 
   return (
-    <div className="relative group-hover:-transalte-y-0.5">
+    <div className={cn("relative group-hover:-translate-y-0.5")}>
       <div
         className={cn(
           "group relative w-full h-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg transition-all duration-300 cursor-pointer shadow-xs",
@@ -137,13 +176,6 @@ export function TableCard({ table }: TableCardProps) {
           </div>
         </div>
       </div>
-
-      {/* Dialogs */}
-      <TableActiveOrdersDialog
-        table={table}
-        open={isActiveOrdersOpen}
-        onOpenChange={setIsActiveOrdersOpen}
-      />
     </div>
   );
 }

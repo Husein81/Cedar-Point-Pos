@@ -422,10 +422,9 @@ export function useOrderActions() {
           });
         }
 
-        toast.info(
-          "Order queued offline. Will sync when you reconnect.",
-          { duration: 7000 },
-        );
+        toast.info("Order queued offline. Will sync when you reconnect.", {
+          duration: 7000,
+        });
         return;
       }
 
@@ -497,9 +496,6 @@ export function useOrderActions() {
 
     // Optimistic: mark sent immediately
     markItemsSentToKitchen();
-    toast.success(
-      `Sending ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen...`,
-    );
 
     (async () => {
       try {

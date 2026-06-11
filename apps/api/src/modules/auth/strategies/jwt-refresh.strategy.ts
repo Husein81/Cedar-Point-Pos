@@ -6,7 +6,10 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService, JwtPayload } from '../auth.service.js';
 
 @Injectable()
-export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
+export class JwtRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
   constructor(
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
@@ -18,7 +21,10 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req.cookies?.sa_refresh_token,
+        (req: Request): string | null =>
+          typeof req.cookies?.sa_refresh_token === 'string'
+            ? req.cookies.sa_refresh_token
+            : null,
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       secretOrKey: secret,
@@ -29,13 +35,18 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
   async validate(req: Request, payload: JwtPayload) {
     const refreshToken =
       req.headers.authorization?.replace('Bearer ', '') ||
-      req.cookies?.sa_refresh_token;
+      (typeof req.cookies?.sa_refresh_token === 'string'
+        ? req.cookies.sa_refresh_token
+        : undefined);
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token missing');
     }
 
     const user = await this.authService.validateUser(payload);
-    return user;
+    // Hand the raw refresh token to the route handler via req.user so the
+    // controller has a single source of truth and never re-extracts it from a
+    // possibly-different request location than this strategy used.
+    return { ...user, refreshToken };
   }
 }

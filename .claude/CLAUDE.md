@@ -88,6 +88,7 @@ store/<domain>Store.ts    ← Zustand slice per domain concern
 - All shared DTO schemas live in `packages/types/src/schemas.ts`.
 - App-specific request/response shapes that are **not** shared across apps live in the app's own `dto/` folder.
 - Never write a `z.object({ ... })` that reconstructs a schema already in `@repo/types`. Extend or pick from the canonical one.
+- `@repo/types` is a **built** package (tsup → `dist/`). After editing `packages/types/src/**`, rebuild it (`pnpm --filter @repo/types build`) before any API or frontend code can import the new export — otherwise you get `has no exported member` errors against the stale `dist/`.
 
 ### UI components
 - Before building a new component, check `packages/ui/src/components/` and `packages/ui/src/ui-components/`.
@@ -258,7 +259,49 @@ store/<domain>Store.ts    ← Zustand slice per domain concern
 
 ---
 
-## 17. What you must never do
+## 17. Staff management, PIN auth & sessions
+
+Staff are `User` rows. Tenant-side management lives in `modules/staff/`; POS terminal authentication lives in `modules/auth/`. Keep the split clean.
+
+### Controller placement
+- Staff-profile and PIN actions belong on `StaffController`: `PATCH /staff/:id` (identity), `:id/toggle-active`, `:id/toggle-pos`, `:id/set-pin`. `AuthController` is **only** login / logout / refresh / pin-login. Never put a per-staff management action on `AuthController`.
+- Route segments must name the resource they act on, and the verb must match semantics. A session close is `PATCH /staff/sessions/:sessionId/end` — `PATCH` because it's an idempotent state change on an existing resource (`POST` implies non-idempotent creation), and `/sessions/:sessionId` because it acts on a session, not on `/staff/:id`.
+
+### Role hierarchy (`common/role-authorization.ts`)
+- Every per-staff mutation takes the actor's role via `@CurrentRole()` and calls `assertCanManageRole(actorRole, targetRole)`: ADMIN may manage anyone; MANAGER may manage only non-privileged staff; any other actor is rejected. `assertAssignableRole` blocks ever assigning `SYSTEM_ADMIN`.
+- These helpers are **self-contained (defense in depth)** — never assume the route guard already filtered the caller. They are pure (no Prisma) and unit-tested as a decision table in `role-authorization.spec.ts`. When you change the hierarchy, update that table.
+
+### PINs
+- A POS PIN is 4–6 digits, hashed with bcrypt (cost 12) at rest, never stored or returned raw. Expose only a derived `isPinSet` boolean (see `StaffService.toStaffView`).
+- `CreateStaffSchema.pin` is optional: hash it on create so the account is POS-ready immediately, or set it later via `set-pin`. Hash PINs in `StaffService`, never in a controller.
+
+### PIN login & session lifecycle
+- `POST /auth/pin-login` is `@Public()` + throttled. Derive `tenantId` from the staff record, **never** from the client.
+- **Constant-time:** run exactly ONE bcrypt comparison on every path — against the real hash, or `DUMMY_PIN_HASH` when the staff/PIN is absent — so response timing cannot enumerate staff IDs. Collapse unknown-staff / no-PIN / wrong-PIN into a single `INVALID_PIN`. Disclose status codes (`STAFF_INACTIVE`, `POS_ACCESS_DENIED`) only **after** the PIN is proven correct.
+- When a `deviceId` is supplied it **must** resolve to a device in the tenant — throw `DEVICE_NOT_FOUND` rather than silently falling back to the staff's default branch, which would bind the session to the wrong branch. The default-branch fallback applies only when no `deviceId` was given.
+- A PIN login creates a `StaffSession` and embeds its `sessionId` in the JWT payload. `logout()` reads `sessionId` back and idempotently closes the session (`updateMany`, never throws). **Rule: any session-bound token must carry its session id so logout can close it — never leave orphaned `isActive` sessions.** Admins force-close via `PATCH /staff/sessions/:sessionId/end`. POS PIN tokens are 8h with no refresh — the terminal re-authenticates per shift (a deliberate choice; if you change it, decide consciously and document it).
+
+### Auth hardening (applies to all auth code)
+- **Verify before acting:** `jwtService.decode()` does **not** check the signature. Any code that performs a side effect from token claims (clearing a refresh token, closing a session) must `verifyAsync()` first (wrap in try/catch; `ignoreExpiration: true` is fine for logout). `decode()` is acceptable only for non-authoritative reads.
+- **Never return `req.user` raw** from an endpoint — it's the full Prisma row (password, pinHash, refreshToken). Project through `AuthService.toPublicUser` (see `GET /auth/me`).
+- **Never spread a DTO into Prisma** (`data: { ...dto }`) — explicitly pick allowed fields so a client can't mass-assign columns (`role`, `isActive`, `pinHash`, ...). The global `ValidationPipe` runs with `whitelist: true`, but explicit picks are the real guard.
+- When a passport strategy extracts a value (e.g. the raw refresh token), attach it to `req.user` in `validate()` so the controller has a single source of truth — don't re-extract it in the handler from a possibly-different location.
+
+### Secret stripping
+- Build public user/DTO shapes by **explicitly picking** safe fields. Never spread-then-overwrite a secret (`{ ...rest, refreshToken: null }`) — a renamed or newly added secret column would silently leak. See `AuthService.toPublicUser`.
+
+### Audit logging
+- Annotate a handler with `@LogActivity(action, module)` to record a `StaffActivityLog` on a successful response. The `ActivityLogInterceptor` is registered **once, globally, in `AppModule`** (alongside the `APP_GUARD`s) and is a no-op for handlers without the decorator. It resolves staff/tenant/branch from the request context, never from the handler.
+- High-privilege mutations must be audited. Every staff-management mutation (`createStaff`, `updateStaff`, `toggleActive`, `togglePosAccess`, `setPin`, `endSession`) carries a `@LogActivity(StaffActivityAction.STAFF_*, StaffActivityModule.STAFF)`. Add a matching action when you add such an endpoint.
+- `APP_INTERCEPTOR` / `APP_GUARD` bind globally regardless of which module declares them — declaring one in a feature module just risks duplicate execution. Register global guards/interceptors only in `AppModule`.
+- `@Roles(...)` always takes `UserRole` enum constants, never raw strings — a typo in a string silently breaks authorization with no type error.
+
+### Testing pure logic
+- Pure business-logic helpers (no Prisma, no DI) get a co-located `*.spec.ts` exercised as a decision table — `role-authorization.spec.ts` is the reference. Specs that use `@repo/types` runtime values rely on the Jest `moduleNameMapper` that points `@repo/types` at its TypeScript source (`apps/api/package.json`).
+
+---
+
+## 18. What you must never do
 
 - Never introduce a new state management library.
 - Never introduce a new HTTP client library.
@@ -274,3 +317,13 @@ store/<domain>Store.ts    ← Zustand slice per domain concern
 - Never create a Zod schema or enum that already exists in `@repo/types`.
 - Never define a React component in the same file as a Zustand store.
 - Never use `console.log` in committed production code paths.
+- Never put a per-staff management action (set-pin, toggle-active, role change) on `AuthController` — it belongs on `StaffController`.
+- Never register an `APP_GUARD` or `APP_INTERCEPTOR` in a feature module — they bind globally regardless of location; register once in `AppModule`.
+- Never branch a PIN-login response before running a (real or dummy) bcrypt comparison, and never reveal account status before the PIN is validated — it enables staff-ID enumeration.
+- Never issue a session-bound token without embedding its session id, and never leave a `StaffSession` active after logout.
+- Never build a public DTO by spreading the full record and overwriting a secret — explicitly pick the safe fields.
+- Never spread a request DTO straight into a Prisma `create`/`update` — pick allowed fields explicitly (mass-assignment guard).
+- Never perform a DB side effect from `jwtService.decode()` output — verify the signature with `verifyAsync()` first.
+- Never return `req.user` directly from an endpoint — it's the raw Prisma row; project it through `toPublicUser`.
+- Never write `@Roles('ADMIN', ...)` with raw strings — use `UserRole` enum constants.
+- Never silently fall back when an explicitly supplied identifier (e.g. `deviceId`) fails to resolve — surface a coded error.

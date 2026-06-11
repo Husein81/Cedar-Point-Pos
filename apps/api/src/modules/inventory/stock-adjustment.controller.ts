@@ -8,10 +8,16 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  StaffActivityAction,
+  StaffActivityModule,
+  UserRole,
+} from '@repo/types';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto.js';
 import { StockAdjustmentService } from './stock-adjustment.service.js';
 
@@ -26,7 +32,11 @@ export class StockAdjustmentController {
    * Create a stock adjustment (ADD, REMOVE, or SET)
    */
   @Post()
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @LogActivity(
+    StaffActivityAction.STOCK_ADJUSTED,
+    StaffActivityModule.INVENTORY,
+  )
   async adjustStock(
     @Req() req: Request,
     @Body() adjustmentDto: CreateStockAdjustmentDto,
@@ -46,7 +56,7 @@ export class StockAdjustmentController {
    * Get adjustment history with filters
    */
   @Get()
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getAdjustmentHistory(@Req() req: Request) {
     const queryDto = req.query;
     const { tenantId } = req.user as { tenantId: string };
@@ -57,7 +67,7 @@ export class StockAdjustmentController {
    * Get adjustment summary statistics
    */
   @Get('summary')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getAdjustmentSummary(
     @Req() req: Request,
     @Query('branchId') branchId?: string,
@@ -77,7 +87,7 @@ export class StockAdjustmentController {
    * Get adjustment history for a specific inventory item
    */
   @Get('inventory/:branchId/:productId')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getInventoryAdjustmentHistory(
     @Req() req: Request,
     @Param('branchId') branchId: string,

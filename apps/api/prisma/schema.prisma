@@ -47,6 +47,8 @@ model Tenant {
   refunds             Refund[]
   cashMovements       CashMovement[]
   orderSequences      OrderSequence[]
+  activityLogs        StaffActivityLog[]
+  staffSessions       StaffSession[]
 }
 
 model Currency {
@@ -82,6 +84,10 @@ model User {
   phone               String?              @unique
   username            String               @unique
   password            String
+  pinHash             String? // bcrypt-hashed 4-6 digit PIN for POS login
+  hasPosAccess        Boolean              @default(true) // POS register access, separate from isActive
+  branchId            String? // default branch assignment
+  lastLoginAt         DateTime?
   avatar              String?
   role                UserRole             @default(CASHIER)
   isActive            Boolean              @default(true)
@@ -101,7 +107,13 @@ model User {
   cashMovements       CashMovement[]
   shiftSchedules      ShiftSchedule[]
   schedulesPublished  ShiftSchedule[]      @relation("SchedulePublishedBy")
+  activityLogs        StaffActivityLog[]
+  staffSessions       StaffSession[]
+  branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+   @@index([tenantId, role])
+  @@index([tenantId, branchId])
 }
 
 model Branch {
@@ -127,6 +139,8 @@ model Branch {
   refunds          Refund[]
   cashMovements    CashMovement[]
   orderSequences   OrderSequence[]
+  staffSessions    StaffSession[]
+  staffMembers     User[]             @relation("UserBranch")
 }
 
 model POSDevice {
@@ -881,12 +895,57 @@ model ShiftSchedule {
   @@index([tenantId, status])
 }
 
+//
+// ---------- STAFF ACTIVITY LOG (Audit Trail) ----------
+//
+model StaffActivityLog {
+  id        String   @id @default(uuid())
+  staffId   String
+  tenantId  String
+  branchId  String?
+  action    String // e.g. "REFUND_CREATED", "DISCOUNT_APPLIED", "ORDER_CANCELLED"
+  module    String // e.g. "orders", "inventory", "shifts"
+  metadata  Json? // { orderId, amount, reason, ... }
+  createdAt DateTime @default(now())
+
+  staff  User   @relation(fields: [staffId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, module, createdAt])
+}
+
+//
+// ---------- STAFF SESSION (POS PIN Login Sessions) ----------
+//
+model StaffSession {
+  id        String    @id @default(uuid())
+  staffId   String
+  tenantId  String
+  branchId  String
+  deviceId  String?
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  isActive  Boolean   @default(true)
+
+  staff  User   @relation(fields: [staffId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([staffId, isActive])
+  @@index([tenantId, branchId, isActive])
+}
+
 enum UserRole {
   SYSTEM_ADMIN
   ADMIN
   MANAGER
   CASHIER
   KITCHEN
+  WAITER // Restaurant floor staff
+  DRIVER // Delivery staff
+  INVENTORY_STAFF // Warehouse / stock staff
 }
 
 enum BusinessType {

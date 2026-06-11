@@ -139,13 +139,23 @@ Larger features split into multiple services — e.g. `inventory/` has `inventor
 3. `RolesGuard` (checks `@Roles(UserRole.X)`)
 
 ### Auth
-- Two parallel auth flows:
-  - **POS / mobile**: `POST /auth/sign-in` returns `{ user, accessToken, refreshToken }`. Client stores `accessToken` in `localStorage` and sends `Authorization: Bearer ...`.
+- Three auth flows:
+  - **POS / mobile (password)**: `POST /auth/sign-in` returns `{ user, accessToken, refreshToken }`. Client stores `accessToken` in `localStorage` and sends `Authorization: Bearer ...`.
+  - **POS terminal (PIN)**: `POST /auth/pin-login` (`@Public()`, throttled) returns `{ user, accessToken, sessionId }`. The terminal supplies a `staffId` + numeric PIN; `tenantId` is derived from the staff record server-side. Short-lived (8h) token, no refresh token. See PIN auth notes below.
   - **System admin**: `POST /auth/admin-sign-in` sets **httpOnly cookies** `sa_token` + `sa_refresh_token`.
 - JWT strategy extracts from **either** the bearer header **or** the `sa_token` cookie — see [strategies/jwt.strategy.ts](apps/api/src/modules/auth/strategies/jwt.strategy.ts).
 - A `TokenBlacklistService` invalidates tokens on logout until they expire.
 - Refresh tokens are bcrypt-hashed at rest on `User.refreshToken`.
-- `JwtPayload` is `{ id, username, tenantId?, role }`. The whole `User` object is hydrated onto `request.user` by `validate()`.
+- `JwtPayload` is `{ id, username, tenantId?, role, sessionId? }`. `sessionId` is present only for PIN logins so `logout()` can close the `StaffSession`. The whole `User` object is hydrated onto `request.user` by `validate()`.
+
+### Staff management & PIN auth ([modules/staff/](apps/api/src/modules/staff), [modules/auth/](apps/api/src/modules/auth))
+- Staff are `User` rows. Tenant-side CRUD + security toggles live in `StaffController`/`StaffService`; PIN actions are staff-management and live there too (`PATCH /staff/:id/set-pin`). `AuthController` is only login/logout/refresh/pin-login.
+- **Role hierarchy** is centralized in [common/role-authorization.ts](apps/api/src/modules/common/role-authorization.ts): `assertCanManageRole(actorRole, targetRole)` (ADMIN manages anyone, MANAGER only non-privileged staff, others rejected) and `assertAssignableRole` (never `SYSTEM_ADMIN`). Pure, self-contained, and unit-tested as a table in `role-authorization.spec.ts`.
+- **PINs**: 4–6 digits, bcrypt cost 12, never returned raw — services expose a derived `isPinSet`. `CreateStaffSchema.pin` is optional (hash on create, or set later).
+- **PIN login is constant-time**: exactly one bcrypt compare runs on every path (real hash or `DUMMY_PIN_HASH`) so timing can't enumerate staff IDs; unknown/no-PIN/wrong-PIN all return `INVALID_PIN`, and status codes are revealed only after a valid PIN. An explicit but unknown `deviceId` throws `DEVICE_NOT_FOUND` (no silent branch fallback). The 8h token has no refresh — terminals re-auth per shift.
+- **StaffSession lifecycle**: `pin-login` creates a `StaffSession` and embeds `sessionId` in the JWT; `logout()` closes it idempotently. Admins force-close via `PATCH /staff/sessions/:sessionId/end`.
+- **Audit log**: annotate any handler with `@LogActivity(action, module)` to write a `StaffActivityLog` on success. The `ActivityLogInterceptor` is registered globally in [app.module.ts](apps/api/src/app.module.ts) (with the guards) and is a no-op without the decorator. Used in orders, refunds, shifts, inventory, and **all staff-management mutations** (`STAFF_*` actions).
+- **Auth hardening conventions** (whole `auth` module): side effects from token claims require `jwtService.verifyAsync()` (not `decode()`); endpoints project `req.user` through `toPublicUser` before returning (never leak the raw Prisma row); Prisma writes pick fields explicitly (no `...dto` spread — the global `ValidationPipe` also runs `whitelist: true`); a passport strategy attaches extracted values (e.g. the raw refresh token) to `req.user` so handlers have one source of truth.
 
 ### Decorators / helpers ([modules/common/](apps/api/src/modules/common))
 - `@Public()` — skip JWT guard
@@ -278,6 +288,8 @@ utils/       Shared utilities (financial math, modifier helpers, ...)
 | Inventory deduction (post-commit) | [apps/api/src/modules/inventory/inventory-deduction.service.ts](apps/api/src/modules/inventory/inventory-deduction.service.ts) |
 | Kitchen gateway | [apps/api/src/modules/kitchen/kitchen.gateway.ts](apps/api/src/modules/kitchen/kitchen.gateway.ts) |
 | Common decorators / guards / pipes | [apps/api/src/modules/common/](apps/api/src/modules/common/) |
+| Role hierarchy helpers (+ spec) | [apps/api/src/modules/common/role-authorization.ts](apps/api/src/modules/common/role-authorization.ts) |
+| Staff management + PIN + audit log | [apps/api/src/modules/staff/](apps/api/src/modules/staff/) |
 | Shared enums + schemas | [packages/types/src/enums.ts](packages/types/src/enums.ts), [packages/types/src/schemas.ts](packages/types/src/schemas.ts) |
 | Shared UI primitives | [packages/ui/src/components/](packages/ui/src/components/) |
 | POS root | [apps/pos-desktop/src/routes/__root.tsx](apps/pos-desktop/src/routes/__root.tsx) |
@@ -302,3 +314,5 @@ utils/       Shared utilities (financial math, modifier helpers, ...)
 - **Order number recovery**: if `P2002` hits on `(branchId, orderNumber)`, the service reconciles `OrderSequence.lastValue` from the latest existing order — don't reset it manually.
 - **Inventory deduction is OUTSIDE the order transaction by design.** Don't move it back in; the comment in `processPayment` explains why (Serializable lock deadlock).
 - **Restaurant vs retail completion**: retail orders auto-complete on full payment; restaurant orders go `PAID` and require explicit completion. Stock deduction only fires for retail in `processPayment` — restaurant deducts on `updateStatus → COMPLETED`.
+- **`@repo/types` is built (tsup → `dist/`)**: after editing `packages/types/src/**`, run `pnpm --filter @repo/types build` or you get stale `has no exported member` errors in the apps. Pair this with `pnpm --filter api db:generate` after `schema.prisma` changes.
+- **Jest can't load the ESM `@repo/types` dist** (the API test config is CJS via ts-jest). The Jest `moduleNameMapper` in [apps/api/package.json](apps/api/package.json) maps `@repo/types` to its TypeScript **source** so ts-jest compiles it. Type-only imports are erased and never hit this; specs using `@repo/types` **values** (e.g. `UserRole`) depend on that mapping.

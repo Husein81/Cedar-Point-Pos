@@ -74,8 +74,44 @@ export const UserRole = {
   MANAGER: "MANAGER",
   CASHIER: "CASHIER",
   KITCHEN: "KITCHEN",
+  WAITER: "WAITER", // Restaurant floor staff
+  DRIVER: "DRIVER", // Delivery staff
+  INVENTORY_STAFF: "INVENTORY_STAFF", // Warehouse / stock staff
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+// Canonical action names recorded in the StaffActivityLog audit trail.
+// Backend writes these via the @LogActivity decorator; frontends use them for display.
+export const StaffActivityAction = {
+  REFUND_CREATED: "REFUND_CREATED",
+  ORDER_CANCELLED: "ORDER_CANCELLED",
+  DISCOUNT_APPLIED: "DISCOUNT_APPLIED",
+  STOCK_ADJUSTED: "STOCK_ADJUSTED",
+  SHIFT_OPENED: "SHIFT_OPENED",
+  SHIFT_CLOSED: "SHIFT_CLOSED",
+  DRAWER_OPENED: "DRAWER_OPENED",
+  // Staff management (high-privilege; always audited)
+  STAFF_CREATED: "STAFF_CREATED",
+  STAFF_UPDATED: "STAFF_UPDATED",
+  STAFF_ACTIVE_TOGGLED: "STAFF_ACTIVE_TOGGLED",
+  STAFF_POS_TOGGLED: "STAFF_POS_TOGGLED",
+  STAFF_PIN_SET: "STAFF_PIN_SET",
+  STAFF_SESSION_ENDED: "STAFF_SESSION_ENDED",
+} as const;
+export type StaffActivityAction =
+  (typeof StaffActivityAction)[keyof typeof StaffActivityAction];
+
+// Module a staff activity belongs to (used for filtering the audit trail).
+export const StaffActivityModule = {
+  ORDERS: "orders",
+  INVENTORY: "inventory",
+  PAYMENTS: "payments",
+  SHIFTS: "shifts",
+  REFUNDS: "refunds",
+  STAFF: "staff",
+} as const;
+export type StaffActivityModule =
+  (typeof StaffActivityModule)[keyof typeof StaffActivityModule];
 
 export const PaymentMethod = {
   CASH: "CASH",

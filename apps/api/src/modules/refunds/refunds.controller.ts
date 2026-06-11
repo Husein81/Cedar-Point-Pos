@@ -1,7 +1,12 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
-import { UserRole } from '@repo/types';
+import {
+  StaffActivityAction,
+  StaffActivityModule,
+  UserRole,
+} from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import { type CreateRefundDto } from './dto/create-refund.dto.js';
 import { RefundsService } from './refunds.service.js';
 
@@ -63,6 +68,7 @@ export class RefundsController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @LogActivity(StaffActivityAction.REFUND_CREATED, StaffActivityModule.REFUNDS)
   createRefund(@Req() req: Request, @Body() dto: CreateRefundDto) {
     const user = req.user as { id: string; tenantId: string };
     return this.refundsService.createRefund(user.tenantId, user.id, dto);

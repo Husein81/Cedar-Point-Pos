@@ -27,15 +27,15 @@ function ActionCell({ transfer }: { transfer: TransferWithDetails }) {
     <Button
       variant="ghost"
       size="icon"
-      title="View transfer details"
       onClick={() =>
         openModal(
           "Transfer Details",
-          <TransferDetailsModal transfer={transfer} />
+          <TransferDetailsModal transfer={transfer} />,
         )
       }
     >
       <Eye className="h-4 w-4" />
+      View transfer details
     </Button>
   );
 }
@@ -69,9 +69,7 @@ export const transferColumns: ColumnDef<TransferWithDetails>[] = [
     id: "to",
     header: "To Branch",
     cell: ({ row }) => (
-      <span className="font-medium">
-        {row.original.toBranch?.name ?? "—"}
-      </span>
+      <span className="font-medium">{row.original.toBranch?.name ?? "—"}</span>
     ),
   },
   {
@@ -81,12 +79,11 @@ export const transferColumns: ColumnDef<TransferWithDetails>[] = [
       const items = row.original.items ?? [];
       const totalQty = items.reduce(
         (sum, item) => sum + Number(item.quantity),
-        0
+        0,
       );
       return (
         <span className="text-sm">
-          {items.length} product{items.length !== 1 ? "s" : ""} · {totalQty}{" "}
-          qty
+          {items.length} product{items.length !== 1 ? "s" : ""} · {totalQty} qty
         </span>
       );
     },

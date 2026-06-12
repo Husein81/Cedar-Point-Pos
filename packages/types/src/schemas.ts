@@ -261,6 +261,7 @@ export const ProductSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
+  imageKey: z.string().nullable().optional(),
   sku: z.string().nullable().optional(),
   barcode: z.string().nullable().optional(),
   price: decimal.nullable().optional(),

@@ -198,7 +198,7 @@ context/     Theme provider
 dto/         Client-side types/Zod for requests/responses
 electron/    main.ts, preload.ts, IPC helpers
 hooks/       useX hooks — each wraps TanStack Query for a domain
-lib/         Supabase client + image upload helpers
+lib/         Misc client helpers (queryClient, ...). Image uploads go through apis/mediaApi.ts → hooks/useUploadImage.ts → POST /media (B2-backed)
 pdf/         React-PDF receipt templates
 routes/      TanStack Router file-based routes (+ generated routeTree.gen.ts)
 store/       Zustand stores (auth, order, branch, kitchen, refund, modal, keypad)

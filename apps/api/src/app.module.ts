@@ -16,6 +16,7 @@ import { FloorsModule } from './modules/floors/floors.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { KitchenModule } from './modules/kitchen/kitchen.module.js';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module.js';
+import { MediaModule } from './modules/media/media.module.js';
 import { ModifierGroupsModule } from './modules/modifier-groups/modifier-groups.module.js';
 import { OffersModule } from './modules/offers/offers.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
@@ -65,6 +66,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     TenantModule,
     KitchenModule,
     LoyaltyModule,
+    MediaModule,
     UsersModule,
     TransfersModule,
     OrdersModule,

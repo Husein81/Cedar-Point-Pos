@@ -1,15 +1,40 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
+import {
+  STORAGE_PROVIDER,
+  type StorageProvider,
+} from '../media/storage/storage-provider.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+  ) {}
+
+  /**
+   * Derive the public `imageUrl` from the durable `imageKey` when present,
+   * falling back to any legacy stored URL (pre-B2 Supabase rows). Keeping the
+   * key as the source of truth means a CDN/bucket change is a one-line config
+   * edit, not a data migration.
+   */
+  private withImageUrl<
+    T extends { imageKey: string | null; imageUrl: string | null },
+  >(product: T): T {
+    return {
+      ...product,
+      imageUrl: product.imageKey
+        ? this.storage.getPublicUrl(product.imageKey)
+        : product.imageUrl,
+    };
+  }
 
   async getProductsByTenant(tenantId: string, branchId?: string) {
     const where: Prisma.ProductWhereInput = {
@@ -20,7 +45,7 @@ export class ProductsService {
       }),
     };
 
-    return await this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       where,
       include: {
         inventory: true,
@@ -32,6 +57,8 @@ export class ProductsService {
         subcategory: true,
       },
     });
+
+    return products.map((product) => this.withImageUrl(product));
   }
 
   async getProductsPaginated(
@@ -126,7 +153,7 @@ export class ProductsService {
       ]);
 
       return {
-        data,
+        data: data.map((product) => this.withImageUrl(product)),
         pagination: {
           page,
           limit,
@@ -141,7 +168,7 @@ export class ProductsService {
   }
 
   async getProductByBarcode(barcode: string, tenantId: string) {
-    return await this.prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: {
         barcode,
         tenantId,
@@ -153,10 +180,12 @@ export class ProductsService {
         inventory: true,
       },
     });
+
+    return product ? this.withImageUrl(product) : product;
   }
 
   async getProductById(id: string, tenantId: string) {
-    return await this.prisma.product.findFirst({
+    const product = await this.prisma.product.findFirst({
       where: { id, tenantId, deletedAt: null },
       include: {
         category: true,
@@ -164,6 +193,8 @@ export class ProductsService {
         inventory: true,
       },
     });
+
+    return product ? this.withImageUrl(product) : product;
   }
 
   async createProduct(data: Prisma.ProductCreateInput) {
@@ -172,7 +203,7 @@ export class ProductsService {
         data,
       });
 
-      return result;
+      return this.withImageUrl(result);
     } catch (error) {
       console.error('Error creating product:', error);
       throw new InternalServerErrorException('Failed to create product');
@@ -189,7 +220,7 @@ export class ProductsService {
         where: { id, tenantId },
         data,
       });
-      return result;
+      return this.withImageUrl(result);
     } catch (error) {
       console.error('Error updating product:', error);
       throw new InternalServerErrorException('Failed to update product');

@@ -81,7 +81,7 @@ export const sidebarSections: SidebarSection[] = [
         icon: "Warehouse",
         href: "/stock",
         tooltip: "Stock",
-        showFor: ["RETAIL"],
+        showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER", "CASHIER"],
       },
       {

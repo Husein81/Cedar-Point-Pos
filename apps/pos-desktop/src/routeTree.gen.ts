@@ -21,6 +21,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ReportsRouteRouteImport } from './routes/reports/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
+import { Route as StaffIndexRouteImport } from './routes/staff/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as PurchaseOrdersIndexRouteImport } from './routes/purchase-orders/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
@@ -30,6 +31,7 @@ import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
+import { Route as StaffStaffIdRouteImport } from './routes/staff/$staffId'
 import { Route as SettingsTenantRouteImport } from './routes/settings/tenant'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
@@ -109,6 +111,11 @@ const SuppliersIndexRoute = SuppliersIndexRouteImport.update({
   path: '/suppliers/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StaffIndexRoute = StaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -152,6 +159,11 @@ const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
 const SuppliersSupplierIdRoute = SuppliersSupplierIdRouteImport.update({
   id: '/suppliers/$supplierId',
   path: '/suppliers/$supplierId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
+  id: '/staff/$staffId',
+  path: '/staff/$staffId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsTenantRoute = SettingsTenantRouteImport.update({
@@ -276,6 +288,7 @@ export interface FileRoutesByFullPath {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -285,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/products/': typeof ProductsIndexRoute
   '/purchase-orders/': typeof PurchaseOrdersIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -317,6 +331,7 @@ export interface FileRoutesByTo {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
   '/customers': typeof CustomersIndexRoute
@@ -326,6 +341,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsIndexRoute
   '/purchase-orders': typeof PurchaseOrdersIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/staff': typeof StaffIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
 export interface FileRoutesById {
@@ -359,6 +375,7 @@ export interface FileRoutesById {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
   '/customers/': typeof CustomersIndexRoute
@@ -368,6 +385,7 @@ export interface FileRoutesById {
   '/products/': typeof ProductsIndexRoute
   '/purchase-orders/': typeof PurchaseOrdersIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/staff/': typeof StaffIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
 export interface FileRouteTypes {
@@ -402,6 +420,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -411,6 +430,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/purchase-orders/'
     | '/settings/'
+    | '/staff/'
     | '/suppliers/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -443,6 +463,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories'
     | '/customers'
@@ -452,6 +473,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/purchase-orders'
     | '/settings'
+    | '/staff'
     | '/suppliers'
   id:
     | '__root__'
@@ -484,6 +506,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories/'
     | '/customers/'
@@ -493,6 +516,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/purchase-orders/'
     | '/settings/'
+    | '/staff/'
     | '/suppliers/'
   fileRoutesById: FileRoutesById
 }
@@ -518,6 +542,7 @@ export interface RootRouteChildren {
   SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsTenantRoute: typeof SettingsTenantRoute
+  StaffStaffIdRoute: typeof StaffStaffIdRoute
   SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   CustomersIndexRoute: typeof CustomersIndexRoute
@@ -527,6 +552,7 @@ export interface RootRouteChildren {
   ProductsIndexRoute: typeof ProductsIndexRoute
   PurchaseOrdersIndexRoute: typeof PurchaseOrdersIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
+  StaffIndexRoute: typeof StaffIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
 }
 
@@ -616,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuppliersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/staff/': {
+      id: '/staff/'
+      path: '/staff'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/': {
       id: '/settings/'
       path: '/settings'
@@ -677,6 +710,13 @@ declare module '@tanstack/react-router' {
       path: '/suppliers/$supplierId'
       fullPath: '/suppliers/$supplierId'
       preLoaderRoute: typeof SuppliersSupplierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff/$staffId': {
+      id: '/staff/$staffId'
+      path: '/staff/$staffId'
+      fullPath: '/staff/$staffId'
+      preLoaderRoute: typeof StaffStaffIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/tenant': {
@@ -856,6 +896,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsLoyaltyRoute: SettingsLoyaltyRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsTenantRoute: SettingsTenantRoute,
+  StaffStaffIdRoute: StaffStaffIdRoute,
   SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   CustomersIndexRoute: CustomersIndexRoute,
@@ -865,6 +906,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsIndexRoute: ProductsIndexRoute,
   PurchaseOrdersIndexRoute: PurchaseOrdersIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
+  StaffIndexRoute: StaffIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,
 }
 export const routeTree = rootRouteImport

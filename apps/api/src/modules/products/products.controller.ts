@@ -55,14 +55,21 @@ export class ProductsController {
     const body = req.body as Prisma.ProductCreateInput & {
       branchId?: string;
       imageUrl?: string;
+      imageKey?: string;
       categoryId?: string;
       subcategoryId?: string;
     };
     const { tenantId } = req.user as { tenantId: string };
 
     // Extract fields from body - remove tenantId and branchId (they'll be handled as relations)
-    const { branchId, categoryId, subcategoryId, imageUrl, ...productData } =
-      body;
+    const {
+      branchId,
+      categoryId,
+      subcategoryId,
+      imageUrl,
+      imageKey,
+      ...productData
+    } = body;
 
     const createData: Prisma.ProductCreateInput = {
       ...productData,
@@ -71,6 +78,7 @@ export class ProductsController {
       ...(categoryId && { category: { connect: { id: categoryId } } }),
       ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
       ...(imageUrl && { imageUrl }),
+      ...(imageKey && { imageKey }),
     };
     return this.productsService.createProduct(createData);
   }
@@ -84,17 +92,25 @@ export class ProductsController {
     const body = req.body as Prisma.ProductUpdateInput & {
       branchId?: string;
       imageUrl?: string;
+      imageKey?: string;
       categoryId?: string;
       subcategoryId?: string;
     };
 
-    // Handle relations and imageUrl update explicitly
-    const { imageUrl, categoryId, subcategoryId, branchId, ...productData } =
-      body;
+    // Handle relations and image fields update explicitly
+    const {
+      imageUrl,
+      imageKey,
+      categoryId,
+      subcategoryId,
+      branchId,
+      ...productData
+    } = body;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...productData,
       ...(imageUrl !== undefined && { imageUrl }),
+      ...(imageKey !== undefined && { imageKey }),
       ...(categoryId && { category: { connect: { id: categoryId } } }),
       ...(subcategoryId && { subcategory: { connect: { id: subcategoryId } } }),
     };

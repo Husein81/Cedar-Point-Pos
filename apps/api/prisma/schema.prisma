@@ -203,6 +203,7 @@ model Product {
   name                String
   description         String?
   imageUrl            String?
+  imageKey            String?                     // storage object key; imageUrl is derived from this for B2-backed media
   sku                 String?                     @unique
   barcode             String?                     @unique
   price               Decimal?                    @default(0) @db.Decimal(10, 2)

@@ -18,7 +18,7 @@ import { useBranchStore } from "@/store/branchStore";
 import { useAdjustStock } from "@/hooks/useStock";
 import { useState, useRef, useMemo } from "react";
 import { useBranchesByTenant } from "@/hooks/useBranch";
-import { uploadProductImage } from "@/lib/uploadImage";
+import { useUploadProductImage } from "@/hooks/useUploadImage";
 import type { Product } from "@repo/types";
 
 type Props = {
@@ -33,6 +33,7 @@ export const ProductForm = ({ product, onCreated }: Props) => {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const adjustStock = useAdjustStock();
+  const uploadImage = useUploadProductImage();
 
   const isEdit = Boolean(product);
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
@@ -87,24 +88,30 @@ export const ProductForm = ({ product, onCreated }: Props) => {
       try {
         const stockValue = value.stock ? Number(value.stock) : 0;
 
-        // Upload image if a new file is selected
-        let imageUrl = value.imageUrl;
+        // Resolve the image fields to persist: upload a newly-selected file and
+        // store its key, clear an explicitly removed image, or leave the
+        // existing one untouched. `imageUrl` is cleared whenever `imageKey`
+        // changes so a stale legacy URL can't shadow the new key.
+        const imageFields: {
+          imageKey?: string | null;
+          imageUrl?: string | null;
+        } = {};
         if (imageFile) {
           setIsUploadingImage(true);
           try {
-            const uploadResult = await uploadProductImage(
-              imageFile,
-              product?.id,
-            );
-            imageUrl = uploadResult.url;
-          } catch (error) {
-            console.error("Failed to upload image:", error);
-            alert("Failed to upload image. Please try again.");
+            const { key } = await uploadImage.mutateAsync(imageFile);
+            imageFields.imageKey = key;
+            imageFields.imageUrl = null;
+          } catch {
+            // useUploadProductImage already surfaced the error toast.
             setIsUploadingImage(false);
             return;
           } finally {
             setIsUploadingImage(false);
           }
+        } else if (!imagePreview) {
+          imageFields.imageKey = null;
+          imageFields.imageUrl = null;
         }
 
         const data = {
@@ -117,7 +124,7 @@ export const ProductForm = ({ product, onCreated }: Props) => {
           categoryId: value.categoryId || undefined,
           subcategoryId: value.subcategoryId || undefined,
           branchId: value.branchId === "all" ? (product ? null : undefined) : (value.branchId || (product ? null : undefined)),
-          imageUrl: imageUrl || undefined,
+          ...imageFields,
           isActive: value.isActive,
           isModifiable: value.isModifiable,
         };

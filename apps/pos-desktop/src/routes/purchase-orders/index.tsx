@@ -2,11 +2,12 @@ import { PurchaseOrderForm } from "@/components/purchase-orders/PurchaseOrderFor
 import TitleBar from "@/components/title-bar";
 import { getPurchaseOrdersColumns } from "@/constants/columns/purchaseOrderColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { usePurchaseOrdersPaginated } from "@/hooks/usePurchaseOrder";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 export const Route = createFileRoute("/purchase-orders/")({
   component: RouteComponent,
@@ -16,9 +17,17 @@ export const Route = createFileRoute("/purchase-orders/")({
 });
 
 function RouteComponent() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    page,
+    pageSize,
+    setPage,
+    setSearchQuery,
+    searchQuery,
+    onPageSizeChange,
+  } = usePaginationState({
+    initialPage: 1,
+    initialPageSize: 10,
+  });
 
   const {
     data: purchaseOrdersResponse,
@@ -44,11 +53,6 @@ function RouteComponent() {
     openModal("Create Purchase Order", <PurchaseOrderForm />);
   };
 
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPage(1);
-  };
-
   const totalCount = purchaseOrdersResponse?.pagination?.totalCount ?? 0;
   const totalPages =
     purchaseOrdersResponse?.pagination?.totalPages ??
@@ -67,7 +71,7 @@ function RouteComponent() {
         onRefetch={refetch}
         actions={
           <Button onClick={handleCreate} iconName="Plus">
-            New Purchase Order
+            New Purchase
           </Button>
         }
         search={{
@@ -84,7 +88,7 @@ function RouteComponent() {
           pageSize,
           rows: totalCount,
           onPageChange: setPage,
-          onPageSizeChange: handlePageSizeChange,
+          onPageSizeChange,
         }}
       />
     </div>

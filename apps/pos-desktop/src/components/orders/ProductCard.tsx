@@ -101,7 +101,13 @@ const ProductCard = ({ product }: Props) => {
           ${formatPrice(Number(product.price))}
         </div>
 
-        <Activity mode={product.isModifiable ? "visible" : "hidden"}>
+        <Activity
+          mode={
+            product.isModifiable && product.modifiers?.length! > 0
+              ? "visible"
+              : "hidden"
+          }
+        >
           <div className="absolute right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
             <Icon name="Settings2" className="size-4" />
           </div>

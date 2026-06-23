@@ -92,9 +92,7 @@ export type PublicUser = Omit<User, "password">;
 // ===========================================
 
 // A POS PIN is a 4-6 digit numeric code (hashed server-side, never stored raw).
-const pin = z
-  .string()
-  .regex(/^\d{4,6}$/, "PIN must be 4 to 6 digits");
+const pin = z.string().regex(/^\d{4,6}$/, "PIN must be 4 to 6 digits");
 
 export const CreateStaffSchema = z.object({
   name: z.string().min(1),
@@ -197,7 +195,6 @@ export const StaffSessionSchema = z.object({
 });
 export type StaffSession = z.infer<typeof StaffSessionSchema>;
 
-
 // Branch
 export const BranchSchema = z.object({
   id: uuid,
@@ -272,6 +269,33 @@ export const ProductSchema = z.object({
   isActive: z.boolean().default(true),
   deletedAt: isoDate.nullable().optional(),
   isModifiable: z.boolean().default(false),
+  modifiers: z
+    .array(
+      z.object({
+        id: uuid,
+        tenantId: uuid,
+        groupId: uuid,
+        productId: uuid.nullable().optional(),
+        name: z.string(),
+        price: decimal.default("0"),
+        deletedAt: isoDate.nullable().optional(),
+        productAssignments: z
+          .array(
+            z.object({
+              id: uuid,
+              productId: uuid,
+              product: z
+                .object({
+                  id: uuid,
+                  name: z.string(),
+                })
+                .optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .nullable(),
   createdAt: isoDate,
   inventory: z
     .array(

@@ -1,5 +1,6 @@
 import TitleBar from "@/components/title-bar";
 import { StockAdjustmentForm } from "@/components/stock/StockAdjustmentForm";
+import { TransfersList } from "@/components/stock/TransfersList";
 import { stockColumns } from "@/constants/columns/stockColumn";
 import { inventoryHistoryColumns } from "@/constants/columns/inventoryHistoryColumn";
 import {
@@ -12,18 +13,23 @@ import { useModalStore } from "@/store/modalStore";
 import { Badge, Button, DataTable, Icon, Shad } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+import { useBranchesByTenant } from "@/hooks/useBranch";
 
 export const Route = createFileRoute("/stock")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const [activeTab, setActiveTab] = useState("inventory");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
 
+  const { user } = useAuthStore();
   const { branchId } = useBranchStore();
+  const { data: branches = [] } = useBranchesByTenant(user?.tenantId);
 
   const {
     data: inventoryResponse,
@@ -66,31 +72,14 @@ function RouteComponent() {
 
   // Calculate pagination
   const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const inventoryData = inventory.slice(startIndex, endIndex);
+  const inventoryData = inventory.slice(startIndex, startIndex + pageSize);
   const totalPages = Math.ceil(inventory.length / pageSize);
 
   const stats = [
-    {
-      title: "Total Products",
-      value: totalProducts,
-      icon: "Package",
-    },
-    {
-      title: "In Stock",
-      value: inStock,
-      icon: "Package",
-    },
-    {
-      title: "Low Stock",
-      value: lowStock,
-      icon: "TriangleAlert",
-    },
-    {
-      title: "Out of Stock",
-      value: outOfStock,
-      icon: "PackageOpen",
-    },
+    { title: "Total Products", value: totalProducts, icon: "Package" },
+    { title: "In Stock", value: inStock, icon: "Package" },
+    { title: "Low Stock", value: lowStock, icon: "TriangleAlert" },
+    { title: "Out of Stock", value: outOfStock, icon: "PackageOpen" },
   ];
 
   const handleStockPageSizeChange = (pageSize: number) => {
@@ -103,11 +92,17 @@ function RouteComponent() {
     setHistoryPage(1);
   };
 
+  const tabs = [
+    { id: "inventory", label: "Inventory", icon: "Package" },
+    { id: "history", label: "History", icon: "History" },
+    { id: "transfers", label: "Transfers", icon: "ArrowLeftRight" },
+  ];
+
   return (
     <div className="space-y-4 pt-4">
       <TitleBar
         title={"Stock Management"}
-        subtitle={"Manage your stock levels"}
+        subtitle={"Manage your stock levels and branch transfers"}
       />
 
       {/* Stats Cards */}
@@ -141,37 +136,53 @@ function RouteComponent() {
         </Badge>
       )}
 
-      <DataTable
-        columns={stockColumns}
-        data={inventoryData}
-        isLoading={isLoading}
-        onRefetch={refetch}
-        actions={
-          <Button onClick={handleStockAdjustment} iconName="Plus">
-            Stock Adjustment
-          </Button>
-        }
-        pagination={{
-          rows: inventoryResponse?.pagination.totalCount || 0,
-          page,
-          pageSize,
-          totalPages,
-          onPageChange: setPage,
-          onPageSizeChange: handleStockPageSizeChange,
-        }}
-      />
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 border-b">
+        {tabs
+          .filter((tab) => branches.length > 1 || tab.id !== "transfers")
+          .map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                  isActive
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon name={tab.icon} className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+      </div>
 
-      {/* Inventory History Section */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold">Inventory History</h2>
-            <p className="text-sm text-muted-foreground">
-              Track all stock movements and adjustments
-            </p>
-          </div>
-        </div>
+      {/* Tab Content */}
+      {activeTab === "inventory" && (
+        <DataTable
+          columns={stockColumns}
+          data={inventoryData}
+          isLoading={isLoading}
+          onRefetch={refetch}
+          actions={
+            <Button onClick={handleStockAdjustment} iconName="Plus">
+              Stock Adjustment
+            </Button>
+          }
+          pagination={{
+            rows: inventoryResponse?.pagination.totalCount || 0,
+            page,
+            pageSize,
+            totalPages,
+            onPageChange: setPage,
+            onPageSizeChange: handleStockPageSizeChange,
+          }}
+        />
+      )}
 
+      {activeTab === "history" && (
         <DataTable
           columns={inventoryHistoryColumns}
           data={historyData}
@@ -186,7 +197,9 @@ function RouteComponent() {
             onPageSizeChange: handleHistoryPageSizeChange,
           }}
         />
-      </div>
+      )}
+
+      {activeTab === "transfers" && <TransfersList />}
     </div>
   );
 }

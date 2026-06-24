@@ -18,6 +18,8 @@ export const usePaginationState = ({
     setPage(1);
   };
 
+  const resetPage = () => setPage(1);
+
   return {
     page,
     setPage,
@@ -25,5 +27,6 @@ export const usePaginationState = ({
     onPageSizeChange,
     searchQuery,
     setSearchQuery,
+    resetPage,
   };
 };

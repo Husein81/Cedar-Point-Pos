@@ -22,6 +22,8 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
   );
 
   const isActive = (href: string) => {
+    if (pathname === "/tables" && href === "/") return true;
+
     return pathname === href || pathname.startsWith(href + "/");
   };
 

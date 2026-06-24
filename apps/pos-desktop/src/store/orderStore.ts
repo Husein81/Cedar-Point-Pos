@@ -328,7 +328,6 @@ export const useOrderStore = create<OrderStore>()(
 
         if (splitItems.length === 0) return null;
 
-        const newTabNumber = state.tabs.length + 1;
         const newTab: OrderTab = {
           id: generateTabId(),
           label: `Split from ${currentTab.label}`,

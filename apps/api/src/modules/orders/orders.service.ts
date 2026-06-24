@@ -5,12 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BusinessType,
-  LoyaltyDirection,
-  LoyaltyTransactionType,
   CashMovementReferenceType,
   CashMovementType,
+  LoyaltyDirection,
+  LoyaltyTransactionType,
   OrderStatus,
   OrderType,
   QueryParams,
@@ -20,16 +21,12 @@ import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
 import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
+import { OffersService } from '../offers/offers.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from '../tables/table-status.service.js';
-import { OffersService } from '../offers/offers.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
-import type {
-  CreateOrderDto,
-  PaymentDto,
-  CreateOrderDiscountDto,
-} from './dto/create-order.dto.js';
+import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
 
 type OrderQueryParams = QueryParams & {
   status?: OrderStatus;
@@ -43,7 +40,19 @@ type OrderQueryParams = QueryParams & {
 
 const VAT_RATE = 0.11; // 11% VAT
 
-import { EventEmitter2 } from '@nestjs/event-emitter';
+function formatOrderDate(date: Date): string {
+  const year = String(date.getFullYear()).slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+function getBranchCode(branchName: string): string {
+  return branchName
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+    .substring(0, 3);
+}
 
 @Injectable()
 export class OrdersService {
@@ -361,8 +370,8 @@ export class OrdersService {
         const discountValue =
           discount && typeof discount === 'object'
             ? {
-                type: (discount as CreateOrderDiscountDto).type,
-                value: (discount as CreateOrderDiscountDto).value,
+                type: discount.type,
+                value: discount.value,
               }
             : undefined;
 
@@ -407,18 +416,28 @@ export class OrdersService {
 
     await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
 
-    const currentYear = new Date().getFullYear().toString();
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { name: true },
+    });
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+
+    const dateStr = formatOrderDate(new Date());
+    const branchCode = getBranchCode(branch.name);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
         // fetch/upsert sequence
         const sequence = await tx.orderSequence.upsert({
-          where: { branchId_date: { branchId, date: currentYear } },
+          where: { branchId_date: { branchId, date: dateStr } },
           update: { lastValue: { increment: 1 } },
-          create: { tenantId, branchId, date: currentYear, lastValue: 1 },
+          create: { tenantId, branchId, date: dateStr, lastValue: 1 },
         });
 
-        const orderNumber = `${currentYear}-${sequence.lastValue.toString().padStart(5, '0')}`;
+        const seqStr = sequence.lastValue.toString().padStart(4, '0');
+        const orderNumber = `${dateStr}-${branchCode}-${seqStr}`;
 
         // Create the order
         const order = await tx.order.create({
@@ -471,24 +490,23 @@ export class OrdersService {
         error.code === 'P2002'
       ) {
         // Reconcile sequence outside the failed transaction
+        const prefix = `${dateStr}-${branchCode}-`;
         const latestOrder = await this.prisma.order.findFirst({
-          where: { branchId, orderNumber: { startsWith: `${currentYear}-` } },
+          where: { branchId, orderNumber: { startsWith: prefix } },
           orderBy: { orderNumber: 'desc' },
         });
 
         if (latestOrder && latestOrder.orderNumber) {
-          const lastNum = parseInt(
-            latestOrder.orderNumber.split('-')[1] || '0',
-            10,
-          );
+          const parts = latestOrder.orderNumber.split('-');
+          const lastNum = parseInt(parts[parts.length - 1] || '0', 10);
           if (!isNaN(lastNum)) {
             await this.prisma.orderSequence.upsert({
-              where: { branchId_date: { branchId, date: currentYear } },
+              where: { branchId_date: { branchId, date: dateStr } },
               update: { lastValue: lastNum }, // Next attempt will increment it
               create: {
                 tenantId,
                 branchId,
-                date: currentYear,
+                date: dateStr,
                 lastValue: lastNum,
               },
             });
@@ -523,18 +541,29 @@ export class OrdersService {
   }
 
   async getNextOrderNumber(tenantId: string, branchId: string) {
-    const currentYear = new Date().getFullYear().toString();
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { name: true },
+    });
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+
+    const dateStr = formatOrderDate(new Date());
+    const branchCode = getBranchCode(branch.name);
+
     const sequence = await this.prisma.orderSequence.findUnique({
       where: {
         branchId_date: {
           branchId,
-          date: currentYear,
+          date: dateStr,
         },
       },
     });
 
     const nextValue = (sequence?.lastValue || 0) + 1;
-    const orderNumber = `${currentYear}-${nextValue.toString().padStart(5, '0')}`;
+    const seqStr = nextValue.toString().padStart(4, '0');
+    const orderNumber = `${dateStr}-${branchCode}-${seqStr}`;
     return { orderNumber };
   }
 
@@ -1678,8 +1707,8 @@ export class OrdersService {
     );
   }
 
-  async sendToKitchen(tenantId: string, orderId: string) {
-    return this.prisma.$transaction(async (tx) => {
+  async sendToKitchen(tenantId: string, orderId: string): Promise<unknown> {
+    return await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
         select: {
@@ -1735,7 +1764,8 @@ export class OrdersService {
       });
 
       // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
-      let updatedOrder;
+      let updatedOrder: unknown;
+
       if (
         order.status === OrderStatus.DRAFT ||
         order.status === OrderStatus.CONFIRMED
@@ -1784,7 +1814,7 @@ export class OrdersService {
         OrderStatus.PAID,
       ]);
 
-      if (!editableStatuses.has(order.status as OrderStatus)) {
+      if (!editableStatuses.has(order.status)) {
         throw new BadRequestException(
           `Cannot add items to order with status ${order.status}`,
         );

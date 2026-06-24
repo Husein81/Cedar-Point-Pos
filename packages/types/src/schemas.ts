@@ -12,7 +12,6 @@ import {
   OrderStatus,
   OrderType,
   PaymentMethod,
-  PurchaseOrderStatus,
   ShiftCloseMode,
   ShiftCloseResult,
   ShiftScheduleStatus,

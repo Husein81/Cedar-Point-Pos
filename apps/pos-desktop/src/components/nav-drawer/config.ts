@@ -127,20 +127,20 @@ export const sidebarSections: SidebarSection[] = [
     label: "Finance",
     items: [
       {
-        label: "Purchases",
-        icon: "ClipboardList",
-        href: "/purchase-orders",
-        tooltip: "Purchase Orders",
-        showFor: ["RETAIL", "RESTAURANT"],
-        roles: ["ADMIN", "MANAGER"],
-      },
-      {
         label: "Invoices",
         icon: "FileText",
         href: "/invoices",
         tooltip: "Invoices",
         showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER", "CASHIER"],
+      },
+      {
+        label: "Purchases",
+        icon: "ClipboardList",
+        href: "/purchase-orders",
+        tooltip: "Purchase Orders",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
       },
       {
         label: "Refunds",

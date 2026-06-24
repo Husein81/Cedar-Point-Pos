@@ -18,7 +18,9 @@ let mainWindow: BrowserWindow | null = null;
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
-updateElectronApp();
+if (!isDev()) {
+  updateElectronApp();
+}
 
 // ✅ IPC HANDLER (ONCE)
 ipcMain.on("frame-action", (_event, action) => {

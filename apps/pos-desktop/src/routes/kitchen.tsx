@@ -60,6 +60,13 @@ function KitchenPage() {
       );
     }
 
+    if (filters.orderStatus === "ALL") {
+      filtered = filtered.filter(
+        (order) =>
+          order.status !== "COMPLETED" && order.status !== "FULLY_REFUNDED",
+      );
+    }
+
     // Sort: oldest first, refunded orders at the bottom
     return [...filtered].sort((a, b) => {
       const aIsRefunded = a.status === "FULLY_REFUNDED";

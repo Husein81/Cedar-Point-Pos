@@ -18,6 +18,7 @@ import { useOfflineQueueStore } from "@/store/offlineQueueStore";
 import { useNetworkStatus } from "@/context/NetworkContext";
 import { extractErrorMessage } from "@/utils/error";
 import { toItemDto } from "@/utils/financial";
+import { generateLocalOrderNumber } from "@/utils/order-number";
 import { BusinessType, OrderStatus, OrderType } from "@repo/types";
 import { useCallback, useRef } from "react";
 import { toast } from "@repo/ui";
@@ -173,35 +174,39 @@ export function useOrderActions() {
 
         // Optimistic: clear UI immediately
         const tabToClose = activeTabId;
-        setLastCompletedOrder({
-          order: active,
-          orderNumber: active.orderNumber || "PENDING SYNC",
-          tenantName: user.tenant?.name || "Cedar Point",
-          branchName: branch?.name || "Main Branch",
-          branchAddress: branch?.address || "",
-          branchPhone: branch?.phone || "",
-          loyaltyApplied:
-            loyalty && loyalty.redeemPoints > 0
-              ? { points: loyalty.redeemPoints, discount: 0 }
-              : undefined,
-        });
-
-        closeKeypad();
-        closeModal();
-        if (tabToClose) closeTab(tabToClose);
-        clearOrder();
-        navigate({ to: "/receipt-preview" });
 
         // ── OFFLINE PATH ─────────────────────────────────────────────────────
         if (!isOnline) {
           const dto = buildOrderDto(active);
           if (!dto) return;
 
+          // Generate a local order number in offline mode
+          const localOrderNumber = active.orderNumber || (branch ? generateLocalOrderNumber(branch.name) : "DRAFT");
+
+          setLastCompletedOrder({
+            order: active,
+            orderNumber: localOrderNumber,
+            tenantName: user.tenant?.name || "Cedar Point",
+            branchName: branch?.name || "Main Branch",
+            branchAddress: branch?.address || "",
+            branchPhone: branch?.phone || "",
+            loyaltyApplied:
+              loyalty && loyalty.redeemPoints > 0
+                ? { points: loyalty.redeemPoints, discount: 0 }
+                : undefined,
+          });
+
+          closeKeypad();
+          closeModal();
+          if (tabToClose) closeTab(tabToClose);
+          clearOrder();
+          navigate({ to: "/receipt-preview" });
+
           const label = active.orderNumber
             ? `#${active.orderNumber}`
             : active.tableName
               ? `Table ${active.tableName}`
-              : `Order (${new Date().toLocaleTimeString()})`;
+              : `#${localOrderNumber}`;
 
           const wasLoaded = isLoadedOrder(active);
 

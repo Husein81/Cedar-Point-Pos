@@ -2,13 +2,23 @@ import TitleBar from "@/components/title-bar";
 import { getInvoiceColumns } from "@/constants/columns/invoiceColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrders } from "@/hooks/useOrder";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { Button, DataTable, Icon, Select } from "@repo/ui";
 import { useMemo, useState } from "react";
 
 export function InvoicesPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    page,
+    setPage,
+    pageSize,
+    onPageSizeChange,
+    searchQuery,
+    setSearchQuery,
+  } = usePaginationState({
+    initialPage: 1,
+    initialPageSize: 10,
+  });
+
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   const { data, isLoading, refetch } = useOrders({
@@ -31,11 +41,6 @@ export function InvoicesPage() {
   const totalPages = Math.ceil(
     Number(data?.pagination?.totalCount ?? 1) / pageSize,
   );
-
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPage(1); // Reset to first page when page size changes
-  };
 
   return (
     <div className="space-y-4 pt-4">
@@ -95,7 +100,7 @@ export function InvoicesPage() {
           pageSize,
           rows: data?.pagination?.totalCount || 0,
           onPageChange: setPage,
-          onPageSizeChange: handlePageSizeChange,
+          onPageSizeChange,
         }}
       />
     </div>

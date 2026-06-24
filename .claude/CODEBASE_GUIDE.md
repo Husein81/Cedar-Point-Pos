@@ -102,7 +102,7 @@ Read [apps/api/prisma/schema.prisma](apps/api/prisma/schema.prisma) for the full
 - **POSDevice** is a per-branch terminal; supports `isKDS` flag.
 - **User** has `UserRole`: `SYSTEM_ADMIN | ADMIN | MANAGER | CASHIER | KITCHEN`. `tenantId` is nullable (system admins have none).
 - **Product** is tenant-scoped, optionally branch-scoped, soft-deleted via `deletedAt`. Has categories/subcategories with `Color`, modifier assignments, inventory rows per branch.
-- **Order** carries everything: `OrderType`, `OrderStatus`, totals/subtotal/discount/VAT/shippingFee, loyalty fields, currency + exchangeRate at the order level. Order numbers are per-branch-per-year via `OrderSequence` (`{YYYY}-{00001}`).
+- **Order** carries everything: `OrderType`, `OrderStatus`, totals/subtotal/discount/VAT/shippingFee, loyalty fields, currency + exchangeRate at the order level. Order numbers are per-branch-per-day via `OrderSequence` (`{YYMMDD}-{branchCode:3}-{0001}`).
 - **OrderItem** has its own `discount` JSON, list of `OrderItemModifier`s, and `OrderItemTicket`s (one per kitchen station send).
 - **Payment** stores amount in **base currency** (post-conversion) with the original `currencyCode` + `exchangeRate` preserved. Idempotent via `(orderId, idempotencyKey)`.
 - **Refund** + **RefundItem** + **RefundPayment**, with optional loyalty restoration/reversal.

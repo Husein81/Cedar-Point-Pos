@@ -1,11 +1,11 @@
+import { NON_POS_ROLES, ROLE_LABELS } from "@/constants/staff";
+import type { StaffView } from "@/dto/staff.dto";
 import { useBranches } from "@/hooks/useBranch";
 import { useCreateStaff, useUpdateStaff } from "@/hooks/useStaff";
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
-import { ROLE_LABELS, NON_POS_ROLES } from "@/constants/staff";
-import type { StaffView } from "@/dto/staff.dto";
-import { UserRole, assignableRolesFor } from "@repo/types";
 import type { CreateStaffInput, UpdateStaffInput } from "@repo/types";
+import { assignableRolesFor, UserRole } from "@repo/types";
 import {
   Button,
   Combobox,
@@ -31,7 +31,7 @@ export const StaffForm = ({ staff }: Props) => {
 
   const isEdit = !!staff;
   const roleOptions = (actorRole ? assignableRolesFor(actorRole) : []).map(
-    (role) => ({ value: role, label: ROLE_LABELS[role] })
+    (role) => ({ value: role, label: ROLE_LABELS[role] }),
   );
   const branchOptions = (branches ?? []).map((branch) => ({
     value: branch.id,
@@ -97,7 +97,9 @@ export const StaffForm = ({ staff }: Props) => {
         name="name"
         validators={{
           onChange: ({ value }) =>
-            !value || value.trim().length === 0 ? "Name is required" : undefined,
+            !value || value.trim().length === 0
+              ? "Name is required"
+              : undefined,
         }}
       >
         {(field) => (
@@ -243,9 +245,7 @@ export const StaffForm = ({ staff }: Props) => {
           dedicated endpoint (UpdateStaffSchema doesn't accept it). */}
       {!isEdit && (
         <form.Field name="hasPosAccess">
-          {(field) => (
-            <SwitchField label="POS register access" field={field} />
-          )}
+          {(field) => <SwitchField label="POS register access" field={field} />}
         </form.Field>
       )}
 

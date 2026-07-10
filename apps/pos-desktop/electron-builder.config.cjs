@@ -7,7 +7,17 @@ const APP_ID = "com.cedarcore.cedarpointpos";
 module.exports = {
   appId: APP_ID,
   directories: { output: "release" },
-  files: ["dist/**/*", "dist-electron/**/*", "package.json", "!**/*.map"],
+  files: [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "package.json",
+    "!**/*.map",
+    // electron-builder's pnpm dependency collector misdetects these hoisted
+    // packages as missing and drops them, even though electron-updater
+    // requires them directly at runtime. Copy them in explicitly.
+    { from: "../../node_modules/builder-util-runtime", to: "node_modules/builder-util-runtime" },
+    { from: "../../node_modules/semver", to: "node_modules/semver" },
+  ],
   extraResources: [{ from: "public/assets", to: "assets" }],
   asarUnpack: ["**/node_modules/better-sqlite3/**/*"],
   npmRebuild: true,

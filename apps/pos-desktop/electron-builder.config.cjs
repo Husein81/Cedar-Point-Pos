@@ -1,5 +1,5 @@
 require("dotenv").config();
-process.env.GH_TOKEN = process.env.GITHUB_TOKEN;
+process.env.GH_TOKEN = process.env.VITE_GITHUB_TOKEN;
 
 const APP_ID = "com.cedarcore.cedarpointpos";
 

@@ -3,7 +3,8 @@ import { Order } from "@repo/types";
 import { Button, Icon } from "@repo/ui";
 
 type Props = {
-  activeOrderIds: string[];
+  activeOrderIds?: string[];
+  excludeOrderId?: string;
   tableId: string;
   onSelect: (mergeIntoOrderId: string) => void;
   onCancel: () => void;
@@ -11,7 +12,8 @@ type Props = {
 };
 
 function MergeTargetSelector({
-  activeOrderIds,
+  activeOrderIds = [],
+  excludeOrderId,
   tableId,
   onSelect,
   onCancel,
@@ -20,10 +22,17 @@ function MergeTargetSelector({
   const { data: activeOrders = [], isLoading } =
     useActiveOrdersByTable(tableId);
 
-  const relevantOrders =
-    activeOrderIds.length > 0
-      ? activeOrders.filter((o: Order) => activeOrderIds.includes(o.id))
-      : activeOrders;
+  let relevantOrders = activeOrders;
+  if (activeOrderIds.length > 0) {
+    relevantOrders = relevantOrders.filter((o: Order) =>
+      activeOrderIds.includes(o.id),
+    );
+  }
+  if (excludeOrderId) {
+    relevantOrders = relevantOrders.filter(
+      (o: Order) => o.id !== excludeOrderId,
+    );
+  }
 
   if (isLoading) {
     return (
@@ -62,7 +71,7 @@ function MergeTargetSelector({
 
       <Button
         variant="ghost"
-        className="w-full justify-start gap-2 text-muted-foreground"
+        className="justify-start gap-2 text-muted-foreground"
         onClick={onCancel}
         disabled={isPending}
       >

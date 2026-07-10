@@ -1,0 +1,39 @@
+require("dotenv").config();
+process.env.GH_TOKEN = process.env.GITHUB_TOKEN;
+
+const APP_ID = "com.cedarcore.cedarpointpos";
+
+/** @type {import('electron-builder').Configuration} */
+module.exports = {
+  appId: APP_ID,
+  directories: { output: "release" },
+  files: ["dist/**/*", "dist-electron/**/*", "package.json", "!**/*.map"],
+  extraResources: [{ from: "public/assets", to: "assets" }],
+  asarUnpack: ["**/node_modules/better-sqlite3/**/*"],
+  npmRebuild: true,
+  afterPack: require("./electron-builder.afterPack.cjs"),
+  mac: {
+    target: ["dmg", "zip"],
+    icon: "public/assets/icon.icns",
+  },
+  linux: {
+    target: ["deb", "rpm", "AppImage"],
+    icon: "public/assets/icon.png",
+  },
+  win: {
+    target: ["nsis"],
+    icon: "public/assets/icon.ico",
+  },
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+  },
+  publish: {
+    provider: "github",
+    owner: "Husein81",
+    repo: "Cedar-Point-Pos",
+    releaseType: "release",
+  },
+};

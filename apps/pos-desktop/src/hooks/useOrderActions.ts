@@ -257,102 +257,106 @@ export function useOrderActions() {
         }
 
         // ── ONLINE PATH ───────────────────────────────────────────────────────
-        (async () => {
-          try {
-            if (
-              user.tenant?.businessType === BusinessType.RESTAURANT &&
-              !active.type
-            ) {
-              throw new Error("Order type is required");
+        try {
+          if (
+            user.tenant?.businessType === BusinessType.RESTAURANT &&
+            !active.type
+          ) {
+            throw new Error("Order type is required");
+          }
+
+          const wasLoadedOrder = isLoadedOrder(active);
+          const syncedOrder = await getOrCreateOrderId(active);
+          if (!syncedOrder) return;
+          const orderId = syncedOrder.id;
+          const orderNumber = syncedOrder.orderNumber;
+
+          if (wasLoadedOrder) {
+            const unsyncedLocal = active.items
+              .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
+              .map(toItemDto);
+
+            if (unsyncedLocal.length > 0) {
+              await batchAddItemsToOrder.mutateAsync({
+                id: orderId,
+                items: unsyncedLocal,
+              });
             }
+          }
 
-            const wasLoadedOrder = isLoadedOrder(active);
-            const syncedOrder = await getOrCreateOrderId(active);
-            if (!syncedOrder) return;
-            const orderId = syncedOrder.id;
-            const orderNumber = syncedOrder.orderNumber;
-
-            if (wasLoadedOrder) {
-              const unsyncedLocal = active.items
-                .filter((i) => !i.sentToKitchen && i.id.startsWith("item-"))
-                .map(toItemDto);
-
-              if (unsyncedLocal.length > 0) {
-                await batchAddItemsToOrder.mutateAsync({
-                  id: orderId,
-                  items: unsyncedLocal,
-                });
-              }
+          if (sendToKitchenFirst) {
+            const unsentItems = active.items.filter((i) => !i.sentToKitchen);
+            if (unsentItems.length > 0) {
+              await sendToKitchen.mutateAsync(orderId);
             }
+          }
 
-            if (sendToKitchenFirst) {
-              const unsentItems = active.items.filter((i) => !i.sentToKitchen);
-              if (unsentItems.length > 0) {
-                await sendToKitchen.mutateAsync(orderId);
-              }
-            }
+          const updatedOrder = await processPayment.mutateAsync({
+            id: orderId,
+            payments: payments.map((p) => ({
+              amount: p.amount,
+              method: p.method,
+              currencyCode: p.currencyCode,
+              exchangeRate: p.exchangeRate,
+            })),
+            loyalty,
+          });
 
-            const updatedOrder = await processPayment.mutateAsync({
-              id: orderId,
-              payments: payments.map((p) => ({
-                amount: p.amount,
-                method: p.method,
-                currencyCode: p.currencyCode,
-                exchangeRate: p.exchangeRate,
-              })),
-              loyalty,
-            });
-
-            const finalOrderNumber =
-              updatedOrder.orderNumber || orderNumber || "PREVIEW";
-            setLastCompletedOrder({
-              order: {
-                ...active,
-                paidAmount: Number((updatedOrder as any).paidAmount || 0),
-                status: updatedOrder.status,
-                orderNumber: finalOrderNumber,
-              },
+          const finalOrderNumber =
+            updatedOrder.orderNumber || orderNumber || "PREVIEW";
+          setLastCompletedOrder({
+            order: {
+              ...active,
+              paidAmount: Number((updatedOrder as any).paidAmount || 0),
+              status: updatedOrder.status,
               orderNumber: finalOrderNumber,
+            },
+            orderNumber: finalOrderNumber,
+            tenantName: user.tenant?.name || "Cedar Point",
+            branchName: branch?.name || "Main Branch",
+            branchAddress: branch?.address || "",
+            branchPhone: branch?.phone || "",
+            loyaltyApplied:
+              loyalty && loyalty.redeemPoints > 0
+                ? {
+                    points: loyalty.redeemPoints,
+                    discount: Number(updatedOrder.discount || 0),
+                  }
+                : undefined,
+          });
+
+          closeKeypad();
+          closeModal();
+          if (tabToClose) closeTab(tabToClose);
+          clearOrder();
+          navigate({ to: "/receipt-preview" });
+
+          try {
+            let loyaltyApplied = undefined;
+            if (loyalty && loyalty.redeemPoints > 0) {
+              loyaltyApplied = {
+                points: loyalty.redeemPoints,
+                discount: Number(updatedOrder.discount || 0),
+              };
+            }
+
+            await printReceipt({
+              order: active,
               tenantName: user.tenant?.name || "Cedar Point",
               branchName: branch?.name || "Main Branch",
               branchAddress: branch?.address || "",
               branchPhone: branch?.phone || "",
-              loyaltyApplied:
-                loyalty && loyalty.redeemPoints > 0
-                  ? {
-                      points: loyalty.redeemPoints,
-                      discount: Number(updatedOrder.discount || 0),
-                    }
-                  : undefined,
+              orderNumber: finalOrderNumber,
+              loyaltyApplied,
             });
-
-            try {
-              let loyaltyApplied = undefined;
-              if (loyalty && loyalty.redeemPoints > 0) {
-                loyaltyApplied = {
-                  points: loyalty.redeemPoints,
-                  discount: Number(updatedOrder.discount || 0),
-                };
-              }
-
-              await printReceipt({
-                order: active,
-                tenantName: user.tenant?.name || "Cedar Point",
-                branchName: branch?.name || "Main Branch",
-                branchAddress: branch?.address || "",
-                branchPhone: branch?.phone || "",
-                orderNumber: finalOrderNumber,
-                loyaltyApplied,
-              });
-            } catch (printErr) {
-              console.error("Auto-print failed:", printErr);
-            }
-          } catch (error) {
-            toast.error(extractErrorMessage(error, "Payment failed"), {
-              duration: 8000,
-            });
+          } catch (printErr) {
+            console.error("Auto-print failed:", printErr);
           }
-        })();
+        } catch (error) {
+          toast.error(extractErrorMessage(error, "Payment failed"), {
+            duration: 8000,
+          });
+        }
       });
     },
     [
@@ -422,10 +426,9 @@ export function useOrderActions() {
           });
         }
 
-        toast.info(
-          "Order queued offline. Will sync when you reconnect.",
-          { duration: 7000 },
-        );
+        toast.info("Order queued offline. Will sync when you reconnect.", {
+          duration: 7000,
+        });
         return;
       }
 
@@ -497,9 +500,6 @@ export function useOrderActions() {
 
     // Optimistic: mark sent immediately
     markItemsSentToKitchen();
-    toast.success(
-      `Sending ${unsentCount} item${unsentCount !== 1 ? "s" : ""} to kitchen...`,
-    );
 
     (async () => {
       try {

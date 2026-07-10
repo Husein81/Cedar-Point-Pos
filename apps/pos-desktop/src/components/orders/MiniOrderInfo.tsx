@@ -1,13 +1,13 @@
 import type { Order } from "@repo/types";
 import { Badge, cn } from "@repo/ui";
-import { STATUS_BADGE } from "./config";
+import { STATUS_BADGE_CONFIG } from "./config";
 
 type MiniOrderInfoProps = {
   order: Order;
 };
 
 export function MiniOrderInfo({ order }: MiniOrderInfoProps) {
-  const statusConfig = STATUS_BADGE[order.status] ?? {
+  const statusConfig = STATUS_BADGE_CONFIG[order.status] ?? {
     label: order.status,
     className: "bg-muted text-muted-foreground",
   };

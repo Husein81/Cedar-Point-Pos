@@ -25,6 +25,6 @@ dist-ssr
 *.sln
 *.sw?
 
-.vite
 .tanstack
-out
+dist-electron
+release

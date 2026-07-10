@@ -8,8 +8,8 @@ onlyBuiltDependencies:
   - '@prisma/engines'
   - '@swc/core'
   - bcrypt
+  - better-sqlite3
   - electron
-  - electron-winstaller
   - esbuild
   - prisma
   - sharp

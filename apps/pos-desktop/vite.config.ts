@@ -5,6 +5,11 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import path from "path";
 
 export default defineConfig({
+  base: "./",
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
   plugins: [
     tanstackRouter({
       target: "react",

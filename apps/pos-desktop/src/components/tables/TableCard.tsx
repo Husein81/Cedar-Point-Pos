@@ -10,22 +10,19 @@ import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { AlertDialog } from "../common";
 import { TableForm } from "./TableForm";
-import TableStatusDropdown from "./TableStatusDropdown";
 
-interface TableCardProps {
+type Props = {
   table: TableWithFloor;
-}
+};
 
-export function TableCard({ table }: TableCardProps) {
+export function TableCard({ table }: Props) {
   const { openModal } = useModalStore();
   const { isOnline } = useNetworkStatus();
 
   const { data: activeOrders } = useActiveOrdersByTable(table.id);
 
-  const knownStatuses = Object.values(TableStatus) as string[];
-  const status: TableStatus = knownStatuses.includes(table.status)
-    ? (table.status as TableStatus)
-    : TableStatus.AVAILABLE;
+  const status: TableStatus = table.status;
+
   const navigate = useNavigate();
 
   const deleteTableMutation = useDeleteTable();
@@ -159,8 +156,18 @@ export function TableCard({ table }: TableCardProps) {
 
           {/* Bottom Row */}
           <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between w-full">
-            {/* Status Dropdown Triggered by the Status Badge */}
-            <TableStatusDropdown tableId={table.id} status={status} />
+            <span
+              className={cn(
+                "px-3.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider shadow-xs select-none transition-all outline-hidden",
+                status === "AVAILABLE" && "bg-[#27AE60] text-white",
+                status === "OCCUPIED" && "bg-[#EB5757] text-white",
+                status === "RESERVED" && "bg-[#9B51E0] text-white",
+              )}
+            >
+              {status === "AVAILABLE" && "Available"}
+              {status === "OCCUPIED" && "Occupied"}
+              {status === "RESERVED" && "Reserved"}
+            </span>
 
             <AlertDialog
               title={`Delete Table ${table.name}`}

@@ -112,16 +112,18 @@ const KitchenCard = ({ order }: Props) => {
             {order.status.split("_").join(" ").toLocaleLowerCase()}
           </div>
 
-          <div
-            className={cn(
-              "flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-white",
-              timerColor,
-            )}
-          >
-            <Icon name="Clock3" className="size-3" />
+          <Activity mode={order.status === "COMPLETED" ? "hidden" : "visible"}>
+            <div
+              className={cn(
+                "flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-white",
+                timerColor,
+              )}
+            >
+              <Icon name="Clock3" className="size-3" />
 
-            <span>{formattedTime}</span>
-          </div>
+              <span>{formattedTime}</span>
+            </div>
+          </Activity>
         </div>
 
         {/* ITEMS */}

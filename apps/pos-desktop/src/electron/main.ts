@@ -1,25 +1,28 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import squirrelStartup from "electron-squirrel-startup";
+import { autoUpdater } from "electron-updater";
 import dns from "node:dns";
 import os from "node:os";
 import path from "node:path";
-import { updateElectronApp } from "update-electron-app";
 import { getDatabase } from "./database/index.js";
 import * as syncQueue from "./database/syncQueue.js";
 import { getPreloadPath } from "./pathResolver.js";
 import { isDev } from "./utils.js";
 
-if (squirrelStartup) {
-  app.quit();
-}
+const APP_USER_MODEL_ID = "com.cedarcore.cedarpointpos";
+const MAIN_WINDOW_WIDTH = 1280;
+const MAIN_WINDOW_HEIGHT = 800;
+const MAIN_WINDOW_MIN_WIDTH = 1000;
+const MAIN_WINDOW_MIN_HEIGHT = 600;
+const DEV_ICON_PATH = path.join(__dirname, "../public/assets/icon.png");
+const PACKAGED_ICON_RELATIVE_PATH = path.join("assets", "icon.png");
+const RENDERER_HTML_PATH = path.join(__dirname, "../dist/index.html");
+const LOAD_RETRY_DELAY_MS = 300;
+const LOAD_RETRY_LIMIT = 20;
 
 let mainWindow: BrowserWindow | null = null;
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
-declare const MAIN_WINDOW_VITE_NAME: string;
-
 if (!isDev()) {
-  updateElectronApp();
+  autoUpdater.checkForUpdatesAndNotify();
 }
 
 // ✅ IPC HANDLER (ONCE)
@@ -97,12 +100,33 @@ ipcMain.handle(
   },
 );
 
+function getIconPath(): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, PACKAGED_ICON_RELATIVE_PATH)
+    : DEV_ICON_PATH;
+}
+
+function loadRenderer(window: BrowserWindow, attempt = 0): void {
+  const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+  if (!devServerUrl) {
+    window.loadFile(RENDERER_HTML_PATH);
+    return;
+  }
+  window.loadURL(devServerUrl).catch(() => {
+    if (attempt >= LOAD_RETRY_LIMIT) {
+      console.error("Failed to reach Vite dev server:", devServerUrl);
+      return;
+    }
+    setTimeout(() => loadRenderer(window, attempt + 1), LOAD_RETRY_DELAY_MS);
+  });
+}
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: MAIN_WINDOW_WIDTH,
+    height: MAIN_WINDOW_HEIGHT,
     frame: false,
-    icon: path.join(__dirname, "../../public/assets/icon.png"),
+    icon: getIconPath(),
     webPreferences: {
       preload: getPreloadPath(),
       contextIsolation: true,
@@ -111,15 +135,9 @@ const createWindow = () => {
     },
   });
 
-  mainWindow.setMinimumSize(1000, 600);
+  mainWindow.setMinimumSize(MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT);
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
+  loadRenderer(mainWindow);
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -143,4 +161,4 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-app.setAppUserModelId("com.squirrel.CedarPointPos.CedarPointPos");
+app.setAppUserModelId(APP_USER_MODEL_ID);

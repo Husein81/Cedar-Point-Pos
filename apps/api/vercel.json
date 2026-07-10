@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "dist/main.js": {
+      "includeFiles": "../../node_modules/@img/sharp-{linux-x64,libvips-linux-x64}/**"
+    }
+  }
+}

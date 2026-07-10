@@ -1,13 +1,14 @@
 {
   "name": "cedar-point-pos",
   "productName": "CedarPoint POS",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CedarPoint is an offline-first POS system for retail and restaurants.",
   "repository": {
     "type": "git",
     "url": "https://github.com/Husein81/Cedar-Point-Pos.git"
   },
   "private": true,
+  "publisher": "CedarPoint",
   "author": {
     "name": "Cedar Core",
     "email": "support@cedarcore.io"

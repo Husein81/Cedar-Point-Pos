@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/Husein81/Cedar-Point-Pos.git"
   },
-  "private":"true",
+  "private": true,
   "author": {
     "name": "Cedar Core",
     "email": "support@cedarcore.io"

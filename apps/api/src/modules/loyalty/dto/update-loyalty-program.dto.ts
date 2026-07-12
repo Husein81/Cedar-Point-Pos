@@ -1,5 +1,14 @@
-import { z } from 'zod';
 import { LoyaltyEnrollmentMode } from '@repo/types';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  Max,
+  Min,
+} from 'class-validator';
 
 /**
  * DTO for creating or updating a tenant's loyalty program.
@@ -10,16 +19,47 @@ import { LoyaltyEnrollmentMode } from '@repo/types';
  *   - redeemCurrencyPerStep > 0
  *   - 0 <= maxRedeemPercent <= 100
  */
-export const updateLoyaltyProgramDto = z.object({
-  isEnabled: z.boolean().optional(),
-  enrollmentMode: z.enum(LoyaltyEnrollmentMode).optional(),
-  earnPointsPerCurrency: z.number().positive().optional(),
-  redeemPointsStep: z.number().int().positive().optional(),
-  redeemCurrencyPerStep: z.number().positive().optional(),
-  minRedeemPoints: z.number().int().min(0).optional(),
-  maxRedeemPercent: z.number().min(0).max(100).optional(),
-  allowNoCustomerAccrual: z.boolean().optional(),
-  pointsExpirationDays: z.number().int().positive().nullable().optional(),
-});
+export class UpdateLoyaltyProgramDto {
+  @IsOptional()
+  @IsBoolean()
+  isEnabled?: boolean;
 
-export type UpdateLoyaltyProgramDto = z.infer<typeof updateLoyaltyProgramDto>;
+  @IsOptional()
+  @IsEnum(LoyaltyEnrollmentMode)
+  enrollmentMode?: LoyaltyEnrollmentMode;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  earnPointsPerCurrency?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  redeemPointsStep?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  redeemCurrencyPerStep?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  minRedeemPoints?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  maxRedeemPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowNoCustomerAccrual?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  pointsExpirationDays?: number | null;
+}

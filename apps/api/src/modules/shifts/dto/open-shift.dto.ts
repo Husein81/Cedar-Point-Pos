@@ -1,10 +1,21 @@
-import { z } from 'zod';
+import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
-export const openShiftDto = z.object({
-  branchId: z.string().min(1, 'Branch ID is required'),
-  deviceId: z.string().min(1, 'Device ID is required'),
-  startCash: z.number().min(0, 'Starting cash must be >= 0').default(0),
-  scheduleId: z.string().min(1).optional(),
-});
+export class OpenShiftDto {
+  @IsString()
+  @MinLength(1, { message: 'Branch ID is required' })
+  branchId!: string;
 
-export type OpenShiftDto = z.infer<typeof openShiftDto>;
+  @IsString()
+  @MinLength(1, { message: 'Device ID is required' })
+  deviceId!: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'Starting cash must be >= 0' })
+  startCash: number = 0;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  scheduleId?: string;
+}

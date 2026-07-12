@@ -1,14 +1,20 @@
 import { ModifierType } from '@repo/types';
-import { z } from 'zod';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-export const createModifierGroupDto = z.object({
-  name: z.string(),
-  type: z.enum(ModifierType),
-});
-export type CreateModifierGroupDto = z.infer<typeof createModifierGroupDto>;
+export class CreateModifierGroupDto {
+  @IsString()
+  name!: string;
 
-export const updateModifierGroupDto = z.object({
-  name: z.string().optional(),
-  type: z.enum(ModifierType).optional(),
-});
-export type UpdateModifierGroupDto = z.infer<typeof updateModifierGroupDto>;
+  @IsEnum(ModifierType)
+  type!: ModifierType;
+}
+
+export class UpdateModifierGroupDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEnum(ModifierType)
+  type?: ModifierType;
+}

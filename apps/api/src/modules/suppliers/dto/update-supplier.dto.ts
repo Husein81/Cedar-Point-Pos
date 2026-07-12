@@ -1,14 +1,16 @@
-import { z } from 'zod';
-
-export const UpdateSupplierSchema = z.object({
-  name: z.string().min(1, 'Name is required').optional(),
-  companyName: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  email: z.string().email('Invalid email address').optional().nullable(),
-  address: z.string().optional().nullable(),
-  category: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  currentBalance: z.number().optional(),
-});
-
-export type UpdateSupplierDto = z.infer<typeof UpdateSupplierSchema>;
+/**
+ * Shape of the update-supplier request body.
+ *
+ * The suppliers controller reads and forwards `req.body` directly, so this is a
+ * type contract for the service layer — not a validated request DTO.
+ */
+export interface UpdateSupplierDto {
+  name?: string;
+  companyName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  category?: string | null;
+  notes?: string | null;
+  currentBalance?: number;
+}

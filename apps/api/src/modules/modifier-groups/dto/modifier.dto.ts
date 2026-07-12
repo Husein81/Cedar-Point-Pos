@@ -1,15 +1,29 @@
-import { z } from 'zod';
+import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export const createModifierDto = z.object({
-  name: z.string(),
-  price: z.number(),
-  productIds: z.array(z.string()).optional(), // ✅ Multi-product assignment
-});
-export type CreateModifierDto = z.infer<typeof createModifierDto>;
+export class CreateModifierDto {
+  @IsString()
+  name!: string;
 
-export const updateModifierDto = z.object({
-  name: z.string().optional(),
-  price: z.number().optional(),
-  productIds: z.array(z.string()).optional(), // ✅ Multi-product assignment
-});
-export type UpdateModifierDto = z.infer<typeof updateModifierDto>;
+  @IsNumber()
+  price!: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[]; // Multi-product assignment
+}
+
+export class UpdateModifierDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsNumber()
+  price?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[]; // Multi-product assignment
+}

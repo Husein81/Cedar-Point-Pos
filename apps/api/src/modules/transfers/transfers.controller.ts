@@ -2,8 +2,8 @@ import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { QueryParams, TransferStatus, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { CreateTransferDto } from './dto/create-transfer.dto.js';
-import type { UpdateTransferDto } from './dto/update-transfer.dto.js';
+import { CreateTransferDto } from './dto/create-transfer.dto.js';
+import { UpdateTransferDto } from './dto/update-transfer.dto.js';
 import { TransfersService } from './transfers.service.js';
 
 @Controller('transfers')

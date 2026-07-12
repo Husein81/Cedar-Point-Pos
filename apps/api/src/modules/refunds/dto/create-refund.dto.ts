@@ -1,37 +1,77 @@
-import z from 'zod';
 import { PaymentMethod } from '@repo/types';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
-export const createRefundDto = z.object({
-  orderId: z.string().min(1, 'Order ID is required'),
-  reason: z.string().optional(),
-  items: z
-    .array(
-      z.object({
-        orderItemId: z.string().min(1, 'Order item ID is required'),
-        quantity: z
-          .number()
-          .positive('Quantity must be greater than 0')
-          .finite('Quantity must be a valid number'),
-      }),
-    )
-    .min(1, 'At least one item must be refunded'),
+export class RefundItemDto {
+  @IsString()
+  @MinLength(1, { message: 'Order item ID is required' })
+  orderItemId!: string;
+
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @IsPositive({ message: 'Quantity must be greater than 0' })
+  quantity!: number;
+}
+
+export class RefundPaymentDto {
+  @IsEnum(PaymentMethod)
+  method!: PaymentMethod;
+
+  @IsNumber()
+  @IsPositive({ message: 'Amount must be greater than 0' })
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  currencyCode?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  exchangeRate?: number;
+}
+
+export class CreateRefundDto {
+  @IsString()
+  @MinLength(1, { message: 'Order ID is required' })
+  orderId!: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one item must be refunded' })
+  @ValidateNested({ each: true })
+  @Type(() => RefundItemDto)
+  items!: RefundItemDto[];
 
   // Method-level refund capture (optional for backward compat)
-  refundPayments: z
-    .array(
-      z.object({
-        method: z.enum(PaymentMethod),
-        amount: z.number().positive('Amount must be greater than 0'),
-        currencyCode: z.string().optional(),
-        exchangeRate: z.number().positive().optional(),
-      }),
-    )
-    .optional(),
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RefundPaymentDto)
+  refundPayments?: RefundPaymentDto[];
 
   // Shift attribution (optional)
-  shiftId: z.string().optional(),
-  deviceId: z.string().optional(),
-  idempotencyKey: z.string().optional(),
-});
+  @IsOptional()
+  @IsString()
+  shiftId?: string;
 
-export type CreateRefundDto = z.infer<typeof createRefundDto>;
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
+}

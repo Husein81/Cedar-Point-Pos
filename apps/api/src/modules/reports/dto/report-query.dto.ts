@@ -1,99 +1,119 @@
-import { z } from 'zod';
 import {
-  OrderType,
-  OrderStatus,
-  PaymentMethod,
   InventoryChangeType,
+  OrderStatus,
+  OrderType,
+  PaymentMethod,
 } from '@repo/types';
+import { Type } from 'class-transformer';
+import {
+  IsDate,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { IsAfterField } from '../../common/validators/date-field.validators.js';
 
 /**
- * Expanded Report Query Schema
+ * Expanded Report Query DTO
  * Validates query params for all report endpoints with:
  * - Date range filtering (from/to)
  * - Enum filters (orderType, paymentMethod, status, changeType)
  * - User/branch filtering
  * - Search, sorting, and pagination
  */
-export const reportQuerySchema = z
-  .object({
-    // Date range (required for most report endpoints)
-    from: z.coerce.date(),
-    to: z.coerce.date(),
+export class ReportQueryDto {
+  // Date range (required for most report endpoints)
+  @Type(() => Date)
+  @IsDate()
+  from!: Date;
 
-    // Optional filters
-    branchId: z.string().uuid().optional(),
-    userId: z.string().uuid().optional(),
-    shiftId: z.string().uuid().optional(),
-
-    // Enum filters
-    orderType: z
-      .enum([
-        OrderType.DINE_IN,
-        OrderType.TAKEAWAY,
-        OrderType.DELIVERY,
-        OrderType.RETAIL,
-      ])
-      .optional(),
-    paymentMethod: z
-      .enum([
-        PaymentMethod.CASH,
-        PaymentMethod.CARD,
-        PaymentMethod.CREDIT,
-        PaymentMethod.VOUCHER,
-        PaymentMethod.ONLINE,
-      ])
-      .optional(),
-    status: z
-      .enum([
-        OrderStatus.DRAFT,
-        OrderStatus.ON_HOLD,
-        OrderStatus.PENDING,
-        OrderStatus.CONFIRMED,
-        OrderStatus.IN_PROGRESS,
-        OrderStatus.SENT_TO_KITCHEN,
-        OrderStatus.READY,
-        OrderStatus.PAID,
-        OrderStatus.COMPLETED,
-        OrderStatus.CANCELLED,
-      ])
-      .optional(),
-    changeType: z
-      .enum([
-        InventoryChangeType.SET_STOCK,
-        InventoryChangeType.ADJUST_STOCK,
-        InventoryChangeType.SET_MIN_STOCK,
-        InventoryChangeType.ORDER_DEDUCTION,
-        InventoryChangeType.SALE,
-        InventoryChangeType.REFUND,
-        InventoryChangeType.MANUAL_ADJUST,
-        InventoryChangeType.TRANSFER_OUT,
-        InventoryChangeType.TRANSFER_IN,
-      ])
-      .optional(),
-
-    // Product filters
-    categoryId: z.string().uuid().optional(),
-
-    // Search (interpreted differently per endpoint)
-    search: z.string().max(100).optional(),
-
-    // Sorting (validated per-endpoint in controller/service)
-    sortBy: z.string().max(50).optional(),
-    sortDir: z.enum(['asc', 'desc']).optional().default('desc'),
-
-    // Pagination
-    page: z.coerce.number().int().min(1).optional().default(1),
-    pageSize: z.coerce.number().int().min(1).max(200).optional().default(25),
-
-    // Limit for dashboard-style endpoints (top products, etc.)
-    limit: z.coerce.number().int().min(1).max(100).optional(),
-  })
-  .refine((data) => data.from <= data.to, {
+  @Type(() => Date)
+  @IsDate()
+  @IsAfterField('from', {
+    orEqual: true,
     message: 'from date must be before or equal to to date',
-    path: ['from'],
-  });
+  })
+  to!: Date;
 
-export type ReportQueryDto = z.infer<typeof reportQuerySchema>;
+  // Optional filters
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  shiftId?: string;
+
+  // Enum filters
+  @IsOptional()
+  @IsEnum(OrderType)
+  orderType?: OrderType;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  @IsOptional()
+  @IsEnum(InventoryChangeType)
+  changeType?: InventoryChangeType;
+
+  // Product filters
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  // Search (interpreted differently per endpoint)
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  // Sorting (validated per-endpoint in controller/service)
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  sortBy?: string;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  sortDir: 'asc' | 'desc' = 'desc';
+
+  // Pagination
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  pageSize: number = 25;
+
+  // Limit for dashboard-style endpoints (top products, etc.)
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
 
 /**
  * Allowed sort fields per endpoint type

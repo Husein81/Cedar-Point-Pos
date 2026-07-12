@@ -3,7 +3,7 @@ import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
+import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto.js';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
 import { PurchaseOrdersService } from './purchase-orders.service.js';
 

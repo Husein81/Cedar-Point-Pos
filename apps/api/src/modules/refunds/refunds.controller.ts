@@ -7,7 +7,7 @@ import {
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
-import { type CreateRefundDto } from './dto/create-refund.dto.js';
+import { CreateRefundDto } from './dto/create-refund.dto.js';
 import { RefundsService } from './refunds.service.js';
 
 @Controller('refunds')

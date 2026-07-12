@@ -1,83 +1,129 @@
-import { z } from 'zod';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 // ─── Offer DTOs ───
 
-export const createOfferSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  basePrice: z.coerce.number().min(0, 'Base price must be >= 0'),
-});
-export type CreateOfferDto = z.infer<typeof createOfferSchema>;
+export class CreateOfferDto {
+  @IsString()
+  @MinLength(1, { message: 'Name is required' })
+  @MaxLength(255)
+  name!: string;
 
-export const updateOfferSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255).optional(),
-  basePrice: z.coerce.number().min(0, 'Base price must be >= 0').optional(),
-  isActive: z.boolean().optional(),
-});
-export type UpdateOfferDto = z.infer<typeof updateOfferSchema>;
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'Base price must be >= 0' })
+  basePrice!: number;
+}
+
+export class UpdateOfferDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1, { message: 'Name is required' })
+  @MaxLength(255)
+  name?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'Base price must be >= 0' })
+  basePrice?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
 
 // ─── OfferGroup DTOs ───
 
-export const createOfferGroupSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255),
-  freeItemsCount: z.coerce
-    .number()
-    .int()
-    .min(0, 'Free items count must be >= 0')
-    .default(0),
-  maxItemsCount: z.coerce
-    .number()
-    .int()
-    .min(1, 'Max items count must be >= 1')
-    .default(1),
-});
-export type CreateOfferGroupDto = z.infer<typeof createOfferGroupSchema>;
+export class CreateOfferGroupDto {
+  @IsString()
+  @MinLength(1, { message: 'Name is required' })
+  @MaxLength(255)
+  name!: string;
 
-export const updateOfferGroupSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255).optional(),
-  freeItemsCount: z.coerce
-    .number()
-    .int()
-    .min(0, 'Free items count must be >= 0')
-    .optional(),
-  maxItemsCount: z.coerce
-    .number()
-    .int()
-    .min(1, 'Max items count must be >= 1')
-    .optional(),
-});
-export type UpdateOfferGroupDto = z.infer<typeof updateOfferGroupSchema>;
+  @Type(() => Number)
+  @IsInt()
+  @Min(0, { message: 'Free items count must be >= 0' })
+  freeItemsCount: number = 0;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1, { message: 'Max items count must be >= 1' })
+  maxItemsCount: number = 1;
+}
+
+export class UpdateOfferGroupDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1, { message: 'Name is required' })
+  @MaxLength(255)
+  name?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0, { message: 'Free items count must be >= 0' })
+  freeItemsCount?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1, { message: 'Max items count must be >= 1' })
+  maxItemsCount?: number;
+}
 
 // ─── OfferGroupItem DTOs ───
 
-export const createOfferGroupItemSchema = z.object({
-  productId: z.string().min(1, 'Product ID is required'),
-  extraPrice: z.coerce
-    .number()
-    .min(0, 'Extra price must be >= 0')
-    .default(0),
-});
-export type CreateOfferGroupItemDto = z.infer<
-  typeof createOfferGroupItemSchema
->;
+export class CreateOfferGroupItemDto {
+  @IsString()
+  @MinLength(1, { message: 'Product ID is required' })
+  productId!: string;
 
-export const updateOfferGroupItemSchema = z.object({
-  extraPrice: z.coerce.number().min(0, 'Extra price must be >= 0'),
-});
-export type UpdateOfferGroupItemDto = z.infer<
-  typeof updateOfferGroupItemSchema
->;
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'Extra price must be >= 0' })
+  extraPrice: number = 0;
+}
+
+export class UpdateOfferGroupItemDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'Extra price must be >= 0' })
+  extraPrice!: number;
+}
 
 // ─── Price Preview / Validation DTO ───
 
-const offerSelectionItemSchema = z.object({
-  groupId: z.string().min(1, 'Group ID is required'),
-  productId: z.string().min(1, 'Product ID is required'),
-});
+export class OfferSelectionItemDto {
+  @IsString()
+  @MinLength(1, { message: 'Group ID is required' })
+  groupId!: string;
 
-export const pricePreviewSchema = z.object({
-  offerId: z.string().min(1, 'Offer ID is required'),
-  selections: z
-    .array(offerSelectionItemSchema)
-    .min(1, 'At least one selection is required'),
-});
-export type PricePreviewDto = z.infer<typeof pricePreviewSchema>;
+  @IsString()
+  @MinLength(1, { message: 'Product ID is required' })
+  productId!: string;
+}
+
+export class PricePreviewDto {
+  @IsString()
+  @MinLength(1, { message: 'Offer ID is required' })
+  offerId!: string;
+
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one selection is required' })
+  @ValidateNested({ each: true })
+  @Type(() => OfferSelectionItemDto)
+  selections!: OfferSelectionItemDto[];
+}

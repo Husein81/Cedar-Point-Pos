@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -17,43 +16,17 @@ import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
 import { ShiftsService } from './shifts.service.js';
-import { openShiftDto, type OpenShiftDto } from './dto/open-shift.dto.js';
+import { OpenShiftDto } from './dto/open-shift.dto.js';
+import { CreateCashMovementDto } from './dto/cash-movement.dto.js';
 import {
-  createCashMovementDto,
-  type CreateCashMovementDto,
-} from './dto/cash-movement.dto.js';
-import {
-  closePreviewDto,
-  closeShiftDto,
-  approveCloseDto,
-  type ClosePreviewDto,
-  type CloseShiftDto,
-  type ApproveCloseDto,
+  ClosePreviewDto,
+  CloseShiftDto,
+  ApproveCloseDto,
 } from './dto/close-shift.dto.js';
 
 @Controller('shifts')
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
-
-  /** Validate a Zod schema, throw BadRequestException on failure. */
-  private parse<T>(
-    schema: {
-      safeParse: (
-        v: unknown,
-      ) =>
-        | { success: true; data: T }
-        | { success: false; error: { issues: { message: string }[] } };
-    },
-    value: unknown,
-  ): T {
-    const result = schema.safeParse(value);
-    if (!result.success) {
-      throw new BadRequestException(
-        result.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-    return result.data;
-  }
 
   /**
    * Open a new shift
@@ -63,9 +36,8 @@ export class ShiftsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @LogActivity(StaffActivityAction.SHIFT_OPENED, StaffActivityModule.SHIFTS)
   openShift(@Req() req: Request, @Body() body: OpenShiftDto) {
-    const dto = this.parse(openShiftDto, body);
     const user = req.user as { tenantId: string; id: string };
-    return this.shiftsService.openShift(user.tenantId, user.id, dto);
+    return this.shiftsService.openShift(user.tenantId, user.id, body);
   }
 
   /**
@@ -133,9 +105,8 @@ export class ShiftsController {
     @Param('id') id: string,
     @Body() body: ClosePreviewDto,
   ) {
-    const dto = this.parse(closePreviewDto, body);
     const user = req.user as { tenantId: string };
-    return this.shiftsService.closePreview(user.tenantId, id, dto);
+    return this.shiftsService.closePreview(user.tenantId, id, body);
   }
 
   /**
@@ -150,9 +121,8 @@ export class ShiftsController {
     @Param('id') id: string,
     @Body() body: CloseShiftDto,
   ) {
-    const dto = this.parse(closeShiftDto, body);
     const user = req.user as { tenantId: string; id: string };
-    return this.shiftsService.closeShift(user.tenantId, user.id, id, dto);
+    return this.shiftsService.closeShift(user.tenantId, user.id, id, body);
   }
 
   /**
@@ -166,14 +136,13 @@ export class ShiftsController {
     @Param('id') id: string,
     @Body() body: ApproveCloseDto,
   ) {
-    const dto = this.parse(approveCloseDto, body);
     const user = req.user as { tenantId: string; id: string; role: string };
     return this.shiftsService.approveClose(
       user.tenantId,
       user.id,
       user.role,
       id,
-      dto,
+      body,
     );
   }
 
@@ -200,13 +169,12 @@ export class ShiftsController {
     @Param('id') id: string,
     @Body() body: CreateCashMovementDto,
   ) {
-    const dto = this.parse(createCashMovementDto, body);
     const user = req.user as { tenantId: string; id: string };
     return this.shiftsService.createCashMovement(
       user.tenantId,
       user.id,
       id,
-      dto,
+      body,
     );
   }
 }

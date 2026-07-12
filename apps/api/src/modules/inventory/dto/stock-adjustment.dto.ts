@@ -1,37 +1,45 @@
-import { z } from 'zod';
 import { InventoryChangeType } from '@repo/types';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
-export const adjustmentTypeEnum = z.enum([
-  'STOCK_IN',
-  'STOCK_OUT',
-  'SET_STOCK',
-]);
-export type AdjustmentType = z.infer<typeof adjustmentTypeEnum>;
+export type AdjustmentType = 'STOCK_IN' | 'STOCK_OUT' | 'SET_STOCK';
 
-export const createStockAdjustmentSchema = z.object({
-  branchId: z.string(),
-  productId: z.string(),
-  adjustmentType: adjustmentTypeEnum,
-  quantity: z.number().positive(), // Always positive, adjustmentType determines if adding or removing
-  reason: z.string(),
-  minStock: z.number().optional(), // Optional minimum stock threshold
-});
-export type CreateStockAdjustmentDto = z.infer<
-  typeof createStockAdjustmentSchema
->;
+export class CreateStockAdjustmentDto {
+  @IsString()
+  branchId!: string;
 
-export const stockAdjustmentHistoryQuerySchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
-  branchId: z.string().optional(),
-  productId: z.string().optional(),
-  changeType: z.enum(InventoryChangeType).optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-});
-export type StockAdjustmentHistoryQueryDto = z.infer<
-  typeof stockAdjustmentHistoryQuerySchema
->;
+  @IsString()
+  productId!: string;
+
+  @IsIn(['STOCK_IN', 'STOCK_OUT', 'SET_STOCK'])
+  adjustmentType!: AdjustmentType;
+
+  // Always positive, adjustmentType determines if adding or removing
+  @IsNumber()
+  @IsPositive()
+  quantity!: number;
+
+  @IsString()
+  reason!: string;
+
+  // Optional minimum stock threshold
+  @IsOptional()
+  @IsNumber()
+  minStock?: number;
+}
+
+/**
+ * Query contract for the adjustment-history endpoint. Read from `req.query` and
+ * used as a service type — not validated as a request DTO.
+ */
+export interface StockAdjustmentHistoryQueryDto {
+  page?: number;
+  limit?: number;
+  branchId?: string;
+  productId?: string;
+  changeType?: InventoryChangeType;
+  startDate?: string;
+  endDate?: string;
+}
 
 export interface StockDeductionItem {
   productId: string;

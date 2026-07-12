@@ -13,9 +13,9 @@ import { UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { LoyaltyService } from './loyalty.service.js';
-import { updateLoyaltyProgramDto } from './dto/update-loyalty-program.dto.js';
-import { manualAdjustmentDto } from './dto/manual-adjustment.dto.js';
-import { loyaltyTransactionQueryDto } from './dto/list-loyalty-transactions.dto.js';
+import { UpdateLoyaltyProgramDto } from './dto/update-loyalty-program.dto.js';
+import { ManualAdjustmentDto } from './dto/manual-adjustment.dto.js';
+import { LoyaltyTransactionQueryDto } from './dto/list-loyalty-transactions.dto.js';
 
 @Controller('loyalty')
 export class LoyaltyController {
@@ -63,17 +63,9 @@ export class LoyaltyController {
 
   @Put('program')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  updateProgram(@Req() req: Request, @Body() body: unknown) {
+  updateProgram(@Req() req: Request, @Body() body: UpdateLoyaltyProgramDto) {
     const tenantId = this.getTenantId(req);
-
-    const result = updateLoyaltyProgramDto.safeParse(body);
-    if (!result.success) {
-      throw new BadRequestException(
-        result.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-
-    return this.loyaltyService.updateProgram(tenantId, result.data);
+    return this.loyaltyService.updateProgram(tenantId, body);
   }
 
   // ──────────────────────────────────────────────
@@ -94,22 +86,10 @@ export class LoyaltyController {
   listTransactions(
     @Req() req: Request,
     @Param('customerId') customerId: string,
-    @Query() query: Record<string, unknown>,
+    @Query() query: LoyaltyTransactionQueryDto,
   ) {
     const tenantId = this.getTenantId(req);
-
-    const parsed = loyaltyTransactionQueryDto.safeParse(query);
-    if (!parsed.success) {
-      throw new BadRequestException(
-        parsed.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-
-    return this.loyaltyService.listTransactions(
-      tenantId,
-      customerId,
-      parsed.data,
-    );
+    return this.loyaltyService.listTransactions(tenantId, customerId, query);
   }
 
   // ──────────────────────────────────────────────
@@ -121,21 +101,13 @@ export class LoyaltyController {
   manualAdjustment(
     @Req() req: Request,
     @Param('customerId') customerId: string,
-    @Body() body: unknown,
+    @Body() body: ManualAdjustmentDto,
   ) {
     const actor = this.getActor(req);
-
-    const parsed = manualAdjustmentDto.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestException(
-        parsed.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-
     return this.loyaltyService.manualAdjustment(
       actor.tenantId,
       customerId,
-      parsed.data,
+      body,
       actor.userId,
       actor.role,
     );

@@ -1,18 +1,54 @@
-import { z } from 'zod';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
-export const PurchaseOrderItemDto = z.object({
-  productId: z.string().min(1, 'Product ID is required'),
-  quantity: z.number().positive('Quantity must be positive'),
-  unitCost: z.number().min(0, 'Unit cost cannot be negative'),
-  notes: z.string().optional(),
-});
-export type PurchaseOrderItemDto = z.infer<typeof PurchaseOrderItemDto>;
+export class PurchaseOrderItemDto {
+  @IsString()
+  @MinLength(1, { message: 'Product ID is required' })
+  productId!: string;
 
-export const CreatePurchaseOrderSchema = z.object({
-  supplierId: z.string().min(1, 'Supplier ID is required'),
-  branchId: z.string().min(1, 'Branch ID is required'),
-  items: z.array(PurchaseOrderItemDto).min(1, 'At least one item is required'),
-  notes: z.string().optional(),
-  orderNumber: z.string().optional(),
-});
-export type CreatePurchaseOrderDto = z.infer<typeof CreatePurchaseOrderSchema>;
+  @IsNumber()
+  @IsPositive({ message: 'Quantity must be positive' })
+  quantity!: number;
+
+  @IsNumber()
+  @Min(0, { message: 'Unit cost cannot be negative' })
+  unitCost!: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreatePurchaseOrderDto {
+  @IsString()
+  @MinLength(1, { message: 'Supplier ID is required' })
+  supplierId!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'Branch ID is required' })
+  branchId!: string;
+
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one item is required' })
+  @ValidateNested({ each: true })
+  @Type(() => PurchaseOrderItemDto)
+  items!: PurchaseOrderItemDto[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  orderNumber?: string;
+}

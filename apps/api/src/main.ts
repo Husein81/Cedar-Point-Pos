@@ -4,7 +4,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { AppModule } from './app.module.js';
-import { ZodValidationPipe } from './modules/common/pipes/zod.pipe.js';
 
 async function bootstrap() {
   try {
@@ -26,13 +25,12 @@ async function bootstrap() {
         'X-Device-Id',
       ],
     });
-    // `whitelist` strips properties without a validation decorator, so
-    // class-validator DTOs (CreateUserDto, LoginDto, ...) can't be used to
-    // mass-assign unexpected fields. Zod DTOs are unaffected (the Zod pipe
-    // runs first; ValidationPipe is a no-op for non-class metatypes).
+    // `whitelist` strips properties without a validation decorator so DTOs
+    // can't be used to mass-assign unexpected fields. `transform` instantiates
+    // the DTO class and runs class-transformer (`@Type`, `@Transform`) so query
+    // params are coerced (string → number/Date/boolean) before validation.
     app.useGlobalPipes(
-      new ZodValidationPipe(),
-      new ValidationPipe({ whitelist: true }),
+      new ValidationPipe({ whitelist: true, transform: true }),
     );
 
     const config = new DocumentBuilder()

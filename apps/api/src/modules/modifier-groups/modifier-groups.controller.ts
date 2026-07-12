@@ -16,7 +16,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
-import type {
+import {
   CreateModifierGroupDto,
   UpdateModifierGroupDto,
 } from './dto/modifier-group.dto.js';

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { IsInt, NotEquals, IsString, MinLength } from 'class-validator';
 
 /**
  * DTO for manual loyalty point adjustment.
@@ -7,12 +7,12 @@ import { z } from 'zod';
  * - Negative points = debit (subtract points).
  * - Reason is mandatory per spec.
  */
-export const manualAdjustmentDto = z.object({
-  points: z
-    .number()
-    .int()
-    .refine((v) => v !== 0, 'Points must be non-zero'),
-  reason: z.string().min(1, 'Reason is required for manual adjustments'),
-});
+export class ManualAdjustmentDto {
+  @IsInt()
+  @NotEquals(0, { message: 'Points must be non-zero' })
+  points!: number;
 
-export type ManualAdjustmentDto = z.infer<typeof manualAdjustmentDto>;
+  @IsString()
+  @MinLength(1, { message: 'Reason is required for manual adjustments' })
+  reason!: string;
+}

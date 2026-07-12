@@ -8,21 +8,24 @@ import {
   Query,
 } from '@nestjs/common';
 import {
-  CreateStaffSchema,
-  ResetPasswordSchema,
-  SetPinSchema,
   StaffActivityAction,
   StaffActivityModule,
-  StaffActivityQuerySchema,
-  StaffQuerySchema,
-  UpdateStaffSchema,
   UserRole,
 } from '@repo/types';
 import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import { validateWith } from '../common/zod-validate.js';
 import { LogActivity } from './decorators/log-activity.decorator.js';
+import { CreateStaffDto } from './dto/create-staff.dto.js';
+import { UpdateStaffDto } from './dto/update-staff.dto.js';
+import {
+  ResetPasswordDto,
+  SetPinDto,
+} from './dto/staff-pin-password.dto.js';
+import {
+  StaffActivityQueryDto,
+  StaffQueryDto,
+} from './dto/staff-query.dto.js';
 import { StaffService } from './staff.service.js';
 
 @Controller('staff')
@@ -31,21 +34,15 @@ export class StaffController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  getStaff(@CurrentTenant() tenantId: string, @Query() query: unknown) {
-    return this.staffService.getStaff(
-      tenantId,
-      validateWith(StaffQuerySchema, query),
-    );
+  getStaff(@CurrentTenant() tenantId: string, @Query() query: StaffQueryDto) {
+    return this.staffService.getStaff(tenantId, query);
   }
 
   @Post()
   @Roles(UserRole.ADMIN)
   @LogActivity(StaffActivityAction.STAFF_CREATED, StaffActivityModule.STAFF)
-  createStaff(@CurrentTenant() tenantId: string, @Body() body: unknown) {
-    return this.staffService.createStaff(
-      tenantId,
-      validateWith(CreateStaffSchema, body),
-    );
+  createStaff(@CurrentTenant() tenantId: string, @Body() body: CreateStaffDto) {
+    return this.staffService.createStaff(tenantId, body);
   }
 
   @Get(':id')
@@ -61,14 +58,9 @@ export class StaffController {
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: UpdateStaffDto,
   ) {
-    return this.staffService.updateStaff(
-      tenantId,
-      actorRole,
-      id,
-      validateWith(UpdateStaffSchema, body),
-    );
+    return this.staffService.updateStaff(tenantId, actorRole, id, body);
   }
 
   @Patch(':id/toggle-active')
@@ -108,10 +100,9 @@ export class StaffController {
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: SetPinDto,
   ) {
-    const { pin } = validateWith(SetPinSchema, body);
-    return this.staffService.setPin(tenantId, actorRole, id, pin);
+    return this.staffService.setPin(tenantId, actorRole, id, body.pin);
   }
 
   /**
@@ -130,10 +121,14 @@ export class StaffController {
     @CurrentTenant() tenantId: string,
     @CurrentRole() actorRole: UserRole,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: ResetPasswordDto,
   ) {
-    const { password } = validateWith(ResetPasswordSchema, body);
-    return this.staffService.resetPassword(tenantId, actorRole, id, password);
+    return this.staffService.resetPassword(
+      tenantId,
+      actorRole,
+      id,
+      body.password,
+    );
   }
 
   @Get(':id/activity')
@@ -141,13 +136,9 @@ export class StaffController {
   getActivity(
     @CurrentTenant() tenantId: string,
     @Param('id') id: string,
-    @Query() query: unknown,
+    @Query() query: StaffActivityQueryDto,
   ) {
-    return this.staffService.getActivityLogs(
-      tenantId,
-      id,
-      validateWith(StaffActivityQuerySchema, query),
-    );
+    return this.staffService.getActivityLogs(tenantId, id, query);
   }
 
   /**

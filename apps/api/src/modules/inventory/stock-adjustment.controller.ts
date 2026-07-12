@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
-import type { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto.js';
+import { CreateStockAdjustmentDto } from './dto/stock-adjustment.dto.js';
 import { StockAdjustmentService } from './stock-adjustment.service.js';
 
 @Controller('inventory/adjustments')

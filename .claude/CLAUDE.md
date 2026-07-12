@@ -15,7 +15,6 @@ Before writing any code, read `.claude/CODEBASE_GUIDE.md`. It contains the full 
 ### Backend (`apps/api`)
 - **NestJS 11** only. No Express handlers, no Fastify.
 - **Prisma 7** is the only ORM/query builder. No raw SQL except through `prisma.$queryRaw` when Prisma's query API cannot express it.
-- **Zod** for validation. `ZodValidationPipe` is already wired globally.
 - **`@nestjs/jwt` + `passport-jwt`** for auth. No other auth libraries.
 - **Socket.IO** for real-time. No WebSocket alternatives.
 - **EventEmitter2** for in-process events. No RxJS Subjects, no custom buses.
@@ -51,7 +50,7 @@ apps/api/src/modules/<feature>/
 ├── <feature>.module.ts
 ├── <feature>.controller.ts
 ├── <feature>.service.ts          ← one service per domain concern
-└── dto/                          ← Zod DTOs live here
+└── dto/                          ← class-validator DTOs live here
 ```
 - Split into multiple services only when a second distinct concern arises (e.g., `inventory-deduction.service.ts` is separate from `inventory.service.ts`).
 - Never put business logic in a controller. Controllers receive, delegate, and return. Nothing else.
@@ -84,10 +83,10 @@ store/<domain>Store.ts    ← Zustand slice per domain concern
 - Import: `import { OrderStatus, UserRole } from '@repo/types'`.
 - Usage: `OrderStatus.DRAFT`, `UserRole.ADMIN`. They are const objects, not TypeScript enums.
 
-### Zod schemas
-- All shared DTO schemas live in `packages/types/src/schemas.ts`.
-- App-specific request/response shapes that are **not** shared across apps live in the app's own `dto/` folder.
-- Never write a `z.object({ ... })` that reconstructs a schema already in `@repo/types`. Extend or pick from the canonical one.
+### Shared schemas (`@repo/types`)
+- All **shared** DTO schemas live in `packages/types/src/schemas.ts` and remain **Zod** — the POS and system-admin frontends validate against them.
+- The **API validates with class-validator, not Zod** (see §4). App-specific request DTOs live in the app's own `dto/` folder as class-validator classes. When an API endpoint must validate the same shape as a shared `@repo/types` schema (e.g. staff/auth), **mirror its constraints in a local class-validator DTO** — never import a Zod schema into `apps/api`.
+- On the frontend, never write a `z.object({ ... })` that reconstructs a schema already in `@repo/types`. Extend or pick from the canonical one.
 - `@repo/types` is a **built** package (tsup → `dist/`). After editing `packages/types/src/**`, rebuild it (`pnpm --filter @repo/types build`) before any API or frontend code can import the new export — otherwise you get `has no exported member` errors against the stale `dist/`.
 
 ### UI components
@@ -101,15 +100,16 @@ store/<domain>Store.ts    ← Zustand slice per domain concern
 
 ---
 
-## 4. Validation — Zod, always, in the right layer
+## 4. Validation — the right library in the right layer
 
-### API (backend)
-- Every controller endpoint that accepts a body, query, or param must have a Zod schema as its DTO.
-- Register the Zod schema as the class metatype so `ZodValidationPipe` (already globally registered) handles parsing.
-- Never write `if (!body.name) throw new BadRequestException(...)` for input validation — put the constraint in the Zod schema.
+### API (backend) — class-validator
+- Every controller endpoint that accepts a body, query, or param must type it with a **class-validator DTO class**. The global `ValidationPipe` (`{ whitelist: true, transform: true }`, wired once in `main.ts`) validates and coerces it. There is no Zod in `apps/api`.
+- Decorate every field (`@IsString()`, `@IsEnum()`, `@IsOptional()`, `@IsUUID()`, ...). For query params, use class-transformer (`@Type(() => Number)`, `@Type(() => Date)`, `@Transform(...)`) to coerce the incoming strings. Cross-field checks class-validator can't express go in a custom decorator under `common/validators/` (e.g. `IsAfterField`, `IsSameCalendarDay`).
+- Import a DTO **as a value** (`import { CreateXDto }`, never `import type`) wherever it is used as a `@Body()`/`@Query()` metatype — a type-only import erases to `Object` and the pipe silently skips validation.
+- Never write `if (!body.name) throw new BadRequestException(...)` for input validation — put the constraint in a class-validator decorator.
 - Use `@CurrentTenant()` decorator to extract `tenantId` from JWT. Never accept `tenantId` from the request body.
 
-### Frontend (POS desktop / system-admin)
+### Frontend (POS desktop / system-admin) — Zod
 - Form DTOs are defined with `z.object(...)` in `dto/` and types inferred with `z.infer<typeof Schema>`.
 - Validate at the form boundary (TanStack Form + Zod). Never manually validate inside a component render.
 
@@ -273,7 +273,7 @@ Staff are `User` rows. Tenant-side management lives in `modules/staff/`; POS ter
 
 ### PINs
 - A POS PIN is 4–6 digits, hashed with bcrypt (cost 12) at rest, never stored or returned raw. Expose only a derived `isPinSet` boolean (see `StaffService.toStaffView`).
-- `CreateStaffSchema.pin` is optional: hash it on create so the account is POS-ready immediately, or set it later via `set-pin`. Hash PINs in `StaffService`, never in a controller.
+- `CreateStaffDto.pin` is optional (mirrors the shared `CreateStaffSchema` in `@repo/types`): hash it on create so the account is POS-ready immediately, or set it later via `set-pin`. Hash PINs in `StaffService`, never in a controller. The PIN format (`/^\d{4,6}$/`) is enforced by `@Matches` on the DTO.
 
 ### PIN login & session lifecycle
 - `POST /auth/pin-login` is `@Public()` + throttled. Derive `tenantId` from the staff record, **never** from the client.
@@ -315,6 +315,7 @@ Staff are `User` rows. Tenant-side management lives in `modules/staff/`; POS ter
 - Never put UI/client state into TanStack Query — UI state belongs in Zustand.
 - Never move inventory deduction or loyalty writes inside the main order transaction.
 - Never create a Zod schema or enum that already exists in `@repo/types`.
+- Never use Zod anywhere in `apps/api` — the API validates exclusively with class-validator DTOs (§4). Mirror a shared `@repo/types` schema's constraints in a local class-validator DTO rather than importing the Zod schema.
 - Never define a React component in the same file as a Zustand store.
 - Never use `console.log` in committed production code paths.
 - Never put a per-staff management action (set-pin, toggle-active, role change) on `AuthController` — it belongs on `StaffController`.

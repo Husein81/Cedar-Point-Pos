@@ -1,8 +1,12 @@
 import { TransferStatus } from '@repo/types';
-import { z } from 'zod';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-export const updateTransferSchema = z.object({
-  status: z.enum(TransferStatus).optional(),
-  notes: z.string().optional(),
-});
-export type UpdateTransferDto = z.infer<typeof updateTransferSchema>;
+export class UpdateTransferDto {
+  @IsOptional()
+  @IsEnum(TransferStatus)
+  status?: TransferStatus;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}

@@ -1,32 +1,13 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Req,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { UserRole } from '@repo/types';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { ReportsService } from './reports.service.js';
-import {
-  reportQuerySchema,
-  type ReportQueryDto,
-} from './dto/report-query.dto.js';
+import { ReportQueryDto } from './dto/report-query.dto.js';
 
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
-
-  private parseQuery(query: Record<string, unknown>): ReportQueryDto {
-    const result = reportQuerySchema.safeParse(query);
-    if (!result.success) {
-      throw new BadRequestException(
-        result.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-    return result.data;
-  }
 
   // ============================================================
   // NEW LIST ENDPOINTS (TABLE DATA)
@@ -43,13 +24,9 @@ export class ReportsController {
    */
   @Get('sales/orders')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getSalesOrdersList(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getSalesOrdersList(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getSalesOrdersList(user.tenantId, parsedQuery);
+    return this.reportsService.getSalesOrdersList(user.tenantId, query);
   }
 
   /**
@@ -65,14 +42,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getPaymentTransactionsList(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getPaymentTransactionsList(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getPaymentTransactionsList(user.tenantId, query);
   }
 
   /**
@@ -88,14 +61,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getInventoryMovementsList(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getInventoryMovementsList(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getInventoryMovementsList(user.tenantId, query);
   }
 
   /**
@@ -111,14 +80,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getTopProductsReportList(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getTopProductsReportList(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getTopProductsReportList(user.tenantId, query);
   }
 
   // ============================================================
@@ -131,13 +96,9 @@ export class ReportsController {
    */
   @Get('sales')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getSalesReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getSalesReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getSalesReport(user.tenantId, parsedQuery);
+    return this.reportsService.getSalesReport(user.tenantId, query);
   }
 
   /**
@@ -146,13 +107,9 @@ export class ReportsController {
    */
   @Get('debts')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getDebtsReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getDebtsReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getDebtsReport(user.tenantId, parsedQuery);
+    return this.reportsService.getDebtsReport(user.tenantId, query);
   }
 
   /**
@@ -161,13 +118,9 @@ export class ReportsController {
    */
   @Get('debts/orders')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getDebtsOrdersList(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getDebtsOrdersList(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getDebtsOrdersList(user.tenantId, parsedQuery);
+    return this.reportsService.getDebtsOrdersList(user.tenantId, query);
   }
 
   /**
@@ -176,13 +129,9 @@ export class ReportsController {
    */
   @Get('customers')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getCustomersReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getCustomersReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getCustomersReport(user.tenantId, parsedQuery);
+    return this.reportsService.getCustomersReport(user.tenantId, query);
   }
 
   /**
@@ -193,14 +142,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getCustomersReportList(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getCustomersReportList(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getCustomersReportList(user.tenantId, query);
   }
 
   /**
@@ -211,11 +156,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getFinancialsReport(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getFinancialsReport(user.tenantId, parsedQuery);
+    return this.reportsService.getFinancialsReport(user.tenantId, query);
   }
 
   /**
@@ -226,14 +170,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getProductsWithProfit(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getProductsWithProfit(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getProductsWithProfit(user.tenantId, query);
   }
 
   /**
@@ -242,13 +182,9 @@ export class ReportsController {
    */
   @Get('financials/categories')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getCategoryRevenue(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getCategoryRevenue(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getCategoryRevenue(user.tenantId, parsedQuery);
+    return this.reportsService.getCategoryRevenue(user.tenantId, query);
   }
 
   /**
@@ -259,14 +195,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getTopSellingProducts(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getTopSellingProducts(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getTopSellingProducts(user.tenantId, query);
   }
 
   /**
@@ -277,14 +209,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getMostOrderedProducts(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getMostOrderedProducts(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getMostOrderedProducts(user.tenantId, query);
   }
 
   /**
@@ -295,11 +223,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getLeastSoldProducts(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getLeastSoldProducts(user.tenantId, parsedQuery);
+    return this.reportsService.getLeastSoldProducts(user.tenantId, query);
   }
 
   /**
@@ -308,13 +235,9 @@ export class ReportsController {
    */
   @Get('payments')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getPaymentsReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getPaymentsReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getPaymentsReport(user.tenantId, parsedQuery);
+    return this.reportsService.getPaymentsReport(user.tenantId, query);
   }
 
   /**
@@ -325,18 +248,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getPaymentTransactions(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    const page = query.page ? Number(query.page) : 1;
-    const pageSize = query.pageSize ? Number(query.pageSize) : 25;
-
-    return this.reportsService.getPaymentTransactionsList(user.tenantId, {
-      ...parsedQuery,
-      page,
-      pageSize,
-    });
+    return this.reportsService.getPaymentTransactionsList(user.tenantId, query);
   }
 
   /**
@@ -345,13 +260,9 @@ export class ReportsController {
    */
   @Get('orders')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getOrdersReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getOrdersReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getOrdersReport(user.tenantId, parsedQuery);
+    return this.reportsService.getOrdersReport(user.tenantId, query);
   }
 
   /**
@@ -360,13 +271,9 @@ export class ReportsController {
    */
   @Get('inventory')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getInventoryReport(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getInventoryReport(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getInventoryReport(user.tenantId, parsedQuery);
+    return this.reportsService.getInventoryReport(user.tenantId, query);
   }
 
   // ============================================================
@@ -379,13 +286,9 @@ export class ReportsController {
    */
   @Get('loyalty')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  async getLoyaltySummary(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getLoyaltySummary(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getLoyaltySummary(user.tenantId, parsedQuery);
+    return this.reportsService.getLoyaltySummary(user.tenantId, query);
   }
 
   /**
@@ -400,14 +303,10 @@ export class ReportsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   async getLoyaltyTransactionsList(
     @Req() req: Request,
-    @Query() query: Record<string, unknown>,
+    @Query() query: ReportQueryDto,
   ) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getLoyaltyTransactionsList(
-      user.tenantId,
-      parsedQuery,
-    );
+    return this.reportsService.getLoyaltyTransactionsList(user.tenantId, query);
   }
 
   // ============================================================
@@ -448,13 +347,9 @@ export class ReportsController {
    */
   @Get('dashboard/sales-by-category')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getSalesByCategory(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getSalesByCategory(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    return this.reportsService.getSalesByCategory(user.tenantId, parsedQuery);
+    return this.reportsService.getSalesByCategory(user.tenantId, query);
   }
 
   /**
@@ -477,17 +372,9 @@ export class ReportsController {
    */
   @Get('dashboard/top-products')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  async getTopProducts(
-    @Req() req: Request,
-    @Query() query: Record<string, unknown>,
-  ) {
+  async getTopProducts(@Req() req: Request, @Query() query: ReportQueryDto) {
     const user = req.user as { tenantId: string };
-    const parsedQuery = this.parseQuery(query);
-    const limit = query.limit ? Number(query.limit) : 5;
-    return this.reportsService.getTopProducts(
-      user.tenantId,
-      parsedQuery,
-      limit,
-    );
+    const limit = query.limit ?? 5;
+    return this.reportsService.getTopProducts(user.tenantId, query, limit);
   }
 }

@@ -10,14 +10,14 @@ export class CreateCategoryDto {
 
   @IsOptional()
   @IsString()
-  code?: string | null;
+  code?: string;
 
   @IsOptional()
   @IsString()
-  description?: string | null;
+  description?: string;
 
   @IsOptional()
-  deletedAt?: Date | null;
+  deletedAt?: Date;
 
   @IsOptional()
   @IsString()
@@ -36,14 +36,14 @@ export class UpdateCategoryDto {
 
   @IsOptional()
   @IsString()
-  code?: string | null;
+  code?: string;
 
   @IsOptional()
   @IsString()
-  description?: string | null;
+  description?: string;
 
   @IsOptional()
-  deletedAt?: Date | null;
+  deletedAt?: Date;
 
   @IsOptional()
   @IsString()

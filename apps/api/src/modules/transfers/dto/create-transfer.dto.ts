@@ -1,16 +1,37 @@
-import { z } from 'zod';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
-export const TransferItemSchema = z.object({
-  productId: z.string(),
-  quantity: z.number().int().positive(),
-});
-export type TransferItemDto = z.infer<typeof TransferItemSchema>;
+export class TransferItemDto {
+  @IsString()
+  productId!: string;
 
-export const CreateTransferSchema = z.object({
-  fromBranchId: z.string(),
-  toBranchId: z.string(),
-  items: z.array(TransferItemSchema).min(1),
-  notes: z.string().optional(),
-});
+  @IsInt()
+  @IsPositive()
+  quantity!: number;
+}
 
-export type CreateTransferDto = z.infer<typeof CreateTransferSchema>;
+export class CreateTransferDto {
+  @IsString()
+  fromBranchId!: string;
+
+  @IsString()
+  toBranchId!: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => TransferItemDto)
+  items!: TransferItemDto[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}

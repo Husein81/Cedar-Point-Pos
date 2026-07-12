@@ -1,79 +1,143 @@
-import { z } from 'zod';
 import { ShiftScheduleStatus } from '@repo/types';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsDate,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import {
+  IsAfterField,
+  IsSameCalendarDay,
+} from '../../common/validators/date-field.validators.js';
 
 // ── Create Schedule ──────────────────────────────────────────────────────────
-export const createScheduleDto = z
-  .object({
-    branchId: z.string().min(1, 'Branch ID is required'),
-    userId: z.string().min(1, 'User ID is required'),
-    deviceId: z.string().min(1).optional(),
-    date: z.coerce.date(),
-    startTime: z.coerce.date(),
-    endTime: z.coerce.date(),
-    notes: z.string().max(500).optional(),
-  })
-  .refine((d) => d.endTime > d.startTime, {
-    message: 'End time must be after start time',
-    path: ['endTime'],
-  })
-  .refine(
-    (d) =>
-      d.date.toISOString().slice(0, 10) ===
-      d.startTime.toISOString().slice(0, 10),
-    {
-      message: 'Schedule date must match the calendar day of startTime',
-      path: ['date'],
-    },
-  );
+export class CreateScheduleDto {
+  @IsString()
+  @MinLength(1, { message: 'Branch ID is required' })
+  branchId!: string;
 
-export type CreateScheduleDto = z.infer<typeof createScheduleDto>;
+  @IsString()
+  @MinLength(1, { message: 'User ID is required' })
+  userId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  deviceId?: string;
+
+  @Type(() => Date)
+  @IsDate()
+  @IsSameCalendarDay('startTime', {
+    message: 'Schedule date must match the calendar day of startTime',
+  })
+  date!: Date;
+
+  @Type(() => Date)
+  @IsDate()
+  startTime!: Date;
+
+  @Type(() => Date)
+  @IsDate()
+  @IsAfterField('startTime', { message: 'End time must be after start time' })
+  endTime!: Date;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
+}
 
 // ── Update Schedule ──────────────────────────────────────────────────────────
-export const updateScheduleDto = z
-  .object({
-    userId: z.string().min(1).optional(),
-    deviceId: z.string().min(1).nullable().optional(),
-    date: z.coerce.date().optional(),
-    startTime: z.coerce.date().optional(),
-    endTime: z.coerce.date().optional(),
-    notes: z.string().max(500).nullable().optional(),
-  })
-  .refine(
-    (d) => {
-      if (d.startTime && d.endTime) return d.endTime > d.startTime;
-      return true;
-    },
-    {
-      message: 'End time must be after start time',
-      path: ['endTime'],
-    },
-  );
+export class UpdateScheduleDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  userId?: string;
 
-export type UpdateScheduleDto = z.infer<typeof updateScheduleDto>;
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  deviceId?: string | null;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  date?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  startTime?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  @IsAfterField('startTime', { message: 'End time must be after start time' })
+  endTime?: Date;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string | null;
+}
 
 // ── Query Schedules ──────────────────────────────────────────────────────────
-export const queryScheduleDto = z.object({
-  branchId: z.string().uuid().optional(),
-  userId: z.string().uuid().optional(),
-  status: z
-    .enum([
-      ShiftScheduleStatus.DRAFT,
-      ShiftScheduleStatus.PUBLISHED,
-      ShiftScheduleStatus.STARTED,
-      ShiftScheduleStatus.CANCELLED,
-    ])
-    .optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(25),
-});
+export class QueryScheduleDto {
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
 
-export type QueryScheduleDto = z.infer<typeof queryScheduleDto>;
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsOptional()
+  @IsIn([
+    ShiftScheduleStatus.DRAFT,
+    ShiftScheduleStatus.PUBLISHED,
+    ShiftScheduleStatus.STARTED,
+    ShiftScheduleStatus.CANCELLED,
+  ])
+  status?: ShiftScheduleStatus;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  from?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  to?: Date;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number = 25;
+}
 
 // ── Publish / Unpublish (bulk) ───────────────────────────────────────────────
-export const publishScheduleDto = z.object({
-  ids: z.array(z.string().min(1)).min(1, 'At least one schedule ID required'),
-});
-
-export type PublishScheduleDto = z.infer<typeof publishScheduleDto>;
+export class PublishScheduleDto {
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one schedule ID required' })
+  @IsString({ each: true })
+  @MinLength(1, { each: true })
+  ids!: string[];
+}

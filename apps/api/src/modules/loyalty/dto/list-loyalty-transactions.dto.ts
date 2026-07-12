@@ -1,29 +1,64 @@
-import { z } from 'zod';
 import { LoyaltyTransactionType } from '@repo/types';
+import { Type } from 'class-transformer';
+import {
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 /**
  * Query params for loyalty transaction listing / reports.
  */
-export const loyaltyTransactionQueryDto = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  type: z.enum(LoyaltyTransactionType).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  customerId: z.string().optional(),
-});
+export class LoyaltyTransactionQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
 
-export type LoyaltyTransactionQueryDto = z.infer<
-  typeof loyaltyTransactionQueryDto
->;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number = 20;
+
+  @IsOptional()
+  @IsEnum(LoyaltyTransactionType)
+  type?: LoyaltyTransactionType;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  from?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  to?: Date;
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+}
 
 /**
  * Query params for loyalty report endpoint.
  */
-export const loyaltyReportQueryDto = z.object({
-  from: z.coerce.date(),
-  to: z.coerce.date(),
-  branchId: z.string().optional(),
-});
+export class LoyaltyReportQueryDto {
+  @Type(() => Date)
+  @IsDate()
+  from!: Date;
 
-export type LoyaltyReportQueryDto = z.infer<typeof loyaltyReportQueryDto>;
+  @Type(() => Date)
+  @IsDate()
+  to!: Date;
+
+  @IsOptional()
+  @IsString()
+  branchId?: string;
+}

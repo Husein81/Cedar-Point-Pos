@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,45 +14,20 @@ import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { ShiftScheduleService } from './shift-schedule.service.js';
 import {
-  createScheduleDto,
-  updateScheduleDto,
-  queryScheduleDto,
-  publishScheduleDto,
-  type CreateScheduleDto,
-  type UpdateScheduleDto,
-  type QueryScheduleDto,
-  type PublishScheduleDto,
+  CreateScheduleDto,
+  PublishScheduleDto,
+  QueryScheduleDto,
+  UpdateScheduleDto,
 } from './dto/schedule.dto.js';
 
 @Controller('shifts/schedules')
 export class ShiftScheduleController {
   constructor(private readonly scheduleService: ShiftScheduleService) {}
 
-  /** Validate a Zod schema, throw BadRequestException on failure. */
-  private parse<T>(
-    schema: {
-      safeParse: (
-        v: unknown,
-      ) =>
-        | { success: true; data: T }
-        | { success: false; error: { issues: { message: string }[] } };
-    },
-    value: unknown,
-  ): T {
-    const result = schema.safeParse(value);
-    if (!result.success) {
-      throw new BadRequestException(
-        result.error.issues.map((e) => e.message).join(', '),
-      );
-    }
-    return result.data;
-  }
-
   // ── List Schedules ─────────────────────────────────────────────────────
   @Get()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  findAll(@Req() req: Request, @Query() rawQuery: QueryScheduleDto) {
-    const query = this.parse(queryScheduleDto, rawQuery);
+  findAll(@Req() req: Request, @Query() query: QueryScheduleDto) {
     const user = req.user as { tenantId: string };
     return this.scheduleService.findAll(user.tenantId, query);
   }
@@ -61,8 +35,7 @@ export class ShiftScheduleController {
   // ── My Schedules (cashier's own view) ──────────────────────────────────
   @Get('me')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
-  getMySchedules(@Req() req: Request, @Query() rawQuery: QueryScheduleDto) {
-    const query = this.parse(queryScheduleDto, rawQuery);
+  getMySchedules(@Req() req: Request, @Query() query: QueryScheduleDto) {
     const user = req.user as { tenantId: string; id: string };
     return this.scheduleService.getMySchedules(user.tenantId, user.id, query);
   }
@@ -82,9 +55,8 @@ export class ShiftScheduleController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   create(@Req() req: Request, @Body() body: CreateScheduleDto) {
-    const dto = this.parse(createScheduleDto, body);
     const user = req.user as { tenantId: string };
-    return this.scheduleService.create(user.tenantId, dto);
+    return this.scheduleService.create(user.tenantId, body);
   }
 
   // ── Update Schedule ────────────────────────────────────────────────────
@@ -95,9 +67,8 @@ export class ShiftScheduleController {
     @Param('id') id: string,
     @Body() body: UpdateScheduleDto,
   ) {
-    const dto = this.parse(updateScheduleDto, body);
     const user = req.user as { tenantId: string };
-    return this.scheduleService.update(user.tenantId, id, dto);
+    return this.scheduleService.update(user.tenantId, id, body);
   }
 
   // ── Delete Schedule ────────────────────────────────────────────────────
@@ -112,17 +83,15 @@ export class ShiftScheduleController {
   @Post('publish')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   publish(@Req() req: Request, @Body() body: PublishScheduleDto) {
-    const dto = this.parse(publishScheduleDto, body);
     const user = req.user as { tenantId: string; id: string };
-    return this.scheduleService.publish(user.tenantId, user.id, dto.ids);
+    return this.scheduleService.publish(user.tenantId, user.id, body.ids);
   }
 
   // ── Unpublish (bulk) ───────────────────────────────────────────────────
   @Post('unpublish')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   unpublish(@Req() req: Request, @Body() body: PublishScheduleDto) {
-    const dto = this.parse(publishScheduleDto, body);
     const user = req.user as { tenantId: string };
-    return this.scheduleService.unpublish(user.tenantId, dto.ids);
+    return this.scheduleService.unpublish(user.tenantId, body.ids);
   }
 }

@@ -1,11 +1,19 @@
-import { z } from 'zod';
 import { CashMovementType } from '@repo/types';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
-export const createCashMovementDto = z.object({
-  type: z.enum([CashMovementType.CASH_IN, CashMovementType.CASH_OUT]),
-  amount: z.number().positive('Amount must be greater than 0'),
-  reason: z.string().optional(),
-  idempotencyKey: z.string().optional(),
-});
+export class CreateCashMovementDto {
+  @IsIn([CashMovementType.CASH_IN, CashMovementType.CASH_OUT])
+  type!: typeof CashMovementType.CASH_IN | typeof CashMovementType.CASH_OUT;
 
-export type CreateCashMovementDto = z.infer<typeof createCashMovementDto>;
+  @IsNumber()
+  @IsPositive({ message: 'Amount must be greater than 0' })
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
+}

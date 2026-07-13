@@ -17,6 +17,7 @@ import {
   ShiftScheduleStatus,
   ShiftStatus,
   SortOrder,
+  TableShape,
   TableStatus,
   TransferStatus,
   UserRole,
@@ -455,6 +456,14 @@ export const TableSchema = z.object({
   capacity: z.number().int().positive().default(4),
   status: z.enum(TableStatus).default("AVAILABLE"),
   isActive: z.boolean().default(true),
+  // Floor-plan geometry (world coordinates, px). Null posX/posY = not yet
+  // placed on the canvas; the POS auto-arranges unplaced tables.
+  posX: z.number().nullable().optional(),
+  posY: z.number().nullable().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
+  rotation: z.number().int().default(0),
+  shape: z.enum(TableShape).default("RECTANGLE"),
   deletedAt: isoDate.nullable().optional(),
   createdAt: isoDate.optional(),
   updatedAt: isoDate.optional(),
@@ -565,6 +574,7 @@ export const OrderSchema = z.object({
   shiftId: uuid.nullable().optional(),
   refunds: z.array(RefundSchema).optional(),
   type: z.enum(OrderType),
+  guestCount: z.number().int().nullable().optional(), // Number of guests for dine-in orders
   status: z.enum(OrderStatus).default("DRAFT"),
   vat: decimal.nullable().optional(),
   includeVAT: z.boolean().default(false),

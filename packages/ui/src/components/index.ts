@@ -54,6 +54,23 @@ import {
   CommandSeparator,
 } from "./command";
 import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuGroup,
+  ContextMenuPortal,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuRadioGroup,
+} from "./context-menu";
+import {
   Dialog,
   DialogClose,
   DialogContent,
@@ -194,7 +211,6 @@ import {
   TableRow,
 } from "./table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
-import { ToggleGroup, ToggleGroupItem } from "./toggle-group";
 import {
   Tooltip,
   TooltipContent,
@@ -266,6 +282,21 @@ export const Shad = {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuGroup,
+  ContextMenuPortal,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuRadioGroup,
   Dialog,
   DialogClose,
   DialogContent,
@@ -389,8 +420,6 @@ export const Shad = {
   TabsList,
   TabsTrigger,
   TabsContent,
-  ToggleGroup,
-  ToggleGroupItem,
   Tooltip,
   TooltipTrigger,
   TooltipContent,

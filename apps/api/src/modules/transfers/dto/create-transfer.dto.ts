@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -25,6 +26,9 @@ export class CreateTransferDto {
   @IsString()
   toBranchId!: string;
 
+  @ApiProperty({
+    type: [TransferItemDto],
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

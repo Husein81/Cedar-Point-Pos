@@ -29,6 +29,7 @@ export const createEmptyOrder = (overrides?: Partial<Order>): Order => ({
   customerAddress: null,
   tableId: null,
   tableName: null,
+  guestCount: undefined,
   notes: "",
   createdAt: new Date(),
   modifiedAt: new Date(),

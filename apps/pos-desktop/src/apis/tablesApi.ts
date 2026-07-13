@@ -1,11 +1,14 @@
-import type { Table, Order } from "@repo/types";
+import type { Table } from "@repo/types";
 import { api } from "./api";
 import type {
+  ActiveTableOrder,
   CreateTableDto,
   UpdateTableDto,
   UpdateTableStatusDto,
   TableWithFloor,
   TableStats,
+  TableOverview,
+  TableLayoutUpdate,
 } from "@/dto/tables.dto";
 
 export const tablesApi = {
@@ -16,6 +19,29 @@ export const tablesApi = {
     const response = await api.get<TableWithFloor[]>(
       `/tables/branch/${branchId}`,
     );
+    return response.data;
+  },
+
+  /**
+   * Floor-plan overview: all tables for a branch plus a lightweight
+   * active-order summary per table — one round-trip for the whole floor.
+   */
+  getTablesOverview: async (branchId: string): Promise<TableOverview[]> => {
+    const response = await api.get<TableOverview[]>(
+      `/tables/branch/${branchId}/overview`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Bulk save of floor-plan geometry from the Floor Editor.
+   */
+  updateTableLayout: async (
+    updates: TableLayoutUpdate[],
+  ): Promise<{ updated: number }> => {
+    const response = await api.patch<{ updated: number }>(`/tables/layout`, {
+      updates,
+    });
     return response.data;
   },
 
@@ -81,8 +107,12 @@ export const tablesApi = {
   /**
    * Get active (non-terminal) orders for a specific table
    */
-  getActiveOrdersByTable: async (tableId: string): Promise<Order[]> => {
-    const response = await api.get<Order[]>(`/tables/${tableId}/active-orders`);
+  getActiveOrdersByTable: async (
+    tableId: string,
+  ): Promise<ActiveTableOrder[]> => {
+    const response = await api.get<ActiveTableOrder[]>(
+      `/tables/${tableId}/active-orders`,
+    );
     return response.data;
   },
 

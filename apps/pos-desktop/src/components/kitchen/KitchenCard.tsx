@@ -193,7 +193,15 @@ const KitchenCard = ({ order }: Props) => {
       </div>
 
       {/* FOOTER */}
-      <Activity mode={order.status === "COMPLETED" ? "hidden" : "visible"}>
+      <Activity
+        mode={
+          order.status === "COMPLETED" ||
+          order.status === "CANCELLED" ||
+          order.status === "READY"
+            ? "hidden"
+            : "visible"
+        }
+      >
         <div className="border-t border-zinc-100 p-3">
           <Button
             onClick={onActionButtonClick}

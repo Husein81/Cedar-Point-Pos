@@ -44,6 +44,15 @@ export class KitchenService {
     }
   }
 
+  /**
+   * Floor-plan change notification. Forward-only: the gateway tells the
+   * branch room that tables changed and POS clients refetch their overview.
+   */
+  @OnEvent('table.updated')
+  handleTableUpdated(payload: { branchId: string }) {
+    this.kitchenGateway.emitTablesChanged(payload.branchId);
+  }
+
   @OnEvent('kitchen.order.updated')
   async handleKitchenOrderUpdated(payload: {
     branchId: string;

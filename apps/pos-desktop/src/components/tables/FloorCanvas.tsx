@@ -5,9 +5,12 @@ import { useTableUiStore } from "@/store/tableUiStore";
 import { getFloorBounds, resolveTablePositions } from "./autoLayout";
 import { FloorEditorToolbar } from "./FloorEditorToolbar";
 import { TableNode, type TableNodeAction } from "./TableNode";
-import { useCanvasGestures } from "./useCanvasGestures";
-import { useElapsedNow } from "./useElapsedNow";
-import { GRID_SIZE, useFloorEditor } from "./useFloorEditor";
+import {
+  useCanvasGestures,
+  useElapsedNow,
+  GRID_SIZE,
+  useFloorEditor,
+} from "./hooks";
 
 const WORLD_SIZE = 6000;
 

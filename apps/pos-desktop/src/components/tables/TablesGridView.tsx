@@ -6,7 +6,7 @@ import {
   formatElapsedSince,
   formatTableMoney,
 } from "./config";
-import { useElapsedNow } from "./useElapsedNow";
+import { useElapsedNow } from "./hooks/useElapsedNow";
 
 interface TablesGridViewProps {
   tables: TableOverview[];

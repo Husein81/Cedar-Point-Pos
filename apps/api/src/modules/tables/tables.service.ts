@@ -488,6 +488,7 @@ export class TablesService {
         orderNumber: true,
         status: true,
         total: true,
+        guestCount: true,
         createdAt: true,
         user: { select: { name: true } },
         customer: { select: { name: true } },
@@ -520,9 +521,7 @@ export class TablesService {
                 0,
               ),
               itemCount: order._count.items,
-              // Party size isn't persisted on Order (see CreateOrderDto —
-              // guestCount is validation-only); reserved for when it is.
-              guestCount: null,
+              guestCount: order.guestCount,
               createdAt: order.createdAt,
               userName: order.user?.name ?? null,
               customerName: order.customer?.name ?? null,

@@ -456,6 +456,7 @@ export class OrdersService {
             ...(customerId && { customerId }),
             ...(shiftId && { shiftId }),
             ...(deviceId && { deviceId }),
+            ...(guestCount && { guestCount }),
             items: { create: orderItems },
           },
           include: {

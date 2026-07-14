@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { Button, Empty, Icon, cn } from "@repo/ui";
+import { Button, Empty, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 
 // Hooks & stores
+import { useNetworkStatus } from "@/context/NetworkContext";
 import { useFloorsByBranch } from "@/hooks/useFloor";
 import { useTablesOverview } from "@/hooks/useTable";
 import { useTablesSocket } from "@/hooks/useTablesSocket";
@@ -10,24 +11,20 @@ import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
 import { useTableUiStore } from "@/store/tableUiStore";
-import { useNetworkStatus } from "@/context/NetworkContext";
 
 // Feature components
-import { OngoingOrdersList } from "@/components/orders/OngoingOrdersList";
 import MergeTargetSelector from "@/components/orders/MergeTargetSelector";
 import { TableSelectorModal } from "@/components/orders/TableSelectorModal";
 import { FloorCanvas } from "./FloorCanvas";
 import { FloorManagementModal } from "./FloorManagementModal";
+import { SeatGuestsModal } from "./SeatGuestsModal";
 import { TableDetailsDrawer } from "./TableDetailsDrawer";
 import { TableForm } from "./TableForm";
 import { TablesGridView } from "./TablesGridView";
 import { TablesHeader } from "./TablesHeader";
 import { TablesStatsRow } from "./TablesStatsRow";
-import { SeatGuestsModal } from "./SeatGuestsModal";
 import { buildTablesStats, deriveTableUiStatus } from "./config";
-import { getTableDisplayName, useTableActions } from "./useTableActions";
-
-type ActiveView = "dine-in" | "orders";
+import { getTableDisplayName, useTableActions } from "./hooks";
 
 export function TablesPage() {
   const { isHighLevelUser } = useAuthStore();
@@ -47,7 +44,6 @@ export function TablesPage() {
   const { isConnected } = useTablesSocket(branchId);
 
   // UI state
-  const [activeView, setActiveView] = useState<ActiveView>("dine-in");
   const view = useTableUiStore((s) => s.view);
   const filters = useTableUiStore((s) => s.filters);
   const activeFloorId = useTableUiStore((s) => s.activeFloorId);
@@ -190,35 +186,6 @@ export function TablesPage() {
     <div className="flex flex-col gap-4 p-6">
       {/* Page-level view toggle + primary actions */}
       <div className="flex items-center justify-between gap-2">
-        <div className="bg-muted flex w-fit items-center rounded-md border p-1">
-          <Button
-            variant={activeView === "dine-in" ? "secondary" : "ghost"}
-            size="sm"
-            className={cn(
-              "rounded-sm px-4",
-              activeView === "dine-in"
-                ? "bg-background hover:bg-background/65 text-foreground shadow-sm"
-                : "text-muted-foreground",
-            )}
-            onClick={() => setActiveView("dine-in")}
-          >
-            Dine In
-          </Button>
-          <Button
-            variant={activeView === "orders" ? "secondary" : "ghost"}
-            size="sm"
-            className={cn(
-              "px-4",
-              activeView === "orders"
-                ? "bg-background hover:bg-background/65 text-foreground shadow-sm"
-                : "text-muted-foreground",
-            )}
-            onClick={() => setActiveView("orders")}
-          >
-            Orders
-          </Button>
-        </div>
-
         <Button
           size="sm"
           iconName="Plus"
@@ -230,42 +197,40 @@ export function TablesPage() {
         </Button>
       </div>
 
-      {activeView === "dine-in" ? (
-        <>
-          {/* Offline cache freshness badge */}
-          {!isOnline && tables.length > 0 && lastOnlineAt && (
-            <div className="animate-in fade-in slide-in-from-top-1 flex w-fit items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-600 duration-300 dark:text-amber-400">
-              <Icon name="Database" className="h-3.5 w-3.5" />
-              <span>
-                Table layout cached · last synced{" "}
-                {Math.round((Date.now() - lastOnlineAt) / 60_000)} min ago
-              </span>
-            </div>
-          )}
+      {/* Offline cache freshness badge */}
+      {!isOnline && tables.length > 0 && lastOnlineAt && (
+        <div className="animate-in fade-in slide-in-from-top-1 flex w-fit items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-600 duration-300 dark:text-amber-400">
+          <Icon name="Database" className="h-3.5 w-3.5" />
+          <span>
+            Table layout cached · last synced{" "}
+            {Math.round((Date.now() - lastOnlineAt) / 60_000)} min ago
+          </span>
+        </div>
+      )}
 
-          <TablesHeader
-            floors={floors}
-            unassignedCount={unassignedCount}
-            floorValue={effectiveFloorId}
-            occupancy={{
-              inService,
-              total: stats.total - stats.byStatus.DISABLED,
-            }}
-            isConnected={isConnected}
-            isOnline={isOnline}
-            canManage={canManage}
-            isEditing={isEditing}
-            isRefreshing={isFetching}
-            onRefresh={() => void refetch()}
-            onAddTable={() => openModal("Add Table", <TableForm />)}
-            onManageFloors={() =>
-              openModal("Manage Floors", <FloorManagementModal />)
-            }
-          />
+      <TablesHeader
+        floors={floors}
+        unassignedCount={unassignedCount}
+        floorValue={effectiveFloorId}
+        occupancy={{
+          inService,
+          total: stats.total - stats.byStatus.DISABLED,
+        }}
+        isConnected={isConnected}
+        isOnline={isOnline}
+        canManage={canManage}
+        isEditing={isEditing}
+        isRefreshing={isFetching}
+        onRefresh={() => void refetch()}
+        onAddTable={() => openModal("Add Table", <TableForm />)}
+        onManageFloors={() =>
+          openModal("Manage Floors", <FloorManagementModal />)
+        }
+      />
 
-          <TablesStatsRow stats={stats} />
+      <TablesStatsRow stats={stats} />
 
-          {/*
+      {/*
             The page shell (ClientLayout) is a natural-height scroll area —
             there is no fixed-height ancestor for a `flex-1`/`h-full` chain
             to resolve against (see main-layout.tsx / client-layout.tsx; no
@@ -275,43 +240,39 @@ export function TablesPage() {
             of fighting the page for space. Grid view has no such need and
             flows with the page like everywhere else.
           */}
-          <div className="flex gap-4">
-            {view === "canvas" ? (
-              <div className="h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] flex-1">
-                <FloorCanvas
-                  key={`${branchId}:${effectiveFloorId}`}
-                  floorKey={`${branchId}:${effectiveFloorId}`}
-                  tables={floorTables}
-                  matchedIds={matchedIds}
-                  selectedTableId={selectedTableId}
-                  canManage={canManage}
-                  isEditing={isEditing}
-                  onSelect={selectTable}
-                  onAction={handleAction}
-                />
-              </div>
-            ) : (
-              <div>
-                <TablesGridView
-                  tables={floorTables.filter((t) => matchedIds.has(t.id))}
-                  selectedTableId={selectedTableId}
-                  isLoading={isLoading}
-                  onSelect={selectTable}
-                />
-              </div>
-            )}
+      <div className="flex gap-4">
+        {view === "canvas" ? (
+          <div className="h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] flex-1">
+            <FloorCanvas
+              key={`${branchId}:${effectiveFloorId}`}
+              floorKey={`${branchId}:${effectiveFloorId}`}
+              tables={floorTables}
+              matchedIds={matchedIds}
+              selectedTableId={selectedTableId}
+              canManage={canManage}
+              isEditing={isEditing}
+              onSelect={selectTable}
+              onAction={handleAction}
+            />
           </div>
+        ) : (
+          <div>
+            <TablesGridView
+              tables={floorTables.filter((t) => matchedIds.has(t.id))}
+              selectedTableId={selectedTableId}
+              isLoading={isLoading}
+              onSelect={selectTable}
+            />
+          </div>
+        )}
+      </div>
 
-          <TableDetailsDrawer
-            table={selectedTable}
-            canManage={canManage}
-            onClose={() => selectTable(null)}
-            onAction={handleAction}
-          />
-        </>
-      ) : (
-        <OngoingOrdersList />
-      )}
+      <TableDetailsDrawer
+        table={selectedTable}
+        canManage={canManage}
+        onClose={() => selectTable(null)}
+        onAction={handleAction}
+      />
     </div>
   );
 }

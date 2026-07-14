@@ -78,13 +78,13 @@ const ProductCard = ({ product }: Props) => {
       onClick={handleAdd}
       disabled={isOutOfStock}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-lg border bg-white text-left",
+        "group relative flex flex-col overflow-hidden rounded-lg border bg-white dark:bg-gray-800 text-left",
         "transition active:scale-[0.98]",
         "hover:shadow-md hover:border-primary/30",
         isOutOfStock && "opacity-50 grayscale cursor-not-allowed",
       )}
     >
-      <div className="relative aspect-square w-full bg-gray-50">
+      <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-800">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -97,7 +97,7 @@ const ProductCard = ({ product }: Props) => {
           </div>
         )}
 
-        <div className="absolute left-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
+        <div className="absolute left-2 top-2 rounded-md bg-input/90 px-2 py-1 text-xs font-bold shadow">
           ${formatPrice(Number(product.price))}
         </div>
 
@@ -108,7 +108,7 @@ const ProductCard = ({ product }: Props) => {
               : "hidden"
           }
         >
-          <div className="absolute right-2 top-2 rounded-md bg-white/90 px-2 py-1 text-xs font-bold shadow">
+          <div className="absolute right-2 top-2 rounded-md bg-input/90 px-2 py-1 text-xs font-bold shadow">
             <Icon name="Settings2" className="size-4" />
           </div>
         </Activity>

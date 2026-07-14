@@ -6,12 +6,14 @@ import { FloorForm } from "./FloorForm";
 import AlertDialog from "../common/AlertDialog";
 import type { FloorWithTableCount } from "@/dto/tables.dto";
 
+type View = "list" | "create" | "edit";
+
 export function FloorManagementModal() {
   const { closeModal } = useModalStore();
   const { data: floors = [], isLoading } = useFloorsByBranch();
   const deleteFloorMutation = useDeleteFloor();
 
-  const [view, setView] = useState<"list" | "create" | "edit">("list");
+  const [view, setView] = useState<View>("list");
   const [editingFloor, setEditingFloor] = useState<FloorWithTableCount | null>(
     null,
   );

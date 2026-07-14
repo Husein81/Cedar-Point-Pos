@@ -1,8 +1,5 @@
 import { Icon, Shad, cn } from "@repo/ui";
-import {
-  TABLE_UI_STATUS_CONFIG,
-  type TablesAggregateStats,
-} from "./config";
+import { TABLE_UI_STATUS_CONFIG, type TablesAggregateStats } from "./config";
 
 interface StatCard {
   label: string;
@@ -15,10 +12,6 @@ interface TablesStatsRowProps {
   stats: TablesAggregateStats;
 }
 
-/**
- * KPI strip above the floor plan: live counts per key status plus guests,
- * open orders, and overall occupancy.
- */
 export function TablesStatsRow({ stats }: TablesStatsRowProps) {
   const cards: StatCard[] = [
     {
@@ -65,7 +58,9 @@ export function TablesStatsRow({ stats }: TablesStatsRowProps) {
               className={cn("h-4 w-4", card.accent ?? "text-muted-foreground")}
             />
           </div>
-          <p className={cn("mt-1 text-2xl leading-none font-bold", card.accent)}>
+          <p
+            className={cn("mt-1 text-2xl leading-none font-bold", card.accent)}
+          >
             {card.value}
           </p>
         </Shad.Card>

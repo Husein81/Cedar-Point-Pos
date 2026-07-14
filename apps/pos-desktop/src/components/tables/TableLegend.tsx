@@ -1,10 +1,6 @@
 import { Icon, cn } from "@repo/ui";
 import { TABLE_UI_STATUSES, TABLE_UI_STATUS_CONFIG } from "./config";
 
-/**
- * Color + icon legend for the floor plan. Icons are always shown so status
- * is never conveyed by color alone.
- */
 export function TableLegend() {
   return (
     <div className="space-y-1.5">

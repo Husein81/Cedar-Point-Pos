@@ -10,6 +10,7 @@ import {
   formatTableMoney,
   getTableSize,
   type TableUiStatus,
+  MENU_BY_STATUS,
 } from "./config";
 
 export type TableNodeAction =
@@ -42,65 +43,6 @@ interface TableNodeProps {
   /** Editor drag start (pointer capture handled by the floor editor). */
   onDragStart?: (tableId: string, e: React.PointerEvent) => void;
 }
-
-interface MenuEntry {
-  action: TableNodeAction;
-  label: string;
-  icon: string;
-  destructive?: boolean;
-  managerOnly?: boolean;
-}
-
-const MENU_BY_STATUS: Record<TableUiStatus, MenuEntry[]> = {
-  AVAILABLE: [
-    { action: "seat", label: "Seat Guests", icon: "Users" },
-    { action: "reserve", label: "Reserve Table", icon: "CalendarClock" },
-    { action: "edit", label: "Edit Table", icon: "Pencil", managerOnly: true },
-    {
-      action: "disable",
-      label: "Disable Table",
-      icon: "Ban",
-      managerOnly: true,
-      destructive: true,
-    },
-  ],
-  OCCUPIED: [
-    { action: "open", label: "Open Order", icon: "ReceiptText" },
-    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
-  ],
-  PREPARING: [
-    { action: "open", label: "Open Order", icon: "ReceiptText" },
-    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
-  ],
-  READY: [
-    { action: "open", label: "Open Order", icon: "ReceiptText" },
-    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
-  ],
-  BILLING: [
-    { action: "open", label: "View Invoice", icon: "ReceiptText" },
-    { action: "complete", label: "Complete & Free Table", icon: "CircleCheck" },
-    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
-  ],
-  RESERVED: [
-    { action: "seat", label: "Seat Guests", icon: "Users" },
-    { action: "unreserve", label: "Clear Reservation", icon: "CalendarX" },
-  ],
-  DISABLED: [
-    {
-      action: "enable",
-      label: "Enable Table",
-      icon: "Power",
-      managerOnly: true,
-    },
-    {
-      action: "delete",
-      label: "Delete Table",
-      icon: "Trash2",
-      managerOnly: true,
-      destructive: true,
-    },
-  ],
-};
 
 /**
  * One table on the floor canvas. Absolutely positioned in world coordinates;

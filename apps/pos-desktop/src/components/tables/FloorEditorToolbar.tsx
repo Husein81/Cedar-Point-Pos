@@ -1,7 +1,7 @@
 import { Button, Icon, Shad, cn } from "@repo/ui";
 import { TableShape } from "@repo/types";
 import { TABLE_SHAPE_CONFIG } from "./config";
-import type { FloorEditorApi } from "./useFloorEditor";
+import type { FloorEditorApi } from "./hooks";
 
 interface FloorEditorToolbarProps {
   editor: FloorEditorApi;

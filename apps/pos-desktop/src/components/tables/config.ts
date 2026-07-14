@@ -11,7 +11,6 @@ export type TableUiStatus =
   | "RESERVED"
   | "DISABLED";
 
-/** Display order for legends, filters, and stat rows. */
 export const TABLE_UI_STATUSES: TableUiStatus[] = [
   "AVAILABLE",
   "OCCUPIED",
@@ -21,14 +20,6 @@ export const TABLE_UI_STATUSES: TableUiStatus[] = [
   "RESERVED",
   "DISABLED",
 ];
-
-type ActionSpec = {
-  action: TableNodeAction;
-  label: string;
-  icon: string;
-  variant?: "default" | "outline" | "destructive" | "ghost";
-  managerOnly?: boolean;
-};
 
 export const TABLE_STATUS_OPTIONS = TABLE_UI_STATUSES.map((status) => ({
   label: status.charAt(0) + status.slice(1).toLowerCase().replace("_", " "),
@@ -144,10 +135,8 @@ export const TABLE_UI_STATUS_CONFIG: Record<
 export interface TableShapeConfig {
   label: string;
   icon: string;
-  /** Default node size in world px (w × h) when no saved geometry exists. */
   width: number;
   height: number;
-  /** Extra classes shaping the node (radius, aspect). */
   className: string;
 }
 
@@ -248,6 +237,11 @@ export const buildTablesStats = (
 
 // ── Presentation helpers ─────────────────────────────────────────────────────
 
+/** "Terrace - T4" — the display convention used across the order screen. */
+export const getTableDisplayName = (
+  table: Pick<TableOverview, "name" | "floor">,
+): string => (table.floor ? `${table.floor.name} - ${table.name}` : table.name);
+
 export const formatTableMoney = (value: string | number): string => {
   const amount = typeof value === "string" ? Number(value) : value;
   if (!Number.isFinite(amount)) return "—";
@@ -301,6 +295,14 @@ export const getStatsCards = (stats: TableStats): StatCard[] => [
     iconBg: "bg-orange-50 dark:bg-orange-950/30",
   },
 ];
+
+type ActionSpec = {
+  action: TableNodeAction;
+  label: string;
+  icon: string;
+  variant?: "default" | "outline" | "destructive" | "ghost";
+  managerOnly?: boolean;
+};
 
 export const ACTIONS_BY_STATUS: Record<TableUiStatus, ActionSpec[]> = {
   AVAILABLE: [
@@ -376,6 +378,65 @@ export const ACTIONS_BY_STATUS: Record<TableUiStatus, ActionSpec[]> = {
       icon: "Trash2",
       variant: "destructive",
       managerOnly: true,
+    },
+  ],
+};
+
+interface MenuEntry {
+  action: TableNodeAction;
+  label: string;
+  icon: string;
+  destructive?: boolean;
+  managerOnly?: boolean;
+}
+
+export const MENU_BY_STATUS: Record<TableUiStatus, MenuEntry[]> = {
+  AVAILABLE: [
+    { action: "seat", label: "Seat Guests", icon: "Users" },
+    { action: "reserve", label: "Reserve Table", icon: "CalendarClock" },
+    { action: "edit", label: "Edit Table", icon: "Pencil", managerOnly: true },
+    {
+      action: "disable",
+      label: "Disable Table",
+      icon: "Ban",
+      managerOnly: true,
+      destructive: true,
+    },
+  ],
+  OCCUPIED: [
+    { action: "open", label: "Open Order", icon: "ReceiptText" },
+    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
+  ],
+  PREPARING: [
+    { action: "open", label: "Open Order", icon: "ReceiptText" },
+    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
+  ],
+  READY: [
+    { action: "open", label: "Open Order", icon: "ReceiptText" },
+    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
+  ],
+  BILLING: [
+    { action: "open", label: "View Invoice", icon: "ReceiptText" },
+    { action: "complete", label: "Complete & Free Table", icon: "CircleCheck" },
+    { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
+  ],
+  RESERVED: [
+    { action: "seat", label: "Seat Guests", icon: "Users" },
+    { action: "unreserve", label: "Clear Reservation", icon: "CalendarX" },
+  ],
+  DISABLED: [
+    {
+      action: "enable",
+      label: "Enable Table",
+      icon: "Power",
+      managerOnly: true,
+    },
+    {
+      action: "delete",
+      label: "Delete Table",
+      icon: "Trash2",
+      managerOnly: true,
+      destructive: true,
     },
   ],
 };

@@ -6,6 +6,24 @@ const MAX_SCALE = 3.5;
 const WHEEL_ZOOM_INTENSITY = 0.0015;
 const FIT_PADDING = 48;
 
+const clampScale = (scale: number): number =>
+  Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+
+/** Pure zoom math: the transform so a viewport-space point stays fixed in world space. */
+const zoomAtPoint = (
+  current: CanvasTransform,
+  focal: { x: number; y: number },
+  nextScaleRaw: number,
+): CanvasTransform => {
+  const nextScale = clampScale(nextScaleRaw);
+  const ratio = nextScale / current.scale;
+  return {
+    x: focal.x - (focal.x - current.x) * ratio,
+    y: focal.y - (focal.y - current.y) * ratio,
+    scale: nextScale,
+  };
+};
+
 export interface CanvasGesturesApi {
   /** Attach to the scrollable viewport element. */
   viewportRef: React.RefObject<HTMLDivElement | null>;
@@ -70,11 +88,7 @@ export const useCanvasGestures = (options: {
 
   const setTransform = useCallback(
     (t: CanvasTransform) => {
-      transformRef.current = {
-        x: t.x,
-        y: t.y,
-        scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, t.scale)),
-      };
+      transformRef.current = { x: t.x, y: t.y, scale: clampScale(t.scale) };
       apply();
     },
     [apply],
@@ -88,18 +102,11 @@ export const useCanvasGestures = (options: {
       const viewport = viewportRef.current;
       if (!viewport) return;
       const rect = viewport.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-
-      const { x, y, scale } = transformRef.current;
-      const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScaleRaw));
-      const ratio = nextScale / scale;
-
-      transformRef.current = {
-        x: px - (px - x) * ratio,
-        y: py - (py - y) * ratio,
-        scale: nextScale,
-      };
+      transformRef.current = zoomAtPoint(
+        transformRef.current,
+        { x: clientX - rect.left, y: clientY - rect.top },
+        nextScaleRaw,
+      );
       apply();
     },
     [apply],
@@ -129,14 +136,10 @@ export const useCanvasGestures = (options: {
       const worldHeight = bounds.maxY - bounds.minY;
       if (worldWidth <= 0 || worldHeight <= 0) return;
 
-      const scale = Math.min(
-        MAX_SCALE,
-        Math.max(
-          MIN_SCALE,
-          Math.min(
-            (rect.width - FIT_PADDING * 2) / worldWidth,
-            (rect.height - FIT_PADDING * 2) / worldHeight,
-          ),
+      const scale = clampScale(
+        Math.min(
+          (rect.width - FIT_PADDING * 2) / worldWidth,
+          (rect.height - FIT_PADDING * 2) / worldHeight,
         ),
       );
 

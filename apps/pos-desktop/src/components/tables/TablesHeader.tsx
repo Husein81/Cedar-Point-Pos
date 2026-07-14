@@ -4,9 +4,7 @@ import type { FloorWithTableCount } from "@/dto/tables.dto";
 
 interface TablesHeaderProps {
   floors: FloorWithTableCount[];
-  /** Count of tables not assigned to any floor (adds a "No floor" option). */
   unassignedCount: number;
-  /** Effective floor id shown in the selector ("ALL" | floorId | "NONE"). */
   floorValue: string;
   occupancy: { inService: number; total: number };
   isConnected: boolean;
@@ -19,11 +17,6 @@ interface TablesHeaderProps {
   onManageFloors: () => void;
 }
 
-/**
- * Toolbar of the Dine-In view: floor selector, table search, live occupancy,
- * connection dot, canvas/grid toggle, refresh, and manager actions
- * (Floor Editor, Add Table, Manage Floors).
- */
 export function TablesHeader({
   floors,
   unassignedCount,

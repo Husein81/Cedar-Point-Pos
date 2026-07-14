@@ -39,7 +39,6 @@ function ColorsSettingsPage() {
       <TitleBar
         title="Colors"
         subtitle="Manage colors for categories and products"
-        href="/settings"
       />
       <DataTable
         isLoading={isLoading}

@@ -9,7 +9,6 @@ import {
   formatElapsedSince,
   formatTableMoney,
   getTableSize,
-  type TableUiStatus,
   MENU_BY_STATUS,
 } from "./config";
 

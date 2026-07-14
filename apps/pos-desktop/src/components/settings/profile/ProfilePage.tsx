@@ -26,7 +26,6 @@ export default function ProfilePage() {
       <TitleBar
         title="Profile Settings"
         subtitle="Manage your personal information and account details"
-        href="/settings"
         actions={
           <Button
             type="submit"

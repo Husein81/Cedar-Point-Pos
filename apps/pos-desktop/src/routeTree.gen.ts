@@ -18,6 +18,7 @@ import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CurrenciesRouteImport } from './routes/currencies'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as ReportsRouteRouteImport } from './routes/reports/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
@@ -32,11 +33,13 @@ import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
 import { Route as StaffStaffIdRouteImport } from './routes/staff/$staffId'
+import { Route as SettingsUpdateRouteImport } from './routes/settings/update'
 import { Route as SettingsTenantRouteImport } from './routes/settings/tenant'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
 import { Route as SettingsCurrenciesRouteImport } from './routes/settings/currencies'
 import { Route as SettingsColorsRouteImport } from './routes/settings/colors'
+import { Route as SettingsAboutRouteImport } from './routes/settings/about'
 import { Route as ReportsSalesRouteImport } from './routes/reports/sales'
 import { Route as ReportsProductsRouteImport } from './routes/reports/products'
 import { Route as ReportsPaymentsRouteImport } from './routes/reports/payments'
@@ -96,6 +99,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRouteRoute = SettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRouteRoute = ReportsRouteRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -117,9 +125,9 @@ const StaffIndexRoute = StaffIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const PurchaseOrdersIndexRoute = PurchaseOrdersIndexRouteImport.update({
   id: '/purchase-orders/',
@@ -166,30 +174,40 @@ const StaffStaffIdRoute = StaffStaffIdRouteImport.update({
   path: '/staff/$staffId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsUpdateRoute = SettingsUpdateRouteImport.update({
+  id: '/update',
+  path: '/update',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 const SettingsTenantRoute = SettingsTenantRouteImport.update({
-  id: '/settings/tenant',
-  path: '/settings/tenant',
-  getParentRoute: () => rootRouteImport,
+  id: '/tenant',
+  path: '/tenant',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const SettingsProfileRoute = SettingsProfileRouteImport.update({
-  id: '/settings/profile',
-  path: '/settings/profile',
-  getParentRoute: () => rootRouteImport,
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const SettingsLoyaltyRoute = SettingsLoyaltyRouteImport.update({
-  id: '/settings/loyalty',
-  path: '/settings/loyalty',
-  getParentRoute: () => rootRouteImport,
+  id: '/loyalty',
+  path: '/loyalty',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const SettingsCurrenciesRoute = SettingsCurrenciesRouteImport.update({
-  id: '/settings/currencies',
-  path: '/settings/currencies',
-  getParentRoute: () => rootRouteImport,
+  id: '/currencies',
+  path: '/currencies',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const SettingsColorsRoute = SettingsColorsRouteImport.update({
-  id: '/settings/colors',
-  path: '/settings/colors',
-  getParentRoute: () => rootRouteImport,
+  id: '/colors',
+  path: '/colors',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAboutRoute = SettingsAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => SettingsRouteRoute,
 } as any)
 const ReportsSalesRoute = ReportsSalesRouteImport.update({
   id: '/sales',
@@ -261,6 +279,7 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reports': typeof ReportsRouteRouteWithChildren
+  '/settings': typeof SettingsRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
@@ -283,11 +302,13 @@ export interface FileRoutesByFullPath {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/about': typeof SettingsAboutRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
@@ -326,11 +347,13 @@ export interface FileRoutesByTo {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/about': typeof SettingsAboutRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories': typeof CategoriesIndexRoute
@@ -348,6 +371,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/reports': typeof ReportsRouteRouteWithChildren
+  '/settings': typeof SettingsRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/currencies': typeof CurrenciesRoute
   '/dashboard': typeof DashboardRoute
@@ -370,11 +394,13 @@ export interface FileRoutesById {
   '/reports/payments': typeof ReportsPaymentsRoute
   '/reports/products': typeof ReportsProductsRoute
   '/reports/sales': typeof ReportsSalesRoute
+  '/settings/about': typeof SettingsAboutRoute
   '/settings/colors': typeof SettingsColorsRoute
   '/settings/currencies': typeof SettingsCurrenciesRoute
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
   '/categories/': typeof CategoriesIndexRoute
@@ -393,6 +419,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/reports'
+    | '/settings'
     | '/auth'
     | '/currencies'
     | '/dashboard'
@@ -415,11 +442,13 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/about'
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories/'
@@ -458,11 +487,13 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/about'
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories'
@@ -479,6 +510,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/reports'
+    | '/settings'
     | '/auth'
     | '/currencies'
     | '/dashboard'
@@ -501,11 +533,13 @@ export interface FileRouteTypes {
     | '/reports/payments'
     | '/reports/products'
     | '/reports/sales'
+    | '/settings/about'
     | '/settings/colors'
     | '/settings/currencies'
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
     | '/categories/'
@@ -523,6 +557,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ReportsRouteRoute: typeof ReportsRouteRouteWithChildren
+  SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CurrenciesRoute: typeof CurrenciesRoute
   DashboardRoute: typeof DashboardRoute
@@ -537,11 +572,6 @@ export interface RootRouteChildren {
   InvoicesOrderIdRoute: typeof InvoicesOrderIdRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   PurchaseOrdersPurchaseOrderIdRoute: typeof PurchaseOrdersPurchaseOrderIdRoute
-  SettingsColorsRoute: typeof SettingsColorsRoute
-  SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
-  SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
-  SettingsProfileRoute: typeof SettingsProfileRoute
-  SettingsTenantRoute: typeof SettingsTenantRoute
   StaffStaffIdRoute: typeof StaffStaffIdRoute
   SuppliersSupplierIdRoute: typeof SuppliersSupplierIdRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
@@ -551,7 +581,6 @@ export interface RootRouteChildren {
   OffersIndexRoute: typeof OffersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   PurchaseOrdersIndexRoute: typeof PurchaseOrdersIndexRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
 }
@@ -621,6 +650,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -651,10 +687,10 @@ declare module '@tanstack/react-router' {
     }
     '/settings/': {
       id: '/settings/'
-      path: '/settings'
+      path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/purchase-orders/': {
       id: '/purchase-orders/'
@@ -719,40 +755,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffStaffIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/update': {
+      id: '/settings/update'
+      path: '/update'
+      fullPath: '/settings/update'
+      preLoaderRoute: typeof SettingsUpdateRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
     '/settings/tenant': {
       id: '/settings/tenant'
-      path: '/settings/tenant'
+      path: '/tenant'
       fullPath: '/settings/tenant'
       preLoaderRoute: typeof SettingsTenantRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/settings/profile': {
       id: '/settings/profile'
-      path: '/settings/profile'
+      path: '/profile'
       fullPath: '/settings/profile'
       preLoaderRoute: typeof SettingsProfileRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/settings/loyalty': {
       id: '/settings/loyalty'
-      path: '/settings/loyalty'
+      path: '/loyalty'
       fullPath: '/settings/loyalty'
       preLoaderRoute: typeof SettingsLoyaltyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/settings/currencies': {
       id: '/settings/currencies'
-      path: '/settings/currencies'
+      path: '/currencies'
       fullPath: '/settings/currencies'
       preLoaderRoute: typeof SettingsCurrenciesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/settings/colors': {
       id: '/settings/colors'
-      path: '/settings/colors'
+      path: '/colors'
       fullPath: '/settings/colors'
       preLoaderRoute: typeof SettingsColorsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/about': {
+      id: '/settings/about'
+      path: '/about'
+      fullPath: '/settings/about'
+      preLoaderRoute: typeof SettingsAboutRouteImport
+      parentRoute: typeof SettingsRouteRoute
     }
     '/reports/sales': {
       id: '/reports/sales'
@@ -874,9 +924,36 @@ const ReportsRouteRouteWithChildren = ReportsRouteRoute._addFileChildren(
   ReportsRouteRouteChildren,
 )
 
+interface SettingsRouteRouteChildren {
+  SettingsAboutRoute: typeof SettingsAboutRoute
+  SettingsColorsRoute: typeof SettingsColorsRoute
+  SettingsCurrenciesRoute: typeof SettingsCurrenciesRoute
+  SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsTenantRoute: typeof SettingsTenantRoute
+  SettingsUpdateRoute: typeof SettingsUpdateRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
+  SettingsAboutRoute: SettingsAboutRoute,
+  SettingsColorsRoute: SettingsColorsRoute,
+  SettingsCurrenciesRoute: SettingsCurrenciesRoute,
+  SettingsLoyaltyRoute: SettingsLoyaltyRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
+  SettingsTenantRoute: SettingsTenantRoute,
+  SettingsUpdateRoute: SettingsUpdateRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
+  SettingsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ReportsRouteRoute: ReportsRouteRouteWithChildren,
+  SettingsRouteRoute: SettingsRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CurrenciesRoute: CurrenciesRoute,
   DashboardRoute: DashboardRoute,
@@ -891,11 +968,6 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicesOrderIdRoute: InvoicesOrderIdRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   PurchaseOrdersPurchaseOrderIdRoute: PurchaseOrdersPurchaseOrderIdRoute,
-  SettingsColorsRoute: SettingsColorsRoute,
-  SettingsCurrenciesRoute: SettingsCurrenciesRoute,
-  SettingsLoyaltyRoute: SettingsLoyaltyRoute,
-  SettingsProfileRoute: SettingsProfileRoute,
-  SettingsTenantRoute: SettingsTenantRoute,
   StaffStaffIdRoute: StaffStaffIdRoute,
   SuppliersSupplierIdRoute: SuppliersSupplierIdRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
@@ -905,7 +977,6 @@ const rootRouteChildren: RootRouteChildren = {
   OffersIndexRoute: OffersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   PurchaseOrdersIndexRoute: PurchaseOrdersIndexRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,
 }

@@ -56,7 +56,6 @@ function CurrenciesSettingsPage() {
       <TitleBar
         title="Currency Settings"
         subtitle="Manage currencies and exchange rates for your business"
-        href="/settings"
       />
 
       {/* Currency Stats */}

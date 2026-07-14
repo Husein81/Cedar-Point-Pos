@@ -21,7 +21,6 @@ function LoyaltySettingsPage() {
       <TitleBar
         title="Loyalty Program"
         subtitle="Configure how customers earn and redeem loyalty points"
-        href="/settings"
       />
 
       {/* Status banner */}

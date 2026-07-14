@@ -1,5 +1,9 @@
 /* eslint-disable import/no-unresolved */
-import { RouterProvider, createRouter } from "@tanstack/react-router";
+import {
+  RouterProvider,
+  createHashHistory,
+  createRouter,
+} from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import "@repo/ui/globals";
@@ -9,8 +13,7 @@ import "./index.css";
 import { routeTree } from "./routeTree.gen";
 import { useAuthStore } from "./store/authStore";
 
-// Create a new router instance
-const router = createRouter({ routeTree });
+const router = createRouter({ routeTree, history: createHashHistory() });
 const auth = useAuthStore.getState();
 
 // Register the router instance for type safety

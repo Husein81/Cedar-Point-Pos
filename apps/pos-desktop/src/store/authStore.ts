@@ -70,8 +70,8 @@ export const useAuthStore = create<State & Actions>()(
           isHighLevelUser: false,
           isStaff: false,
         }));
-        // Redirect to auth page
-        window.location.href = "/auth";
+        window.location.hash = "/auth";
+        window.location.reload();
       },
     }),
     {

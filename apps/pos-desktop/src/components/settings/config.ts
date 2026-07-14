@@ -11,6 +11,14 @@ export type SettingsSection = {
 
 export const settingsSections: SettingsSection[] = [
   {
+    id: "profile",
+    label: "Profile",
+    description: "View and manage your personal account details",
+    icon: "User",
+    href: "/settings/profile",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
+  {
     id: "currencies",
     label: "Currencies",
     description: "Manage currencies and exchange rates for your business",
@@ -42,12 +50,21 @@ export const settingsSections: SettingsSection[] = [
     href: "/settings/tenant",
     showFor: ["RETAIL", "RESTAURANT"],
   },
+
   {
-    id: "profile",
-    label: "Profile",
-    description: "View and manage your personal account details",
-    icon: "User",
-    href: "/settings/profile",
+    id: "update",
+    label: "Updates",
+    description: "Check for and install the latest version",
+    icon: "Download",
+    href: "/settings/update",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
+  {
+    id: "about",
+    label: "About",
+    description: "App version and system information",
+    icon: "Info",
+    href: "/settings/about",
     showFor: ["RETAIL", "RESTAURANT"],
   },
   // Future sections:

@@ -44,6 +44,8 @@ function setupAutoUpdater() {
 
   autoUpdater.on("checking-for-update", () => {
     console.log("Checking for updates...");
+
+    mainWindow?.webContents.send("update:checking");
   });
 
   autoUpdater.on("update-available", (info) => {
@@ -127,6 +129,32 @@ ipcMain.on("frame-action", (_event, action) => {
 
       break;
   }
+});
+
+// ===============================
+// APP INFO & UPDATES
+// ===============================
+
+ipcMain.handle("app:getInfo", () => ({
+  version: app.getVersion(),
+  electronVersion: process.versions.electron,
+  chromeVersion: process.versions.chrome,
+  nodeVersion: process.versions.node,
+  platform: process.platform,
+  arch: process.arch,
+  isPackaged: app.isPackaged,
+}));
+
+ipcMain.handle("update:check", () => {
+  if (isDev()) return;
+
+  return autoUpdater.checkForUpdates();
+});
+
+ipcMain.handle("update:install", () => {
+  if (isDev()) return;
+
+  autoUpdater.quitAndInstall();
 });
 
 // ===============================

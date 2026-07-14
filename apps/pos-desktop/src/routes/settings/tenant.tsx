@@ -16,7 +16,6 @@ function TenantSettingsPage() {
       <TitleBar
         title="Tenant"
         subtitle="Manage your tenant details and information"
-        href="/settings"
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TenantForm />

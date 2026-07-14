@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -12,6 +13,7 @@ import {
 } from 'class-validator';
 
 export class PurchaseOrderItemDto {
+  @ApiProperty({ description: 'Product ID' })
   @IsString()
   @MinLength(1, { message: 'Product ID is required' })
   productId!: string;
@@ -38,6 +40,10 @@ export class CreatePurchaseOrderDto {
   @MinLength(1, { message: 'Branch ID is required' })
   branchId!: string;
 
+  @ApiProperty({
+    type: [PurchaseOrderItemDto],
+    description: 'List of items in the purchase order',
+  })
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one item is required' })
   @ValidateNested({ each: true })

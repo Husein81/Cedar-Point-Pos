@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { PaymentMethod } from '@repo/types';
 import { Type } from 'class-transformer';
 import {
@@ -49,12 +50,21 @@ export class CreateRefundDto {
   @IsString()
   reason?: string;
 
+  @ApiProperty({
+    type: [RefundItemDto],
+    description: 'List of items to be refunded',
+  })
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one item must be refunded' })
   @ValidateNested({ each: true })
   @Type(() => RefundItemDto)
   items!: RefundItemDto[];
 
+  @ApiProperty({
+    type: [RefundPaymentDto],
+    description: 'List of refund payments',
+    required: false,
+  })
   // Method-level refund capture (optional for backward compat)
   @IsOptional()
   @IsArray()
@@ -71,6 +81,10 @@ export class CreateRefundDto {
   @IsString()
   deviceId?: string;
 
+  @ApiProperty({
+    required: false,
+    description: 'Idempotency key for the refund request',
+  })
   @IsOptional()
   @IsString()
   idempotencyKey?: string;

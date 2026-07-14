@@ -1,10 +1,13 @@
-export { TableCard } from "./TableCard";
-export { TableGrid } from "./TableGrid";
-export { FloorTabs } from "./FloorTabs";
-export { TableForm } from "./TableForm";
+export { FloorCanvas } from "./FloorCanvas";
+export { FloorEditorToolbar } from "./FloorEditorToolbar";
 export { FloorForm } from "./FloorForm";
-export { TableFilters } from "./TableFilters";
-export { TablesStatsCards } from "./TablesStatsCards";
-export { TablesPage } from "./TablesPage";
 export { FloorManagementModal } from "./FloorManagementModal";
-
+export { TableDetailsDrawer } from "./TableDetailsDrawer";
+export { TableForm } from "./TableForm";
+export { TableLegend } from "./TableLegend";
+export { TableNode } from "./TableNode";
+export { TableQuickActions } from "./TableQuickActions";
+export { TablesGridView } from "./TablesGridView";
+export { TablesHeader } from "./TablesHeader";
+export { TablesPage } from "./TablesPage";
+export { TablesStatsRow } from "./TablesStatsRow";

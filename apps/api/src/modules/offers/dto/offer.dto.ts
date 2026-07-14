@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -107,6 +108,7 @@ export class UpdateOfferGroupItemDto {
 // ─── Price Preview / Validation DTO ───
 
 export class OfferSelectionItemDto {
+  @ApiProperty({ description: 'Group ID' })
   @IsString()
   @MinLength(1, { message: 'Group ID is required' })
   groupId!: string;
@@ -121,6 +123,10 @@ export class PricePreviewDto {
   @MinLength(1, { message: 'Offer ID is required' })
   offerId!: string;
 
+  @ApiProperty({
+    type: [OfferSelectionItemDto],
+    description: 'List of selected offer items',
+  })
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one selection is required' })
   @ValidateNested({ each: true })

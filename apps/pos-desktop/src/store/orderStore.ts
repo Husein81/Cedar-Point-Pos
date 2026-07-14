@@ -84,6 +84,7 @@ type Actions = {
 
   // Table actions
   setTable: (tableId: string | null, tableName: string | null) => void;
+  setGuestCount: (count?: number) => void;
 
   // Order notes
   // Kitchen
@@ -732,6 +733,26 @@ export const useOrderStore = create<OrderStore>()(
         });
       },
 
+      setGuestCount: (count?: number) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                guestCount: count,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
       // =====================
       // Order Status & Type
       // =====================
@@ -929,6 +950,7 @@ export const useOrderStore = create<OrderStore>()(
           customerAddress: serverOrder.customer?.address || null,
           tableId: resolvedTableId,
           tableName: resolvedTableName,
+          guestCount: (serverOrder as any).guestCount,
           notes: "",
           orderNumber: serverOrder.orderNumber ?? "",
           createdAt: new Date(serverOrder.createdAt),

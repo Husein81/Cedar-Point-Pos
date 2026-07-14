@@ -7,8 +7,10 @@ import { useFloorsByBranch } from "@/hooks/useFloor";
 import { useCreateTable, useUpdateTable } from "@/hooks/useTable";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
+import { TableShape } from "@repo/types";
 import { Button, InputField, SelectField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
+import { DEFAULT_TABLE_SHAPE, TABLE_SHAPE_CONFIG } from "./config";
 
 type Props = {
   table?: TableWithFloor;
@@ -39,6 +41,7 @@ export function TableForm({ table }: Props) {
       name: table?.name || "",
       capacity: table?.capacity?.toString() || "4",
       floorId: table?.floorId || "",
+      shape: table?.shape || DEFAULT_TABLE_SHAPE,
     },
     onSubmit: async ({ value }) => {
       const data = table
@@ -47,12 +50,14 @@ export function TableForm({ table }: Props) {
             name: value.name.trim(),
             capacity: parseInt(value.capacity),
             floorId: value.floorId.trim() !== "" ? value.floorId : null,
+            shape: value.shape,
           } as UpdateTableDto)
         : ({
             tableNumber: parseInt(value.tableNumber),
             name: value.name.trim(),
             capacity: parseInt(value.capacity),
             branchId: branchId!,
+            shape: value.shape,
             ...(value.floorId.trim() !== "" ? { floorId: value.floorId } : {}),
           } as CreateTableDto);
       handleTableSubmit(data);
@@ -126,6 +131,21 @@ export function TableForm({ table }: Props) {
             field={field}
             options={floorOptions}
             placeholder="Select a floor"
+          />
+        )}
+      />
+
+      <form.Field
+        name="shape"
+        children={(field) => (
+          <SelectField
+            label="Shape"
+            field={field}
+            options={Object.values(TableShape).map((shape) => ({
+              value: shape,
+              label: TABLE_SHAPE_CONFIG[shape].label,
+            }))}
+            placeholder="Select a shape"
           />
         )}
       />

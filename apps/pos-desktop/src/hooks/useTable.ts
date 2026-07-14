@@ -1,10 +1,13 @@
 import type {
+  ActiveTableOrder,
   CreateTableDto,
+  TableLayoutUpdate,
+  TableOverview,
   TableWithFloor,
   UpdateTableDto,
 } from "@/dto/tables.dto";
 import { useBranchStore } from "@/store/branchStore";
-import type { Order, TableStatus } from "@repo/types";
+import type { TableStatus } from "@repo/types";
 import { Table } from "@repo/types";
 import {
   UseMutationResult,
@@ -13,6 +16,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { toast } from "@repo/ui";
 import { tablesApi } from "../apis/tablesApi";
 import { useOfflineQueueStore } from "@/store/offlineQueueStore";
@@ -31,6 +35,76 @@ export const useTablesByBranch = (): UseQueryResult<
     queryFn: () => tablesApi.getTablesByBranch(branchId!),
     staleTime: 60_000,
     enabled: !!branchId,
+  });
+};
+
+/**
+ * Floor-plan overview: all tables + per-table active-order summary in one
+ * request. Primary query of the Table Management page; kept fresh by the
+ * tables socket (see useTablesSocket) rather than aggressive polling.
+ */
+export const useTablesOverview = (): UseQueryResult<
+  TableOverview[],
+  Error
+> => {
+  const { branchId } = useBranchStore();
+
+  return useQuery({
+    queryKey: [...TABLE_QUERY_KEY, "overview", branchId],
+    queryFn: () => tablesApi.getTablesOverview(branchId!),
+    staleTime: 15_000,
+    enabled: !!branchId,
+  });
+};
+
+/**
+ * Bulk save of floor-plan geometry from the Floor Editor, optimistic on the
+ * overview cache so the arrangement doesn't snap back while saving.
+ */
+export const useUpdateTableLayout = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { updated: number },
+    Error,
+    TableLayoutUpdate[],
+    { previousOverview?: unknown; queryKey: (string | null)[] }
+  >({
+    mutationFn: (updates) => tablesApi.updateTableLayout(updates),
+
+    onMutate: async (updates) => {
+      const branchId = useBranchStore.getState().branchId;
+      const queryKey = [...TABLE_QUERY_KEY, "overview", branchId!];
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousOverview = queryClient.getQueryData(queryKey);
+      const byId = new Map(updates.map((u) => [u.id, u]));
+
+      queryClient.setQueryData(queryKey, (old: TableOverview[] | undefined) => {
+        if (!old) return old;
+        return old.map((table) => {
+          const update = byId.get(table.id);
+          return update ? { ...table, ...update } : table;
+        });
+      });
+
+      return { previousOverview, queryKey };
+    },
+
+    onError: (error, _updates, context) => {
+      if (context?.previousOverview && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousOverview);
+      }
+      toast.error(error.message || "Failed to save floor layout");
+    },
+
+    onSuccess: () => {
+      toast.success("Floor layout saved");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+    },
   });
 };
 
@@ -64,8 +138,8 @@ export const useTableStats = () => {
  */
 export const useActiveOrdersByTable = (
   tableId: string | null,
-): UseQueryResult<Order[], Error> => {
-  return useQuery<Order[]>({
+): UseQueryResult<ActiveTableOrder[], Error> => {
+  return useQuery<ActiveTableOrder[]>({
     queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
     queryFn: () => tablesApi.getActiveOrdersByTable(tableId!),
     staleTime: 30_000,
@@ -73,6 +147,25 @@ export const useActiveOrdersByTable = (
     networkMode: "offlineFirst",
     enabled: !!tableId,
   });
+};
+
+/**
+ * Imperative fetch of a table's active orders (context-menu / quick actions
+ * need it on demand for tables that aren't the one currently selected).
+ * Goes through the query cache so the drawer's query stays warm.
+ */
+export const useFetchActiveOrdersByTable = () => {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (tableId: string): Promise<ActiveTableOrder[]> =>
+      queryClient.fetchQuery({
+        queryKey: [...TABLE_QUERY_KEY, "active-orders", tableId],
+        queryFn: () => tablesApi.getActiveOrdersByTable(tableId),
+        staleTime: 5_000,
+      }),
+    [queryClient],
+  );
 };
 
 /**

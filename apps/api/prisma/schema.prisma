@@ -112,7 +112,7 @@ model User {
   branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-   @@index([tenantId, role])
+  @@index([tenantId, role])
   @@index([tenantId, branchId])
 }
 
@@ -203,7 +203,7 @@ model Product {
   name                String
   description         String?
   imageUrl            String?
-  imageKey            String?                     // storage object key; imageUrl is derived from this for B2-backed media
+  imageKey            String? // storage object key; imageUrl is derived from this for B2-backed media
   sku                 String?                     @unique
   barcode             String?                     @unique
   price               Decimal?                    @default(0) @db.Decimal(10, 2)
@@ -211,7 +211,7 @@ model Product {
   categoryId          String?
   subcategoryId       String?
   isActive            Boolean                     @default(true)
-  deletedAt           DateTime?                   
+  deletedAt           DateTime?
   isModifiable        Boolean                     @default(false)
   createdAt           DateTime                    @default(now())
   branchId            String?
@@ -475,6 +475,12 @@ model Table {
   name        String
   capacity    Int         @default(4)
   status      TableStatus @default(AVAILABLE)
+  posX        Int
+  posY        Int
+  width       Int
+  height      Int
+  rotation    Int
+  shape       TableShape?
   isActive    Boolean     @default(true)
   deletedAt   DateTime?
   createdAt   DateTime    @default(now())
@@ -529,16 +535,17 @@ model ModifierProductAssignment {
 }
 
 model Order {
-  id                              String               @id @default(uuid())
-  tenantId                        String
-  userId                          String?
-  branchId                        String
-  tableId                         String?
-  deviceId                        String?
-  customerId                      String?
-  shiftId                         String?
-  orderNumber                     String?
-  type                            OrderType
+  id          String    @id @default(uuid())
+  tenantId    String
+  userId      String?
+  branchId    String
+  tableId     String?
+  deviceId    String?
+  customerId  String?
+  shiftId     String?
+  orderNumber String?
+  type        OrderType
+  guestCount  Int?                 // Number of guests for dine-in orders
 
   status                          OrderStatus          @default(DRAFT)
   subtotal                        Decimal              @default(0) @db.Decimal(10, 2)
@@ -570,8 +577,8 @@ model Order {
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
 
-  @@index([tenantId, branchId, createdAt])
   @@unique([branchId, orderNumber])
+  @@index([tenantId, branchId, createdAt])
 }
 
 model OrderItem {
@@ -1086,6 +1093,14 @@ enum LoyaltyDirection {
   DEBIT
 }
 
+enum TableShape {
+  RECTANGLE
+  SQUARE
+  CIRCLE
+  OVAL
+  CUSTOM
+}
+
 model OrderSequence {
   id        String   @id @default(uuid())
   tenantId  String
@@ -1094,8 +1109,8 @@ model OrderSequence {
   lastValue Int      @default(0)
   updatedAt DateTime @updatedAt
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, date])
 }

@@ -127,7 +127,7 @@ export class TableStatusService {
    * @returns true if transition is valid
    */
   canTransitionTo(currentStatus: TableStatus, newStatus: TableStatus): boolean {
-    // Define valid transitions
+    // Define valid transitions.
     const validTransitions: Record<TableStatus, TableStatus[]> = {
       [TableStatus.AVAILABLE]: [TableStatus.OCCUPIED, TableStatus.RESERVED],
       [TableStatus.OCCUPIED]: [TableStatus.AVAILABLE, TableStatus.RESERVED],
@@ -269,7 +269,9 @@ export class TableStatusService {
           },
         },
         customer: { select: { id: true, name: true } },
-        payments: { select: { amount: true } },
+        payments: {
+          select: { id: true, method: true, amount: true, paidAt: true },
+        },
         table: true,
       },
       orderBy: { createdAt: 'desc' },

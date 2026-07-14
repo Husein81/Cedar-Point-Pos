@@ -1,20 +1,22 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { TableShape, TableStatus } from '@repo/types';
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
   IsUUID,
   Length,
+  Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
-
-export enum TableStatus {
-  AVAILABLE = 'AVAILABLE',
-  OCCUPIED = 'OCCUPIED',
-  RESERVED = 'RESERVED',
-}
 
 export class CreateTableDto {
   @IsInt()
@@ -46,6 +48,10 @@ export class CreateTableDto {
     message: 'Capacity must be positive',
   })
   capacity: number = 4;
+
+  @IsOptional()
+  @IsEnum(TableShape)
+  shape?: TableShape;
 }
 
 export class UpdateTableDto {
@@ -79,6 +85,10 @@ export class UpdateTableDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsEnum(TableShape)
+  shape?: TableShape;
 }
 
 export class UpdateTableStatusDto {
@@ -86,6 +96,51 @@ export class UpdateTableStatusDto {
     message: 'Status must be AVAILABLE, OCCUPIED, or RESERVED',
   })
   status!: TableStatus;
+}
+
+/** One table's saved floor-plan geometry (world coordinates, px). */
+export class TableLayoutItemDto {
+  @IsUUID('4', { message: 'Invalid table ID' })
+  id!: string;
+
+  @IsNumber()
+  posX!: number;
+
+  @IsNumber()
+  posY!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  height?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(-360)
+  @Max(360)
+  rotation?: number;
+
+  @IsOptional()
+  @IsEnum(TableShape)
+  shape?: TableShape;
+}
+
+/** Bulk layout save from the Floor Editor. */
+export class UpdateTableLayoutDto {
+  @ApiProperty({
+    type: [TableLayoutItemDto],
+    description: 'Array of table layout items to update',
+  })
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one table layout item is required' })
+  @ValidateNested({ each: true })
+  @Type(() => TableLayoutItemDto)
+  updates!: TableLayoutItemDto[];
 }
 
 export class CreateFloorDto {

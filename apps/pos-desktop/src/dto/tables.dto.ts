@@ -1,5 +1,20 @@
-import type { Floor, TableStatus } from "@repo/types";
+import type {
+  Floor,
+  Order,
+  OrderStatus,
+  Payment,
+  TableShape,
+  TableStatus,
+} from "@repo/types";
 import { z } from "zod";
+
+/**
+ * Shape returned by GET /tables/:id/active-orders — the shared Order plus the
+ * payment fields the backend includes for the table drawer.
+ */
+export type ActiveTableOrder = Order & {
+  payments?: Payment[];
+};
 
 const CreateTableSchema = z.object({
   tableNumber: z.number(),
@@ -7,6 +22,7 @@ const CreateTableSchema = z.object({
   floorId: z.string().optional(),
   name: z.string(),
   capacity: z.number().optional(),
+  shape: z.custom<TableShape>().optional(),
 });
 export type CreateTableDto = z.infer<typeof CreateTableSchema>;
 
@@ -16,6 +32,7 @@ const UpdateTableSchema = z.object({
   name: z.string().optional(),
   capacity: z.number().optional(),
   isActive: z.boolean().optional(),
+  shape: z.custom<TableShape>().optional(),
 });
 export type UpdateTableDto = z.infer<typeof UpdateTableSchema>;
 
@@ -34,6 +51,14 @@ const TableWithFloorSchema = z.object({
   capacity: z.number(),
   status: z.custom<TableStatus>(),
   isActive: z.boolean(),
+  // Floor-plan geometry (world coordinates, px). Null posX/posY = not yet
+  // placed on the canvas; the UI auto-arranges unplaced tables.
+  posX: z.number().nullable().optional(),
+  posY: z.number().nullable().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
+  rotation: z.number().optional(),
+  shape: z.custom<TableShape>().optional(),
   deletedAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -46,6 +71,39 @@ const TableWithFloorSchema = z.object({
     .optional(),
 });
 export type TableWithFloor = z.infer<typeof TableWithFloorSchema>;
+
+/** Lightweight summary of a table's most recent in-service order. */
+const TableOrderSummarySchema = z.object({
+  orderId: z.string(),
+  orderNumber: z.string().nullable().optional(),
+  status: z.custom<OrderStatus>(),
+  total: z.union([z.string(), z.number()]),
+  paidAmount: z.number(),
+  itemCount: z.number(),
+  guestCount: z.number().nullable().optional(),
+  createdAt: z.string(),
+  userName: z.string().nullable().optional(),
+  customerName: z.string().nullable().optional(),
+});
+export type TableOrderSummary = z.infer<typeof TableOrderSummarySchema>;
+
+/** Floor-plan overview row: a table plus its active-order summary (if any). */
+const TableOverviewSchema = TableWithFloorSchema.extend({
+  activeOrder: TableOrderSummarySchema.nullable(),
+});
+export type TableOverview = z.infer<typeof TableOverviewSchema>;
+
+/** One table's saved geometry, sent by the Floor Editor bulk save. */
+const TableLayoutUpdateSchema = z.object({
+  id: z.string(),
+  posX: z.number(),
+  posY: z.number(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  rotation: z.number().optional(),
+  shape: z.custom<TableShape>().optional(),
+});
+export type TableLayoutUpdate = z.infer<typeof TableLayoutUpdateSchema>;
 
 const TableStatsSchema = z.object({
   total: z.number(),

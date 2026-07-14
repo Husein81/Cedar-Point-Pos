@@ -210,6 +210,15 @@ export const TableStatus = {
 } as const;
 export type TableStatus = (typeof TableStatus)[keyof typeof TableStatus];
 
+export const TableShape = {
+  RECTANGLE: "RECTANGLE",
+  SQUARE: "SQUARE",
+  CIRCLE: "CIRCLE",
+  OVAL: "OVAL",
+  CUSTOM: "CUSTOM",
+} as const;
+export type TableShape = (typeof TableShape)[keyof typeof TableShape];
+
 export const PurchaseOrderStatus = {
   PENDING: "PENDING",
   ORDERED: "ORDERED",

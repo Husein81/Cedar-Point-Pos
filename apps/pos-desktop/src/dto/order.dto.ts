@@ -34,6 +34,7 @@ export interface CreateOrderDto {
   discount?: number; // Discount amount (must be >= 0)
   shippingFee?: number; // Shipping fee (must be >= 0)
   includeVAT?: boolean; // Whether to include VAT
+  guestCount?: number; // Number of guests for dine-in orders
 }
 
 export interface UpdateOrderStatusDto {
@@ -133,6 +134,7 @@ export type Order = {
   customerAddress: string | null;
   tableId: string | null;
   tableName: string | null;
+  guestCount?: number;
   notes: string;
   orderNumber?: string;
   createdAt: Date;

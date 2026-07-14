@@ -71,12 +71,10 @@ export class OrdersService {
   }
 
   private isIdempotencyUniqueError(error: unknown): boolean {
-    if (
-      !(
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      )
-    ) {
+    if (!(
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    )) {
       return false;
     }
 
@@ -428,7 +426,7 @@ export class OrdersService {
     const branchCode = getBranchCode(branch.name);
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const createdOrder = await this.prisma.$transaction(async (tx) => {
         // fetch/upsert sequence
         const sequence = await tx.orderSequence.upsert({
           where: { branchId_date: { branchId, date: dateStr } },
@@ -449,6 +447,7 @@ export class OrdersService {
             type: orderType,
             status: OrderStatus.DRAFT,
             total,
+            subtotal,
             discount: discount ?? 0,
             shippingFee: shippingFee ?? 0,
             includeVAT: includeVAT ?? false,
@@ -457,6 +456,7 @@ export class OrdersService {
             ...(customerId && { customerId }),
             ...(shiftId && { shiftId }),
             ...(deviceId && { deviceId }),
+            ...(guestCount && { guestCount }),
             items: { create: orderItems },
           },
           include: {
@@ -484,6 +484,13 @@ export class OrdersService {
 
         return order;
       });
+
+      // Post-commit: notify the branch floor plan (never inside the tx).
+      if (tableId) {
+        this.eventEmitter.emit('table.updated', { branchId });
+      }
+
+      return createdOrder;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -721,6 +728,12 @@ export class OrdersService {
       orderId: updated.id,
     });
 
+    // Any status change on a table-bound order affects the floor plan
+    // (PREPARING/READY/BILLING badges derive from order status).
+    if (updated.tableId) {
+      this.eventEmitter.emit('table.updated', { branchId: updated._branchId });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _branchId, ...result } = updated;
     return result;
@@ -856,6 +869,7 @@ export class OrdersService {
             branchId: true,
             shiftId: true,
             deviceId: true,
+            tableId: true,
             currencyCode: true,
             customerId: true,
             loyaltyRedeemedPoints: true,
@@ -1230,10 +1244,19 @@ export class OrdersService {
           // Internal flags — stripped before returning to client
           _shouldDeductInventory: shouldDeductInventory,
           _branchId: order.branchId,
+          _tableId: order.tableId,
           _loyaltyApplied,
           _customerId: order.customerId,
         };
       });
+
+      // Post-commit: a payment changes the table's floor-plan state
+      // (BILLING badge, paid amount). Never emitted inside the tx.
+      if (txResult._tableId) {
+        this.eventEmitter.emit('table.updated', {
+          branchId: txResult._branchId,
+        });
+      }
 
       // ── Phase 2: Post-commit inventory deduction ─────────────────────────
       // Runs AFTER the transaction commits, on its own connection.
@@ -1832,7 +1855,7 @@ export class OrdersService {
   }
 
   async assignTableToOrder(tenantId: string, orderId: string, tableId: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
         select: { status: true, type: true, tableId: true },
@@ -1894,6 +1917,15 @@ export class OrdersService {
 
       return updated;
     });
+
+    // Post-commit: both source and target tables changed on the floor plan.
+    if (result.table) {
+      this.eventEmitter.emit('table.updated', {
+        branchId: result.table.branchId,
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -1908,7 +1940,7 @@ export class OrdersService {
     targetTableId: string,
     mergeIntoOrderId?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
         select: { id: true, status: true, tableId: true },
@@ -2022,6 +2054,19 @@ export class OrdersService {
         },
       });
     });
+
+    // Post-commit: source and target tables both changed on the floor plan.
+    const targetTable = await this.prisma.table.findFirst({
+      where: { id: targetTableId, tenantId },
+      select: { branchId: true },
+    });
+    if (targetTable) {
+      this.eventEmitter.emit('table.updated', {
+        branchId: targetTable.branchId,
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -2049,7 +2094,7 @@ export class OrdersService {
       OrderStatus.PARTIALLY_PAID,
     ]);
 
-    return this.prisma.$transaction(async (tx) => {
+    const merged = await this.prisma.$transaction(async (tx) => {
       const [target, source] = await Promise.all([
         tx.order.findFirst({
           where: { id: targetOrderId, tenantId },
@@ -2199,6 +2244,15 @@ export class OrdersService {
         },
       });
     });
+
+    // Post-commit: merged table's bill/status changed on the floor plan.
+    if (merged?.table) {
+      this.eventEmitter.emit('table.updated', {
+        branchId: merged.table.branchId,
+      });
+    }
+
+    return merged;
   }
 
   // ---- Private helpers for transfer+merge ----

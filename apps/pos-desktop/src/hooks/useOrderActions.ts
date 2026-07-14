@@ -98,6 +98,7 @@ export function useOrderActions() {
         ...(orderType === OrderType.DINE_IN && active.tableId
           ? { tableId: active.tableId }
           : {}),
+        ...(active.guestCount !== undefined && { guestCount: active.guestCount }),
         items: active.items.map(toItemDto),
         ...(discount > 0 && { discount }),
       };

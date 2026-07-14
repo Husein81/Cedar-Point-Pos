@@ -54,9 +54,6 @@ function SettingsLayout() {
           );
         })}
       </nav>
-
-      <Separator orientation="vertical" className="hidden md:block" />
-
       {/* RIGHT: active section content — scrolls independently */}
       <Shad.ScrollArea className="min-w-0 flex-1">
         <Outlet />

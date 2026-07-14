@@ -19,6 +19,14 @@ export const settingsSections: SettingsSection[] = [
     showFor: ["RETAIL", "RESTAURANT"],
   },
   {
+    id: "themes",
+    label: "Themes",
+    description: "Customize the app's appearance and color scheme",
+    icon: "Palette",
+    href: "/settings/themes",
+    showFor: ["RETAIL", "RESTAURANT"],
+  },
+  {
     id: "currencies",
     label: "Currencies",
     description: "Manage currencies and exchange rates for your business",
@@ -30,7 +38,7 @@ export const settingsSections: SettingsSection[] = [
     id: "colors",
     label: "Colors",
     description: "Manage colors for your categories and products",
-    icon: "Palette",
+    icon: "Droplet",
     href: "/settings/colors",
     showFor: ["RETAIL", "RESTAURANT"],
   },

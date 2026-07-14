@@ -134,6 +134,93 @@
   --sidebar-ring: oklch(0.45 0.31 264);
 }
 
+/* =========================================================
+   COLOR THEMES
+   Each theme overrides only the brand tokens. Neutrals,
+   status colors, and radii stay as defined above.
+   `.theme-cedar` restates the defaults so nested previews
+   (e.g. swatches inside another theme) resolve correctly.
+========================================================= */
+.theme-cedar {
+  --primary: oklch(0.45 0.31 264);
+  --accent: oklch(0.55 0.28 264);
+  --ring: oklch(0.45 0.31 264);
+  --sidebar-primary: oklch(0.45 0.31 264);
+  --sidebar-ring: oklch(0.45 0.31 264);
+}
+
+.dark.theme-cedar {
+  --primary: oklch(0.55 0.28 264);
+  --accent: oklch(0.45 0.31 264);
+  --ring: oklch(0.55 0.28 264);
+  --sidebar-primary: oklch(0.45 0.31 264);
+  --sidebar-ring: oklch(0.45 0.31 264);
+}
+
+.theme-emerald {
+  --primary: oklch(0.52 0.17 160);
+  --accent: oklch(0.6 0.15 160);
+  --ring: oklch(0.52 0.17 160);
+  --sidebar-primary: oklch(0.52 0.17 160);
+  --sidebar-ring: oklch(0.52 0.17 160);
+}
+
+.dark.theme-emerald {
+  --primary: oklch(0.62 0.15 160);
+  --accent: oklch(0.52 0.17 160);
+  --ring: oklch(0.62 0.15 160);
+  --sidebar-primary: oklch(0.52 0.17 160);
+  --sidebar-ring: oklch(0.52 0.17 160);
+}
+
+.theme-rose {
+  --primary: oklch(0.55 0.22 15);
+  --accent: oklch(0.63 0.2 15);
+  --ring: oklch(0.55 0.22 15);
+  --sidebar-primary: oklch(0.55 0.22 15);
+  --sidebar-ring: oklch(0.55 0.22 15);
+}
+
+.dark.theme-rose {
+  --primary: oklch(0.63 0.2 15);
+  --accent: oklch(0.55 0.22 15);
+  --ring: oklch(0.63 0.2 15);
+  --sidebar-primary: oklch(0.55 0.22 15);
+  --sidebar-ring: oklch(0.55 0.22 15);
+}
+
+.theme-violet {
+  --primary: oklch(0.5 0.25 300);
+  --accent: oklch(0.58 0.22 300);
+  --ring: oklch(0.5 0.25 300);
+  --sidebar-primary: oklch(0.5 0.25 300);
+  --sidebar-ring: oklch(0.5 0.25 300);
+}
+
+.dark.theme-violet {
+  --primary: oklch(0.6 0.22 300);
+  --accent: oklch(0.5 0.25 300);
+  --ring: oklch(0.6 0.22 300);
+  --sidebar-primary: oklch(0.5 0.25 300);
+  --sidebar-ring: oklch(0.5 0.25 300);
+}
+
+.theme-sunset {
+  --primary: oklch(0.58 0.19 45);
+  --accent: oklch(0.66 0.17 50);
+  --ring: oklch(0.58 0.19 45);
+  --sidebar-primary: oklch(0.58 0.19 45);
+  --sidebar-ring: oklch(0.58 0.19 45);
+}
+
+.dark.theme-sunset {
+  --primary: oklch(0.68 0.17 50);
+  --accent: oklch(0.58 0.19 45);
+  --ring: oklch(0.68 0.17 50);
+  --sidebar-primary: oklch(0.58 0.19 45);
+  --sidebar-ring: oklch(0.58 0.19 45);
+}
+
 /* =========================
    THEME MAPPING (TAILWIND)
 ========================= */

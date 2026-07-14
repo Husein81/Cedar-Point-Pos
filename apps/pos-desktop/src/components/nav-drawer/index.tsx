@@ -1,10 +1,10 @@
+import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
 import type { BusinessType } from "@repo/types";
-import { Button, cn, Icon, Shad } from "@repo/ui";
+import { Avatar, Button, cn, Icon, Shad } from "@repo/ui";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
-import NavUser from "./nav-user";
 import logo from "/assets/logo.png";
 
 type NavDrawerProps = {
@@ -16,6 +16,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
   const pathname = useLocation().pathname;
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const logoutMutation = useLogout();
 
   const [toggle, setToggle] = useState<Record<string, boolean>>(
     Object.fromEntries(sidebarSections.map((section) => [section.label, true])),
@@ -30,6 +31,12 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
   const handleNavigation = (href: string) => {
     navigate({ to: href });
     onOpenChange(false);
+  };
+
+  const handleLogout = async () => {
+    onOpenChange(false);
+    navigate({ to: "/auth" });
+    await logoutMutation.mutateAsync();
   };
 
   return (
@@ -117,7 +124,35 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
 
           {/* Footer */}
           <Shad.DrawerFooter className="border-t w-full">
-            <NavUser />
+            <div className="flex w-full items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                {user?.name && <Avatar fallback={user.name} />}
+                <div className="flex min-w-0 flex-col items-start leading-tight">
+                  <span className="truncate text-sm font-medium">
+                    {user?.name || "User"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {user?.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  iconName="Settings"
+                  onClick={() => handleNavigation("/settings")}
+                  className={cn(isActive("/settings") && "text-primary")}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  iconName="LogOut"
+                  onClick={handleLogout}
+                />
+              </div>
+            </div>
           </Shad.DrawerFooter>
         </div>
       </Shad.DrawerContent>

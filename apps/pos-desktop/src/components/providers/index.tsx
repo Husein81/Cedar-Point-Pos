@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/context/theme-provider";
+import { ThemeProvider } from "@/context/themes";
 import { NetworkProvider } from "@/context/NetworkContext";
 import { Toaster } from "@repo/ui";
 import { queryClient } from "@/lib/queryClient";

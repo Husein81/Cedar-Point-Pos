@@ -34,6 +34,7 @@ import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
 import { Route as SuppliersSupplierIdRouteImport } from './routes/suppliers/$supplierId'
 import { Route as StaffStaffIdRouteImport } from './routes/staff/$staffId'
 import { Route as SettingsUpdateRouteImport } from './routes/settings/update'
+import { Route as SettingsThemesRouteImport } from './routes/settings/themes'
 import { Route as SettingsTenantRouteImport } from './routes/settings/tenant'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsLoyaltyRouteImport } from './routes/settings/loyalty'
@@ -179,6 +180,11 @@ const SettingsUpdateRoute = SettingsUpdateRouteImport.update({
   path: '/update',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
+const SettingsThemesRoute = SettingsThemesRouteImport.update({
+  id: '/themes',
+  path: '/themes',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
 const SettingsTenantRoute = SettingsTenantRouteImport.update({
   id: '/tenant',
   path: '/tenant',
@@ -308,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/themes': typeof SettingsThemesRoute
   '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByTo {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/themes': typeof SettingsThemesRoute
   '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/settings/loyalty': typeof SettingsLoyaltyRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/tenant': typeof SettingsTenantRoute
+  '/settings/themes': typeof SettingsThemesRoute
   '/settings/update': typeof SettingsUpdateRoute
   '/staff/$staffId': typeof StaffStaffIdRoute
   '/suppliers/$supplierId': typeof SuppliersSupplierIdRoute
@@ -448,6 +457,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/themes'
     | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/themes'
     | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/settings/loyalty'
     | '/settings/profile'
     | '/settings/tenant'
+    | '/settings/themes'
     | '/settings/update'
     | '/staff/$staffId'
     | '/suppliers/$supplierId'
@@ -762,6 +774,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsUpdateRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
+    '/settings/themes': {
+      id: '/settings/themes'
+      path: '/themes'
+      fullPath: '/settings/themes'
+      preLoaderRoute: typeof SettingsThemesRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
     '/settings/tenant': {
       id: '/settings/tenant'
       path: '/tenant'
@@ -931,6 +950,7 @@ interface SettingsRouteRouteChildren {
   SettingsLoyaltyRoute: typeof SettingsLoyaltyRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsTenantRoute: typeof SettingsTenantRoute
+  SettingsThemesRoute: typeof SettingsThemesRoute
   SettingsUpdateRoute: typeof SettingsUpdateRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -942,6 +962,7 @@ const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
   SettingsLoyaltyRoute: SettingsLoyaltyRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsTenantRoute: SettingsTenantRoute,
+  SettingsThemesRoute: SettingsThemesRoute,
   SettingsUpdateRoute: SettingsUpdateRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }

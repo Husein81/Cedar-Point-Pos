@@ -35,6 +35,14 @@ let mainWindow: BrowserWindow | null = null;
 function setupAutoUpdater() {
   if (isDev()) return;
 
+  // Repo is private — electron-updater only uses the authenticated API
+  // (instead of the public releases.atom feed, which 404s for private
+  // repos) when GH_TOKEN is set. See electron-builder.config.cjs's
+  // `publish.private` and vite.main.config.ts for where this is baked in.
+  if (__GH_UPDATE_TOKEN__) {
+    process.env.GH_TOKEN = __GH_UPDATE_TOKEN__;
+  }
+
   autoUpdater.logger = log;
 
   log.transports.file.level = "info";

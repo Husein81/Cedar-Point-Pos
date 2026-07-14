@@ -3,7 +3,8 @@ import { useAppInfo } from "@/hooks/useAppInfo";
 import { useAppUpdater } from "@/hooks/useAppUpdater";
 import { Badge, Button, Icon, Progress, Shad } from "@repo/ui";
 
-const formatBytes = (bytes: number): string => `${(bytes / 1_048_576).toFixed(1)} MB`;
+const formatBytes = (bytes: number): string =>
+  `${(bytes / 1_048_576).toFixed(1)} MB`;
 
 export default function UpdatePage() {
   const appInfo = useAppInfo();
@@ -29,7 +30,7 @@ export default function UpdatePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-lg border bg-background p-2">
-                <Icon name="DownloadCloud" className="size-5" />
+                <Icon name="Download" className="size-5" />
               </div>
               <div>
                 <Shad.CardTitle>Software Update</Shad.CardTitle>
@@ -89,9 +90,7 @@ export default function UpdatePage() {
                     name="LoaderCircle"
                     className="size-5 animate-spin text-primary"
                   />
-                  <p className="text-sm font-medium">
-                    Checking for updates...
-                  </p>
+                  <p className="text-sm font-medium">Checking for updates...</p>
                 </div>
               )}
 

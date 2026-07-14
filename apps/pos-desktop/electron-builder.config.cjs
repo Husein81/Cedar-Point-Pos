@@ -15,7 +15,10 @@ module.exports = {
     // electron-builder's pnpm dependency collector misdetects these hoisted
     // packages as missing and drops them, even though electron-updater
     // requires them directly at runtime. Copy them in explicitly.
-    { from: "../../node_modules/builder-util-runtime", to: "node_modules/builder-util-runtime" },
+    {
+      from: "../../node_modules/builder-util-runtime",
+      to: "node_modules/builder-util-runtime",
+    },
     { from: "../../node_modules/semver", to: "node_modules/semver" },
   ],
   extraResources: [{ from: "public/assets", to: "assets" }],
@@ -45,5 +48,6 @@ module.exports = {
     owner: "Husein81",
     repo: "Cedar-Point-Pos",
     releaseType: "draft",
+    private: true,
   },
 };

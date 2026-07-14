@@ -1,3 +1,4 @@
+import { Empty } from "@repo/ui";
 import {
   Cell,
   Legend,
@@ -5,10 +6,17 @@ import {
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  type PieLabelRenderProps,
 } from "recharts";
 import type { CategoryData } from "../../types/dashboard";
-import { ChartContainer } from "./ChartContainer";
-import { Empty } from "@repo/ui";
+import { formatCurrency } from "../../utils/reportHelpers";
+import { ChartCard } from "./ChartCard";
+import {
+  CHART_COLORS,
+  CHART_TOOLTIP_CONTENT_STYLE,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+} from "./chart-theme";
 
 type Props = {
   data: CategoryData[];
@@ -17,16 +25,8 @@ type Props = {
   onRetry?: () => void;
 };
 
-const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#8dd1e1",
-];
+// Hide slice labels below this share to avoid overlapping text
+const MIN_LABEL_PERCENT = 0.07;
 
 export const SalesByCategoryChart = ({
   data,
@@ -37,15 +37,17 @@ export const SalesByCategoryChart = ({
   const isEmpty = data.length === 0;
 
   return (
-    <ChartContainer
+    <ChartCard
       title="Sales by Category"
-      subtitle="Revenue distribution across categories"
+      subtitle="Revenue share per category, last 30 days"
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
     >
       {isEmpty ? (
-        <Empty description="No category data available" />
+        <div className="flex h-[300px] items-center justify-center">
+          <Empty icon="ChartPie" description="No category sales in this period" />
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
@@ -53,73 +55,87 @@ export const SalesByCategoryChart = ({
               data={data}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              label={renderCustomizedLabel as any}
+              innerRadius={62}
               outerRadius={100}
-              fill="#8884d8"
-              dataKey="value"
+              paddingAngle={2}
+              labelLine={false}
+              label={renderPercentLabel}
+              dataKey="sales"
+              nameKey="name"
             >
-              {data.map((_entry, index) => (
+              {data.map((entry, index) => (
                 <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
+                  key={entry.name}
+                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  stroke="var(--card)"
                 />
               ))}
             </Pie>
             <Tooltip
-              formatter={(
-                value?: unknown,
-                _name?: unknown,
-                props?: unknown,
-              ) => [
-                `${value ?? 0} items ($${(props as { payload: CategoryData }).payload?.sales.toFixed(2)})`,
-                (props as { payload: CategoryData }).payload?.name,
-              ]}
-              contentStyle={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
+              formatter={(value, _name, item) => {
+                const category = (item as { payload?: CategoryData }).payload;
+                return [
+                  `${formatCurrency(Number(value) || 0)} · ${category?.value ?? 0} items`,
+                  category?.name ?? "",
+                ];
               }}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
             />
-            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              iconType="circle"
+              iconSize={8}
+              formatter={(value: string) => (
+                <span className="text-xs text-muted-foreground">{value}</span>
+              )}
+            />
           </PieChart>
         </ResponsiveContainer>
       )}
-    </ChartContainer>
+    </ChartCard>
   );
 };
 
-const renderCustomizedLabel = ({
+const RADIAN = Math.PI / 180;
+
+const renderPercentLabel = ({
   cx,
   cy,
   midAngle,
   innerRadius,
   outerRadius,
   percent,
-}: {
-  cx: number;
-  cy: number;
-  midAngle: number;
-  innerRadius: number;
-  outerRadius: number;
-  percent: number;
-}) => {
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+}: PieLabelRenderProps) => {
+  const centerX = Number(cx);
+  const centerY = Number(cy);
+  const inner = Number(innerRadius);
+  const outer = Number(outerRadius);
+  const angle = Number(midAngle);
+  const share = Number(percent);
+
+  if ([centerX, centerY, inner, outer, angle, share].some(Number.isNaN)) {
+    return null;
+  }
+  if (share < MIN_LABEL_PERCENT) return null;
+
+  const radius = inner + (outer - inner) * 0.5;
+  const x = centerX + radius * Math.cos(-angle * RADIAN);
+  const y = centerY + radius * Math.sin(-angle * RADIAN);
 
   return (
     <text
       x={x}
       y={y}
       fill="white"
-      textAnchor={x > cx ? "start" : "end"}
+      textAnchor="middle"
       dominantBaseline="central"
-      fontSize={12}
-      fontWeight="bold"
+      fontSize={11}
+      fontWeight={600}
     >
-      {`${(percent * 100).toFixed(0)}%`}
+      {`${(share * 100).toFixed(0)}%`}
     </text>
   );
 };

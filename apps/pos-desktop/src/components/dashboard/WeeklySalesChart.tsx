@@ -1,16 +1,24 @@
+import { Empty } from "@repo/ui";
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { WeeklySalesData } from "../../types/dashboard";
-import { ChartContainer } from "./ChartContainer";
-import { Empty } from "@repo/ui";
+import { formatCurrency } from "../../utils/reportHelpers";
+import { ChartCard } from "./ChartCard";
+import {
+  CHART_AXIS_TICK,
+  CHART_GRID_STROKE,
+  CHART_TOOLTIP_CONTENT_STYLE,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  formatAxisCurrency,
+} from "./chart-theme";
 
 type Props = {
   data: WeeklySalesData[];
@@ -25,62 +33,78 @@ export const WeeklySalesChart = ({
   error,
   onRetry,
 }: Props) => {
-  const isEmpty = !data || data.length === 0;
+  // The API returns all 7 days zero-filled, so "empty" means no sales at all
+  const hasSales = data.some((day) => day.sales > 0);
 
   return (
-    <ChartContainer
+    <ChartCard
       title="Weekly Sales Trend"
-      subtitle="Last 7 days sales performance"
+      subtitle="Revenue over the last 7 days"
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
     >
-      {isEmpty ? (
-        <Empty description="No sales data available for the past week" />
+      {!hasSales ? (
+        <div className="flex h-[300px] items-center justify-center">
+          <Empty
+            icon="ChartArea"
+            description="No sales recorded in the past week"
+          />
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={data}>
             <defs>
-              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1} />
+              <linearGradient id="weeklySalesFill" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor="var(--chart-1)"
+                  stopOpacity={0.35}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--chart-1)"
+                  stopOpacity={0.02}
+                />
               </linearGradient>
             </defs>
             <CartesianGrid
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="#e0e0e0"
+              stroke={CHART_GRID_STROKE}
             />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} tickLine={false} />
-            <YAxis
-              tick={{ fontSize: 12 }}
+            <XAxis
+              dataKey="name"
+              tick={CHART_AXIS_TICK}
               tickLine={false}
-              tickFormatter={(value: number) => `$${value.toLocaleString()}`}
+              axisLine={false}
+            />
+            <YAxis
+              tick={CHART_AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              width={56}
+              tickFormatter={formatAxisCurrency}
             />
             <Tooltip
-              formatter={(value: any) => [
-                `$${(Number(value) || 0).toFixed(2)}`,
-                "Sales",
-              ]}
-              contentStyle={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-              }}
+              formatter={(value) => [formatCurrency(Number(value) || 0), "Sales"]}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
             />
-            <Legend />
             <Area
               type="monotone"
               dataKey="sales"
-              stroke="#8884d8"
-              fill="url(#colorSales)"
+              stroke="var(--chart-1)"
+              fill="url(#weeklySalesFill)"
               strokeWidth={2}
-              name="Sales ($)"
+              activeDot={{ r: 5, strokeWidth: 0 }}
+              name="Sales"
             />
           </AreaChart>
         </ResponsiveContainer>
       )}
-    </ChartContainer>
+    </ChartCard>
   );
 };

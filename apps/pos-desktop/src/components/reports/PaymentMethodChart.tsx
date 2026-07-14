@@ -6,7 +6,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
-import { ChartContainer } from "../dashboard/ChartContainer";
+import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
 import type { PaymentBreakdownItem } from "@/types/reports";
 
@@ -68,7 +68,7 @@ export const PaymentMethodChart = ({
     }));
 
     return (
-        <ChartContainer
+        <ChartCard
             title="Payment Methods"
             subtitle={`Total: ${formatCurrency(grandTotal)}`}
             isLoading={isLoading}
@@ -131,6 +131,6 @@ export const PaymentMethodChart = ({
                     </PieChart>
                 </ResponsiveContainer>
             )}
-        </ChartContainer>
+        </ChartCard>
     );
 };

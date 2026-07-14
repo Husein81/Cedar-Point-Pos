@@ -8,7 +8,7 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
-import { ChartContainer } from "../dashboard/ChartContainer";
+import { ChartCard } from "../dashboard/ChartCard";
 import { Button, Empty } from "@repo/ui";
 import type { WeeklySalesData, HourlyRevenueData } from "@/types/dashboard";
 
@@ -53,7 +53,7 @@ export const SalesOverTimeChart = ({
     const isEmpty = !chartData || chartData.length === 0;
 
     return (
-        <ChartContainer
+        <ChartCard
             title="Sales Over Time"
             subtitle={mode === "daily" ? "Last 7 days" : "Today's hourly breakdown"}
             isLoading={isLoading}
@@ -130,6 +130,6 @@ export const SalesOverTimeChart = ({
                     </AreaChart>
                 </ResponsiveContainer>
             )}
-        </ChartContainer>
+        </ChartCard>
     );
 };

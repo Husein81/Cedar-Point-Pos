@@ -6,7 +6,7 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
-import { ChartContainer } from "../dashboard/ChartContainer";
+import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
 import type { OrderStatusItem } from "@/types/reports";
 
@@ -59,7 +59,7 @@ export const OrdersByStatusChart = ({
     }));
 
     return (
-        <ChartContainer
+        <ChartCard
             title="Orders by Status"
             subtitle={`${totalOrders} total orders`}
             isLoading={isLoading}
@@ -126,6 +126,6 @@ export const OrdersByStatusChart = ({
                     </PieChart>
                 </ResponsiveContainer>
             )}
-        </ChartContainer>
+        </ChartCard>
     );
 };

@@ -1,43 +1,71 @@
+import TitleBar from "@/components/title-bar";
+import { SummaryGrid } from "@/components/reports";
+import { useBranches } from "@/hooks/useBranch";
+import { formatCurrency } from "@/utils/reportHelpers";
+import { Button, Select } from "@repo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   HourlyRevenueChart,
   SalesByCategoryChart,
-  SummaryCard,
   TopProductsChart,
   WeeklySalesChart,
 } from "../components/dashboard";
 import {
+  dashboardKeys,
   useDashboardSummary,
   useHourlyRevenue,
   useSalesByCategory,
   useTopProducts,
   useWeeklySales,
 } from "../hooks/useDashboard";
-import { Button, Icon } from "@repo/ui";
-import TitleBar from "@/components/title-bar";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
+/** Category and top-product charts cover this trailing window */
+const RANGE_DAYS = 30;
+
+const ALL_BRANCHES = "all";
+
 function DashboardPage() {
+  const queryClient = useQueryClient();
+  const [branchId, setBranchId] = useState<string | undefined>(undefined);
+
   const dateRange = useMemo(() => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return { from: thirtyDaysAgo, to: today };
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - RANGE_DAYS);
+    return { from, to };
   }, []);
 
-  // Fetch all dashboard data
-  const summaryQuery = useDashboardSummary();
-  const weeklySalesQuery = useWeeklySales();
-  const categoryQuery = useSalesByCategory(dateRange.from, dateRange.to);
-  const hourlyRevenueQuery = useHourlyRevenue();
-  const topProductsQuery = useTopProducts(dateRange.from, dateRange.to);
+  const { data: branches = [] } = useBranches();
+
+  const summaryQuery = useDashboardSummary({ branchId });
+  const weeklySalesQuery = useWeeklySales({ branchId });
+  const categoryQuery = useSalesByCategory(dateRange.from, dateRange.to, {
+    branchId,
+  });
+  const hourlyRevenueQuery = useHourlyRevenue({ branchId });
+  const topProductsQuery = useTopProducts(dateRange.from, dateRange.to, {
+    branchId,
+  });
 
   const { data: summary } = summaryQuery;
+
+  const isRefreshing = [
+    summaryQuery,
+    weeklySalesQuery,
+    categoryQuery,
+    hourlyRevenueQuery,
+    topProductsQuery,
+  ].some((query) => query.isFetching);
+
+  const handleRefresh = () => {
+    void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+  };
 
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "short",
@@ -46,112 +74,114 @@ function DashboardPage() {
     year: "numeric",
   });
 
+  const lastUpdatedAt = summaryQuery.dataUpdatedAt
+    ? new Date(summaryQuery.dataUpdatedAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
+
+  const summaryItems = [
+    {
+      title: "Today's Revenue",
+      value: formatCurrency(summary?.totalRevenue ?? 0),
+      icon: "DollarSign",
+      subtitle: "From completed orders",
+    },
+    {
+      title: "Orders",
+      value: (summary?.totalOrders ?? 0).toLocaleString(),
+      icon: "ShoppingCart",
+      subtitle: "Completed today",
+    },
+    {
+      title: "Avg Order Value",
+      value:
+        summary && summary.totalOrders > 0
+          ? formatCurrency(summary.averageOrderValue)
+          : "-",
+      icon: "TrendingUp",
+      subtitle: "Revenue per order",
+    },
+    {
+      title: "Customers",
+      value: (summary?.totalCustomers ?? 0).toLocaleString(),
+      icon: "Users",
+      subtitle: "Unique customers today",
+    },
+  ];
+
+  const branchOptions = [
+    { value: ALL_BRANCHES, label: "All Branches" },
+    ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
+  ];
+
   return (
-    <div className="min-h-screen pt-4">
+    <div className="pt-4 pb-8">
       <div className="mx-auto space-y-6">
-        {/* Header */}
         <TitleBar
           title="Dashboard"
-          subtitle={currentDate}
+          subtitle={
+            lastUpdatedAt
+              ? `${currentDate} · Updated ${lastUpdatedAt}`
+              : currentDate
+          }
           actions={
-            <Button>
-              <Icon name="Download" className="w-4 h-4 mr-2" />
-              Export Report
-            </Button>
+            <>
+              {branches.length > 1 && (
+                <Select
+                  value={branchId ?? ALL_BRANCHES}
+                  onChange={(option) =>
+                    setBranchId(
+                      option.value === ALL_BRANCHES ? undefined : option.value,
+                    )
+                  }
+                  className="w-44"
+                  options={branchOptions}
+                />
+              )}
+              <Button
+                variant="outline"
+                iconName="RefreshCw"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </Button>
+            </>
           }
         />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <SummaryCard
-            title="Today's Sales"
-            value={`$${
-              (summary?.todaySales &&
-                summary?.todaySales.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })) ||
-              "0.00"
-            }`}
-            trend={{
-              value: "+12.5%",
-              isPositive: true,
-            }}
-            icon={<DollarSign className="w-5 h-5" />}
-            isLoading={summaryQuery.isLoading}
-          />
+        <SummaryGrid
+          items={summaryItems}
+          isLoading={summaryQuery.isLoading}
+          columns="4"
+        />
 
-          <SummaryCard
-            title="Orders"
-            value={
-              (summary?.orderCount && summary?.orderCount.toString()) || "0"
-            }
-            trend={{
-              value: "+8.2%",
-              isPositive: true,
-            }}
-            icon={<ShoppingCart className="w-5 h-5" />}
-            isLoading={summaryQuery.isLoading}
-          />
-
-          <SummaryCard
-            title="Avg Order Value"
-            value={`$${
-              (summary?.avgOrderValue &&
-                summary?.avgOrderValue.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })) ||
-              "0.00"
-            }`}
-            trend={{
-              value: "-2.4%",
-              isPositive: false,
-            }}
-            icon={<TrendingUp className="w-5 h-5" />}
-            isLoading={summaryQuery.isLoading}
-          />
-
-          <SummaryCard
-            title="Active Tables"
-            value={`${(summary?.activeTables && summary?.activeTables.toString()) || "0"}/${(summary?.totalTables && summary?.totalTables.toString()) || "0"}`}
-            trend={{
-              value: `${summary?.totalTables ? Math.round((summary.activeTables / summary.totalTables) * 100) : 0}%`,
-              isPositive: true,
-            }}
-            icon={<Users className="w-5 h-5" />}
-            isLoading={summaryQuery.isLoading}
-          />
-        </div>
-
-        {/* Charts Grid - Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <WeeklySalesChart
-            data={weeklySalesQuery.data || []}
+            data={weeklySalesQuery.data ?? []}
             isLoading={weeklySalesQuery.isLoading}
             error={weeklySalesQuery.error}
             onRetry={() => weeklySalesQuery.refetch()}
           />
 
           <SalesByCategoryChart
-            data={categoryQuery.data || []}
+            data={categoryQuery.data ?? []}
             isLoading={categoryQuery.isLoading}
             error={categoryQuery.error}
             onRetry={() => categoryQuery.refetch()}
           />
-        </div>
 
-        {/* Charts Grid - Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <HourlyRevenueChart
-            data={hourlyRevenueQuery.data || []}
+            data={hourlyRevenueQuery.data ?? []}
             isLoading={hourlyRevenueQuery.isLoading}
             error={hourlyRevenueQuery.error}
             onRetry={() => hourlyRevenueQuery.refetch()}
           />
 
           <TopProductsChart
-            data={topProductsQuery.data || []}
+            data={topProductsQuery.data ?? []}
             isLoading={topProductsQuery.isLoading}
             error={topProductsQuery.error}
             onRetry={() => topProductsQuery.refetch()}

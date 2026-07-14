@@ -1,30 +1,35 @@
 /**
  * Dashboard Type Definitions
- * Contains all type definitions for the dashboard module
+ * Shapes mirror the API responses under GET /reports/dashboard/*
+ * (see apps/api/src/modules/reports/reports.service.ts).
  */
 
 export interface DashboardSummary {
-  todaySales: number;
-  orderCount: number;
-  avgOrderValue: number;
-  activeTables: number;
-  totalTables: number;
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalCustomers: number;
 }
 
 export interface WeeklySalesData {
+  /** ISO date (YYYY-MM-DD) */
+  date: string;
+  /** Short weekday label, e.g. "Mon" */
   name: string;
   sales: number;
-  orders: number;
 }
 
 export interface CategoryData {
   name: string;
+  /** Units sold in the category */
   value: number;
+  /** Revenue for the category */
   sales: number;
 }
 
 export interface HourlyRevenueData {
-  hour: string;
+  /** Hour of day, 0–23 */
+  hour: number;
   revenue: number;
 }
 
@@ -32,12 +37,4 @@ export interface TopProductData {
   product: string;
   sold: number;
   revenue: number;
-}
-
-export interface DashboardFilters {
-  branchId?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
 }

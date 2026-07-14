@@ -2,7 +2,7 @@ import TitleBar from "@/components/title-bar";
 import { settingsSections } from "@/components/settings";
 import { useAuthStore } from "@/store/authStore";
 import type { BusinessType } from "@repo/types";
-import { cn, Icon, Separator, Shad } from "@repo/ui";
+import { cn, Icon, Shad } from "@repo/ui";
 import {
   createFileRoute,
   Link,

@@ -44,6 +44,6 @@ module.exports = {
     provider: "github",
     owner: "Husein81",
     repo: "Cedar-Point-Pos",
-    releaseType: "release",
+    releaseType: "draft",
   },
 };

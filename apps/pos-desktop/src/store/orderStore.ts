@@ -7,7 +7,6 @@ import {
   OrderTab,
   ServerOrderWithPayments,
 } from "@/dto/order.dto";
-import { useAuthStore } from "@/store/authStore";
 import { OrderStatus, OrderType } from "@repo/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";

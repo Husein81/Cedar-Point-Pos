@@ -29,6 +29,7 @@ export const statusConfig: Record<
     icon: "RotateCcw",
   },
   CANCELLED: { label: "Cancelled", color: "bg-red-500", icon: "XCircle" },
+  PAID: { label: "Paid", color: "bg-green-500", icon: "Wallet" },
 };
 
 export const orderTypeConfig: Record<string, { label: string; icon: string }> =

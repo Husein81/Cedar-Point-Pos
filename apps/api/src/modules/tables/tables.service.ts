@@ -198,8 +198,12 @@ export class TablesService {
             name: data.name,
             capacity: data.capacity,
             shape: data.shape,
-            posX: LAYOUT_GRID_GAP + column * (DEFAULT_TABLE_SIZE.width + LAYOUT_GRID_GAP),
-            posY: LAYOUT_GRID_GAP + row * (DEFAULT_TABLE_SIZE.height + LAYOUT_GRID_GAP),
+            posX:
+              LAYOUT_GRID_GAP +
+              column * (DEFAULT_TABLE_SIZE.width + LAYOUT_GRID_GAP),
+            posY:
+              LAYOUT_GRID_GAP +
+              row * (DEFAULT_TABLE_SIZE.height + LAYOUT_GRID_GAP),
             width: DEFAULT_TABLE_SIZE.width,
             height: DEFAULT_TABLE_SIZE.height,
             rotation: 0,
@@ -508,9 +512,11 @@ export class TablesService {
 
     return tables.map((table) => {
       const order = orderByTableId.get(table.id);
+      const shouldShowOrder = order && table.status !== 'AVAILABLE';
+
       return {
         ...table,
-        activeOrder: order
+        activeOrder: shouldShowOrder
           ? {
               orderId: order.id,
               orderNumber: order.orderNumber,
@@ -552,11 +558,6 @@ export class TablesService {
         }
 
         for (const update of data.updates) {
-          // posX/posY/width/height/rotation are non-nullable Ints — round
-          // canvas-space floats on write; width/height/rotation are only
-          // sent when the editor actually resized/rotated, so they're
-          // conditionally included to leave the stored value untouched
-          // otherwise.
           await tx.table.update({
             where: { id: update.id },
             data: {

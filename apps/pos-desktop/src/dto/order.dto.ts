@@ -149,6 +149,8 @@ export type OrderTab = {
 
 export type ServerOrderWithPayments = ServerOrder & {
   payments?: Array<{ amount?: number | string | null }>;
+  notes: string | null;
+  guestCount?: number | null;
 };
 
 type BackendOrderItem = {

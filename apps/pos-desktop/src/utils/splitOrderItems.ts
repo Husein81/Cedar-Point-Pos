@@ -8,6 +8,21 @@ type Variant = {
   unitPrice: number | string;
   notes?: string | null;
   discount?: { value: number; type: string } | null;
+  modifiers?: Array<{ modifierId?: string; id?: string; price: number | string }>;
+};
+
+const modifierSignature = (
+  modifiers: Array<{ modifierId?: string; id?: string; price: number | string }>,
+): string => {
+  if (!modifiers || modifiers.length === 0) return "";
+  return modifiers
+    .map((m) => {
+      const id = m.modifierId || m.id || "";
+      const price = Number(m.price).toFixed(2);
+      return `${id}:${price}`;
+    })
+    .sort()
+    .join(",");
 };
 
 const variantKey = (item: Variant): string =>
@@ -16,6 +31,7 @@ const variantKey = (item: Variant): string =>
     Number(item.unitPrice).toFixed(2),
     item.notes ?? "",
     item.discount ? `${item.discount.type}:${item.discount.value}` : "",
+    modifierSignature(item.modifiers ?? []),
   ].join("|");
 
 export function translateSplitToServerIds(
@@ -44,6 +60,7 @@ export function translateSplitToServerIds(
       unitPrice: local.price,
       notes: local.notes ?? null,
       discount: local.discount ?? null,
+      modifiers: local.modifiers ?? [],
     });
     const bucket = pool.get(key) ?? [];
 

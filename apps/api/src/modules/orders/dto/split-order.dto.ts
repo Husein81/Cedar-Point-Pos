@@ -4,7 +4,9 @@ import {
   ArrayMinSize,
   IsArray,
   IsNumber,
+  IsOptional,
   IsPositive,
+  IsString,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
@@ -28,4 +30,9 @@ export class SplitOrderDto {
   @ValidateNested({ each: true })
   @Type(() => SplitOrderItemDto)
   items!: SplitOrderItemDto[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }

@@ -383,8 +383,9 @@ export const useOrderStore = create<OrderStore>()(
       /**
        * Undo an optimistic split shown to the user before the server
        * confirmed it — closes the split-off tab and restores the original
-       * tab's pre-split items. No-ops if the original tab was closed in the
-       * meantime (nothing sane to restore).
+       * tab's pre-split items only if they haven't been edited since the
+       * split was initiated. Always removes the split tab and reconciles
+       * the active tab even if the original tab no longer exists.
        */
       revertSplit: (
         originalTabId: string,
@@ -392,13 +393,31 @@ export const useOrderStore = create<OrderStore>()(
         splitTabId: string,
       ) => {
         const state = get();
-        if (!state.tabs.some((t) => t.id === originalTabId)) return;
+        const originalTab = state.tabs.find((t) => t.id === originalTabId);
+
+        // Only restore items if the original tab still exists AND its items
+        // haven't been edited since the split snapshot was captured. If items
+        // have changed, preserve those edits and only remove the split tab.
+        const itemsMatch =
+          originalTab &&
+          originalTab.order.items.length === originalItems.length &&
+          originalTab.order.items.every((current, idx) => {
+            const orig = originalItems[idx];
+            return (
+              current.id === orig?.id &&
+              current.quantity === orig.quantity &&
+              current.price === orig.price &&
+              current.notes === orig.notes &&
+              (current.discount?.value === orig.discount?.value ||
+                (current.discount == null && orig.discount == null))
+            );
+          });
 
         const updatedTabs = renumberTabs(
           state.tabs
             .filter((t) => t.id !== splitTabId)
             .map((t) =>
-              t.id === originalTabId
+              t.id === originalTabId && itemsMatch
                 ? {
                     ...t,
                     order: {
@@ -411,12 +430,20 @@ export const useOrderStore = create<OrderStore>()(
             ),
         );
 
+        // If original tab no longer exists or was the only tab after removing
+        // the split tab, pick a sensible active tab. Otherwise keep current.
+        let newActiveTabId = state.activeTabId;
+        if (state.activeTabId === splitTabId) {
+          // Active was the split tab — switch to original if it exists,
+          // otherwise pick the first remaining tab.
+          newActiveTabId = originalTab
+            ? originalTabId
+            : (updatedTabs[0]?.id ?? null);
+        }
+
         set({
           tabs: updatedTabs,
-          activeTabId:
-            state.activeTabId === splitTabId
-              ? originalTabId
-              : state.activeTabId,
+          activeTabId: newActiveTabId,
         });
       },
 

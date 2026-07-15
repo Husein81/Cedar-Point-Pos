@@ -270,7 +270,13 @@ export class OrdersController {
     @Body() dto: SplitOrderDto,
   ) {
     const user = req.user as { tenantId: string; id: string };
-    return this.ordersService.splitOrder(user.tenantId, user.id, id, dto.items);
+    return this.ordersService.splitOrder(
+      user.tenantId,
+      user.id,
+      id,
+      dto.items,
+      dto.idempotencyKey,
+    );
   }
 
   /**

@@ -10,11 +10,12 @@ export default function CurrenciesSettingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: currencyData, isLoading, refetch } = useTenantCurrencies();
-
   const openModal = useModalStore((state) => state.openModal);
 
   const baseCurrencyCode = currencyData?.baseCurrencyCode || "USD";
   const currencies = currencyData?.currencies || [];
+
+  const columns = getCurrencyColumns(baseCurrencyCode);
 
   // Get list of already configured currency codes for filtering in form
   const existingCurrencyCodes = useMemo(() => {
@@ -28,16 +29,13 @@ export default function CurrenciesSettingsPage() {
     );
   };
 
-  // Filter currencies based on search
-  const filteredCurrencies = useMemo(() => {
-    if (!searchQuery) return currencies;
-    const query = searchQuery.toLowerCase();
-    return currencies.filter(
-      (c) =>
-        c.currencyCode.toLowerCase().includes(query) ||
-        c.currency?.name?.toLowerCase().includes(query),
-    );
-  }, [currencies, searchQuery]);
+  // Map currencies to include a top-level searchable name for DataTable
+  const tableData = useMemo(() => {
+    return currencies.map((c) => ({
+      ...c,
+      searchName: c.currency?.name || "",
+    }));
+  }, [currencies]);
 
   // Calculate stats
   const activeCurrencies = currencies.filter((c) => c.isActive).length;
@@ -89,8 +87,8 @@ export default function CurrenciesSettingsPage() {
 
       <DataTable
         isLoading={isLoading}
-        columns={getCurrencyColumns(baseCurrencyCode)}
-        data={filteredCurrencies}
+        columns={columns}
+        data={tableData}
         onRefetch={refetch}
         actions={
           <Button onClick={handleAddCurrency} iconName="Plus">
@@ -100,7 +98,7 @@ export default function CurrenciesSettingsPage() {
         search={{
           term: searchQuery,
           onTermChange: setSearchQuery,
-          keys: ["currencyCode"],
+          keys: ["currencyCode", "searchName"],
         }}
       />
     </div>

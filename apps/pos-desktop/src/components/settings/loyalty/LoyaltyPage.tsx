@@ -6,7 +6,7 @@ import { useLoyaltyProgram } from "@/hooks/useLoyalty";
 
 export default function LoyaltyPage() {
   const { isHighLevelUser } = useAuthStore();
-  const { data: program } = useLoyaltyProgram();
+  const { data: program, isLoading } = useLoyaltyProgram();
 
   return (
     <div className="space-y-4">
@@ -20,8 +20,20 @@ export default function LoyaltyPage() {
         <div className="flex items-center gap-2">
           <Icon name="Award" className="w-5 h-5 text-primary" />
           <span className="text-sm text-muted-foreground">Status:</span>
-          <Badge variant={program?.isEnabled ? "default" : "outline"}>
-            {program?.isEnabled ? "Enabled" : "Disabled"}
+          <Badge
+            variant={
+              isLoading
+                ? "secondary"
+                : program?.isEnabled
+                  ? "default"
+                  : "outline"
+            }
+          >
+            {isLoading
+              ? "Loading..."
+              : program?.isEnabled
+                ? "Enabled"
+                : "Disabled"}
           </Badge>
         </div>
         {program?.enrollmentMode && (

@@ -4,8 +4,8 @@ import { Checkbox, Badge, Icon } from "@repo/ui";
 import { CurrencyActions } from "@/components/currency/CurrencyActions";
 
 export const getCurrencyColumns = (
-  baseCurrencyCode: string
-): ColumnDef<TenantCurrency>[] => [
+  baseCurrencyCode: string,
+): ColumnDef<TenantCurrency & { searchName: string }>[] => [
   {
     id: "select",
     header: ({ table }) => (

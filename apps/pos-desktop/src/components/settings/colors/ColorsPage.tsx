@@ -10,6 +10,7 @@ export default function ColorsPage() {
   const { data: colors = [], isLoading, refetch } = useColors();
   const { openModal } = useModalStore();
   const { mutate: seedColors, isPending: isSeeding } = useSeedColors();
+  const columns = getColorColumns();
 
   const handleAddColor = () => {
     openModal("Add Color", <ColorForm />);
@@ -34,7 +35,7 @@ export default function ColorsPage() {
       />
       <DataTable
         isLoading={isLoading}
-        columns={getColorColumns()}
+        columns={columns}
         data={colors}
         onRefetch={refetch}
         actions={

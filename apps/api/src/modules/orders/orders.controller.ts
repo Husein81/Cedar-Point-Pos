@@ -29,7 +29,7 @@ import { UpdateQuantityDto } from './dto/update-quantity.dto.js';
 import { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
 import { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
-import { SplitPaymentDto } from './dto/split-payment.dto.js';
+import { SplitOrderDto } from './dto/split-order.dto.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 
 import { OrdersService } from './orders.service.js';
@@ -257,6 +257,20 @@ export class OrdersController {
       id,
       body.sourceOrderId,
     );
+  }
+
+  /**
+   * Split selected item quantities into a new order on the same table (split bill)
+   */
+  @Post(':id/split')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  splitOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: SplitOrderDto,
+  ) {
+    const user = req.user as { tenantId: string; id: string };
+    return this.ordersService.splitOrder(user.tenantId, user.id, id, dto.items);
   }
 
   /**

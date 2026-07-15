@@ -69,6 +69,14 @@ const KitchenCard = ({ order }: Props) => {
     };
   };
 
+  const mode =
+    order.status === "COMPLETED" ||
+    order.status === "CANCELLED" ||
+    order.status === "PAID" ||
+    order.status === "READY"
+      ? "hidden"
+      : "visible";
+
   return (
     <div
       className={cn(
@@ -193,15 +201,7 @@ const KitchenCard = ({ order }: Props) => {
       </div>
 
       {/* FOOTER */}
-      <Activity
-        mode={
-          order.status === "COMPLETED" ||
-          order.status === "CANCELLED" ||
-          order.status === "READY"
-            ? "hidden"
-            : "visible"
-        }
-      >
+      <Activity mode={mode}>
         <div className="border-t border-zinc-100 p-3">
           <Button
             onClick={onActionButtonClick}

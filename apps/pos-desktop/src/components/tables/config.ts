@@ -244,16 +244,22 @@ export const getTableDisplayName = (
 
 export const formatTableMoney = (value: string | number): string => {
   const amount = typeof value === "string" ? Number(value) : value;
+  
   if (!Number.isFinite(amount)) return "—";
+  
   return `$${amount.toFixed(2)}`;
 };
 
 /** "58m" / "1h 12m" elapsed since the given ISO timestamp. */
 export const formatElapsedSince = (iso: string, now: number): string => {
   const started = new Date(iso).getTime();
+
   if (!Number.isFinite(started) || started > now) return "0m";
+
   const minutes = Math.floor((now - started) / 60_000);
+
   if (minutes < 60) return `${minutes}m`;
+
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 };
 
@@ -320,6 +326,12 @@ export const ACTIONS_BY_STATUS: Record<TableUiStatus, ActionSpec[]> = {
       action: "transfer",
       label: "Transfer",
       icon: "ArrowLeftRight",
+      variant: "outline",
+    },
+    {
+      action: "free",
+      label: "Free Table",
+      icon: "CircleCheck",
       variant: "outline",
     },
   ],

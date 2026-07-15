@@ -27,6 +27,7 @@ import { TableStatusService } from '../tables/table-status.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
+import type { SplitOrderItemDto } from './dto/split-order.dto.js';
 
 type OrderQueryParams = QueryParams & {
   status?: OrderStatus;
@@ -155,13 +156,20 @@ export class OrdersService {
     };
 
     // Restaurant: DRAFT → (CONFIRMED) → SENT_TO_KITCHEN → IN_PROGRESS → READY → COMPLETED
+    // Orders not yet in the kitchen (DRAFT/CONFIRMED/PENDING) can be cancelled
+    // — e.g. "Free Table" on walked-out guests. Once cooking starts, they can't.
     const restaurant: Partial<Record<OrderStatus, OrderStatus[]>> = {
       DRAFT: [
         OrderStatus.CONFIRMED,
         OrderStatus.SENT_TO_KITCHEN,
         OrderStatus.CANCELLED,
       ],
-      CONFIRMED: [OrderStatus.IN_PROGRESS, OrderStatus.SENT_TO_KITCHEN],
+      CONFIRMED: [
+        OrderStatus.IN_PROGRESS,
+        OrderStatus.SENT_TO_KITCHEN,
+        OrderStatus.CANCELLED,
+      ],
+      PENDING: [OrderStatus.CANCELLED],
       SENT_TO_KITCHEN: [OrderStatus.IN_PROGRESS],
       IN_PROGRESS: [OrderStatus.READY],
       READY: [OrderStatus.COMPLETED],
@@ -2253,6 +2261,247 @@ export class OrdersService {
     }
 
     return merged;
+  }
+
+  async splitOrder(
+    tenantId: string,
+    userId: string,
+    orderId: string,
+    splits: SplitOrderItemDto[],
+  ) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const source = await tx.order.findFirst({
+        where: { id: orderId, tenantId },
+        include: { items: { include: { modifiers: true } } },
+      });
+      if (!source) throw new NotFoundException('Order not found');
+
+      const activeStatuses: OrderStatus[] = this.ACTIVE_ORDER_STATUSES;
+      if (!activeStatuses.includes(source.status as OrderStatus)) {
+        throw new BadRequestException({
+          message: `Order status "${source.status}" does not allow splitting`,
+          code: 'ORDER_NOT_SPLITTABLE',
+        });
+      }
+
+      // Collapse duplicate itemIds, then validate against the source items.
+      const requestedByItemId = new Map<string, number>();
+      for (const { itemId, quantity } of splits) {
+        requestedByItemId.set(
+          itemId,
+          (requestedByItemId.get(itemId) ?? 0) + quantity,
+        );
+      }
+
+      const moves: {
+        item: (typeof source.items)[number];
+        quantity: number;
+        isFullMove: boolean;
+      }[] = [];
+
+      for (const [itemId, quantity] of requestedByItemId) {
+        const item = source.items.find((i) => i.id === itemId);
+        if (!item) {
+          throw new BadRequestException({
+            message: 'Order item not found on this order',
+            code: 'SPLIT_ITEM_NOT_FOUND',
+          });
+        }
+        const available = Number(item.quantity);
+        if (quantity > available) {
+          throw new BadRequestException({
+            message: `Cannot split ${quantity} of an item with quantity ${available}`,
+            code: 'SPLIT_QUANTITY_EXCEEDS_ITEM',
+          });
+        }
+        moves.push({ item, quantity, isFullMove: quantity === available });
+      }
+
+      const fullyMovedCount = moves.filter((m) => m.isFullMove).length;
+      if (fullyMovedCount === source.items.length) {
+        throw new BadRequestException({
+          message: 'Cannot split the entire order — settle it directly instead',
+          code: 'SPLIT_LEAVES_ORDER_EMPTY',
+        });
+      }
+
+      const branch = await tx.branch.findUnique({
+        where: { id: source.branchId },
+        select: { name: true },
+      });
+      if (!branch) throw new NotFoundException('Branch not found');
+
+      const dateStr = formatOrderDate(new Date());
+      const sequence = await tx.orderSequence.upsert({
+        where: { branchId_date: { branchId: source.branchId, date: dateStr } },
+        update: { lastValue: { increment: 1 } },
+        create: {
+          tenantId,
+          branchId: source.branchId,
+          date: dateStr,
+          lastValue: 1,
+        },
+      });
+      const orderNumber = `${dateStr}-${getBranchCode(branch.name)}-${sequence.lastValue
+        .toString()
+        .padStart(4, '0')}`;
+
+      // New order inherits the table/customer context and the source status
+      // (items already sent to kitchen stay "sent" — nothing re-fires).
+      const newOrder = await tx.order.create({
+        data: {
+          tenantId,
+          branchId: source.branchId,
+          userId,
+          orderNumber,
+          type: source.type,
+          status: source.status,
+          total: 0,
+          subtotal: 0,
+          discount: 0,
+          shippingFee: 0,
+          includeVAT: source.includeVAT,
+          vat: 0,
+          ...(source.tableId && { tableId: source.tableId }),
+          ...(source.customerId && { customerId: source.customerId }),
+          ...(source.shiftId && { shiftId: source.shiftId }),
+          ...(source.deviceId && { deviceId: source.deviceId }),
+        },
+      });
+
+      for (const { item, quantity, isFullMove } of moves) {
+        if (isFullMove) {
+          // Reassign the row wholesale — modifiers and tickets follow it.
+          await tx.orderItem.update({
+            where: { id: item.id },
+            data: { orderId: newOrder.id },
+          });
+          continue;
+        }
+
+        // Partial move: carve the quantity out. Subtract the moved share
+        // from the source line so the two sides always sum to the original.
+        const sourceQty = Number(item.quantity);
+        const movedSubtotal = this.round(
+          (Number(item.subtotal) / sourceQty) * quantity,
+        );
+        const remainingSubtotal = this.round(
+          Number(item.subtotal) - movedSubtotal,
+        );
+
+        await tx.orderItem.update({
+          where: { id: item.id },
+          data: {
+            quantity: new Prisma.Decimal(sourceQty - quantity),
+            subtotal: new Prisma.Decimal(remainingSubtotal),
+            total: new Prisma.Decimal(remainingSubtotal),
+          },
+        });
+
+        await tx.orderItem.create({
+          data: {
+            orderId: newOrder.id,
+            productId: item.productId,
+            quantity: new Prisma.Decimal(quantity),
+            unitPrice: item.unitPrice,
+            subtotal: new Prisma.Decimal(movedSubtotal),
+            total: new Prisma.Decimal(movedSubtotal),
+            notes: item.notes,
+            ...(item.discount !== null && {
+              discount: item.discount as Prisma.InputJsonValue,
+            }),
+            ...(item.modifiers.length > 0 && {
+              modifiers: {
+                create: item.modifiers.map((m) => ({
+                  modifierId: m.modifierId,
+                  price: m.price,
+                })),
+              },
+            }),
+          },
+        });
+      }
+
+      await this.recalculateTotalsInTx(tx, source.id);
+      await this.recalculateTotalsInTx(tx, newOrder.id);
+
+      const fullInclude = {
+        items: {
+          include: {
+            product: true,
+            modifiers: { include: { modifier: true } },
+          },
+        },
+        payments: true,
+        customer: true,
+        table: true,
+      } satisfies Prisma.OrderInclude;
+
+      const [originalOrder, splitOrder] = await Promise.all([
+        tx.order.findUnique({ where: { id: source.id }, include: fullInclude }),
+        tx.order.findUnique({
+          where: { id: newOrder.id },
+          include: fullInclude,
+        }),
+      ]);
+
+      return { originalOrder, newOrder: splitOrder, branchId: source.branchId };
+    });
+
+    // Post-commit: the table's bill breakdown changed on the floor plan.
+    this.eventEmitter.emit('table.updated', { branchId: result.branchId });
+
+    return { originalOrder: result.originalOrder, newOrder: result.newOrder };
+  }
+
+  /**
+   * Recompute subtotal/vat/total from the order's items and re-evaluate the
+   * paid status — same math the merge flow uses.
+   */
+  private async recalculateTotalsInTx(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+  ) {
+    const items = await tx.orderItem.findMany({
+      where: { orderId },
+      select: { subtotal: true },
+    });
+    const subtotal = this.round(
+      items.reduce((s, i) => s + Number(i.subtotal), 0),
+    );
+
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: {
+        discount: true,
+        shippingFee: true,
+        includeVAT: true,
+        payments: { select: { amount: true } },
+      },
+    });
+
+    const discount = Number(order?.discount || 0);
+    const shippingFee = Number(order?.shippingFee || 0);
+    const includeVAT = Boolean(order?.includeVAT);
+    const afterDiscount = this.round(
+      Math.max(0, subtotal - discount + shippingFee),
+    );
+    const vat = includeVAT ? this.round(afterDiscount * VAT_RATE) : 0;
+    const total = this.round(afterDiscount + vat);
+
+    const paid = this.money(
+      (order?.payments || []).reduce((sum, p) => sum + Number(p.amount), 0),
+    );
+    const remaining = this.money(Math.max(0, total - paid));
+    let newStatus: OrderStatus | undefined;
+    if (paid > 0) {
+      newStatus = remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
+    }
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { subtotal, total, vat, ...(newStatus && { status: newStatus }) },
+    });
   }
 
   // ---- Private helpers for transfer+merge ----

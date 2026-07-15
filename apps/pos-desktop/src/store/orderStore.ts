@@ -1,6 +1,5 @@
 import {
   BackendOrder,
-  DiscountType,
   Order,
   OrderDiscount,
   OrderItem,
@@ -18,6 +17,7 @@ import {
   createNewTab,
   createEmptyOrder,
   generateOrderId,
+  hydrateOrderFromServer,
 } from "./config";
 
 type LastCompletedOrder = {
@@ -52,6 +52,11 @@ type Actions = {
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   splitToNewTab: (splits: SplitItem[]) => string | null;
+  revertSplit: (
+    originalTabId: string,
+    originalItems: OrderItem[],
+    splitTabId: string,
+  ) => void;
 
   // Order actions (operates on active tab)
   addItem: (item: Omit<OrderItem, "id">) => void;
@@ -104,6 +109,11 @@ type Actions = {
     serverOrder: ServerOrderWithPayments,
     forceRefresh?: boolean,
   ) => string | null;
+
+  // Re-hydrate one specific tab with authoritative server data (used to
+  // reconcile an optimistic local change once the server confirms it, when
+  // the tab's local order id won't match the server's for a lookup by id).
+  hydrateTab: (tabId: string, serverOrder: ServerOrderWithPayments) => void;
 
   // Computed helpers
   getActiveOrder: () => Order | null;
@@ -368,6 +378,46 @@ export const useOrderStore = create<OrderStore>()(
         });
 
         return newTab.id;
+      },
+
+      /**
+       * Undo an optimistic split shown to the user before the server
+       * confirmed it — closes the split-off tab and restores the original
+       * tab's pre-split items. No-ops if the original tab was closed in the
+       * meantime (nothing sane to restore).
+       */
+      revertSplit: (
+        originalTabId: string,
+        originalItems: OrderItem[],
+        splitTabId: string,
+      ) => {
+        const state = get();
+        if (!state.tabs.some((t) => t.id === originalTabId)) return;
+
+        const updatedTabs = renumberTabs(
+          state.tabs
+            .filter((t) => t.id !== splitTabId)
+            .map((t) =>
+              t.id === originalTabId
+                ? {
+                    ...t,
+                    order: {
+                      ...t.order,
+                      items: originalItems,
+                      modifiedAt: new Date(),
+                    },
+                  }
+                : t,
+            ),
+        );
+
+        set({
+          tabs: updatedTabs,
+          activeTabId:
+            state.activeTabId === splitTabId
+              ? originalTabId
+              : state.activeTabId,
+        });
       },
 
       setActiveTab: (tabId: string) => {
@@ -887,75 +937,10 @@ export const useOrderStore = create<OrderStore>()(
           !activeTab.order.tableId &&
           !activeTab.order.customerId;
 
-        // Determine if items were already sent to kitchen based on order status
-        const wasSentToKitchen =
-          serverOrder.status === "SENT_TO_KITCHEN" ||
-          serverOrder.status === "IN_PROGRESS" ||
-          serverOrder.status === "CONFIRMED" ||
-          serverOrder.status === "READY";
-
-        // Map server order items to local OrderItem format
-        const items: OrderItem[] = (serverOrder.items || []).map((si) => ({
-          id: si.id,
-          productId: si.productId,
-          name: si.product?.name || "Unknown",
-          price: parseFloat(String(si.unitPrice ?? 0)),
-          quantity: parseInt(String(si.quantity), 10) || 1,
-          notes: si.notes || undefined,
-          imageUrl: si.product?.imageUrl || null,
-          modifiers:
-            si.modifiers?.map((m: any) => ({
-              modifierId: m.modifierId || m.modifier?.id || m.id,
-              name: m.modifier?.name || m.name || "",
-              price: parseFloat(String(m.price ?? 0)),
-            })) || [],
-          sentToKitchen: wasSentToKitchen,
-          discount: si.discount
-            ? {
-                value: si.discount.value,
-                type: si.discount.type,
-              }
-            : undefined,
-        }));
-
-        const resolvedTableId = serverOrder.tableId || null;
-        const tableNameFromPayload =
-          serverOrder.table && typeof serverOrder.table.name === "string"
-            ? serverOrder.table.name
-            : null;
-        const tableNameFromExistingTab = existingTab?.order.tableName ?? null;
-        const resolvedTableName = resolvedTableId
-          ? (tableNameFromPayload ?? tableNameFromExistingTab ?? null)
-          : null;
-
-        const hydratedOrder: Order = {
-          id: serverOrder.id,
-          status: serverOrder.status as OrderStatus,
-          type: serverOrder.type as OrderType | undefined,
-          items,
-          discount: serverOrder.discount
-            ? {
-                value: parseFloat(String(serverOrder.discount)),
-                type: "FIXED" as DiscountType,
-              }
-            : null,
-          shippingFee: parseFloat(String(serverOrder.shippingFee ?? 0)),
-          includeVAT: serverOrder.includeVAT ?? false,
-          paidAmount: (serverOrder.payments || []).reduce(
-            (sum, p) => sum + Number(p.amount ?? 0),
-            0,
-          ),
-          customerId: serverOrder.customerId || null,
-          customerName: serverOrder.customer?.name || null,
-          customerAddress: serverOrder.customer?.address || null,
-          tableId: resolvedTableId,
-          tableName: resolvedTableName,
-          guestCount: (serverOrder as any).guestCount,
-          notes: "",
-          orderNumber: serverOrder.orderNumber ?? "",
-          createdAt: new Date(serverOrder.createdAt),
-          modifiedAt: new Date(),
-        };
+        const hydratedOrder = hydrateOrderFromServer(
+          serverOrder,
+          existingTab?.order.tableName ?? null,
+        );
 
         if (forceRefresh && existingTab) {
           // Re-hydrate existing tab with fresh server data
@@ -1012,6 +997,31 @@ export const useOrderStore = create<OrderStore>()(
         });
 
         return newTab.id;
+      },
+
+      hydrateTab: (tabId: string, serverOrder: ServerOrderWithPayments) => {
+        const state = get();
+        const tab = state.tabs.find((t) => t.id === tabId);
+        if (!tab) return;
+
+        const hydratedOrder = hydrateOrderFromServer(
+          serverOrder,
+          tab.order.tableName,
+        );
+
+        set({
+          tabs: state.tabs.map((t) =>
+            t.id === tabId
+              ? {
+                  ...t,
+                  label: serverOrder.orderNumber
+                    ? `#${serverOrder.orderNumber}`
+                    : t.label,
+                  order: hydratedOrder,
+                }
+              : t,
+          ),
+        });
       },
 
       // =====================

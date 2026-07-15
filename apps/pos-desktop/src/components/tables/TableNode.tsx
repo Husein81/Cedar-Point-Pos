@@ -14,6 +14,7 @@ import {
 
 export type TableNodeAction =
   | "open"
+  | "free"
   | "seat"
   | "reserve"
   | "unreserve"

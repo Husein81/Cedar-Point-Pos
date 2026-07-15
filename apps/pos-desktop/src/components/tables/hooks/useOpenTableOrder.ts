@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { OrderStatus } from "@repo/types";
 import { toast } from "@repo/ui";
 import type { ServerOrderWithPayments } from "@/dto/order.dto";
 import type { TableOverview } from "@/dto/tables.dto";
@@ -42,35 +43,46 @@ export const useOpenTableOrder = (): OpenTableOrderApi => {
 
   const openTableOrder = useCallback(
     async (table: TableOverview) => {
+      const summary = table.activeOrder;
+
+      if (!summary) {
+        seatTable(table);
+        return;
+      }
+
+      // A PAID order is no longer "active" — show its invoice instead.
+      if (summary.status === OrderStatus.PAID) {
+        selectTable(null);
+        void navigate({
+          to: "/invoices/$orderId",
+          params: { orderId: summary.orderId },
+        });
+        return;
+      }
+
+      // Navigate straight to the order screen, then hydrate the tab as soon
+      // as the order payload arrives (usually already cached by the drawer).
+      selectTable(null);
+      void navigate({ to: "/", search: { tableId: table.id } });
+
       try {
         const activeOrders = await fetchActiveOrders(table.id);
+        const latest = [...activeOrders].sort(
+          (a, b) =>
+            new Date(b.createdAt ?? 0).getTime() -
+            new Date(a.createdAt ?? 0).getTime(),
+        )[0];
 
-        if (activeOrders.length > 0) {
-          const latest = [...activeOrders].sort(
-            (a, b) =>
-              new Date(b.createdAt ?? 0).getTime() -
-              new Date(a.createdAt ?? 0).getTime(),
-          )[0];
-
-          const tabId = loadOrder(latest as unknown as ServerOrderWithPayments);
-          if (tabId) {
-            selectTable(null);
-            void navigate({ to: "/", search: { tableId: table.id } });
-          }
+        if (!latest) {
+          // The order was closed while the overview was stale — seat fresh.
+          seatTable(table);
           return;
         }
 
-        // A PAID order is no longer "active" — show its invoice instead.
-        if (table.activeOrder) {
-          selectTable(null);
-          void navigate({
-            to: "/invoices/$orderId",
-            params: { orderId: table.activeOrder.orderId },
-          });
-          return;
+        const tabId = loadOrder(latest as unknown as ServerOrderWithPayments);
+        if (!tabId) {
+          toast.error("Tab limit reached — close a tab to open this order");
         }
-
-        seatTable(table);
       } catch {
         toast.error("Failed to load the table's order");
       }

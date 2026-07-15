@@ -5,9 +5,11 @@ import type { TableOverview } from "@/dto/tables.dto";
 import { useUpdateOrderStatus } from "@/hooks/useOrder";
 import {
   useDeleteTable,
+  useFetchActiveOrdersByTable,
   useUpdateTable,
   useUpdateTableStatus,
 } from "@/hooks/useTable";
+import { extractErrorMessage } from "@/utils/error";
 import { useModalStore } from "@/store/modalStore";
 import { useTableUiStore } from "@/store/tableUiStore";
 import { getTableDisplayName } from "../config";
@@ -52,6 +54,11 @@ export const useTableActions = (options: {
     onConfirm: () => void;
     onCancel: () => void;
   }) => React.ReactNode;
+  renderFreeConfirm: (params: {
+    table: TableOverview;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }) => React.ReactNode;
   renderSeatGuests?: (params: {
     table: TableOverview;
     onConfirm: (guestCount?: number) => void;
@@ -63,6 +70,7 @@ export const useTableActions = (options: {
     renderMergeSelector,
     renderEditForm,
     renderDeleteConfirm,
+    renderFreeConfirm,
     renderSeatGuests,
   } = options;
 
@@ -79,6 +87,44 @@ export const useTableActions = (options: {
     renderTransferPicker,
     renderMergeSelector,
   });
+  const fetchActiveOrders = useFetchActiveOrdersByTable();
+
+  /**
+   * Free an occupied table: cancel every unpaid order on it (the backend
+   * releases the table once the last active order closes), or — for a table
+   * stuck OCCUPIED with no orders — release it directly. Orders already in
+   * the kitchen are protected by the order state machine and will fail the
+   * cancel with a clear error.
+   */
+  const freeTable = useCallback(
+    async (table: TableOverview) => {
+      try {
+        const activeOrders = await fetchActiveOrders(table.id);
+
+        if (activeOrders.length === 0) {
+          statusMutation.mutate({
+            id: table.id,
+            status: TableStatus.AVAILABLE,
+          });
+          selectTable(null);
+          return;
+        }
+
+        for (const order of activeOrders) {
+          await orderStatusMutation.mutateAsync({
+            id: order.id,
+            status: OrderStatus.CANCELLED,
+          });
+        }
+
+        toast.success("Orders cancelled, table freed");
+        selectTable(null);
+      } catch (error) {
+        toast.error(extractErrorMessage(error, "Failed to free the table"));
+      }
+    },
+    [fetchActiveOrders, orderStatusMutation, selectTable, statusMutation],
+  );
 
   const handleAction = useCallback(
     (table: TableOverview, action: TableNodeAction) => {
@@ -102,6 +148,20 @@ export const useTableActions = (options: {
           break;
         case "open":
           void openTableOrder(table);
+          break;
+        case "free":
+          openModal(
+            "Free Table",
+            renderFreeConfirm({
+              table,
+              onConfirm: () => {
+                void freeTable(table);
+                closeModal();
+              },
+              onCancel: closeModal,
+            }),
+            "Unpaid orders on this table will be cancelled.",
+          );
           break;
         case "reserve":
           statusMutation.mutate({ id: table.id, status: TableStatus.RESERVED });
@@ -162,11 +222,13 @@ export const useTableActions = (options: {
     [
       closeModal,
       deleteTableMutation,
+      freeTable,
       openModal,
       openTableOrder,
       orderStatusMutation,
       renderDeleteConfirm,
       renderEditForm,
+      renderFreeConfirm,
       renderSeatGuests,
       seatTable,
       selectTable,

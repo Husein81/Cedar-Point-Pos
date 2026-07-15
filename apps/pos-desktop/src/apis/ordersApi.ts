@@ -150,6 +150,15 @@ export const ordersApi = {
     return response.data;
   },
 
+  // Split selected item quantities into a new order on the same table
+  splitOrder: async (
+    id: string,
+    items: { itemId: string; quantity: number }[],
+  ): Promise<{ originalOrder: Order; newOrder: Order }> => {
+    const response = await api.post(`/orders/${id}/split`, { items });
+    return response.data;
+  },
+
   // Merge source order into target order (same table)
   mergeOrders: async (
     targetOrderId: string,

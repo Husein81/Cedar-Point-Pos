@@ -302,14 +302,12 @@ export class KitchenService {
     tenantId: string,
     userId?: string,
   ) {
-    // Delegate to the central orders state machine so transitions, settlement
-    // guards, inventory deductions, and loyalty earning stay consistent.
-    return this.ordersService.updateStatus(
+    return this.ordersService.updateStatus({
       tenantId,
       orderId,
-      status,
-      userId ?? 'SYSTEM',
-    );
+      nextStatus: status,
+      userId: userId ?? 'SYSTEM',
+    });
   }
 
   async updateTicketStatus(
@@ -317,7 +315,6 @@ export class KitchenService {
     status: OrderStatus,
     tenantId: string,
   ) {
-    // Verify the ticket belongs to an order in this tenant
     const ticket = await this.prisma.orderItemTicket.findFirst({
       where: {
         id: ticketId,

@@ -45,7 +45,8 @@ export class OrdersController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   create(@Req() req: Request, @Body() dto: CreateOrderDto) {
     const user = req.user as { tenantId: string; id: string };
-    return this.ordersService.create(user.tenantId, user.id, dto);
+    const params = { tenantId: user.tenantId, userId: user.id };
+    return this.ordersService.create(params, dto);
   }
 
   /* ----------------------------------------------------
@@ -74,7 +75,7 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
 
-    return this.ordersService.findAll(user.tenantId, {
+    const params = {
       page,
       limit,
       status,
@@ -87,13 +88,11 @@ export class OrdersController {
       search,
       sort,
       order,
-    });
+    };
+
+    return this.ordersService.findAll(user.tenantId, params);
   }
 
-  /**
-   * Get active (unpaid) order for a specific table
-   * Returns the order if found, null if no active order exists
-   */
   @Get('table/:tableId/active')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findActiveOrderByTable(
@@ -110,8 +109,8 @@ export class OrdersController {
     if (!branchId) {
       throw new BadRequestException('Branch ID is required');
     }
-    const user = req.user as { tenantId: string };
-    return this.ordersService.getNextOrderNumber(user.tenantId, branchId);
+
+    return this.ordersService.getNextOrderNumber(branchId);
   }
 
   /**
@@ -124,16 +123,6 @@ export class OrdersController {
     return this.ordersService.findOne(user.tenantId, id);
   }
 
-  /* ----------------------------------------------------
-     ORDER STATE MACHINE
-  ---------------------------------------------------- */
-
-  /**
-   * Update order status
-   *
-   * ✅ Single entry point for state machine
-   * ✅ Inventory deducted ONLY when status → PAID
-   */
   @Patch(':id/status')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @LogActivity(
@@ -152,12 +141,14 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string; id: string };
 
-    return this.ordersService.updateStatus(
-      user.tenantId,
-      id,
-      body.status,
-      user.id,
-    );
+    const data = {
+      tenantId: user.tenantId,
+      orderId: id,
+      nextStatus: body.status,
+      userId: user.id,
+    };
+
+    return this.ordersService.updateStatus(data);
   }
 
   /* ----------------------------------------------------
@@ -178,9 +169,6 @@ export class OrdersController {
      ORDER MODIFICATIONS (DRAFT ONLY)
   ---------------------------------------------------- */
 
-  /**
-   * Update discount
-   */
   @Patch(':id/discount')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @LogActivity(
@@ -259,9 +247,6 @@ export class OrdersController {
     );
   }
 
-  /**
-   * Split selected item quantities into a new order on the same table (split bill)
-   */
   @Post(':id/split')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   splitOrder(

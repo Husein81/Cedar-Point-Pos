@@ -67,6 +67,7 @@ export class OrdersService {
     private readonly offersService: OffersService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
@@ -136,11 +137,15 @@ export class OrdersService {
     };
   }
 
-  private validateTransition(
-    businessType: BusinessType,
-    current: OrderStatus,
-    next: OrderStatus,
-  ) {
+  private validateTransition({
+    businessType,
+    current,
+    next,
+  }: {
+    businessType: BusinessType;
+    current: OrderStatus;
+    next: OrderStatus;
+  }) {
     // Retail: DRAFT → ON_HOLD/PENDING/COMPLETED/CANCELLED
     const retail: Partial<Record<OrderStatus, OrderStatus[]>> = {
       DRAFT: [
@@ -155,9 +160,6 @@ export class OrdersService {
       CANCELLED: [],
     };
 
-    // Restaurant: DRAFT → (CONFIRMED) → SENT_TO_KITCHEN → IN_PROGRESS → READY → COMPLETED
-    // Orders not yet in the kitchen (DRAFT/CONFIRMED/PENDING) can be cancelled
-    // — e.g. "Free Table" on walked-out guests. Once cooking starts, they can't.
     const restaurant: Partial<Record<OrderStatus, OrderStatus[]>> = {
       DRAFT: [
         OrderStatus.CONFIRMED,
@@ -192,12 +194,17 @@ export class OrdersService {
     }
   }
 
-  private async validateShiftAndDevice(
-    tenantId: string,
-    branchId: string,
-    shiftId?: string | null,
-    deviceId?: string | null,
-  ) {
+  private async validateShiftAndDevice({
+    tenantId,
+    branchId,
+    shiftId,
+    deviceId,
+  }: {
+    tenantId: string;
+    branchId: string;
+    shiftId?: string | null;
+    deviceId?: string | null;
+  }) {
     if (!shiftId && !deviceId) return;
 
     if (shiftId) {
@@ -235,11 +242,10 @@ export class OrdersService {
     }
   }
 
-  /* ----------------------------------------------------
-     CREATE
-  ---------------------------------------------------- */
-
-  async create(tenantId: string, userId: string, dto: CreateOrderDto) {
+  async create(
+    { tenantId, userId }: { tenantId: string; userId: string },
+    dto: CreateOrderDto,
+  ) {
     const {
       branchId,
       type,
@@ -420,7 +426,12 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
-    await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
+    await this.validateShiftAndDevice({
+      tenantId,
+      branchId,
+      shiftId,
+      deviceId,
+    });
 
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
@@ -555,7 +566,7 @@ export class OrdersService {
     return order;
   }
 
-  async getNextOrderNumber(tenantId: string, branchId: string) {
+  async getNextOrderNumber(branchId: string) {
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
       select: { name: true },
@@ -634,16 +645,17 @@ export class OrdersService {
     };
   }
 
-  /* ----------------------------------------------------
-     STATUS UPDATE
-  ---------------------------------------------------- */
-
-  async updateStatus(
-    tenantId: string,
-    orderId: string,
-    nextStatus: OrderStatus,
-    userId: string,
-  ) {
+  async updateStatus({
+    tenantId,
+    orderId,
+    nextStatus,
+    userId,
+  }: {
+    tenantId: string;
+    orderId: string;
+    nextStatus: OrderStatus;
+    userId: string;
+  }) {
     // Phase 1: Atomic status update + table status
     const updated = await this.prisma.$transaction(async (tx) => {
       // Get order with table info
@@ -662,11 +674,11 @@ export class OrdersService {
 
       if (!order) throw new NotFoundException('Order not found');
 
-      this.validateTransition(
-        order.tenant.businessType,
-        order.status,
-        nextStatus,
-      );
+      this.validateTransition({
+        businessType: order.tenant.businessType,
+        current: order.status,
+        next: nextStatus,
+      });
 
       // Guard: order must be fully paid before marking COMPLETED
       // EXCEPT for restaurant orders being completed (e.g. from the kitchen),
@@ -747,13 +759,6 @@ export class OrdersService {
     return result;
   }
 
-  /**
-   * Process batch or single payment for an order
-   * - Creates Payment records for all payments
-   * - Marks order as PAID only if fully paid after ALL payments combined
-   * - All payments pre-converted to base currency by frontend
-   * - Deducts inventory ONCE when fully paid
-   */
   async processPayment(
     tenantId: string,
     orderId: string,
@@ -822,12 +827,12 @@ export class OrdersService {
         select: { branchId: true },
       });
       if (!orderForBranch) throw new NotFoundException('Order not found');
-      await this.validateShiftAndDevice(
+      await this.validateShiftAndDevice({
         tenantId,
-        orderForBranch.branchId,
-        resolvedShiftId,
-        resolvedDeviceId,
-      );
+        branchId: orderForBranch.branchId,
+        shiftId: resolvedShiftId,
+        deviceId: resolvedDeviceId,
+      });
     }
 
     if (resolvedShiftId) {
@@ -1343,12 +1348,6 @@ export class OrdersService {
     }
   }
 
-  /**
-   * Process a single payment for an order
-   * - Creates Payment record
-   * - Marks order as PAID if fully paid
-   * - Deducts inventory ONCE when fully paid
-   */
   async processPayment_LEGACY(
     tenantId: string,
     orderId: string,
@@ -1819,9 +1818,6 @@ export class OrdersService {
     });
   }
 
-  /**
-   * Batch add items to an order for better performance
-   */
   async batchAddItemsToOrder(
     tenantId: string,
     orderId: string,
@@ -2077,11 +2073,6 @@ export class OrdersService {
     return result;
   }
 
-  /**
-   * Merge a source order into a target order on the same table.
-   * Moves all items from source → target, then cancels source.
-   * Both orders must be on the same table and in an editable status.
-   */
   async mergeOrders(
     tenantId: string,
     targetOrderId: string,
@@ -2607,10 +2598,6 @@ export class OrdersService {
     throw new BadRequestException('Failed to split order after retries');
   }
 
-  /**
-   * Recompute subtotal/vat/total from the order's items and re-evaluate the
-   * paid status — same math the merge flow uses.
-   */
   private async recalculateTotalsInTx(
     tx: Prisma.TransactionClient,
     orderId: string,
@@ -3013,7 +3000,6 @@ export class OrdersService {
     });
   }
 
-  // Earn loyalty points when an order is completed.
   private async earnLoyaltyPoints(
     tenantId: string,
     orderId: string,
@@ -3101,18 +3087,6 @@ export class OrdersService {
     return Math.round(value * 100) / 100;
   }
 
-  // ─── Offer → Order Integration ───
-
-  /**
-   * Add items from an offer selection to an existing order.
-   *
-   * The server computes authoritative pricing via OffersService.pricePreview().
-   * Each selected product becomes its own OrderItem. The offer's basePrice is
-   * distributed proportionally across all selected items, and each item's
-   * extraPrice (minus any free-item discount) is added on top.
-   *
-   * Notes field on each order item records the offer origin for auditability.
-   */
   async addOfferItemsToOrder(
     tenantId: string,
     orderId: string,

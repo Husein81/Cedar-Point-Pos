@@ -4,13 +4,17 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the generated Prisma client to avoid ESM import.meta.url issue in Jest CJS
-jest.mock('../../generated/prisma/client.js', () => {
+vi.mock('../../generated/prisma/client.js', () => {
   class PrismaClientKnownRequestError extends Error {
     code: string;
     meta?: Record<string, unknown>;
-    constructor(message: string, { code, meta }: { code: string; meta?: Record<string, unknown> }) {
+    constructor(
+      message: string,
+      { code, meta }: { code: string; meta?: Record<string, unknown> },
+    ) {
       super(message);
       this.name = 'PrismaClientKnownRequestError';
       this.code = code;
@@ -20,8 +24,12 @@ jest.mock('../../generated/prisma/client.js', () => {
 
   // Stub PrismaClient so PrismaService can extend it
   class PrismaClient {
-    $connect() { return Promise.resolve(); }
-    $disconnect() { return Promise.resolve(); }
+    $connect() {
+      return Promise.resolve();
+    }
+    $disconnect() {
+      return Promise.resolve();
+    }
     $transaction(args: unknown) {
       if (Array.isArray(args)) return Promise.all(args);
       if (typeof args === 'function') return (args as Function)({});
@@ -39,8 +47,10 @@ jest.mock('../../generated/prisma/client.js', () => {
 });
 
 // Mock the Prisma PG adapter
-jest.mock('@prisma/adapter-pg', () => ({
-  PrismaPg: class PrismaPg { constructor() {} },
+vi.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: class PrismaPg {
+    constructor() {}
+  },
 }));
 
 import { OffersService } from './offers.service.js';
@@ -57,35 +67,36 @@ import { PrismaService } from '../prisma/prisma.service.js';
 function createMockPrisma() {
   return {
     offer: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-      deleteMany: jest.fn(),
-      count: jest.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
     },
     offerGroup: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-      deleteMany: jest.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
     offerGroupItem: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      updateMany: jest.fn(),
-      deleteMany: jest.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
     product: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
-    $transaction: jest.fn((args: unknown) => {
+    $transaction: vi.fn((args: unknown) => {
       if (Array.isArray(args)) return Promise.all(args);
-      if (typeof args === 'function') return (args as Function)(createMockPrisma());
+      if (typeof args === 'function')
+        return (args as Function)(createMockPrisma());
       return Promise.resolve();
     }),
   };
@@ -377,12 +388,24 @@ describe('OffersService', () => {
               {
                 productId: 'prod-classic',
                 extraPrice: { toNumber: () => 0, toString: () => '0.00' },
-                product: { id: 'prod-classic', name: 'Classic Burger', price: { toNumber: () => 5 }, isActive: true, isDeleted: false },
+                product: {
+                  id: 'prod-classic',
+                  name: 'Classic Burger',
+                  price: { toNumber: () => 5 },
+                  isActive: true,
+                  isDeleted: false,
+                },
               },
               {
                 productId: 'prod-cheese',
                 extraPrice: { toNumber: () => 2.0, toString: () => '2.00' },
-                product: { id: 'prod-cheese', name: 'Cheese Burger', price: { toNumber: () => 7 }, isActive: true, isDeleted: false },
+                product: {
+                  id: 'prod-cheese',
+                  name: 'Cheese Burger',
+                  price: { toNumber: () => 7 },
+                  isActive: true,
+                  isDeleted: false,
+                },
               },
             ],
           },
@@ -394,12 +417,24 @@ describe('OffersService', () => {
               {
                 productId: 'prod-coke',
                 extraPrice: { toNumber: () => 1.5, toString: () => '1.50' },
-                product: { id: 'prod-coke', name: 'Coke', price: { toNumber: () => 3 }, isActive: true, isDeleted: false },
+                product: {
+                  id: 'prod-coke',
+                  name: 'Coke',
+                  price: { toNumber: () => 3 },
+                  isActive: true,
+                  isDeleted: false,
+                },
               },
               {
                 productId: 'prod-water',
                 extraPrice: { toNumber: () => 0, toString: () => '0.00' },
-                product: { id: 'prod-water', name: 'Water', price: { toNumber: () => 1 }, isActive: true, isDeleted: false },
+                product: {
+                  id: 'prod-water',
+                  name: 'Water',
+                  price: { toNumber: () => 1 },
+                  isActive: true,
+                  isDeleted: false,
+                },
               },
             ],
           },
@@ -496,9 +531,7 @@ describe('OffersService', () => {
       });
 
       expect(result.isValid).toBe(false);
-      expect(result.validationErrors).toContain(
-        'Offer is currently inactive',
-      );
+      expect(result.validationErrors).toContain('Offer is currently inactive');
     });
 
     it('should return validation error for product not in group', async () => {
@@ -513,7 +546,9 @@ describe('OffersService', () => {
       });
 
       expect(result.isValid).toBe(false);
-      expect(result.validationErrors.some((e) => e.includes('not available'))).toBe(true);
+      expect(
+        result.validationErrors.some((e) => e.includes('not available')),
+      ).toBe(true);
     });
 
     it('should throw NotFoundException for non-existent offer', async () => {

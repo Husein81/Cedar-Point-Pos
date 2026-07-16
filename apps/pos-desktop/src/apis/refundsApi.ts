@@ -21,7 +21,6 @@ export const refundsApi = {
     filters?: RefundableOrdersFilters,
   ): Promise<PaginationResponse<RefundableOrderSummary>> => {
     const response = await api.get("/refunds/orders", { params: filters });
-    console.log(response.data);
     return response.data;
   },
 

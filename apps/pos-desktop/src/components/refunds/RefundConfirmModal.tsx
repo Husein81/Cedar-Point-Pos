@@ -1,26 +1,26 @@
 import { Button, Icon, Shad } from "@repo/ui";
-import { RefundCartItem } from "@/store/refundStore";
+import type { RefundLine } from "./config";
 
 interface RefundConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  items: RefundCartItem[];
+  lines: RefundLine[];
   total: number;
-  reason: string;
+  reason: string | undefined;
   isProcessing: boolean;
   isFullRefund: boolean;
 }
 
 /**
- * Confirmation modal for refund processing
- * Shows warning and summary before executing refund
+ * Confirmation modal for refund processing — shows the impact summary
+ * before executing an irreversible refund.
  */
 export const RefundConfirmModal = ({
   isOpen,
   onClose,
   onConfirm,
-  items,
+  lines,
   total,
   reason,
   isProcessing,
@@ -45,53 +45,49 @@ export const RefundConfirmModal = ({
           </div>
         </Shad.AlertDialogHeader>
 
-        {/* Refund Summary */}
+        {/* Summary */}
         <div className="my-4 p-4 bg-muted rounded-lg space-y-3">
-          {/* Refund Type Badge */}
           <div className="flex items-center gap-2">
-            {isFullRefund ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-destructive/20 text-destructive border border-destructive/30">
-                <Icon name="RotateCcw" className="w-3 h-3" />
-                Full Refund
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-amber-500/20 text-amber-700 border border-amber-500/30">
-                <Icon name="RotateCcw" className="w-3 h-3" />
-                Partial Refund
-              </span>
-            )}
+            <span
+              className={
+                isFullRefund
+                  ? "inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-destructive/20 text-destructive border border-destructive/30"
+                  : "inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+              }
+            >
+              <Icon name="RotateCcw" className="w-3 h-3" />
+              {isFullRefund ? "Full Refund" : "Partial Refund"}
+            </span>
             <span className="text-xs text-muted-foreground">
-              {items.length} item{items.length !== 1 ? "s" : ""}
+              {lines.length} item{lines.length !== 1 ? "s" : ""}
             </span>
           </div>
 
-          {/* Items being refunded */}
+          {/* Items */}
           <div>
             <span className="text-xs font-medium text-muted-foreground uppercase">
               Items to Refund
             </span>
             <div className="mt-1 space-y-1 max-h-32 overflow-y-auto">
-              {items.map((item) => (
+              {lines.map((line) => (
                 <div
-                  key={item.orderItemId}
+                  key={line.orderItemId}
                   className="flex items-center justify-between text-sm"
                 >
                   <div className="truncate flex-1">
-                    <span>{item.productName}</span>
-                    {item.refundQuantity < item.originalQuantity && (
-                      <span className="ml-1 text-xs text-amber-600">
-                        (partial: {item.refundQuantity} of{" "}
-                        {item.originalQuantity})
+                    <span>{line.productName}</span>
+                    {line.refundQuantity < line.quantity ? (
+                      <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">
+                        (partial: {line.refundQuantity} of {line.quantity})
                       </span>
-                    )}
-                    {item.refundQuantity === item.originalQuantity && (
+                    ) : (
                       <span className="ml-1 text-xs text-muted-foreground">
-                        × {item.refundQuantity}
+                        × {line.refundQuantity}
                       </span>
                     )}
                   </div>
-                  <span className="font-medium ml-2">
-                    ${item.lineTotal.toFixed(2)}
+                  <span className="font-medium ml-2 tabular-nums">
+                    ${line.lineTotal.toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -112,15 +108,15 @@ export const RefundConfirmModal = ({
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
               <span className="font-semibold">Refund Total</span>
-              <span className="text-xl font-bold text-destructive">
+              <span className="text-xl font-bold text-destructive tabular-nums">
                 ${total.toFixed(2)}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Warning */}
-        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+        {/* Impact note */}
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm">
           <Icon name="Info" className="w-4 h-4 mt-0.5 shrink-0" />
           <div>
             <strong>Important:</strong> This will:

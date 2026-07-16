@@ -4,6 +4,7 @@ import { cn } from "@repo/ui";
 import { useRefundableInfo, useCreateRefund } from "@/hooks/useRefund";
 import { useModalStore } from "@/store/modalStore";
 import { formatPrice } from "../orders/config";
+import { buildRefundReason, getReasonLabel, REFUND_REASONS } from "./config";
 
 type RefundItemSelection = {
   orderItemId: string;
@@ -14,14 +15,6 @@ type Props = {
   orderId: string;
   onSuccess?: () => void;
 };
-
-const REFUND_REASONS = [
-  { value: "DAMAGED", label: "Damaged item", icon: "PackageX" },
-  { value: "WRONG_ITEM", label: "Wrong item", icon: "ArrowLeftRight" },
-  { value: "CUSTOMER_REQUEST", label: "Changed mind", icon: "UserX" },
-  { value: "QUALITY_ISSUE", label: "Quality issue", icon: "ShieldAlert" },
-  { value: "OTHER", label: "Other", icon: "MessageSquare" },
-];
 
 export const RefundForm = ({ orderId, onSuccess }: Props) => {
   const { closeModal } = useModalStore();
@@ -94,19 +87,20 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
     if (!hasSelection) return;
 
     const items = Array.from(selectedItems.values());
-    const refundReason = notes ? `${reason}: ${notes}` : reason;
 
     try {
       await createRefundMutation.mutateAsync({
         orderId,
-        reason: refundReason || undefined,
+        // The free-text note only applies to the "Other" reason.
+        reason: buildRefundReason(reason, reason === "OTHER" ? notes : ""),
         items,
       });
 
       onSuccess?.();
       closeModal();
-    } catch (error) {
-      console.error("Refund failed:", error);
+    } catch {
+      // Error toast is surfaced by useCreateRefund; keep the modal open so
+      // the cashier can retry.
     }
   };
 
@@ -218,7 +212,7 @@ export const RefundForm = ({ orderId, onSuccess }: Props) => {
               Reason
             </p>
             <p className="text-sm">
-              {REFUND_REASONS.find((r) => r.value === reason)?.label || reason}
+              {getReasonLabel(reason)}
               {notes && `: ${notes}`}
             </p>
           </div>

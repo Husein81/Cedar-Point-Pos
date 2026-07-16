@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "@repo/ui";
 import { refundsApi } from "@/apis/refundsApi";
 import type {
   CreateRefundDto,
@@ -7,6 +9,17 @@ import type {
 } from "@/dto/refund.dto";
 
 const REFUND_QUERY_KEY = ["refunds"];
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as
+      | { message?: string | string[] }
+      | undefined;
+    if (Array.isArray(data?.message)) return data.message.join(", ");
+    if (data?.message) return data.message;
+  }
+  return fallback;
+};
 
 export const useRefundableInfo = (orderId: string) => {
   return useQuery({
@@ -51,80 +64,20 @@ export const useCreateRefund = () => {
 
   return useMutation({
     mutationFn: (data: CreateRefundDto) => refundsApi.createRefund(data),
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({
-        queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-      });
-
-      const previousData = queryClient.getQueryData([
-        ...REFUND_QUERY_KEY,
-        "refundable",
-        variables.orderId,
-      ]);
-
-      queryClient.setQueryData(
-        [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-        (old: any) => {
-          if (!old) return old;
-
-          const updatedItems = old.items.map((item: any) => {
-            const refundItem = variables.items.find(
-              (i) => i.orderItemId === item.orderItemId,
-            );
-            if (!refundItem) return item;
-
-            return {
-              ...item,
-              refundedQuantity: item.refundedQuantity + refundItem.quantity,
-              refundableQuantity: item.refundableQuantity - refundItem.quantity,
-            };
-          });
-
-          const totalRefundable = updatedItems.reduce(
-            (sum: number, item: any) =>
-              sum + item.refundableQuantity * item.unitPrice,
-            0,
-          );
-
-          const isFullyRefunded = updatedItems.every(
-            (item: any) => item.refundableQuantity <= 0,
-          );
-
-          return {
-            ...old,
-            items: updatedItems,
-            totalRefundable,
-            isFullyRefunded,
-          };
-        },
+    onSuccess: (refund) => {
+      toast.success(
+        `Refund of $${Number(refund.totalAmount).toFixed(2)} processed`,
       );
-
-      return { previousData };
-    },
-    onError: (err, variables, context) => {
-      console.error("Failed:", err);
-      if (context?.previousData) {
-        queryClient.setQueryData(
-          [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-          context.previousData,
-        );
-      }
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "refundable", variables.orderId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "history", variables.orderId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "orders"],
-      });
-      queryClient.invalidateQueries({ queryKey: ["stock"] });
+      // Root key covers refundable info, order lists, and history sub-keys.
+      queryClient.invalidateQueries({ queryKey: REFUND_QUERY_KEY });
+      // Refunds restore stock and restore/reverse loyalty points.
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({
-        queryKey: [...REFUND_QUERY_KEY, "order", variables.orderId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["stock"] });
+      queryClient.invalidateQueries({ queryKey: ["loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["adjustmentHistory"] });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Refund failed. Please try again."));
     },
   });
 };

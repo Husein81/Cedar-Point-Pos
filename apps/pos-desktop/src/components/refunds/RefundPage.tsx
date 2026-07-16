@@ -1,107 +1,69 @@
 import { useEffect } from "react";
 import { Separator } from "@repo/ui";
-import { useRefundStore } from "@/store/refundStore";
 import { useBranchStore } from "@/store/branchStore";
+import { useRefundStore } from "@/store/refundStore";
 import {
-  useRefundableOrders,
-  useRefundableInfo,
   useOrderRefundHistory,
+  useRefundableInfo,
+  useRefundableOrders,
 } from "@/hooks/useRefund";
+import { RefundHeader } from "./RefundHeader";
 import { RefundOrdersList } from "./RefundOrdersList";
 import { RefundCart } from "./RefundCart";
-import { RefundHeader } from "./RefundHeader";
+import { REFUND_ORDERS_PAGE_SIZE } from "./config";
 
 export const RefundPage = () => {
   const { branchId } = useBranchStore();
-  const {
-    setOrders,
-    ordersCurrentPage,
-    ordersPageSize,
-    searchQuery,
-    filterDateFrom,
-    filterDateTo,
-    selectedOrderId,
-    setSelectedOrderDetails,
-    initializeRefundCart,
-    setRefundHistory,
-    resetStore,
-  } = useRefundStore();
+  const searchQuery = useRefundStore((s) => s.searchQuery);
+  const dateFrom = useRefundStore((s) => s.dateFrom);
+  const dateTo = useRefundStore((s) => s.dateTo);
+  const page = useRefundStore((s) => s.page);
+  const selectedOrderId = useRefundStore((s) => s.selectedOrderId);
+  const resetStore = useRefundStore((s) => s.resetStore);
 
-  // Use React Query hooks for data fetching
-  const { data: ordersData, refetch: refetchOrders } = useRefundableOrders({
-    branchId: branchId || "",
-    page: ordersCurrentPage,
-    limit: ordersPageSize,
+  const ordersQuery = useRefundableOrders({
+    branchId: branchId || undefined,
+    page,
+    limit: REFUND_ORDERS_PAGE_SIZE,
     search: searchQuery || undefined,
-    dateFrom: filterDateFrom || undefined,
-    dateTo: filterDateTo || undefined,
-    status: undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
   });
 
-  const { data: refundableInfo } = useRefundableInfo(selectedOrderId || "");
+  const infoQuery = useRefundableInfo(selectedOrderId ?? "");
+  const historyQuery = useOrderRefundHistory(selectedOrderId ?? "");
 
-  const { data: refundHistory } = useOrderRefundHistory(selectedOrderId || "");
-
-  // Update store when orders data changes
-  useEffect(() => {
-    if (ordersData) {
-      setOrders(ordersData.data, ordersData.pagination.totalCount);
-    }
-  }, [ordersData, setOrders]);
-
-  // Update store when selected order details change
-  useEffect(() => {
-    if (refundableInfo) {
-      setSelectedOrderDetails(refundableInfo);
-      initializeRefundCart(refundableInfo.items);
-    }
-  }, [refundableInfo, setSelectedOrderDetails, initializeRefundCart]);
-
-  // Update store when refund history changes
-  useEffect(() => {
-    if (refundHistory) {
-      setRefundHistory(
-        refundHistory.map((h) => ({
-          id: h.id,
-          refundedAt: h.refundedAt,
-          totalAmount: h.totalAmount,
-          reason: h.reason,
-          isPartialRefund: h.isPartialRefund,
-          itemCount: h.items.length,
-        })),
-      );
-    }
-  }, [refundHistory, setRefundHistory]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      resetStore();
-    };
-  }, [resetStore]);
-
-  // Refresh after refund
-  const handleRefundComplete = () => {
-    refetchOrders();
-  };
+  // Start fresh (filters, selection, draft) whenever the station is closed.
+  useEffect(() => resetStore, [resetStore]);
 
   return (
-    <div className="fixed inset-x-0 top-12 bottom-8 flex flex-col  p-0 w-full bg-background">
-      {/* Header */}
-      <RefundHeader onRefresh={refetchOrders} />
+    <div className="fixed inset-x-0 top-12 bottom-8 flex flex-col w-full bg-background">
+      <RefundHeader
+        onRefresh={() => ordersQuery.refetch()}
+        isRefreshing={ordersQuery.isFetching}
+      />
 
       <Separator />
 
-      {/* Two-Pane Layout */}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {/* Left Panel - Orders List */}
+        {/* Left panel — refundable orders */}
         <div className="w-105 border-r flex flex-col bg-muted/30">
-          <RefundOrdersList />
+          <RefundOrdersList
+            orders={ordersQuery.data?.data ?? []}
+            totalCount={ordersQuery.data?.pagination.totalCount ?? 0}
+            isLoading={ordersQuery.isLoading}
+            isError={ordersQuery.isError}
+          />
         </div>
 
-        {/* Right Panel - Refund Cart */}
+        {/* Right panel — refund detail */}
         <div className="flex-1 flex flex-col min-h-0">
-          <RefundCart onRefundComplete={handleRefundComplete} />
+          <RefundCart
+            info={infoQuery.data}
+            isLoading={infoQuery.isLoading}
+            isError={infoQuery.isError}
+            history={historyQuery.data ?? []}
+          />
         </div>
       </div>
     </div>

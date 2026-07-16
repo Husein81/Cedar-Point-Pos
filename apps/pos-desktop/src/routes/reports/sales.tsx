@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getSalesColumns } from "@/constants/columns/reportsColumns";
+import { getSalesColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useReportsSales, useSalesOrdersReport } from "@/hooks/useReports";
@@ -13,7 +13,7 @@ import type {
   DateRangePreset,
   ReportListParams,
   SalesOrderRow,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatCurrency,
   formatDate,

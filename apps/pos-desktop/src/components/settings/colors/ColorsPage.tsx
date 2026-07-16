@@ -3,7 +3,7 @@ import { useModalStore } from "@/store/modalStore";
 import { ColorForm } from "@/components/settings/ColorForm";
 import TitleBar from "@/components/title-bar";
 import { Button, DataTable } from "@repo/ui";
-import { getColorColumns } from "@/constants/columns/colorColumn";
+import { getColorColumns } from "@/components/settings/colors/colorColumn";
 import { toast } from "@repo/ui";
 
 export default function ColorsPage() {

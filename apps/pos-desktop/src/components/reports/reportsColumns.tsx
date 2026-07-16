@@ -5,7 +5,7 @@ import {
   PaymentTransactionRow,
   SalesOrderRow,
   TopProductRow,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatChangeType,
   formatCurrency,
@@ -22,14 +22,11 @@ export const getSalesColumns = (): ColumnDef<SalesOrderRow>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
-    cell: ({ row }) => {
-      console.log(row.original);
-      return (
-        <span className="font-mono font-medium">
-          {row.original.orderNumber || "-"}
-        </span>
-      );
-    },
+    cell: ({ row }) => (
+      <span className="font-mono font-medium">
+        {row.original.orderNumber || "-"}
+      </span>
+    ),
   },
   {
     accessorKey: "createdAt",
@@ -315,7 +312,7 @@ export const getPaymentReportColumns =
       cell: ({ row }) =>
         row.original.order.user?.name || (
           <span className="text-muted-foreground">-</span>
-        ), // Fixed: use user.name
+        ),
     },
   ];
 

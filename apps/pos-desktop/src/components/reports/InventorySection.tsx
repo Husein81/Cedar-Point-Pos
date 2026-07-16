@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Shad, Skeleton, Empty, Button } from "@repo/ui";
 import { ChevronDown, ChevronUp, Package } from "lucide-react";
-import type { InventoryMovementItem } from "@/types/reports";
+import type { InventoryMovementItem } from "@/dto/reports.dto";
 
 interface InventorySectionProps {
     data: InventoryMovementItem[];

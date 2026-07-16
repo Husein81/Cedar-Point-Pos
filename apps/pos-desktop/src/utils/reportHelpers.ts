@@ -2,7 +2,7 @@
  * Shared utility functions for all reports
  */
 
-import type { DateRangePreset } from "@/types/reports";
+import type { DateRangePreset } from "@/dto/reports.dto";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 
 /**

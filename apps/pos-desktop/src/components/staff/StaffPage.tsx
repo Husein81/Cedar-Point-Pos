@@ -1,6 +1,6 @@
 import { StaffForm } from "@/components/staff/StaffForm";
 import TitleBar from "@/components/title-bar";
-import { getStaffColumns } from "@/constants/columns/staffColumn";
+import { getStaffColumns } from "@/components/staff/staffColumn";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import { ROLE_LABELS } from "@/constants/staff";
 import { useBranches } from "@/hooks/useBranch";

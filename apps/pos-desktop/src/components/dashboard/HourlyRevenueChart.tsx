@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { HourlyRevenueData } from "../../types/dashboard";
+import type { HourlyRevenueData } from "../../dto/dashboard.dto";
 import { formatCurrency } from "../../utils/reportHelpers";
 import { ChartCard } from "./ChartCard";
 import {

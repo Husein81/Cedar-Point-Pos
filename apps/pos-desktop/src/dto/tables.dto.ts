@@ -8,10 +8,6 @@ import type {
 } from "@repo/types";
 import { z } from "zod";
 
-/**
- * Shape returned by GET /tables/:id/active-orders — the shared Order plus the
- * payment fields the backend includes for the table drawer.
- */
 export type ActiveTableOrder = Order & {
   payments?: Payment[];
 };
@@ -51,8 +47,6 @@ const TableWithFloorSchema = z.object({
   capacity: z.number(),
   status: z.custom<TableStatus>(),
   isActive: z.boolean(),
-  // Floor-plan geometry (world coordinates, px). Null posX/posY = not yet
-  // placed on the canvas; the UI auto-arranges unplaced tables.
   posX: z.number().nullable().optional(),
   posY: z.number().nullable().optional(),
   width: z.number().nullable().optional(),
@@ -72,7 +66,6 @@ const TableWithFloorSchema = z.object({
 });
 export type TableWithFloor = z.infer<typeof TableWithFloorSchema>;
 
-/** Lightweight summary of a table's most recent in-service order. */
 const TableOrderSummarySchema = z.object({
   orderId: z.string(),
   orderNumber: z.string().nullable().optional(),
@@ -87,13 +80,11 @@ const TableOrderSummarySchema = z.object({
 });
 export type TableOrderSummary = z.infer<typeof TableOrderSummarySchema>;
 
-/** Floor-plan overview row: a table plus its active-order summary (if any). */
 const TableOverviewSchema = TableWithFloorSchema.extend({
   activeOrder: TableOrderSummarySchema.nullable(),
 });
 export type TableOverview = z.infer<typeof TableOverviewSchema>;
 
-/** One table's saved geometry, sent by the Floor Editor bulk save. */
 const TableLayoutUpdateSchema = z.object({
   id: z.string(),
   posX: z.number(),
@@ -133,6 +124,6 @@ const FloorWithTableCountSchema = z.custom<Floor>().and(
         tables: z.number(),
       })
       .optional(),
-  })
+  }),
 );
 export type FloorWithTableCount = z.infer<typeof FloorWithTableCountSchema>;

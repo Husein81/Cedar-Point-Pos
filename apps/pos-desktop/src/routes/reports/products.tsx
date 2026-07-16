@@ -1,5 +1,5 @@
 import { ReportsFilterBar } from "@/components/reports";
-import { getProductReportsColumns } from "@/constants/columns/reportsColumns";
+import { getProductReportsColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useCategories } from "@/hooks/useCategory";
 import { useReportPageState } from "@/hooks/useReportPageState";
@@ -14,7 +14,7 @@ import type {
   DateRangePreset,
   ReportListParams,
   TopProductRow,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import { getDateRangeFromPreset } from "@/utils/reportHelpers";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";

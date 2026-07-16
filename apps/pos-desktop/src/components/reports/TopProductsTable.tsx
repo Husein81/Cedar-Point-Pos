@@ -1,5 +1,5 @@
 import { Shad, Skeleton, Empty, Button } from "@repo/ui";
-import type { TopProductData } from "@/types/dashboard";
+import type { TopProductData } from "@/dto/dashboard.dto";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface TopProductsTableProps {

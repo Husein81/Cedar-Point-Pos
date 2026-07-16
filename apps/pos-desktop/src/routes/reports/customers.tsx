@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getCustomerReportsColumns } from "@/constants/columns/reportsColumns";
+import { getCustomerReportsColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useCustomersReport, useCustomersReportList } from "@/hooks/useReports";
@@ -13,7 +13,7 @@ import type {
   CustomerReportRow,
   DateRangePreset,
   ReportListParams,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatCurrency,
   formatDate,

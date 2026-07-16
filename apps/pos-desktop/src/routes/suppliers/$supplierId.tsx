@@ -1,7 +1,7 @@
 import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import { SupplierInfo } from "@/components/supplier/SupplierInfo";
 import TitleBar from "@/components/title-bar";
-import { getPurchaseOrderColumns } from "@/constants/columns/supplierColumn";
+import { getPurchaseOrderColumns } from "@/components/supplier/supplierColumn";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
 import { Button, DataTable, Icon, Shad } from "@repo/ui";

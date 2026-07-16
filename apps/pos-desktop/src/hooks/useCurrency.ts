@@ -22,14 +22,6 @@ const CURRENCY_QUERY_KEY = ["currencies"];
 const TENANT_CURRENCY_QUERY_KEY = ["tenant-currencies"];
 const ACTIVE_CURRENCIES_QUERY_KEY = ["active-currencies"];
 
-// ==========================================
-// TENANT CURRENCY HOOKS
-// ==========================================
-
-/**
- * Get all currencies configured for the current tenant
- * Includes base currency information
- */
 export const useTenantCurrencies = () => {
   return useQuery<TenantCurrenciesResponse>({
     queryKey: TENANT_CURRENCY_QUERY_KEY,
@@ -38,9 +30,6 @@ export const useTenantCurrencies = () => {
   });
 };
 
-/**
- * Get paginated currencies for the current tenant
- */
 export const useTenantCurrenciesPaginated = (params?: QueryParams) => {
   return useQuery<PaginationResponse<TenantCurrency>>({
     queryKey: [...TENANT_CURRENCY_QUERY_KEY, "paginated", params],
@@ -49,9 +38,6 @@ export const useTenantCurrenciesPaginated = (params?: QueryParams) => {
   });
 };
 
-/**
- * Get only active currencies (for POS dropdown)
- */
 export const useActiveTenantCurrencies = () => {
   return useQuery<TenantCurrency[]>({
     queryKey: ACTIVE_CURRENCIES_QUERY_KEY,
@@ -60,9 +46,6 @@ export const useActiveTenantCurrencies = () => {
   });
 };
 
-/**
- * Get a specific tenant currency by ID
- */
 export const useTenantCurrency = (id: string) => {
   return useQuery<TenantCurrency>({
     queryKey: [...TENANT_CURRENCY_QUERY_KEY, id],
@@ -71,9 +54,6 @@ export const useTenantCurrency = (id: string) => {
   });
 };
 
-/**
- * Get a tenant currency by code
- */
 export const useTenantCurrencyByCode = (
   code: string,
 ): UseQueryResult<TenantCurrency> => {
@@ -84,9 +64,6 @@ export const useTenantCurrencyByCode = (
   });
 };
 
-/**
- * Create a new tenant currency
- */
 export const useCreateTenantCurrency = (): UseMutationResult<
   TenantCurrency,
   any,
@@ -105,9 +82,6 @@ export const useCreateTenantCurrency = (): UseMutationResult<
   });
 };
 
-/**
- * Update a tenant currency (exchange rate, active status)
- */
 export const useUpdateTenantCurrency = () => {
   const queryClient = useQueryClient();
 
@@ -124,9 +98,6 @@ export const useUpdateTenantCurrency = () => {
   });
 };
 
-/**
- * Delete a tenant currency
- */
 export const useDeleteTenantCurrency = () => {
   const queryClient = useQueryClient();
 
@@ -139,9 +110,6 @@ export const useDeleteTenantCurrency = () => {
   });
 };
 
-/**
- * Set the base currency for the tenant
- */
 export const useSetBaseCurrency = () => {
   const queryClient = useQueryClient();
 
@@ -154,13 +122,6 @@ export const useSetBaseCurrency = () => {
   });
 };
 
-// ==========================================
-// GLOBAL CURRENCY REFERENCE HOOKS
-// ==========================================
-
-/**
- * Get all available currencies from the global reference table
- */
 export const useAllCurrencies = () => {
   return useQuery<Currency[]>({
     queryKey: [...CURRENCY_QUERY_KEY, "all"],
@@ -169,9 +130,6 @@ export const useAllCurrencies = () => {
   });
 };
 
-/**
- * Get a specific currency from the reference table
- */
 export const useCurrency = (code: string) => {
   return useQuery<Currency>({
     queryKey: [...CURRENCY_QUERY_KEY, code],

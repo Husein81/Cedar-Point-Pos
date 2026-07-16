@@ -1,14 +1,12 @@
-import { useState } from "react";
+import { transferColumns } from "@/components/stock/columns";
+import { TransferForm } from "@/components/stock/TransferForm";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useTransfers } from "@/hooks/useTransfers";
 import { useModalStore } from "@/store/modalStore";
-import { DataTable, Button } from "@repo/ui";
-import { transferColumns } from "@/constants/columns/transferColumn";
-import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
-import { TransferForm } from "@/components/stock/TransferForm";
+import { Button, DataTable } from "@repo/ui";
 
 export function TransfersList() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const { page, setPage, pageSize, onPageSizeChange } = usePaginationState({});
 
   const { openModal } = useModalStore();
 
@@ -33,11 +31,6 @@ export function TransfersList() {
     );
   };
 
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setPage(1);
-  };
-
   return (
     <DataTable
       columns={transferColumns}
@@ -55,7 +48,7 @@ export function TransfersList() {
         pageSize,
         totalPages,
         onPageChange: setPage,
-        onPageSizeChange: handlePageSizeChange,
+        onPageSizeChange,
       }}
     />
   );

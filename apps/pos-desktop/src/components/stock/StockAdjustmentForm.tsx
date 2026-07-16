@@ -9,8 +9,12 @@ import {
   validateStockAdjustment,
   calculateStockPreview,
 } from "@/utils/inventoryUtils";
-
-type AdjustmentType = "STOCK_IN" | "STOCK_OUT" | "SET_STOCK";
+import { AdjustmentType } from "@/dto/inventory.dto";
+import {
+  ADJUSTMENT_OPTIONS,
+  buildDefaultReason,
+  getQuantityMeta,
+} from "./config";
 
 interface StockAdjustmentFormProps {
   branchId: string;
@@ -18,53 +22,6 @@ interface StockAdjustmentFormProps {
   productName?: string;
   currentStock?: string;
 }
-
-/* ---------------------------------- helpers ---------------------------------- */
-
-const ADJUSTMENT_OPTIONS = [
-  { label: "Stock In (Add)", value: "STOCK_IN" },
-  { label: "Stock Out (Remove)", value: "STOCK_OUT" },
-  { label: "Set Stock (Override)", value: "SET_STOCK" },
-];
-
-const getQuantityMeta = (type: AdjustmentType) => {
-  switch (type) {
-    case "SET_STOCK":
-      return {
-        placeholder: "e.g. 100",
-        subLabel: "Set the absolute stock level",
-      };
-    case "STOCK_OUT":
-      return {
-        placeholder: "e.g. 30",
-        subLabel: "Quantity to remove from stock",
-      };
-    default:
-      return {
-        placeholder: "e.g. 50",
-        subLabel: "Quantity to add to stock",
-      };
-  }
-};
-
-const buildDefaultReason = (
-  type: AdjustmentType,
-  quantity: number,
-  minStock?: number
-) => {
-  const base =
-    type === "SET_STOCK"
-      ? `Stock set to ${quantity}`
-      : type === "STOCK_IN"
-        ? `Added ${quantity} units`
-        : `Removed ${quantity} units`;
-
-  return minStock !== undefined
-    ? `${base} | Min stock set to ${minStock}`
-    : base;
-};
-
-/* -------------------------------- component -------------------------------- */
 
 export const StockAdjustmentForm = ({
   branchId,
@@ -107,7 +64,7 @@ export const StockAdjustmentForm = ({
         await validateBeforeSubmit(
           value.productId,
           quantity,
-          value.adjustmentType
+          value.adjustmentType,
         );
 
         await adjustStock.mutateAsync({
@@ -136,7 +93,7 @@ export const StockAdjustmentForm = ({
 
   const quantityMeta = useMemo(
     () => getQuantityMeta(adjustmentType),
-    [adjustmentType]
+    [adjustmentType],
   );
 
   // Live validation and preview
@@ -151,7 +108,7 @@ export const StockAdjustmentForm = ({
         adjustmentType,
         quantityNum,
         currentStockNum,
-        minStockNum
+        minStockNum,
       );
 
       if (!validation.valid || validation.severity === "warning") {
@@ -167,7 +124,7 @@ export const StockAdjustmentForm = ({
       const preview = calculateStockPreview(
         adjustmentType,
         quantityNum,
-        currentStockNum
+        currentStockNum,
       );
       setStockPreview(preview);
     } else {
@@ -187,7 +144,7 @@ export const StockAdjustmentForm = ({
           branchId,
           productId,
           quantity,
-          type
+          type,
         );
 
         if (!validation.valid) {
@@ -198,7 +155,7 @@ export const StockAdjustmentForm = ({
         throw error;
       }
     },
-    [branchId]
+    [branchId],
   );
 
   return (

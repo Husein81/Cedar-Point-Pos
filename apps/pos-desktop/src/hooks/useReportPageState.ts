@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { ReportsFilterState, DateRangePreset } from "@/types/reports";
+import type { ReportsFilterState, DateRangePreset } from "@/dto/reports.dto";
 import { getDateRangeFromPreset } from "@/utils/reportHelpers";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 

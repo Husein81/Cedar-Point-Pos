@@ -1,15 +1,3 @@
-/**
- * Reports Type Definitions
- * Contains all type definitions for the reports module
- */
-
-// ============================================================
-// Filter States
-// ============================================================
-
-/**
- * Base filter state for reports page
- */
 export interface ReportsFilterState {
   from: Date;
   to: Date;
@@ -23,9 +11,6 @@ export interface ReportsFilterState {
   categoryId?: string;
 }
 
-/**
- * Extended params for list endpoints (includes pagination + sorting)
- */
 export interface ReportListParams extends ReportsFilterState {
   sortBy?: string;
   sortDir?: "asc" | "desc";
@@ -34,35 +19,8 @@ export interface ReportListParams extends ReportsFilterState {
   limit?: number;
 }
 
-// Date range preset options
 export type DateRangePreset =
-  | "today"
-  | "yesterday"
-  | "this_week"
-  | "this_month"
-  | "custom";
-
-// ============================================================
-// Pagination
-// ============================================================
-
-export interface PaginationMeta {
-  page: number;
-  pageSize?: number;
-  totalItems?: number;
-  totalPages: number;
-  limit?: number;
-  totalCount?: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: PaginationMeta;
-}
-
-// ============================================================
-// Summary Report Responses (existing)
-// ============================================================
+  "today" | "yesterday" | "this_week" | "this_month" | "custom";
 
 export interface SalesReportData {
   totalRevenue: number;
@@ -96,16 +54,6 @@ export interface PaymentBreakdownItem {
   transactionCount: number;
 }
 
-export interface PaymentsReportData {
-  paymentBreakdown: PaymentBreakdownItem[];
-  grandTotal: number;
-  dateRange: {
-    from: string;
-    to: string;
-  };
-  branchId: string | null;
-}
-
 export interface OrderStatusItem {
   status: string;
   count: number;
@@ -137,13 +85,6 @@ export interface InventoryReportData {
   branchId: string | null;
 }
 
-// ============================================================
-// List/Table Row Types (NEW - for data-first reports)
-// ============================================================
-
-/**
- * Sales Order Row - for /reports/sales/orders table
- */
 export interface SalesOrderRow {
   id: string;
   orderNumber: string | null;
@@ -166,9 +107,6 @@ export interface SalesOrderRow {
   };
 }
 
-/**
- * Debt Order Row - for /reports/debts/orders table
- */
 export interface DebtOrderRow {
   id: string;
   orderNumber: string | null;
@@ -182,9 +120,6 @@ export interface DebtOrderRow {
   cashier: { id: string; name: string; username: string } | null;
 }
 
-/**
- * Payment Transaction Row - for /reports/payments/transactions table
- */
 export interface PaymentTransactionRow {
   id: string;
   paidAt: string;
@@ -203,9 +138,6 @@ export interface PaymentTransactionRow {
   };
 }
 
-/**
- * Inventory Movement Row - for /reports/inventory/movements table
- */
 export interface InventoryMovementRow {
   id: string;
   createdAt: string;
@@ -221,9 +153,6 @@ export interface InventoryMovementRow {
   product: { id: string; name: string };
 }
 
-/**
- * Top Product Row - for /reports/products/top table
- */
 export interface TopProductRow {
   productId: string;
   productName: string;
@@ -233,9 +162,6 @@ export interface TopProductRow {
   avgUnitPrice: number;
 }
 
-/**
- * Customer Report Row - for /reports/customers/list table
- */
 export interface CustomerReportRow {
   id: string;
   name: string;
@@ -247,9 +173,6 @@ export interface CustomerReportRow {
   lastOrderDate: string | null;
 }
 
-/**
- * Customers Report Summary Data - for /reports/customers
- */
 export interface CustomersReportData {
   totalCustomers: number;
   activeCustomers: number;
@@ -263,9 +186,6 @@ export interface CustomersReportData {
   branchId: string | null;
 }
 
-/**
- * Financials Report Summary Data - for /reports/financials
- */
 export interface FinancialsReportData {
   totalRevenue: number;
   totalProfits: number;
@@ -279,9 +199,6 @@ export interface FinancialsReportData {
   branchId: string | null;
 }
 
-/**
- * Product Profit Row - for financials products table
- */
 export interface ProductProfitRow {
   productId: string;
   productName: string;
@@ -292,9 +209,6 @@ export interface ProductProfitRow {
   qtySold: number;
 }
 
-/**
- * Category Revenue Row - for financials category table
- */
 export interface CategoryRevenueRow {
   categoryId: string;
   categoryName: string;
@@ -302,13 +216,6 @@ export interface CategoryRevenueRow {
   profit: number;
 }
 
-// ============================================================
-// Loyalty Report Types
-// ============================================================
-
-/**
- * Loyalty Summary Row - for /reports/loyalty
- */
 export interface LoyaltySummaryData {
   totalAccounts: number;
   totalPointsInCirculation: number;
@@ -320,9 +227,6 @@ export interface LoyaltySummaryData {
   transactionsInPeriod: number;
 }
 
-/**
- * Loyalty Transaction Row - for /reports/loyalty/transactions table
- */
 export interface LoyaltyTransactionReportRow {
   id: string;
   createdAt: string;
@@ -338,9 +242,6 @@ export interface LoyaltyTransactionReportRow {
   actorUser: { id: string; name: string } | null;
 }
 
-/**
- * Payments Report Summary Data - for /reports/payments
- */
 export interface PaymentsReportData {
   totalAmount: number;
   paymentsCount: number;
@@ -359,9 +260,8 @@ export interface PaymentMethodBreakdown {
   transactionCount: number;
 }
 
-// Re-export dashboard types that are reused
 export type {
   WeeklySalesData,
   HourlyRevenueData,
   TopProductData,
-} from "./dashboard";
+} from "./dashboard.dto";

@@ -1,8 +1,8 @@
 import TitleBar from "@/components/title-bar";
 import { StockAdjustmentForm } from "@/components/stock/StockAdjustmentForm";
 import { TransfersList } from "@/components/stock/TransfersList";
-import { stockColumns } from "@/constants/columns/stockColumn";
-import { inventoryHistoryColumns } from "@/constants/columns/inventoryHistoryColumn";
+import { stockColumns } from "@/components/stock/columns/stockColumn";
+import { inventoryHistoryColumns } from "@/components/stock/columns/inventoryHistoryColumn";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import {
   useInventoryByBranch,

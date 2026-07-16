@@ -17,7 +17,7 @@ import type {
   ProductProfitRow,
   CategoryRevenueRow,
   DateRangePreset,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import type {
   ProductProfitRowPdf,
   CategoryRevenueRowPdf,

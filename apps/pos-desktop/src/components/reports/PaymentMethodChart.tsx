@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
-import type { PaymentBreakdownItem } from "@/types/reports";
+import type { PaymentBreakdownItem } from "@/dto/reports.dto";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface PaymentMethodChartProps {

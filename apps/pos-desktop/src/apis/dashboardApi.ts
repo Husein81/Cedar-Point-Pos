@@ -4,7 +4,7 @@ import type {
   HourlyRevenueData,
   TopProductData,
   WeeklySalesData,
-} from "../types/dashboard";
+} from "../dto/dashboard.dto";
 import { api } from "./api";
 
 interface QueryParams {

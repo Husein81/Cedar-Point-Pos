@@ -1,5 +1,5 @@
 import TitleBar from "@/components/title-bar";
-import { getInvoiceColumns } from "@/constants/columns/invoiceColumn";
+import { getInvoiceColumns } from "@/components/invoices/invoiceColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrders } from "@/hooks/useOrder";
 import { usePaginationState } from "@/hooks/usePaginationState";

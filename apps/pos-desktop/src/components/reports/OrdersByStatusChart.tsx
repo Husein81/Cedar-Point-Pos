@@ -8,7 +8,7 @@ import {
 } from "recharts";
 import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
-import type { OrderStatusItem } from "@/types/reports";
+import type { OrderStatusItem } from "@/dto/reports.dto";
 
 interface OrdersByStatusChartProps {
     data: OrderStatusItem[];

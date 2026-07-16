@@ -1,4 +1,4 @@
-import { DateRangePreset } from "@/types/reports";
+import { DateRangePreset } from "@/dto/reports.dto";
 
 export const REPORT_CARDS = [
   {

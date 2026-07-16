@@ -18,12 +18,12 @@ import type {
   CategoryRevenueRow,
   LoyaltySummaryData,
   LoyaltyTransactionReportRow,
-} from "../types/reports";
+} from "../dto/reports.dto";
 import type {
   WeeklySalesData,
   HourlyRevenueData,
   TopProductData,
-} from "../types/dashboard";
+} from "../dto/dashboard.dto";
 import { PaginationResponse } from "@repo/types";
 
 interface ReportQueryParams {

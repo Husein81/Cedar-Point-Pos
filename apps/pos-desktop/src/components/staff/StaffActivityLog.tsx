@@ -1,7 +1,7 @@
 import {
   getStaffActivityColumns,
   humanize,
-} from "@/constants/columns/staffActivityColumn";
+} from "@/components/staff/staffActivityColumn";
 import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import { useStaffActivity } from "@/hooks/useStaff";
 import { StaffActivityModule } from "@repo/types";

@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { ChartCard } from "../dashboard/ChartCard";
 import { Button, Empty } from "@repo/ui";
-import type { WeeklySalesData, HourlyRevenueData } from "@/types/dashboard";
+import type { WeeklySalesData, HourlyRevenueData } from "@/dto/dashboard.dto";
 
 type ChartMode = "daily" | "hourly";
 

@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox, Badge } from "@repo/ui";
 import { StockActions } from "@/components/stock/StockActions";
 import type { InventoryWithProduct } from "@/dto/inventory.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { format } from "date-fns";
 
 export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
@@ -78,7 +79,7 @@ export const stockColumns: ColumnDef<InventoryWithProduct>[] = [
     header: "Last Adjusted",
     cell: ({ row }) => {
       const date = new Date(row.original.lastAdjusted).toLocaleDateString(
-        "en-UK",
+        DEFAULT_LOCALE,
         {
           day: "numeric",
           month: "short",

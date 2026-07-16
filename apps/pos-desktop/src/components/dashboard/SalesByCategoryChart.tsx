@@ -8,7 +8,7 @@ import {
   Tooltip,
   type PieLabelRenderProps,
 } from "recharts";
-import type { CategoryData } from "../../types/dashboard";
+import type { CategoryData } from "../../dto/dashboard.dto";
 import { formatCurrency } from "../../utils/reportHelpers";
 import { ChartCard } from "./ChartCard";
 import {

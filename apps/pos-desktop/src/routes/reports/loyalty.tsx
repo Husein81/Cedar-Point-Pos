@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getLoyaltyReportColumns } from "@/constants/columns/reportsColumns";
+import { getLoyaltyReportColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {
@@ -10,7 +10,7 @@ import type {
   DateRangePreset,
   LoyaltyTransactionReportRow,
   ReportListParams,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import { getDateRangeFromPreset } from "@/utils/reportHelpers";
 import { DataTable, Empty } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";

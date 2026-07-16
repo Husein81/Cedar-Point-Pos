@@ -1,9 +1,6 @@
 import { ProductSchema } from "@repo/types";
 import { z } from "zod";
 
-/**
- * CREATE
- */
 export const CreateProductSchema = ProductSchema.omit({
   id: true,
   tenantId: true,
@@ -12,16 +9,8 @@ export const CreateProductSchema = ProductSchema.omit({
 });
 export type CreateProductDto = z.infer<typeof CreateProductSchema>;
 
-/**
- * UPDATE
- */
 export const UpdateProductSchema = ProductSchema.partial().omit({ id: true });
 export type UpdateProductDto = z.infer<typeof UpdateProductSchema>;
-
-/**
- * BASE PRODUCT (example)
- * Adjust fields if your Product model differs
- */
 
 export const ProductWithRelationsSchema = ProductSchema.extend({
   category: z

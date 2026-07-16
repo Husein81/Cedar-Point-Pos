@@ -2,10 +2,6 @@ import type { PaginationResponse } from "@repo/types";
 import { z } from "zod";
 import { BranchSummarySchema, ProductSummarySchema } from "./common.dto";
 
-/* -------------------------------------------------------------------------- */
-/*                               ENUMS / TYPES                                */
-/* -------------------------------------------------------------------------- */
-
 export const AdjustmentTypeSchema = z.enum([
   "STOCK_IN",
   "STOCK_OUT",
@@ -13,10 +9,6 @@ export const AdjustmentTypeSchema = z.enum([
 ]);
 
 export type AdjustmentType = z.infer<typeof AdjustmentTypeSchema>;
-
-/* -------------------------------------------------------------------------- */
-/*                             STOCK ADJUSTMENT                                */
-/* -------------------------------------------------------------------------- */
 
 export const StockAdjustmentSchema = z.object({
   branchId: z.string().min(1, "Branch ID is required"),
@@ -31,10 +23,6 @@ export const StockAdjustmentSchema = z.object({
 });
 
 export type StockAdjustmentDto = z.infer<typeof StockAdjustmentSchema>;
-
-/* -------------------------------------------------------------------------- */
-/*                          INVENTORY WITH RELATIONS                           */
-/* -------------------------------------------------------------------------- */
 
 export const InventoryBaseSchema = z.object({
   id: z.string(),
@@ -53,10 +41,6 @@ export const InventoryWithProductSchema = InventoryBaseSchema.extend({
 
 export type InventoryWithProduct = z.infer<typeof InventoryWithProductSchema>;
 
-/* -------------------------------------------------------------------------- */
-/*                        ADJUSTMENT HISTORY QUERY                              */
-/* -------------------------------------------------------------------------- */
-
 export const AdjustmentHistoryQuerySchema = z.object({
   page: z.preprocess(Number, z.number().int().positive()).optional(),
   limit: z.preprocess(Number, z.number().int().positive()).optional(),
@@ -70,10 +54,6 @@ export const AdjustmentHistoryQuerySchema = z.object({
 export type AdjustmentHistoryQuery = z.infer<
   typeof AdjustmentHistoryQuerySchema
 >;
-
-/* -------------------------------------------------------------------------- */
-/*                         PAGINATED INVENTORY RESPONSE                        */
-/* -------------------------------------------------------------------------- */
 
 export type PaginatedInventoryResponse =
   PaginationResponse<InventoryWithProduct>;

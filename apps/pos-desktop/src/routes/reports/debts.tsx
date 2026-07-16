@@ -12,7 +12,7 @@ import type {
   DateRangePreset,
   DebtOrderRow,
   ReportListParams,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatCurrency,
   getDateRangeFromPreset,

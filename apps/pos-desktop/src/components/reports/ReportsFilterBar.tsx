@@ -1,4 +1,4 @@
-import type { DateRangePreset, ReportsFilterState } from "@/types/reports";
+import type { DateRangePreset, ReportsFilterState } from "@/dto/reports.dto";
 import type { Branch } from "@repo/types";
 import { Button, DatePicker, Icon, Select, Shad } from "@repo/ui";
 import { DATE_PRESETS, ORDER_TYPES, PAYMENT_METHODS } from "./config";

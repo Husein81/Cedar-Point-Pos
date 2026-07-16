@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { TopProductData } from "../../types/dashboard";
+import type { TopProductData } from "../../dto/dashboard.dto";
 import { formatCurrency } from "../../utils/reportHelpers";
 import { ChartCard } from "./ChartCard";
 import {

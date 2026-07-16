@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-// Shared response fragments reused across list/detail DTOs (supplier, purchase
-// order, inventory, ...). Extend from these instead of redeclaring the shape.
-
 export const BranchSummarySchema = z.object({
   id: z.string(),
   name: z.string(),

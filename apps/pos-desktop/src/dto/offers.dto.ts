@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// ─── Offer DTOs ───
-
 export const CreateOfferSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   basePrice: z.coerce.number().min(0, "Base price must be >= 0"),
@@ -14,8 +12,6 @@ export const UpdateOfferSchema = z.object({
   isActive: z.boolean().optional(),
 });
 export type UpdateOfferDto = z.infer<typeof UpdateOfferSchema>;
-
-// ─── OfferGroup DTOs ───
 
 export const CreateOfferGroupSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -39,8 +35,6 @@ export const UpdateOfferGroupSchema = z.object({
 });
 export type UpdateOfferGroupDto = z.infer<typeof UpdateOfferGroupSchema>;
 
-// ─── OfferGroupItem DTOs ───
-
 export const CreateOfferGroupItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   extraPrice: z.coerce.number().min(0, "Extra price must be >= 0").default(0),
@@ -56,8 +50,6 @@ export type UpdateOfferGroupItemDto = z.infer<
   typeof UpdateOfferGroupItemSchema
 >;
 
-// ─── Price Preview DTOs ───
-
 export const OfferSelectionItemSchema = z.object({
   groupId: z.string().min(1, "Group ID is required"),
   productId: z.string().min(1, "Product ID is required"),
@@ -71,8 +63,6 @@ export const PricePreviewSchema = z.object({
 });
 export type PricePreviewDto = z.infer<typeof PricePreviewSchema>;
 
-// ─── Add Offer Items to Order ───
-
 export const AddOfferItemsSchema = z.object({
   offerId: z.string().min(1, "Offer ID is required"),
   selections: z
@@ -80,8 +70,6 @@ export const AddOfferItemsSchema = z.object({
     .min(1, "At least one selection is required"),
 });
 export type AddOfferItemsDto = z.infer<typeof AddOfferItemsSchema>;
-
-// ─── Response Types ───
 
 export const OfferGroupItemProductSchema = z.object({
   id: z.string(),

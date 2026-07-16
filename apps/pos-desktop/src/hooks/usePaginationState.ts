@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 
 type Props = {
   initialPage?: number;
@@ -7,7 +8,7 @@ type Props = {
 
 export const usePaginationState = ({
   initialPage = 1,
-  initialPageSize = 10,
+  initialPageSize = DEFAULT_PAGE_SIZE,
 }: Props) => {
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);

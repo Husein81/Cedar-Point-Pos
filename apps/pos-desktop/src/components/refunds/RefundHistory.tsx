@@ -1,6 +1,7 @@
 import { useOrderRefunds } from "@/hooks/useRefund";
 import { Icon } from "@repo/ui";
 import { formatPrice } from "../orders/config";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useState } from "react";
 
 type Props = {
@@ -59,7 +60,7 @@ export const RefundHistory = ({ orderId }: Props) => {
                 {/* Time */}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Icon name="RotateCcw" className="w-3.5 h-3.5" />
-                  {new Date(refund.refundedAt).toLocaleTimeString("en-US", {
+                  {new Date(refund.refundedAt).toLocaleTimeString(DEFAULT_LOCALE, {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

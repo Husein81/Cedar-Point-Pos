@@ -1,4 +1,5 @@
 import { RefundForm, RefundHistory } from "@/components/refunds";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrder } from "@/hooks/useOrder";
 import { useOrderRefunds } from "@/hooks/useRefund";
@@ -158,14 +159,14 @@ export function OrderDetailPage() {
             Invoice #{order.orderNumber ?? orderId.slice(0, 8)}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {new Date(order.createdAt).toLocaleDateString("en-US", {
+            {new Date(order.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
               weekday: "long",
               year: "numeric",
               month: "long",
               day: "numeric",
             })}{" "}
             ·{" "}
-            {new Date(order.createdAt).toLocaleTimeString("en-US", {
+            {new Date(order.createdAt).toLocaleTimeString(DEFAULT_LOCALE, {
               hour: "2-digit",
               minute: "2-digit",
             })}

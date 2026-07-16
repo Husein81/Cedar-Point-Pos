@@ -7,6 +7,8 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { ManualAdjustmentForm } from "@/components/loyalty/ManualAdjustmentForm";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Avatar, Badge, Button, DataTable, Shad, Skeleton } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -87,7 +89,7 @@ const getCustomerOrderColumns = (): ColumnDef<CustomerOrder>[] => [
     header: "Date",
     cell: ({ row }) => (
       <div className="text-gray-600 dark:text-gray-400">
-        {new Date(row.original.createdAt).toLocaleDateString("en-US", {
+        {new Date(row.original.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -156,7 +158,7 @@ const getLoyaltyTransactionColumns = (): ColumnDef<LoyaltyTransaction>[] => [
     header: "Date",
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">
-        {new Date(row.original.createdAt).toLocaleDateString("en-US", {
+        {new Date(row.original.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -383,7 +385,7 @@ function RouteComponent() {
           <Shad.CardContent>
             <div className="text-2xl font-bold">
               {customer.lastOrderAt
-                ? new Date(customer.lastOrderAt).toLocaleDateString("en-US", {
+                ? new Date(customer.lastOrderAt).toLocaleDateString(DEFAULT_LOCALE, {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
@@ -433,7 +435,7 @@ function RouteComponent() {
                   Customer Since
                 </p>
                 <p className="text-base">
-                  {new Date(customer.createdAt).toLocaleDateString("en-US", {
+                  {new Date(customer.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -445,7 +447,7 @@ function RouteComponent() {
                   Last Updated
                 </p>
                 <p className="text-base">
-                  {new Date(customer.updatedAt).toLocaleDateString("en-US", {
+                  {new Date(customer.updatedAt).toLocaleDateString(DEFAULT_LOCALE, {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -554,7 +556,7 @@ function RouteComponent() {
                       ? {
                           rows: txResponse.pagination.totalCount,
                           page: txPage,
-                          pageSize: 10,
+                          pageSize: DEFAULT_PAGE_SIZE,
                           totalPages: txResponse.pagination.totalPages,
                           onPageChange: setTxPage,
                           onPageSizeChange: () => {},

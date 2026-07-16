@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { ReportsFilterState, DateRangePreset } from "@/types/reports";
 import { getDateRangeFromPreset } from "@/utils/reportHelpers";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 
 /**
  * Custom hook for managing report page state
@@ -13,7 +14,7 @@ export const useReportPageState = (
     getDateRangeFromPreset(initialPreset),
   );
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedFilters, setAppliedFilters] =
     useState<ReportsFilterState>(filters);

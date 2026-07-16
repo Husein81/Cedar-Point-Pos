@@ -2,6 +2,7 @@ import type { PublicUser } from "@repo/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useBranchStore } from "./branchStore";
+import { AUTH_ROUTE, AUTH_TOKEN_STORAGE_KEY } from "@/constants/auth";
 
 type State = {
   user: PublicUser | null;
@@ -19,7 +20,6 @@ type Actions = {
 };
 
 const AUTH_STORAGE_KEY = "pos-auth-state";
-const TOKEN_KEY = "pos-auth";
 
 export const useAuthStore = create<State & Actions>()(
   persist(
@@ -31,7 +31,7 @@ export const useAuthStore = create<State & Actions>()(
       isStaff: false,
       setUser: (user: PublicUser, token: string) => {
         // Store token separately for API interceptor
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
         set(() => ({
           user,
           token,
@@ -48,7 +48,7 @@ export const useAuthStore = create<State & Actions>()(
         }));
       },
       clearUser: () => {
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
         set(() => ({
           user: null,
@@ -60,7 +60,7 @@ export const useAuthStore = create<State & Actions>()(
       },
       logout: () => {
         // Clear user data and localStorage
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
         set(() => ({
@@ -70,7 +70,7 @@ export const useAuthStore = create<State & Actions>()(
           isHighLevelUser: false,
           isStaff: false,
         }));
-        window.location.hash = "/auth";
+        window.location.hash = AUTH_ROUTE;
         window.location.reload();
       },
     }),

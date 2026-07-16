@@ -2,6 +2,7 @@ import { PurchaseOrderActions } from "@/components/purchase-orders/PurchaseOrder
 import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
 import type { PurchaseOrderSummary } from "@/dto/purchaseOrder.dto";
 import { formatCurrency } from "@/utils/reportHelpers";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Badge } from "@repo/ui";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -43,7 +44,7 @@ export const getPurchaseOrdersColumns = (
     header: "Date",
     cell: ({ row }) => (
       <div className="text-muted-foreground">
-        {new Date(row.original.orderedAt).toLocaleDateString("en-US", {
+        {new Date(row.original.orderedAt).toLocaleDateString(DEFAULT_LOCALE, {
           year: "numeric",
           month: "short",
           day: "numeric",

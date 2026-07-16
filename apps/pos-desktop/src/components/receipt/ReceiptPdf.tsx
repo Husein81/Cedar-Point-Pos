@@ -1,5 +1,6 @@
 import type { Order } from "@/dto/order.dto";
 import { useAuthStore } from "@/store/authStore";
+import { VAT_RATE, VAT_RATE_PERCENT_LABEL } from "@/constants/finance";
 import { Document, Page, Text, View, pdf, Image } from "@react-pdf/renderer";
 
 import { styles } from "./style-sheet";
@@ -34,7 +35,7 @@ export const ReceiptPdf = ({
     0,
   );
 
-  const vat = order.includeVAT ? subtotal * 0.11 : 0;
+  const vat = order.includeVAT ? subtotal * VAT_RATE : 0;
 
   const discount = order.discount
     ? order.discount.type === "PERCENTAGE"
@@ -143,7 +144,7 @@ export const ReceiptPdf = ({
 
           {order.includeVAT && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>VAT 11%</Text>
+              <Text style={styles.totalLabel}>VAT {VAT_RATE_PERCENT_LABEL}</Text>
 
               <Text style={styles.totalValue}>${vat.toFixed(2)}</Text>
             </View>

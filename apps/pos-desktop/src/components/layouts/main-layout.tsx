@@ -1,5 +1,6 @@
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_ROUTE } from "@/constants/auth";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Header } from "../header";
@@ -14,7 +15,7 @@ const MainLayout = () => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate({ to: "/auth" });
+      navigate({ to: AUTH_ROUTE });
     }
   }, [isAuthenticated]);
 

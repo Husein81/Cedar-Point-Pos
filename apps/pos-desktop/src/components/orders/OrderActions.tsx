@@ -3,6 +3,7 @@ import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
+import { VAT_RATE_PERCENT_LABEL } from "@/constants/finance";
 import { Button, cn, Icon, Textarea } from "@repo/ui";
 import { useCallback, useState } from "react";
 
@@ -217,7 +218,7 @@ const OrderActions = () => {
         onClick={toggleVAT}
       >
         <Icon name="Receipt" className="h-4 w-4" />
-        VAT 11%
+        VAT {VAT_RATE_PERCENT_LABEL}
       </Button>
 
       {/* Shipping Fee — Delivery only */}

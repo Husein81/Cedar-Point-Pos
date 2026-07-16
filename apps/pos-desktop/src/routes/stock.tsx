@@ -3,6 +3,7 @@ import { StockAdjustmentForm } from "@/components/stock/StockAdjustmentForm";
 import { TransfersList } from "@/components/stock/TransfersList";
 import { stockColumns } from "@/constants/columns/stockColumn";
 import { inventoryHistoryColumns } from "@/constants/columns/inventoryHistoryColumn";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import {
   useInventoryByBranch,
   useLowStock,
@@ -23,9 +24,9 @@ export const Route = createFileRoute("/stock")({
 function RouteComponent() {
   const [activeTab, setActiveTab] = useState("inventory");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [historyPage, setHistoryPage] = useState(1);
-  const [historyPageSize, setHistoryPageSize] = useState(10);
+  const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();

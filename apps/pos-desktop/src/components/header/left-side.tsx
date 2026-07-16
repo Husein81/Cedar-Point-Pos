@@ -1,5 +1,6 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_ROUTE } from "@/constants/auth";
 import { Button } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -50,7 +51,7 @@ const LeftSide = () => {
             iconName="LogOut"
             onClick={async () => {
               await logoutMutation.mutateAsync();
-              navigate({ to: "/auth" });
+              navigate({ to: AUTH_ROUTE });
             }}
             className="no-drag"
           />

@@ -6,6 +6,7 @@ import { Icon, toast } from "@repo/ui";
 import { ColumnDef } from "@tanstack/react-table";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "@/store/authStore";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useBranchStore } from "@/store/branchStore";
 import { useBranch } from "@/hooks/useBranch";
 import { printReceipt } from "@/components/receipt/ReceiptPdf";
@@ -64,7 +65,7 @@ function formatWithCurrency(
   decimalPlaces?: number,
 ): string {
   const dp = decimalPlaces ?? 2;
-  const formatted = new Intl.NumberFormat("en-US", {
+  const formatted = new Intl.NumberFormat(DEFAULT_LOCALE, {
     minimumFractionDigits: dp > 0 ? Math.min(dp, 2) : 0,
     maximumFractionDigits: dp > 0 ? Math.min(dp, 2) : 0,
   }).format(amount);
@@ -206,7 +207,7 @@ export function getInvoiceColumns(
       header: "Date",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(row.original.createdAt).toLocaleDateString("en-US", {
+          {new Date(row.original.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
             month: "short",
             day: "numeric",
             year: "numeric",

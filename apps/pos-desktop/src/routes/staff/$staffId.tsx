@@ -3,6 +3,7 @@ import { SetPinForm } from "@/components/staff/SetPinForm";
 import { StaffActivityLog } from "@/components/staff/StaffActivityLog";
 import { StaffForm } from "@/components/staff/StaffForm";
 import { ROLE_LABELS } from "@/constants/staff";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import {
   useEndStaffSession,
   useStaffMember,
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/staff/$staffId")({
 
 const formatDate = (value: string | null) =>
   value
-    ? new Date(value).toLocaleDateString("en-US", {
+    ? new Date(value).toLocaleDateString(DEFAULT_LOCALE, {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -33,7 +34,7 @@ const formatDate = (value: string | null) =>
     : null;
 
 const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString("en-US", {
+  new Date(value).toLocaleString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",

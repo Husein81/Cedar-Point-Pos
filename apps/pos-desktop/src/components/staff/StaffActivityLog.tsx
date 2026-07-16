@@ -2,6 +2,7 @@ import {
   getStaffActivityColumns,
   humanize,
 } from "@/constants/columns/staffActivityColumn";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import { useStaffActivity } from "@/hooks/useStaff";
 import { StaffActivityModule } from "@repo/types";
 import type { StaffActivityQuery } from "@repo/types";
@@ -9,7 +10,6 @@ import { Button, DataTable, DatePicker, Empty, Select, toast } from "@repo/ui";
 import { useEffect, useState } from "react";
 
 const ALL = "ALL";
-const PAGE_SIZE = 10;
 
 const moduleOptions = [
   { value: ALL, label: "All modules" },
@@ -29,7 +29,7 @@ export const StaffActivityLog = ({ staffId }: { staffId: string }) => {
 
   const query: StaffActivityQuery = {
     page,
-    limit: PAGE_SIZE,
+    limit: DEFAULT_PAGE_SIZE,
     module: module === ALL ? undefined : module,
     from,
     to,
@@ -117,7 +117,7 @@ export const StaffActivityLog = ({ staffId }: { staffId: string }) => {
               ? {
                   rows: data.pagination.totalCount,
                   page,
-                  pageSize: PAGE_SIZE,
+                  pageSize: DEFAULT_PAGE_SIZE,
                   totalPages: data.pagination.totalPages,
                   onPageChange: setPage,
                   onPageSizeChange: () => {},

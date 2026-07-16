@@ -1,4 +1,5 @@
 import { OrderStatus, TableStatus } from "@repo/types";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 export type KeypadContext =
   | "QUANTITY"
@@ -141,7 +142,7 @@ export const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 export const formatPrice = (price: number | null | undefined): string => {
   if (price === null || price === undefined) return "N/A";
-  return new Intl.NumberFormat("en-LB", {
+  return new Intl.NumberFormat(DEFAULT_LOCALE, {
     style: "decimal",
   }).format(price);
 };

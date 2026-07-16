@@ -2,6 +2,7 @@ import type {
   LoyaltyEnrollmentMode,
   LoyaltyTransactionType,
   LoyaltyDirection,
+  PaginationResponse,
 } from "@repo/types";
 
 // ============================================================
@@ -106,15 +107,8 @@ export interface LoyaltyTransactionQueryParams {
 /**
  * Paginated response from listTransactions
  */
-export interface LoyaltyTransactionListResponse {
-  data: LoyaltyTransaction[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-  };
-}
+export type LoyaltyTransactionListResponse =
+  PaginationResponse<LoyaltyTransaction>;
 
 // ============================================================
 // Manual Adjustment

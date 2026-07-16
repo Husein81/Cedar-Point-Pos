@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import type { TenantCurrency } from "@repo/types";
 import { Checkbox, Badge, Icon } from "@repo/ui";
 import { CurrencyActions } from "@/components/currency/CurrencyActions";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 export const getCurrencyColumns = (
   baseCurrencyCode: string,
@@ -91,7 +92,7 @@ export const getCurrencyColumns = (
     header: "Last Updated",
     cell: ({ row }) => {
       const date = row.original.updatedAt
-        ? new Date(row.original.updatedAt).toLocaleDateString("en-US", {
+        ? new Date(row.original.updatedAt).toLocaleDateString(DEFAULT_LOCALE, {
             year: "numeric",
             month: "short",
             day: "numeric",

@@ -1,5 +1,6 @@
 import { StaffActions } from "@/components/staff/StaffActions";
 import { ROLE_LABELS } from "@/constants/staff";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import type { StaffView } from "@/dto/staff.dto";
 import { getInitials } from "@/utils/getInitials";
 import { Avatar, Badge, Icon } from "@repo/ui";
@@ -7,7 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 const formatDate = (value: string | null) =>
   value
-    ? new Date(value).toLocaleDateString("en-US", {
+    ? new Date(value).toLocaleDateString(DEFAULT_LOCALE, {
         month: "short",
         day: "numeric",
         year: "numeric",

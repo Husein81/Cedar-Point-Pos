@@ -3,6 +3,7 @@ import { formatPrice } from "./config";
 import { useOrderStore } from "@/store/orderStore";
 import { useKeypadStore } from "@/store/keypadStore";
 import { OrderType } from "@repo/types";
+import { VAT_RATE_PERCENT_LABEL } from "@/constants/finance";
 import {
   useLoyaltyProgram,
   useCustomerLoyaltyAccount,
@@ -128,7 +129,7 @@ const OrderSummary = () => {
 
         {order?.includeVAT && (
           <Row
-            label="VAT (11%)"
+            label={`VAT (${VAT_RATE_PERCENT_LABEL})`}
             value={`+ $${formatPrice(vatAmount)}`}
             variant="charge"
           />

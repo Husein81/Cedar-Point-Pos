@@ -1,6 +1,7 @@
 import { StaffForm } from "@/components/staff/StaffForm";
 import TitleBar from "@/components/title-bar";
 import { getStaffColumns } from "@/constants/columns/staffColumn";
+import { DEFAULT_PAGE_SIZE } from "@/constants/pagination";
 import { ROLE_LABELS } from "@/constants/staff";
 import { useBranches } from "@/hooks/useBranch";
 import { usePaginationState } from "@/hooks/usePaginationState";
@@ -14,7 +15,6 @@ import { useState } from "react";
 import { posOptions, statusOptions } from "./config";
 
 const ALL = "ALL";
-const PAGE_SIZE = 10;
 
 export function StaffPage() {
   const actorRole = useAuthStore((state) => state.user?.role);
@@ -23,7 +23,7 @@ export function StaffPage() {
   const { page, setPage, searchQuery, setSearchQuery, resetPage } =
     usePaginationState({
       initialPage: 1,
-      initialPageSize: PAGE_SIZE,
+      initialPageSize: DEFAULT_PAGE_SIZE,
     });
 
   const [role, setRole] = useState(ALL);
@@ -33,7 +33,7 @@ export function StaffPage() {
 
   const query: StaffQuery = {
     page,
-    limit: PAGE_SIZE,
+    limit: DEFAULT_PAGE_SIZE,
     search: searchQuery || undefined,
     role: role === ALL ? undefined : (role as UserRole),
     branchId: branchId === ALL ? undefined : branchId,
@@ -131,7 +131,7 @@ export function StaffPage() {
             ? {
                 rows: data.pagination.totalCount,
                 page,
-                pageSize: PAGE_SIZE,
+                pageSize: DEFAULT_PAGE_SIZE,
                 totalPages: data.pagination.totalPages,
                 onPageChange: setPage,
                 onPageSizeChange: () => {},

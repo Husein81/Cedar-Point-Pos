@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 /**
  * Shared recharts styling bound to the app theme via the CSS variables
@@ -41,7 +42,7 @@ export const CHART_TOOLTIP_ITEM_STYLE: CSSProperties = {
 
 /** Compact currency for axis ticks: $1.2k, $35k, $2M */
 export const formatAxisCurrency = (value: number): string =>
-  `$${new Intl.NumberFormat("en-US", {
+  `$${new Intl.NumberFormat(DEFAULT_LOCALE, {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value)}`;

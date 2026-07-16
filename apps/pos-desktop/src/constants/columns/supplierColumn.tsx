@@ -3,6 +3,7 @@ import { Badge, Checkbox } from "@repo/ui";
 import { SupplierActions } from "@/components/supplier/SupplierActions";
 import type { SupplierDetails, SupplierPurchaseOrder } from "@/dto/supplier.dto";
 import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
   {
@@ -112,7 +113,7 @@ export const getPurchaseOrderColumns = (): ColumnDef<SupplierPurchaseOrder>[] =>
     header: "Date",
     cell: ({ row }) => (
       <div className="text-gray-600 dark:text-gray-400">
-        {new Date(row.original.orderedAt).toLocaleDateString("en-US", {
+        {new Date(row.original.orderedAt).toLocaleDateString(DEFAULT_LOCALE, {
           year: "numeric",
           month: "short",
           day: "numeric",

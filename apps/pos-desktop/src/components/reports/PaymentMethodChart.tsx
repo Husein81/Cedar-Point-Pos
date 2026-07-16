@@ -9,6 +9,7 @@ import {
 import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
 import type { PaymentBreakdownItem } from "@/types/reports";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface PaymentMethodChartProps {
     data: PaymentBreakdownItem[];
@@ -42,7 +43,7 @@ const formatMethod = (method: string): string => {
 
 // Format currency
 const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(DEFAULT_LOCALE, {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 2,

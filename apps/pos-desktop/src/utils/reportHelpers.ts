@@ -3,6 +3,7 @@
  */
 
 import type { DateRangePreset } from "@/types/reports";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 /**
  * Get date range from preset
@@ -43,7 +44,7 @@ export const getDateRangeFromPreset = (
  * Format value as currency
  */
 export const formatCurrency = (value: number, currency = "USD") =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat(DEFAULT_LOCALE, {
     style: "currency",
     currency: currency,
     minimumFractionDigits: 2,
@@ -53,7 +54,7 @@ export const formatCurrency = (value: number, currency = "USD") =>
  * Format date string to readable format with time
  */
 export const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
+  new Date(dateStr).toLocaleDateString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -65,7 +66,7 @@ export const formatDate = (dateStr: string) =>
  * Format date string to readable format without time
  */
 export const formatDateOnly = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
+  new Date(dateStr).toLocaleDateString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",

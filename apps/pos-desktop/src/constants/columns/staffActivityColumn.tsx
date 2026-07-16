@@ -1,4 +1,5 @@
 import type { StaffActivity } from "@/dto/staff.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Badge, Shad } from "@repo/ui";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -43,7 +44,7 @@ export const getStaffActivityColumns = (): ColumnDef<StaffActivity>[] => [
     header: "Date",
     cell: ({ row }) => (
       <span className="text-muted-foreground">
-        {new Date(row.original.createdAt).toLocaleString("en-US", {
+        {new Date(row.original.createdAt).toLocaleString(DEFAULT_LOCALE, {
           month: "short",
           day: "numeric",
           year: "numeric",

@@ -1,5 +1,6 @@
 import { useLogout } from "@/hooks/auth";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_ROUTE } from "@/constants/auth";
 import type { BusinessType } from "@repo/types";
 import { Avatar, Button, cn, Icon, Shad } from "@repo/ui";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -35,7 +36,7 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
 
   const handleLogout = async () => {
     onOpenChange(false);
-    navigate({ to: "/auth" });
+    navigate({ to: AUTH_ROUTE });
     await logoutMutation.mutateAsync();
   };
 

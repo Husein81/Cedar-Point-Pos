@@ -1,4 +1,5 @@
 import { AdjustmentType } from "@/dto/inventory.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 export interface StockValidation {
   valid: boolean;
   message?: string;
@@ -396,28 +397,28 @@ export const formatInventoryDate = (date: Date | string): string => {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return `Today at ${d.toLocaleTimeString("en-US", {
+    return `Today at ${d.toLocaleTimeString(DEFAULT_LOCALE, {
       hour: "2-digit",
       minute: "2-digit",
     })}`;
   }
 
   if (diffDays === 1) {
-    return `Yesterday at ${d.toLocaleTimeString("en-US", {
+    return `Yesterday at ${d.toLocaleTimeString(DEFAULT_LOCALE, {
       hour: "2-digit",
       minute: "2-digit",
     })}`;
   }
 
   if (diffDays < 7) {
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString(DEFAULT_LOCALE, {
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
     });
   }
 
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     hour: "2-digit",

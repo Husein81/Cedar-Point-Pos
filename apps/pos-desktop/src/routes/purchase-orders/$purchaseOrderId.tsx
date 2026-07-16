@@ -8,6 +8,7 @@ import {
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { usePurchaseOrder } from "@/hooks/usePurchaseOrder";
 import { formatCurrency } from "@/utils/reportHelpers";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Badge, Button, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -130,7 +131,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-base font-semibold">
-              {new Date(po.orderedAt).toLocaleDateString("en-US", {
+              {new Date(po.orderedAt).toLocaleDateString(DEFAULT_LOCALE, {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
@@ -139,7 +140,7 @@ function RouteComponent() {
             {po.receivedAt && (
               <p className="text-xs text-muted-foreground">
                 Received:{" "}
-                {new Date(po.receivedAt).toLocaleDateString("en-US", {
+                {new Date(po.receivedAt).toLocaleDateString(DEFAULT_LOCALE, {
                   month: "short",
                   day: "numeric",
                   year: "numeric",

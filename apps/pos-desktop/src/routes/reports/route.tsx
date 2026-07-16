@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import TitleBar from "@/components/title-bar";
 import { useMemo } from "react";
 import { ReportCard, REPORT_CARDS } from "@/components/reports";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 export const Route = createFileRoute("/reports")({
   component: ReportsLayout,
@@ -11,7 +12,7 @@ function ReportsLayout() {
   const location = useLocation();
 
   const currentDate = useMemo(() => {
-    return new Date().toLocaleDateString("en-US", {
+    return new Date().toLocaleDateString(DEFAULT_LOCALE, {
       weekday: "short",
       month: "short",
       day: "numeric",

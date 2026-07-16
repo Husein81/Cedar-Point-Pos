@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BranchSummarySchema, ProductSummarySchema } from "./common.dto";
 
 const SupplierSummarySchema = z.object({
   id: z.string(),
@@ -43,22 +44,14 @@ const SupplierPurchaseOrderSchema = z.object({
   notes: z.string().nullable(),
   orderedAt: z.string(),
   receivedAt: z.string().nullable(),
-  branch: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  branch: BranchSummarySchema,
   items: z.array(
     z.object({
       id: z.string(),
       quantity: z.string(),
       unitCost: z.string(),
       totalCost: z.string(),
-      product: z.object({
-        id: z.string(),
-        name: z.string(),
-        sku: z.string().nullable(),
-        barcode: z.string().nullable(),
-      }),
+      product: ProductSummarySchema,
     })
   ),
 });

@@ -2,6 +2,7 @@ import TitleBar from "@/components/title-bar";
 import { SummaryGrid } from "@/components/reports";
 import { useBranches } from "@/hooks/useBranch";
 import { formatCurrency } from "@/utils/reportHelpers";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Button, Select } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -67,7 +68,7 @@ function DashboardPage() {
     void queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
   };
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
+  const currentDate = new Date().toLocaleDateString(DEFAULT_LOCALE, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -75,7 +76,7 @@ function DashboardPage() {
   });
 
   const lastUpdatedAt = summaryQuery.dataUpdatedAt
-    ? new Date(summaryQuery.dataUpdatedAt).toLocaleTimeString("en-US", {
+    ? new Date(summaryQuery.dataUpdatedAt).toLocaleTimeString(DEFAULT_LOCALE, {
         hour: "numeric",
         minute: "2-digit",
       })

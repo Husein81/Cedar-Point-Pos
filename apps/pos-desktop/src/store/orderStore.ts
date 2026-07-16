@@ -8,6 +8,7 @@ import {
   ServerOrderWithPayments,
 } from "@/dto/order.dto";
 import { OrderStatus, OrderType } from "@repo/types";
+import { VAT_RATE } from "@/constants/finance";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
@@ -1122,8 +1123,9 @@ export const useOrderStore = create<OrderStore>()(
           subtotal - discount + shippingFee,
         );
 
-        // 11% VAT
-        return parseFloat((subtotalAfterDiscountAndShipping * 0.11).toFixed(2));
+        return parseFloat(
+          (subtotalAfterDiscountAndShipping * VAT_RATE).toFixed(2),
+        );
       },
 
       hasUnsavedChanges: (tabId: string) => {

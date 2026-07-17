@@ -10,7 +10,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { EmptyState, OrderDetailsSkeleton, ScreenHeader, StatusBadge } from "@/components/app";
+import {
+  EmptyState,
+  OrderDetailsSkeleton,
+  ScreenHeader,
+  StatusBadge,
+} from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -32,6 +37,13 @@ const TERMINAL_STATUSES: OrderStatus[] = [
   OrderStatus.FULLY_REFUNDED,
 ];
 
+// Status states where order cancellation is allowed by the backend state machine
+const CANCELLABLE_STATUSES: OrderStatus[] = [
+  OrderStatus.DRAFT,
+  OrderStatus.PENDING,
+  OrderStatus.CONFIRMED,
+];
+
 export default function OrderDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -48,10 +60,11 @@ export default function OrderDetailsScreen() {
   const isActing = sendToKitchen.isPending || updateStatus.isPending;
 
   const showError = (error: unknown) => {
-    Alert.alert(
-      "Something went wrong",
-      error instanceof Error ? error.message : "Please try again.",
-    );
+    let message = "Please try again.";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    Alert.alert("Something went wrong", message);
   };
 
   const handleSendToKitchen = async () => {
@@ -79,6 +92,7 @@ export default function OrderDetailsScreen() {
                 id: order.id,
                 status: OrderStatus.CANCELLED,
               });
+              orderQuery.refetch();
             } catch (error) {
               showError(error);
             }
@@ -266,14 +280,16 @@ export default function OrderDetailsScreen() {
             >
               <Text>Add Items</Text>
             </Button>
-            <Button
-              variant="destructive"
-              onPress={handleCancel}
-              disabled={isActing}
-              className="h-12 flex-1 rounded-xl"
-            >
-              <Text className="text-white">Cancel Order</Text>
-            </Button>
+            {CANCELLABLE_STATUSES.includes(order.status) ? (
+              <Button
+                variant="destructive"
+                onPress={handleCancel}
+                disabled={isActing}
+                className="h-12 flex-1 rounded-xl"
+              >
+                <Text className="text-white">Cancel Order</Text>
+              </Button>
+            ) : null}
           </View>
         </View>
       ) : null}

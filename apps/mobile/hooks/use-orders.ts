@@ -91,6 +91,9 @@ export function useUpdateOrderStatus() {
     mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
       ordersService.updateStatus(id, status),
     onSuccess: invalidate,
+    onError: (error) => {
+      console.error('Order status update failed:', error);
+    },
   });
 }
 

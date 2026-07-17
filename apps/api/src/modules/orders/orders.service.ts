@@ -558,6 +558,8 @@ export class OrdersService {
             refundItems: true,
           },
         },
+        user: true,
+        table: true,
         refunds: true,
         payments: true,
       },

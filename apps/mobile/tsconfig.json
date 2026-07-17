@@ -5,6 +5,7 @@
     "module": "ESNEXT",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "skipLibCheck": true,
     "paths": {
       "@/*": [
         "./*"

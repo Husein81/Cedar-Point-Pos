@@ -1,23 +1,21 @@
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 
 import { InputField } from "@/components/form";
 import { Button } from "@/components/ui";
+import { Text } from "@/components/ui/text";
 import { useSignIn } from "@/hooks/use-auth";
 import { THEME } from "@/lib/theme";
 import { useThemeStore } from "@/store/theme";
 
 export default function SignInScreen() {
-  const router = useRouter();
   const signIn = useSignIn();
   const { isDark } = useThemeStore();
 
@@ -27,16 +25,9 @@ export default function SignInScreen() {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      if (!value.username || !value.password) return;
       await signIn.mutateAsync(value);
     },
   });
-
-  useEffect(() => {
-    if (signIn.isSuccess) {
-      router.replace("/");
-    }
-  }, [signIn.isSuccess, router]);
 
   const placeholderColor = isDark
     ? THEME.dark.mutedForeground
@@ -64,23 +55,35 @@ export default function SignInScreen() {
               Cedar Point
             </Text>
             <Text className="text-muted-foreground text-base text-center">
-              Sign in to continue
+              Sign in to take orders
             </Text>
           </View>
 
           <View className="gap-6 mt-12">
-            <form.Field name="username">
+            <form.Field
+              name="username"
+              validators={{
+                onChange: ({ value }) =>
+                  value.trim() ? undefined : "Username is required",
+              }}
+            >
               {(field) => (
                 <InputField
                   label="Username"
                   field={field}
-                  placeholder="Enter username"
+                  placeholder=""
                   placeholderColor={placeholderColor}
                 />
               )}
             </form.Field>
 
-            <form.Field name="password">
+            <form.Field
+              name="password"
+              validators={{
+                onChange: ({ value }) =>
+                  value ? undefined : "Password is required",
+              }}
+            >
               {(field) => (
                 <InputField
                   label="Password"
@@ -91,22 +94,34 @@ export default function SignInScreen() {
                 />
               )}
             </form.Field>
+
+            {signIn.isError ? (
+              <View className="rounded-xl bg-destructive/10 border border-destructive/30 p-3">
+                <Text className="text-destructive text-sm text-center">
+                  {signIn.error.message}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <View>
-            <Button
-              onPress={() => form.handleSubmit()}
-              disabled={signIn.isPending}
-              className="h-14 rounded-xl w-full"
-            >
-              {signIn.isPending ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text className="text-white font-semibold text-base">
-                  Sign In
-                </Text>
+            <form.Subscribe selector={(state) => state.canSubmit}>
+              {(canSubmit) => (
+                <Button
+                  onPress={() => form.handleSubmit()}
+                  disabled={signIn.isPending || !canSubmit}
+                  className="h-14 rounded-xl w-full"
+                >
+                  {signIn.isPending ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text className="text-white font-semibold text-base">
+                      Sign In
+                    </Text>
+                  )}
+                </Button>
               )}
-            </Button>
+            </form.Subscribe>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

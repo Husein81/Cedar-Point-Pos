@@ -1,9 +1,11 @@
-import axios, { isAxiosError, type AxiosRequestConfig, type Method } from "axios";
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { useAuthStore } from "@/store/auth";
+import type { RefreshResponse } from "@/types";
 
-const DEFAULT_API_PORT = "5001";
+const DEFAULT_API_PORT = "5000";
+const REQUEST_TIMEOUT_MS = 15000;
 
 const isLocalHost = (hostname: string) => {
   if (hostname === "localhost" || hostname === "127.0.0.1") return true;
@@ -84,110 +86,118 @@ const resolveApiUrl = () => {
   return `http://localhost:${DEFAULT_API_PORT}`;
 };
 
-const API_URL = resolveApiUrl();
+export const API_URL = resolveApiUrl();
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string>;
-  data?: unknown;
+/** Error normalized from a NestJS exception payload. `code` carries
+ * client-actionable error codes (e.g. TABLE_HAS_ACTIVE_ORDER). */
+export class ApiError extends Error {
+  readonly code?: string;
+  readonly status?: number;
+
+  constructor(message: string, options?: { code?: string; status?: number }) {
+    super(message);
+    this.name = "ApiError";
+    this.code = options?.code;
+    this.status = options?.status;
+  }
 }
 
-export async function apiRequest<T>(
-  endpoint: string,
-  options: RequestOptions = {},
-): Promise<T> {
-  const { token } = useAuthStore.getState();
+const toApiError = (error: AxiosError): ApiError => {
+  const data = error.response?.data as
+    { message?: string | string[]; code?: string } | undefined;
 
-  const headers = new Headers(options.headers);
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  const rawMessage = data?.message ?? error.message;
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.join(", ")
+    : rawMessage || "Something went wrong";
+
+  if (!error.response) {
+    return new ApiError(
+      "Unable to reach the server. Check your connection and try again.",
+    );
   }
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
 
-  // Ensure endpoint starts with / and API_URL doesn't end with /
-  const sanitizedBase = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
-  const sanitizedEndpoint = endpoint.startsWith("/")
-    ? endpoint
-    : `/${endpoint}`;
-
-  const headerRecord: Record<string, string> = {};
-  headers.forEach((value, key) => {
-    headerRecord[key] = value;
+  return new ApiError(message, {
+    code: data?.code,
+    status: error.response.status,
   });
+};
 
-  const parsedBody = (() => {
-    if (options.data !== undefined) return options.data;
-    if (options.body === undefined || options.body === null) return undefined;
-    if (typeof options.body !== "string") return options.body;
+export const api = axios.create({
+  baseURL: API_URL,
+  timeout: REQUEST_TIMEOUT_MS,
+});
 
-    try {
-      return JSON.parse(options.body);
-    } catch {
-      return options.body;
-    }
-  })();
+api.interceptors.request.use((config) => {
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
 
-  const request = async (baseUrl: string) => {
-    const config: AxiosRequestConfig = {
-      baseURL: baseUrl,
-      url: sanitizedEndpoint,
-      method: (options.method ?? "GET") as Method,
-      params: options.params,
-      data: parsedBody,
-      headers: headerRecord,
-      signal: options.signal ?? undefined,
-    };
+// Single-flight refresh: concurrent 401s share one refresh request.
+let refreshPromise: Promise<string | null> | null = null;
 
-    const response = await axios.request<T>(config);
-    return response.data;
-  };
+const refreshAccessToken = async (): Promise<string | null> => {
+  const { refreshToken } = useAuthStore.getState();
+  if (!refreshToken) return null;
 
   try {
-    return await request(sanitizedBase);
-  } catch (error) {
-    const parsedBase = tryParseUrl(sanitizedBase);
-    const shouldTryAndroidEmulatorFallback =
-      Platform.OS === "android" &&
-      __DEV__ &&
-      isAxiosError(error) &&
-      !error.response &&
-      parsedBase &&
-      isLocalHost(parsedBase.hostname) &&
-      parsedBase.hostname !== "10.0.2.2";
-
-    if (shouldTryAndroidEmulatorFallback) {
-      const fallbackBase = `${parsedBase.protocol}//10.0.2.2:${
-        parsedBase.port || DEFAULT_API_PORT
-      }`;
-
-      try {
-        return await request(fallbackBase);
-      } catch (fallbackError) {
-        if (isAxiosError(fallbackError)) {
-          const fallbackMessage =
-            (
-              fallbackError.response?.data as { message?: string | string[] }
-            )?.message ?? fallbackError.message;
-          throw new Error(
-            Array.isArray(fallbackMessage)
-              ? fallbackMessage.join(", ")
-              : fallbackMessage || "Something went wrong",
-          );
-        }
-        throw fallbackError;
-      }
-    }
-
-    if (isAxiosError(error)) {
-      const message =
-        (error.response?.data as { message?: string | string[] })?.message ??
-        error.message;
-      throw new Error(
-        Array.isArray(message) ? message.join(", ") : message || "Something went wrong",
-      );
-    }
-
-    throw error;
+    // Plain axios (not `api`) so the request interceptor doesn't overwrite
+    // the refresh token with the expired access token.
+    const response = await axios.post<RefreshResponse>(
+      `${API_URL}/auth/refresh`,
+      null,
+      {
+        headers: { Authorization: `Bearer ${refreshToken}` },
+        timeout: REQUEST_TIMEOUT_MS,
+      },
+    );
+    useAuthStore.getState().setTokens(response.data);
+    return response.data.accessToken;
+  } catch {
+    return null;
   }
-}
+};
+
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const original = error.config as RetriableConfig | undefined;
+    const url = original?.url ?? "";
+    const isAuthEndpoint =
+      url.includes("/auth/sign-in") || url.includes("/auth/refresh");
+
+    const shouldAttemptRefresh =
+      error.response?.status === 401 &&
+      original !== undefined &&
+      !original._retry &&
+      !isAuthEndpoint &&
+      useAuthStore.getState().isAuthenticated;
+
+    if (shouldAttemptRefresh) {
+      original._retry = true;
+
+      refreshPromise =
+        refreshPromise ??
+        refreshAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+
+      const newAccessToken = await refreshPromise;
+
+      if (newAccessToken) {
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api.request(original);
+      }
+
+      // Refresh token rejected — the session is over.
+      useAuthStore.getState().logout();
+    }
+
+    throw toApiError(error);
+  },
+);

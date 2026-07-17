@@ -7,6 +7,7 @@ import {
   Chip,
   EmptyState,
   ProductCard,
+  ProductCardSkeleton,
   ScreenHeader,
   SearchBar,
 } from "@/components/app";
@@ -15,6 +16,7 @@ import { useCategories, useProducts } from "@/hooks/use-catalog";
 import { formatMoney, toNumber } from "@/lib/format";
 import { useBranchStore } from "@/store/branch";
 import { selectCartCount, selectCartTotal, useCartStore } from "@/store/cart";
+import { Product } from "@repo/types";
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -46,9 +48,6 @@ export default function MenuScreen() {
     }
     return list;
   }, [productsQuery.data, categoryId, search]);
-
-  const quantityFor = (productId: string) =>
-    cart.items.find((item) => item.productId === productId)?.quantity ?? 0;
 
   return (
     <View className="flex-1 bg-background">
@@ -85,8 +84,14 @@ export default function MenuScreen() {
       </View>
 
       <FlatList
-        data={products}
-        keyExtractor={(product) => product.id}
+        data={
+          (productsQuery.isLoading
+            ? Array.from({ length: 8 })
+            : products) as Product[]
+        }
+        keyExtractor={(product, index) =>
+          productsQuery.isLoading ? `skeleton-${index}` : product.id
+        }
         numColumns={2}
         columnWrapperStyle={{ gap: 12 }}
         contentContainerStyle={{
@@ -94,26 +99,13 @@ export default function MenuScreen() {
           gap: 12,
           paddingBottom: 120,
         }}
-        renderItem={({ item }) => (
-          <ProductCard
-            product={item}
-            quantity={quantityFor(item.id)}
-            onAdd={() =>
-              cart.addItem({
-                productId: item.id,
-                name: item.name,
-                unitPrice: toNumber(item.price),
-                imageUrl: item.imageUrl,
-              })
-            }
-            onIncrease={() =>
-              cart.setQuantity(item.id, quantityFor(item.id) + 1)
-            }
-            onDecrease={() =>
-              cart.setQuantity(item.id, quantityFor(item.id) - 1)
-            }
-          />
-        )}
+        renderItem={({ item }) =>
+          productsQuery.isLoading ? (
+            <ProductCardSkeleton />
+          ) : (
+            <ProductCard product={item} />
+          )
+        }
         ListEmptyComponent={
           productsQuery.isLoading ? null : (
             <EmptyState

@@ -4,7 +4,7 @@ import {
   UpdateProductDto,
 } from "@/dto/products.dto";
 import type { PaginationResponse, Product, QueryParams } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const productsApi = {
   getProducts: async (branchId?: string): Promise<Product[]> => {

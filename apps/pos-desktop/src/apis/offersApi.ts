@@ -1,5 +1,5 @@
 import type { PaginationResponse, QueryParams } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 import type {
   Offer,
   CreateOfferDto,

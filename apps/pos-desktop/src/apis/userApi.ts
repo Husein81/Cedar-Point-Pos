@@ -1,5 +1,5 @@
 import { PublicUser } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 import { User } from "@repo/types";
 
 export const userApi = {

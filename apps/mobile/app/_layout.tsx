@@ -5,7 +5,7 @@ import { useThemeStore } from "@/store/theme";
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 import "../global.css";
@@ -31,16 +31,30 @@ function RootLayoutNav() {
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="new-order/table" options={{ headerShown: false }} />
-        <Stack.Screen name="new-order/menu" options={{ headerShown: false }} />
-        <Stack.Screen name="new-order/cart" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="new-order/table"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="new-order/menu"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="new-order/cart"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
       </Stack.Protected>
     </Stack>
   );
 }
 
 export default function RootLayout() {
-  const { isDark } = useThemeStore();
+  const { isDark, initializeTheme } = useThemeStore();
+
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
+
   return (
     <Provider>
       <RootLayoutNav />

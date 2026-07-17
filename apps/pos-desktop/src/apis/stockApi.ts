@@ -11,17 +11,17 @@ import type {
   PaginationResponse,
   QueryParams,
 } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const stockApi = {
   // Get all inventory for a branch
   getInventoryByBranch: async (
     branchId: string,
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginatedInventoryResponse> => {
     const response = await api.get<PaginatedInventoryResponse>(
       `/inventory/${branchId}`,
-      { params }
+      { params },
     );
     return response.data;
   },
@@ -29,10 +29,10 @@ export const stockApi = {
   // Get specific inventory item
   getInventoryItem: async (
     branchId: string,
-    productId: string
+    productId: string,
   ): Promise<InventoryWithProduct> => {
     const response = await api.get<InventoryWithProduct>(
-      `/inventory/${branchId}/product/${productId}`
+      `/inventory/${branchId}/product/${productId}`,
     );
     return response.data;
   },
@@ -69,14 +69,14 @@ export const stockApi = {
     branchId: string,
     productId: string,
     minStock: number,
-    reason?: string
+    reason?: string,
   ): Promise<Inventory> => {
     const response = await api.put<Inventory>(
       `/inventory/${branchId}/product/${productId}/min-stock`,
       {
         minStock,
         reason: reason || "Minimum stock threshold updated",
-      }
+      },
     );
     return response.data;
   },
@@ -86,7 +86,7 @@ export const stockApi = {
     branchId: string,
     productId: string,
     quantity: number,
-    adjustmentType: AdjustmentType
+    adjustmentType: AdjustmentType,
   ): Promise<{ valid: boolean; currentStock: number; message?: string }> => {
     try {
       const inventory = await stockApi.getInventoryItem(branchId, productId);
@@ -115,7 +115,7 @@ export const stockApi = {
 
   // Get adjustment history
   getAdjustmentHistory: async (
-    query: AdjustmentHistoryQuery
+    query: AdjustmentHistoryQuery,
   ): Promise<PaginationResponse<InventoryHistory>> => {
     const response = await api.get("/inventory/adjustments", {
       params: query,
@@ -130,7 +130,7 @@ export const stockApi = {
       page?: number;
       limit?: number;
       productId?: string;
-    }
+    },
   ): Promise<
     PaginationResponse<
       InventoryHistory & {
@@ -147,13 +147,13 @@ export const stockApi = {
 
   // Get low stock items
   getLowStock: async (
-    branchId?: string
+    branchId?: string,
   ): Promise<PaginatedInventoryResponse> => {
     const response = await api.get<PaginatedInventoryResponse>(
       "/inventory/low-stock",
       {
         params: { branchId, limit: 1000 },
-      }
+      },
     );
     return response.data;
   },

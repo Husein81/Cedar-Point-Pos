@@ -11,7 +11,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Chip, EmptyState, OrderCard, SearchBar } from "@/components/app";
+import {
+  Chip,
+  EmptyState,
+  OrderCard,
+  OrderCardSkeleton,
+  SearchBar,
+} from "@/components/app";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useOrdersInfinite } from "@/hooks/use-orders";
@@ -88,9 +94,15 @@ export default function OrdersScreen() {
           />
         }
         onEndReached={() => {
-          if (ordersQuery.hasNextPage && !ordersQuery.isFetchingNextPage) {
-            ordersQuery.fetchNextPage();
+          if (
+            !ordersQuery.hasNextPage ||
+            ordersQuery.isFetchingNextPage ||
+            ordersQuery.isLoading
+          ) {
+            return;
           }
+
+          ordersQuery.fetchNextPage();
         }}
         onEndReachedThreshold={0.5}
         renderItem={({ item }) => (
@@ -100,7 +112,13 @@ export default function OrdersScreen() {
           />
         )}
         ListEmptyComponent={
-          ordersQuery.isLoading ? null : (
+          ordersQuery.isLoading ? (
+            <View className="gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <OrderCardSkeleton key={i} />
+              ))}
+            </View>
+          ) : (
             <EmptyState
               icon="ClipboardList"
               title="No orders found"

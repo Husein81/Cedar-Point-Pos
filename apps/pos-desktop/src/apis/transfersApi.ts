@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api } from "../lib/api";
 import type { PaginationResponse, QueryParams } from "@repo/types";
 
 export interface CreateTransferItemDto {

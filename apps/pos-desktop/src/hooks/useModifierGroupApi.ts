@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/apis/api";
+import { api } from "@/lib/api";
 import { ModifierGroupItem } from "@/types/modifiers";
 import { ModifierType } from "@repo/types";
 

@@ -7,7 +7,7 @@ import {
   RefundHistory,
 } from "@/dto/refund.dto";
 import type { PaginationResponse, Refund } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const refundsApi = {
   // Get refundable info for an order

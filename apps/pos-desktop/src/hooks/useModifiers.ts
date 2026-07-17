@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/apis/api";
+import { api } from "@/lib/api";
 import { ModifierGroup, ModifierGroupItem } from "@/types/modifiers";
 import { PaginationResponse } from "@repo/types";
 

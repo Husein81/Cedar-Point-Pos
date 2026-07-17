@@ -90,7 +90,12 @@ export interface Order {
 
 export interface PaginatedOrders {
   data: Order[];
-  meta: { page: number; limit: number; totalCount: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }
 
 /** Table row from GET /tables/branch/:branchId/overview */

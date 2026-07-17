@@ -1,13 +1,16 @@
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Appearance, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Chip } from "@/components/app";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useLogout } from "@/hooks/use-auth";
 import { API_URL } from "@/lib/api";
+import { THEME } from "@/lib/theme";
 import { useThemeStore } from "@/store/theme";
 
 const THEME_OPTIONS = [
@@ -16,13 +19,17 @@ const THEME_OPTIONS = [
 ] as const;
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isDark } = useThemeStore();
   const { theme, setTheme } = useThemeStore();
+
+  const themeColors = isDark ? THEME.dark : THEME.light;
+
   const logout = useLogout();
 
   const handleTheme = (value: "light" | "dark") => {
     setTheme(value);
-    Appearance.setColorScheme(value);
   };
 
   return (
@@ -36,6 +43,26 @@ export default function SettingsScreen() {
       }}
     >
       <Text className="text-2xl font-bold">Settings</Text>
+
+      {/* Profile */}
+      <Pressable
+        onPress={() => router.push("/profile")}
+        className="bg-card border-border rounded-xl border p-4 active:opacity-80"
+      >
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-lg bg-primary/15">
+              <Icon name="User" size={18} color={themeColors.primary} />
+            </View>
+            <Text className="font-semibold">My Profile</Text>
+          </View>
+          <Icon
+            name="ChevronRight"
+            size={20}
+            color={themeColors.mutedForeground}
+          />
+        </View>
+      </Pressable>
 
       {/* Appearance */}
       <View className="bg-card border-border rounded-xl border p-4 gap-3">
@@ -61,20 +88,20 @@ export default function SettingsScreen() {
             {Constants.expoConfig?.version ?? "1.0.0"}
           </Text>
         </View>
-        <View className="flex-row justify-between">
-          <Text className="text-muted-foreground text-sm">Server</Text>
-          <Text className="text-sm" numberOfLines={1}>
-            {API_URL}
-          </Text>
-        </View>
       </View>
 
       <Button
-        variant="outline"
+        variant="destructive"
         onPress={() => logout.mutate()}
         disabled={logout.isPending}
         className="h-12 rounded-xl"
       >
+        <Icon
+          name="LogOut"
+          className="text-white"
+          color="white"
+          onPress={() => logout.mutate()}
+        />
         <Text>Log Out</Text>
       </Button>
     </ScrollView>

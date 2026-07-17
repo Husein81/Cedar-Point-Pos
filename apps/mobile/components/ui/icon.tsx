@@ -9,15 +9,18 @@ interface IconProps extends LucideProps {
   as?: React.ComponentType<LucideProps>;
   className?: string;
   onPress?: () => void;
+  color?: string;
+  stroke?: string;
+  fill?: string;
 }
 
 export const Icon = ({
   name,
   as,
-  color,
   size,
   className,
   onPress,
+  color,
   ...props
 }: IconProps) => {
   const iconMap = Icons as unknown as Record<
@@ -32,7 +35,7 @@ export const Icon = ({
   }
   return (
     <Pressable className={className} onPress={onPress}>
-      <LucideIcon color={color} size={size} {...props} />
+      <LucideIcon size={size} stroke={color} {...props} />
     </Pressable>
   );
 };

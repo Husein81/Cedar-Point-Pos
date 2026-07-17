@@ -66,10 +66,7 @@ export const ordersService = {
     return response.data;
   },
 
-  addItem: async (
-    id: string,
-    item: CreateOrderItemInput,
-  ): Promise<Order> => {
+  addItem: async (id: string, item: CreateOrderItemInput): Promise<Order> => {
     const response = await api.post<Order>(`/orders/${id}/items`, item);
     return response.data;
   },

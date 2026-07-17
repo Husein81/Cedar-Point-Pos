@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const { isDark } = useThemeStore();
+
   const theme = isDark ? THEME.dark : THEME.light;
 
   const { branchId, setBranch } = useBranchStore();
@@ -121,7 +122,7 @@ export default function HomeScreen() {
       ) : null}
 
       {/* Stats */}
-      <View className="flex-row flex-wrap gap-3">
+      <View className="flex-wrap flex-row gap-3">
         <StatCard
           icon="ClipboardList"
           label="Today's Orders"

@@ -16,7 +16,7 @@ const ORDER_QUERY_KEYS = [["orders"], ["tables"], ["kitchen-orders"]] as const;
 
 /** Poll interval keeping order/kitchen status fresh without sockets. */
 const ORDERS_POLL_MS = 15000;
-const ORDERS_PAGE_SIZE = 30;
+const ORDERS_PAGE_SIZE = 20;
 
 function useInvalidateOrders() {
   const queryClient = useQueryClient();
@@ -37,20 +37,26 @@ export function useOrders(filters?: OrderFilters) {
 
 export function useOrdersInfinite(filters?: OrderFilters) {
   return useInfiniteQuery({
-    queryKey: ["orders-infinite", filters ?? {}],
-    queryFn: ({ pageParam = 1 }) =>
+    queryKey: ["orders-infinite", filters],
+
+    initialPageParam: 1,
+
+    queryFn: ({ pageParam }) =>
       ordersService.getAll({
         ...filters,
         page: pageParam,
-        limit: ORDERS_PAGE_SIZE,
+        limit: 20,
       }),
+
     getNextPageParam: (lastPage) => {
-      if (!lastPage.meta) return undefined;
-      const { page, totalPages } = lastPage.meta;
-      return page < totalPages ? page + 1 : undefined;
+      const meta = lastPage.pagination;
+
+      if (!meta || meta.page >= meta.totalPages) {
+        return undefined;
+      }
+
+      return meta.page + 1;
     },
-    initialPageParam: 1,
-    refetchInterval: ORDERS_POLL_MS,
   });
 }
 

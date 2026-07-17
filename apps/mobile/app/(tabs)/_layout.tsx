@@ -17,7 +17,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.mutedForeground,
         tabBarStyle: {
-          backgroundColor: theme.card,
+          backgroundColor: theme.background,
           borderTopColor: theme.border,
         },
       }}
@@ -37,15 +37,6 @@ export default function TabsLayout() {
           title: "Orders",
           tabBarIcon: ({ color }) => (
             <Icon name="ClipboardList" size={TAB_ICON_SIZE} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Icon name="CircleUserRound" size={TAB_ICON_SIZE} color={color} />
           ),
         }}
       />

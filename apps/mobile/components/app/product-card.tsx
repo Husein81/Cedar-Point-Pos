@@ -5,27 +5,40 @@ import { Icon } from "@/components/ui/icon";
 import { formatMoney } from "@/lib/format";
 import { useThemeStore } from "@/store/theme";
 import { THEME } from "@/lib/theme";
-import type { Product } from "@/types";
+import type { Product } from "@repo/types";
 import { QuantityStepper } from "./quantity-stepper";
+import { useCartStore } from "@/store/cart";
 
 type Props = {
   product: Product;
-  /** Quantity of this product currently in the cart (0 = not added). */
-  quantity: number;
-  onAdd: () => void;
-  onIncrease: () => void;
-  onDecrease: () => void;
 };
 
-export const ProductCard = ({
-  product,
-  quantity,
-  onAdd,
-  onIncrease,
-  onDecrease,
-}: Props) => {
+export const ProductCard = ({ product }: Props) => {
+  const cart = useCartStore();
+
   const { isDark } = useThemeStore();
   const theme = isDark ? THEME.dark : THEME.light;
+
+  const quantityFor = (productId: string) =>
+    cart.items.find((item) => item.productId === productId)?.quantity ?? 0;
+  const quantity = quantityFor(product.id);
+
+  const onAdd = () => {
+    cart.addItem({
+      productId: product.id,
+      name: product.name,
+      unitPrice: Number(product.price),
+      imageUrl: product.imageUrl,
+    });
+  };
+
+  const onIncrease = () => {
+    cart.setQuantity(product.id, quantity + 1);
+  };
+
+  const onDecrease = () => {
+    cart.setQuantity(product.id, quantity - 1);
+  };
 
   return (
     <View className="flex-1 bg-card border-border rounded-xl border overflow-hidden">

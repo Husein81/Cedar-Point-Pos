@@ -1,5 +1,5 @@
 import type { Order, OrderStatus, PaginationResponse } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 type Params = {
   branchId?: string;

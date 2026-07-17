@@ -1,8 +1,7 @@
-import { createMMKV } from "react-native-mmkv";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Appearance } from "react-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
-const mmkv = createMMKV();
 
 type State = {
   theme: "light" | "dark" | "system";
@@ -11,33 +10,37 @@ type State = {
 
 type Actions = {
   setTheme: (theme: State["theme"]) => void;
+  initializeTheme: () => void;
 };
 
-const mmkvStorage = createJSONStorage(() => ({
-  getItem: (name: string) => {
-    const value = mmkv.getString(name);
-    return value ? JSON.parse(value) : null;
-  },
-  setItem: (name: string, value: unknown) => {
-    mmkv.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => {
-    mmkv.remove(name);
-  },
-}));
+const asyncStorage = createJSONStorage(() => AsyncStorage);
+
+const getSystemTheme = () => {
+  const colorScheme = Appearance.getColorScheme();
+  return colorScheme === "dark";
+};
 
 export const useThemeStore = create<State & Actions>()(
   persist(
     (set) => ({
-      theme: "dark",
-      isDark: false,
+      theme: "system",
+      isDark: getSystemTheme(),
       setTheme: (theme) => {
-        set({ theme, isDark: theme === "dark" });
+        const isDark =
+          theme === "dark" || (theme === "system" && getSystemTheme());
+        set({ theme, isDark });
+        if (theme !== "system") {
+          Appearance.setColorScheme(theme);
+        }
+      },
+      initializeTheme: () => {
+        const isDark = getSystemTheme();
+        set({ isDark });
       },
     }),
     {
       name: "mobile-theme",
-      storage: mmkvStorage,
+      storage: asyncStorage,
     },
   ),
 );

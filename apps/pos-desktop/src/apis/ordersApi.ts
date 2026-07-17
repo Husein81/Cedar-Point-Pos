@@ -1,5 +1,5 @@
 import type { Order, PaginationResponse } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 import {
   AddItemDto,
   AssignTableDto,

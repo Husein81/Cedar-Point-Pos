@@ -19,7 +19,7 @@ export const OrderCard = ({ order, onPress }: Props) => {
     : THEME.light.mutedForeground;
 
   const itemCount =
-    order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+    order.items?.reduce((sum, item) => sum + Number(item.quantity), 0) ?? 0;
 
   return (
     <Pressable

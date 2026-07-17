@@ -13,12 +13,12 @@ import type {
   StaffSessionView,
   StaffView,
 } from "@/dto/staff.dto";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const staffApi = {
   /** Paginated, filterable staff list scoped to the tenant. */
   getStaff: async (
-    query?: StaffQuery
+    query?: StaffQuery,
   ): Promise<PaginationResponse<StaffView>> => {
     const response = await api.get("/staff", { params: query });
     return response.data;
@@ -39,7 +39,7 @@ export const staffApi = {
   /** Update mutable identity fields (security flags use dedicated calls). */
   updateStaff: async (
     id: string,
-    data: UpdateStaffInput
+    data: UpdateStaffInput,
   ): Promise<StaffView> => {
     const response = await api.patch(`/staff/${id}`, data);
     return response.data;
@@ -60,7 +60,7 @@ export const staffApi = {
   /** Set or reset the staff member's POS PIN. */
   setPin: async (
     id: string,
-    data: SetPinInput
+    data: SetPinInput,
   ): Promise<{ message: string }> => {
     const response = await api.patch(`/staff/${id}/set-pin`, data);
     return response.data;
@@ -69,7 +69,7 @@ export const staffApi = {
   /** Reset the staff member's login password (revokes their refresh token). */
   resetPassword: async (
     id: string,
-    data: ResetPasswordInput
+    data: ResetPasswordInput,
   ): Promise<{ message: string }> => {
     const response = await api.patch(`/staff/${id}/reset-password`, data);
     return response.data;
@@ -78,7 +78,7 @@ export const staffApi = {
   /** Paginated activity log for a staff member. */
   getActivity: async (
     id: string,
-    query?: StaffActivityQuery
+    query?: StaffActivityQuery,
   ): Promise<PaginationResponse<StaffActivity>> => {
     const response = await api.get(`/staff/${id}/activity`, { params: query });
     return response.data;

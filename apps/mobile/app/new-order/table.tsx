@@ -2,14 +2,13 @@ import { OrderType, TableStatus } from "@repo/types";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
   View,
 } from "react-native";
 
-import { EmptyState, ScreenHeader, TableCard } from "@/components/app";
+import { EmptyState, ScreenHeader, TableCard, TableCardSkeleton } from "@/components/app";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTablesOverview } from "@/hooks/use-tables";
@@ -84,9 +83,22 @@ export default function SelectTableScreen() {
       />
 
       {tablesQuery.isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
+        <ScrollView
+          contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: 40 }}
+        >
+          <View className="gap-3">
+            <Text className="text-muted-foreground text-sm font-semibold uppercase">
+              Loading...
+            </Text>
+            <View className="flex-row flex-wrap gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <View key={i} className="w-[47.5%]">
+                  <TableCardSkeleton />
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: 16, gap: 20, paddingBottom: 40 }}

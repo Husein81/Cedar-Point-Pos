@@ -5,7 +5,7 @@ import type {
   TopProductData,
   WeeklySalesData,
 } from "../dto/dashboard.dto";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 interface QueryParams {
   branchId?: string;

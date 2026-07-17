@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { EmptyState, ScreenHeader, StatusBadge } from "@/components/app";
+import { EmptyState, OrderDetailsSkeleton, ScreenHeader, StatusBadge } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -98,9 +98,7 @@ export default function OrderDetailsScreen() {
     return (
       <View className="flex-1 bg-background">
         <ScreenHeader title="Order" />
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
+        <OrderDetailsSkeleton />
       </View>
     );
   }
@@ -125,7 +123,7 @@ export default function OrderDetailsScreen() {
     0,
   );
   const isTerminal = TERMINAL_STATUSES.includes(order.status);
-  console.log("order", order.user);
+
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader
@@ -149,7 +147,6 @@ export default function OrderDetailsScreen() {
           {order.table?.name ? (
             <View className="flex-row items-center gap-2">
               <Icon name="Armchair" size={16} color={theme.mutedForeground} />
-              <Text className="text-sm">{order.table.name}</Text>
               {order.guestCount ? (
                 <Text className="text-muted-foreground text-sm">
                   · {order.guestCount} guest{order.guestCount === 1 ? "" : "s"}

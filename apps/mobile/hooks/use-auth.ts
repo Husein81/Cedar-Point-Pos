@@ -18,13 +18,25 @@ export function useSignIn() {
   });
 }
 
+export function useUpdateProfile() {
+  return useMutation({
+    mutationFn: (data: {
+      id: string;
+      email?: string;
+      phone?: string;
+      username?: string;
+    }) => authService.updateProfile(data),
+    onSuccess: (updatedUser) => {
+      useAuthStore.getState().setUser(updatedUser);
+    },
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      // Best-effort server logout (blacklists the token); the local session
-      // is cleared regardless so the user is never stuck signed in.
       try {
         await authService.logout();
       } catch {

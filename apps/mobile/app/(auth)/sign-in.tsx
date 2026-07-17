@@ -71,7 +71,7 @@ export default function SignInScreen() {
                 <InputField
                   label="Username"
                   field={field}
-                  placeholder=""
+                  placeholder="john.doe"
                   placeholderColor={placeholderColor}
                 />
               )}
@@ -89,7 +89,7 @@ export default function SignInScreen() {
                   label="Password"
                   field={field}
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="••••••••"
                   placeholderColor={placeholderColor}
                 />
               )}

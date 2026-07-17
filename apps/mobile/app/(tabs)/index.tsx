@@ -4,7 +4,7 @@ import React, { useEffect, useMemo } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Chip, OrderCard, StatCard } from "@/components/app";
+import { Chip, OrderCard, OrderCardSkeleton, StatCard } from "@/components/app";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useBranches } from "@/hooks/use-branches";
@@ -14,6 +14,7 @@ import { THEME } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useBranchStore } from "@/store/branch";
 import { useThemeStore } from "@/store/theme";
+import { Separator } from "@/components/ui/separator";
 
 const ACTIVE_STATUSES: OrderStatus[] = [
   OrderStatus.DRAFT,
@@ -48,16 +49,18 @@ export default function HomeScreen() {
     if (preferred) setBranch({ id: preferred.id, name: preferred.name });
   }, [branchId, branches.data, setBranch, user?.branchId]);
 
-  const ordersQuery = useOrders({
+  const {
+    data: ordersQuery,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useOrders({
     branchId: branchId ?? undefined,
     startDate: startOfToday(),
-    limit: 50,
+    limit: 5,
   });
 
-  const orders = useMemo(
-    () => ordersQuery.data?.data ?? [],
-    [ordersQuery.data],
-  );
+  const orders = useMemo(() => ordersQuery?.data ?? [], [ordersQuery]);
 
   const stats = useMemo(() => {
     const active = orders.filter((o) =>
@@ -72,7 +75,7 @@ export default function HomeScreen() {
     return { total: orders.length, active, revenue };
   }, [orders]);
 
-  const recentOrders = orders.slice(0, 5);
+  const recentOrders = orders;
 
   return (
     <ScrollView
@@ -84,10 +87,7 @@ export default function HomeScreen() {
         gap: 20,
       }}
       refreshControl={
-        <RefreshControl
-          refreshing={ordersQuery.isRefetching}
-          onRefresh={() => ordersQuery.refetch()}
-        />
+        <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
       }
     >
       {/* Header */}
@@ -129,11 +129,14 @@ export default function HomeScreen() {
           value={String(stats.total)}
         />
         <StatCard icon="Flame" label="Active" value={String(stats.active)} />
-        <StatCard
-          icon="Banknote"
-          label="Revenue"
-          value={formatMoney(stats.revenue)}
-        />
+        <Separator className="border-0 bg-transparent" />
+        {user?.role === "ADMIN" && (
+          <StatCard
+            icon="Banknote"
+            label="Revenue"
+            value={formatMoney(stats.revenue)}
+          />
+        )}
       </View>
 
       {/* Quick actions */}
@@ -164,7 +167,9 @@ export default function HomeScreen() {
             <Text className="text-primary text-sm font-medium">See all</Text>
           </Pressable>
         </View>
-        {recentOrders.length === 0 ? (
+        {isLoading ? (
+          <OrderCardSkeleton />
+        ) : recentOrders.length === 0 ? (
           <View className="items-center rounded-xl border border-dashed border-border p-8">
             <Text className="text-muted-foreground text-sm">
               No orders yet today

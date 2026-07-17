@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 type State = {
-  theme: "light" | "dark" | "system";
+  theme: "light" | "dark";
   isDark?: boolean;
 };
 
@@ -23,15 +23,12 @@ const getSystemTheme = () => {
 export const useThemeStore = create<State & Actions>()(
   persist(
     (set) => ({
-      theme: "system",
+      theme: "light",
       isDark: getSystemTheme(),
       setTheme: (theme) => {
-        const isDark =
-          theme === "dark" || (theme === "system" && getSystemTheme());
+        const isDark = theme === "dark";
         set({ theme, isDark });
-        if (theme !== "system") {
-          Appearance.setColorScheme(theme);
-        }
+        Appearance.setColorScheme(theme);
       },
       initializeTheme: () => {
         const isDark = getSystemTheme();

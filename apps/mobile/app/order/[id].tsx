@@ -144,7 +144,6 @@ export default function OrderDetailsScreen() {
         title={`Order #${order.orderNumber}`}
         subtitle={formatDateTime(order.createdAt)}
         right={<StatusBadge status={order.status} />}
-        showBack={true}
       />
 
       <ScrollView
@@ -273,7 +272,6 @@ export default function OrderDetailsScreen() {
           ) : null}
           <View className="flex-row gap-2">
             <Button
-              variant="outline"
               onPress={handleAddItems}
               disabled={isActing}
               className="h-12 flex-1 rounded-xl"

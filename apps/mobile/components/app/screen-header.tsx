@@ -41,7 +41,19 @@ export const ScreenHeader = ({
             onPress={() => router.back()}
           />
         </Pressable>
-      ) : null}
+      ) : (
+        <Pressable
+          onPress={() => router.push("/")}
+          className="h-10 w-10 items-center justify-center rounded-full bg-card border border-border active:opacity-70"
+        >
+          <Icon
+            name="ChevronLeft"
+            size={20}
+            color={iconColor}
+            onPress={() => router.push("/")}
+          />
+        </Pressable>
+      )}
       <View className="flex-1">
         <Text className="text-lg font-bold" numberOfLines={1}>
           {title}

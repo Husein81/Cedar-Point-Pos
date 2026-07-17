@@ -52,11 +52,6 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  /**
-   * POS terminal PIN login. Public at the JWT layer (the terminal supplies a
-   * known staffId from its cached roster); tightly throttled to deter PIN
-   * brute force. The tenant is derived from the staff record server-side.
-   */
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('pin-login')
@@ -102,8 +97,6 @@ export class AuthController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   getProfile(@Req() req: Request) {
-    // req.user is the full Prisma row (incl. password/pinHash/refreshToken);
-    // project it so secrets never reach the client.
     return this.authService.toPublicUser(req.user as PrismaUser);
   }
 }

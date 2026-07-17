@@ -34,7 +34,7 @@ export const OrderCard = ({ order, onPress }: Props) => {
       <View className="flex-row items-center gap-4">
         {order.table?.name ? (
           <View className="flex-row items-center gap-1.5">
-            <Icon name="Armchair" size={14} color={mutedColor} />
+            <Icon name="Utensils" size={14} color={mutedColor} />
             <Text className="text-muted-foreground text-sm">
               {order.table.name}
             </Text>

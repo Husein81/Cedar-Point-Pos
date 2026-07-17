@@ -43,6 +43,10 @@ function RootLayoutNav() {
           name="new-order/cart"
           options={{ headerShown: false, presentation: "modal" }}
         />
+        <Stack.Screen
+          name="profile"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
       </Stack.Protected>
     </Stack>
   );

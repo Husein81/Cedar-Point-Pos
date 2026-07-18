@@ -3,8 +3,7 @@ import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { formatMoney, tableStatusStyle } from "@/lib/format";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import type { TableOverview } from "@/types";
 
 type Props = {
@@ -13,10 +12,7 @@ type Props = {
 };
 
 export const TableCard = ({ table, onPress }: Props) => {
-  const { isDark } = useThemeStore();
-  const mutedColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const { mutedForeground: mutedColor } = useAppTheme();
   const style = tableStatusStyle(table.status);
 
   return (

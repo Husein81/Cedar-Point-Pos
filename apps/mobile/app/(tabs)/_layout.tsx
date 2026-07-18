@@ -1,14 +1,12 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Icon } from "@/components/ui/icon";
-import { THEME } from "@/lib/theme";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/lib/theme";
 
 const TAB_ICON_SIZE = 22;
 
 export default function TabsLayout() {
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
 
   return (
     <Tabs

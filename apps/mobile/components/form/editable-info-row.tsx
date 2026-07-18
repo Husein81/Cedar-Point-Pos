@@ -1,5 +1,4 @@
-import { THEME } from "@/lib/theme";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/lib/theme";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -26,13 +25,10 @@ export function EditableInfoRow({
   onEdit?: (newValue: string) => void;
   isLoading?: boolean;
 }) {
-  const { isDark } = useThemeStore();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editValue, setEditValue] = useState(value);
-  const mutedColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
-  const themeObj = isDark ? THEME.dark : THEME.light;
+  const themeObj = useAppTheme();
+  const mutedColor = themeObj.mutedForeground;
 
   React.useEffect(() => {
     setEditValue(value);

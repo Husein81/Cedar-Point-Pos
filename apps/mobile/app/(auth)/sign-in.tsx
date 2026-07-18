@@ -12,12 +12,10 @@ import { InputField } from "@/components/form";
 import { Button } from "@/components/ui";
 import { Text } from "@/components/ui/text";
 import { useSignIn } from "@/hooks/use-auth";
-import { THEME } from "@/lib/theme";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/lib/theme";
 
 export default function SignInScreen() {
   const signIn = useSignIn();
-  const { isDark } = useThemeStore();
 
   const form = useForm({
     defaultValues: {
@@ -29,9 +27,7 @@ export default function SignInScreen() {
     },
   });
 
-  const placeholderColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const placeholderColor = useAppTheme().mutedForeground;
 
   return (
     <View className="flex-1 bg-background">

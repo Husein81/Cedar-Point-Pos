@@ -12,16 +12,14 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTablesOverview } from "@/hooks/use-tables";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useBranchStore } from "@/store/branch";
 import { useCartStore } from "@/store/cart";
-import { useThemeStore } from "@/store/theme";
 import type { TableOverview } from "@/types";
 
 export default function SelectTableScreen() {
   const router = useRouter();
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
   const { branchId, branchName } = useBranchStore();
   const startOrder = useCartStore((state) => state.startOrder);
 

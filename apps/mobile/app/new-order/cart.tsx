@@ -23,7 +23,7 @@ import {
   useSendToKitchen,
 } from "@/hooks/use-orders";
 import { formatMoney } from "@/lib/format";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useBranchStore } from "@/store/branch";
 import {
   selectCartSubtotal,
@@ -31,13 +31,11 @@ import {
   selectCartVat,
   useCartStore,
 } from "@/store/cart";
-import { useThemeStore } from "@/store/theme";
 
 export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
 
   /** When set, the cart is being appended to an existing order. */
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();

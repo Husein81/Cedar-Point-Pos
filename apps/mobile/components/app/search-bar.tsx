@@ -1,8 +1,7 @@
 import { View } from "react-native";
 import { Input } from "@/components/ui/input";
 import { Icon } from "@/components/ui/icon";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 
 type Props = {
   value: string;
@@ -11,10 +10,7 @@ type Props = {
 };
 
 export const SearchBar = ({ value, onChangeText, placeholder }: Props) => {
-  const { isDark } = useThemeStore();
-  const mutedColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const { mutedForeground: mutedColor } = useAppTheme();
 
   return (
     <View className="relative justify-center">

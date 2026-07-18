@@ -3,36 +3,50 @@ import { Appearance } from "react-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+export type ThemeMode = "light" | "dark" | "system";
+export type ColorTheme = "cedar" | "emerald" | "rose" | "violet" | "sunset";
+
+export const COLOR_THEMES: ColorTheme[] = [
+  "cedar",
+  "emerald",
+  "rose",
+  "violet",
+  "sunset",
+];
+
 type State = {
-  theme: "light" | "dark";
+  theme: ThemeMode;
+  colorTheme: ColorTheme;
   isDark?: boolean;
 };
 
 type Actions = {
-  setTheme: (theme: State["theme"]) => void;
+  setTheme: (theme: ThemeMode) => void;
+  setColorTheme: (colorTheme: ColorTheme) => void;
   initializeTheme: () => void;
 };
 
 const asyncStorage = createJSONStorage(() => AsyncStorage);
 
-const getSystemTheme = () => {
-  const colorScheme = Appearance.getColorScheme();
-  return colorScheme === "dark";
-};
+const getSystemIsDark = () => Appearance.getColorScheme() === "dark";
+
+const resolveIsDark = (theme: ThemeMode) =>
+  theme === "system" ? getSystemIsDark() : theme === "dark";
 
 export const useThemeStore = create<State & Actions>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       theme: "light",
-      isDark: getSystemTheme(),
+      colorTheme: "cedar",
+      isDark: getSystemIsDark(),
       setTheme: (theme) => {
-        const isDark = theme === "dark";
+        const isDark = resolveIsDark(theme);
         set({ theme, isDark });
-        Appearance.setColorScheme(theme);
+        Appearance.setColorScheme(theme === "system" ? null : theme);
       },
+      setColorTheme: (colorTheme) => set({ colorTheme }),
       initializeTheme: () => {
-        const isDark = getSystemTheme();
-        set({ isDark });
+        set({ isDark: resolveIsDark(get().theme) });
       },
     }),
     {
@@ -41,3 +55,8 @@ export const useThemeStore = create<State & Actions>()(
     },
   ),
 );
+
+Appearance.addChangeListener(() => {
+  const { theme, initializeTheme } = useThemeStore.getState();
+  if (theme === "system") initializeTheme();
+});

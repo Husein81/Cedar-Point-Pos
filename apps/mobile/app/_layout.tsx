@@ -1,5 +1,5 @@
 import Provider from "@/components/provider";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useThemeStore } from "@/store/theme";
 import { PortalHost } from "@rn-primitives/portal";
@@ -43,13 +43,15 @@ function RootLayoutNav() {
           name="new-order/cart"
           options={{ headerShown: false, presentation: "modal" }}
         />
+        <Stack.Screen name="themes" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );
 }
 
 export default function RootLayout() {
-  const { isDark, initializeTheme } = useThemeStore();
+  const { initializeTheme } = useThemeStore();
+  const theme = useAppTheme();
 
   useEffect(() => {
     initializeTheme();
@@ -58,12 +60,7 @@ export default function RootLayout() {
   return (
     <Provider>
       <RootLayoutNav />
-      <StatusBar
-        style={"auto"}
-        backgroundColor={
-          isDark ? THEME.dark.background : THEME.light.background
-        }
-      />
+      <StatusBar style={"auto"} backgroundColor={theme.background} />
       <PortalHost />
     </Provider>
   );

@@ -29,10 +29,9 @@ import {
   useUpdateOrderStatus,
 } from "@/hooks/use-orders";
 import { formatDateTime, formatMoney, toNumber } from "@/lib/format";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
-import { useThemeStore } from "@/store/theme";
 
 const TERMINAL_STATUSES: readonly OrderStatus[] = TERMINAL_ORDER_STATUSES;
 
@@ -40,8 +39,7 @@ export default function OrderDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
 
   const orderQuery = useOrder(id);
   const sendToKitchen = useSendToKitchen();

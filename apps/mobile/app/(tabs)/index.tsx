@@ -10,10 +10,9 @@ import { Text } from "@/components/ui/text";
 import { useBranches } from "@/hooks/use-branches";
 import { useOrders } from "@/hooks/use-orders";
 import { formatMoney, initialsOf, toNumber } from "@/lib/format";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useBranchStore } from "@/store/branch";
-import { useThemeStore } from "@/store/theme";
 import { Separator } from "@/components/ui/separator";
 
 const ACTIVE_STATUSES: readonly OrderStatus[] = ACTIVE_ORDER_STATUSES;
@@ -28,9 +27,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
-  const { isDark } = useThemeStore();
-
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
 
   const { branchId, setBranch } = useBranchStore();
   const branches = useBranches();

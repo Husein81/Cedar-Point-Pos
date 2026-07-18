@@ -21,9 +21,8 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useOrdersInfinite } from "@/hooks/use-orders";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useBranchStore } from "@/store/branch";
-import { useThemeStore } from "@/store/theme";
 
 const STATUS_FILTERS: { label: string; value?: OrderStatus }[] = [
   { label: "All" },
@@ -39,8 +38,7 @@ const STATUS_FILTERS: { label: string; value?: OrderStatus }[] = [
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
   const { branchId } = useBranchStore();
 
   const [search, setSearch] = useState("");

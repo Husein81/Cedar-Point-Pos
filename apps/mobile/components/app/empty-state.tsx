@@ -2,8 +2,7 @@ import { View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 
 type Props = {
   icon: string;
@@ -20,10 +19,7 @@ export const EmptyState = ({
   actionLabel,
   onAction,
 }: Props) => {
-  const { isDark } = useThemeStore();
-  const mutedColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const { mutedForeground: mutedColor } = useAppTheme();
 
   return (
     <View className="flex-1 items-center justify-center gap-3 px-8 py-16">

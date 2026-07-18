@@ -2,8 +2,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
 import { formatMoney, formatTime } from "@/lib/format";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import type { Order } from "@/types";
 import { StatusBadge } from "./status-badge";
 
@@ -13,10 +12,7 @@ type Props = {
 };
 
 export const OrderCard = ({ order, onPress }: Props) => {
-  const { isDark } = useThemeStore();
-  const mutedColor = isDark
-    ? THEME.dark.mutedForeground
-    : THEME.light.mutedForeground;
+  const { mutedForeground: mutedColor } = useAppTheme();
 
   const itemCount =
     order.items?.reduce((sum, item) => sum + Number(item.quantity), 0) ?? 0;

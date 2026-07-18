@@ -3,8 +3,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
 import { formatMoney } from "@/lib/format";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import type { Product } from "@repo/types";
 import { QuantityStepper } from "./quantity-stepper";
 import { useCartStore } from "@/store/cart";
@@ -15,9 +14,7 @@ type Props = {
 
 export const ProductCard = ({ product }: Props) => {
   const cart = useCartStore();
-
-  const { isDark } = useThemeStore();
-  const theme = isDark ? THEME.dark : THEME.light;
+  const theme = useAppTheme();
 
   const quantityFor = (productId: string) =>
     cart.items.find((item) => item.productId === productId)?.quantity ?? 0;

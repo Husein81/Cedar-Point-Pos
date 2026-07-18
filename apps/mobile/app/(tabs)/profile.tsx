@@ -1,43 +1,27 @@
 import Constants from "expo-constants";
-import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Chip } from "@/components/app";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useLogout, useUpdateProfile } from "@/hooks/use-auth";
 import { initialsOf } from "@/lib/format";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useBranchStore } from "@/store/branch";
-import { useThemeStore } from "@/store/theme";
 import { EditableInfoRow } from "@/components/form";
 
-const THEME_OPTIONS = [
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-] as const;
-
 export default function ProfileScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const { branchName } = useBranchStore();
-  const { theme, setTheme } = useThemeStore();
+  const theme = useAppTheme();
   const logout = useLogout();
   const updateProfile = useUpdateProfile();
-
-  const handleTheme = (value: "light" | "dark") => {
-    setTheme(value);
-  };
 
   const handleUpdateField = async (
     field: "username" | "email" | "phone",
@@ -112,20 +96,22 @@ export default function ProfileScreen() {
         />
       </View>
 
-      {/* Appearance */}
-      <View className="bg-card border-border rounded-xl border p-4 gap-3">
-        <Text className="font-semibold">Appearance</Text>
-        <View className="flex-row gap-2">
-          {THEME_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              selected={theme === option.value}
-              onPress={() => handleTheme(option.value)}
-            />
-          ))}
+      {/* Settings */}
+      <Pressable
+        onPress={() => router.push("/themes")}
+        className="bg-card border-border flex-row items-center gap-3 rounded-xl border p-4 active:opacity-80"
+      >
+        <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+          <Icon
+            name="Palette"
+            size={16}
+            color={theme.primary}
+            onPress={() => router.push("/themes")}
+          />
         </View>
-      </View>
+        <Text className="flex-1 font-semibold">Themes</Text>
+        <Icon name="ChevronRight" size={18} color={theme.mutedForeground} />
+      </Pressable>
 
       {/* About */}
       <View className="bg-card border-border rounded-xl border p-4 gap-3">
@@ -151,7 +137,7 @@ export default function ProfileScreen() {
             <Icon
               name="LogOut"
               size={16}
-              color={THEME.light.primaryForeground}
+              color={theme.primaryForeground}
               onPress={() => logout.mutate()}
             />
             <Text className="text-white font-semibold">Log Out</Text>

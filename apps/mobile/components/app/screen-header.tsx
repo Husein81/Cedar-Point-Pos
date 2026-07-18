@@ -3,8 +3,7 @@ import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 
 type Props = {
   title: string;
@@ -21,8 +20,7 @@ export const ScreenHeader = ({
 }: Props) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemeStore();
-  const iconColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
+  const iconColor = useAppTheme().foreground;
 
   return (
     <View

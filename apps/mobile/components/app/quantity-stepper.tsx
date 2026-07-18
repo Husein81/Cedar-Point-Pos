@@ -1,8 +1,7 @@
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Icon } from "@/components/ui/icon";
-import { useThemeStore } from "@/store/theme";
-import { THEME } from "@/lib/theme";
+import { useAppTheme } from "@/lib/theme";
 
 type Props = {
   quantity: number;
@@ -15,8 +14,8 @@ export const QuantityStepper = ({
   onIncrease,
   onDecrease,
 }: Props) => {
-  const { isDark } = useThemeStore();
-  const iconColor = isDark ? THEME.dark.foreground : THEME.light.foreground;
+  const theme = useAppTheme();
+  const iconColor = theme.foreground;
 
   return (
     <View className="flex-row items-center gap-3">
@@ -39,11 +38,7 @@ export const QuantityStepper = ({
         <Icon
           name="Plus"
           size={16}
-          color={
-            isDark
-              ? THEME.dark.primaryForeground
-              : THEME.light.primaryForeground
-          }
+          color={theme.primaryForeground}
           onPress={onIncrease}
         />
       </Pressable>

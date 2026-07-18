@@ -1,5 +1,6 @@
 import { Shad, Skeleton, Empty, Button } from "@repo/ui";
-import type { TopProductData } from "@/types/dashboard";
+import type { TopProductData } from "@/dto/dashboard.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface TopProductsTableProps {
     data: TopProductData[];
@@ -10,7 +11,7 @@ interface TopProductsTableProps {
 
 // Format currency
 const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(DEFAULT_LOCALE, {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 2,

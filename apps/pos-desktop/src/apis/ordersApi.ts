@@ -1,5 +1,5 @@
 import type { Order, PaginationResponse } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 import {
   AddItemDto,
   AssignTableDto,
@@ -147,6 +147,15 @@ export const ordersApi = {
       targetTableId,
       ...(mergeIntoOrderId ? { mergeIntoOrderId } : {}),
     });
+    return response.data;
+  },
+
+  // Split selected item quantities into a new order on the same table
+  splitOrder: async (
+    id: string,
+    items: { itemId: string; quantity: number }[],
+  ): Promise<{ originalOrder: Order; newOrder: Order }> => {
+    const response = await api.post(`/orders/${id}/split`, { items });
     return response.data;
   },
 

@@ -3,7 +3,7 @@ import { OrderTabs } from "@/components/orders/OrderTabs";
 import { ProductGrid } from "@/components/orders/ProductGrid";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
-import { Button, Icon, Separator } from "@repo/ui";
+import { Button, Icon } from "@repo/ui";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
@@ -101,10 +101,8 @@ export function OrderPage({
           <ProductGrid />
         </div>
 
-        <Separator orientation="vertical" className="hidden md:block" />
-
-        {/* Right: Cart Panel - fixed width, contains inline keypad */}
-        <div className="w-full md:w-120 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
+        {/* Right: Cart Panel - responsive width, contains inline keypad */}
+        <div className="w-full md:w-100 lg:w-110 2xl:w-120 shrink-0 flex flex-col border-l border-border min-h-0 overflow-hidden">
           <OrderCart />
         </div>
       </div>

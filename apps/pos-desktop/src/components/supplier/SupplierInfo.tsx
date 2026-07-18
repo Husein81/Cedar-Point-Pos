@@ -1,5 +1,6 @@
 import { Icon, Shad } from "@repo/ui";
 import type { SupplierFullDetails } from "@/dto/supplier.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface SupplierInfoProps {
   supplier: SupplierFullDetails;
@@ -91,7 +92,7 @@ export const SupplierInfo = ({ supplier }: SupplierInfoProps) => {
                 Supplier Since
               </p>
               <p className="text-base">
-                {new Date(supplier.createdAt).toLocaleDateString("en-US", {
+                {new Date(supplier.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -101,7 +102,7 @@ export const SupplierInfo = ({ supplier }: SupplierInfoProps) => {
             <div>
               <p className="text-sm font-medium text-gray-500">Last Updated</p>
               <p className="text-base">
-                {new Date(supplier.updatedAt).toLocaleDateString("en-US", {
+                {new Date(supplier.updatedAt).toLocaleDateString(DEFAULT_LOCALE, {
                   year: "numeric",
                   month: "long",
                   day: "numeric",

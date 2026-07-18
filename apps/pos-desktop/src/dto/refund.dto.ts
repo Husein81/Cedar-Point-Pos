@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { OrderStatus, PaymentStatus } from "@repo/types";
 import { z } from "zod";
 
 const CreateRefundItemSchema = z.object({
@@ -56,6 +56,7 @@ const RefundableOrderSummarySchema = z.object({
   total: z.number().nonnegative(),
   subtotal: z.number().nonnegative(),
   status: z.custom<OrderStatus>(),
+  paymentStatus: z.custom<PaymentStatus>().optional(),
   paymentMethod: z.string().nullable(),
   customerName: z.string().nullable(),
   itemCount: z.number().nonnegative(),

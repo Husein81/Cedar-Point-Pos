@@ -2,6 +2,7 @@ import { ProductForm } from "@/components/products/ProductForm";
 import TitleBar from "@/components/title-bar";
 import { useProduct } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Badge, Button, Shad } from "@repo/ui";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, BarChart3, DollarSign, Package } from "lucide-react";
@@ -167,7 +168,7 @@ function RouteComponent() {
             <div>
               <p className="text-sm font-medium text-gray-500">Created At</p>
               <p className="text-base">
-                {new Date(product.createdAt).toLocaleDateString("en-US", {
+                {new Date(product.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
                   year: "numeric",
                   month: "long",
                   day: "numeric",

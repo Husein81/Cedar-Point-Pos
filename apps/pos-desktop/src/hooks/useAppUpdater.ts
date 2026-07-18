@@ -28,9 +28,7 @@ export interface AppUpdaterApi {
  */
 export const useAppUpdater = (): AppUpdaterApi => {
   const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [availableVersion, setAvailableVersion] = useState<string | null>(
-    null,
-  );
+  const [availableVersion, setAvailableVersion] = useState<string | null>(null);
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

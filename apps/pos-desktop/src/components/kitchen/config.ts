@@ -19,42 +19,24 @@ export const getTimeColor = (createdAt: string | Date): string => {
   return "text-white";
 };
 
+const statusColors = {
+  [OrderStatus.PLACED]: "bg-orange-100 text-orange-800 border-orange-200",
+  [OrderStatus.PREPARING]: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  [OrderStatus.READY]: "bg-green-100 text-green-800 border-green-200",
+} as Record<OrderStatus, string>;
+
 export const getStatusColor = (status: OrderStatus): string => {
-  switch (status) {
-    case OrderStatus.CONFIRMED:
-      return "bg-blue-100 text-blue-800 border-blue-200";
-    case OrderStatus.IN_PROGRESS:
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case OrderStatus.SENT_TO_KITCHEN:
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    case OrderStatus.READY:
-      return "bg-green-100 text-green-800 border-green-200";
-    case OrderStatus.PAID:
-      return "bg-emerald-100 text-emerald-800 border-emerald-200";
-    case OrderStatus.PARTIALLY_PAID:
-      return "bg-amber-100 text-amber-800 border-amber-200";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
-  }
+  return statusColors[status] || "bg-gray-100 text-gray-800 border-gray-200";
 };
 
+const statusIcons = {
+  [OrderStatus.PLACED]: "ChefHat",
+  [OrderStatus.PREPARING]: "Clock",
+  [OrderStatus.READY]: "CircleCheck",
+} as Record<OrderStatus, string>;
+
 export const getStatusIcon = (status: OrderStatus): string => {
-  switch (status) {
-    case OrderStatus.CONFIRMED:
-      return "CircleAlert";
-    case OrderStatus.IN_PROGRESS:
-      return "Clock";
-    case OrderStatus.SENT_TO_KITCHEN:
-      return "ChefHat";
-    case OrderStatus.READY:
-      return "CircleCheck";
-    case OrderStatus.PAID:
-      return "Wallet";
-    case OrderStatus.PARTIALLY_PAID:
-      return "WalletCards";
-    default:
-      return "Clock";
-  }
+  return statusIcons[status] || "Clock";
 };
 
 export const getOrderTypeHeaderColor = (type: OrderType) => {
@@ -75,51 +57,27 @@ type ActionButtonStatus = {
   buttonLabel: string;
 };
 
+// The kitchen only advances cooking progress: PLACED → PREPARING → READY.
+// Serving, payment, and closing are floor/cashier actions — never KDS.
+const actionButtonStatuses: Record<string, ActionButtonStatus> = {
+  PLACED: {
+    nextStatus: OrderStatus.PREPARING,
+    buttonLabel: "Start Cooking",
+  },
+  PREPARING: {
+    nextStatus: OrderStatus.READY,
+    buttonLabel: "Mark Ready",
+  },
+  READY: {
+    nextStatus: null,
+    buttonLabel: "Awaiting Pickup",
+  },
+};
+
 export const getActionButtonStatus = (
   status: OrderStatus,
 ): ActionButtonStatus => {
-  switch (status) {
-    case OrderStatus.CONFIRMED:
-      return {
-        nextStatus: OrderStatus.IN_PROGRESS,
-        buttonLabel: "Start Cooking",
-      };
-    case OrderStatus.IN_PROGRESS:
-      return {
-        nextStatus: OrderStatus.READY,
-        buttonLabel: "Mark Ready",
-      };
-    case OrderStatus.SENT_TO_KITCHEN:
-      return {
-        nextStatus: OrderStatus.IN_PROGRESS,
-        buttonLabel: "Start Cooking",
-      };
-    case OrderStatus.READY:
-      return {
-        nextStatus: OrderStatus.COMPLETED,
-        buttonLabel: "Complete Order",
-      };
-    case OrderStatus.PAID:
-      return {
-        nextStatus: OrderStatus.COMPLETED,
-        buttonLabel: "Complete Order",
-      };
-    case OrderStatus.PARTIALLY_PAID:
-      return {
-        nextStatus: null,
-        buttonLabel: "Awaiting Full Payment",
-      };
-    case OrderStatus.FULLY_REFUNDED:
-      return {
-        nextStatus: null,
-        buttonLabel: "Order Fully Refunded",
-      };
-    default:
-      return {
-        nextStatus: null,
-        buttonLabel: "",
-      };
-  }
+  return actionButtonStatuses[status] || { nextStatus: null, buttonLabel: "" };
 };
 
 export const ORDER_STATUS_OPTIONS: Array<{
@@ -127,8 +85,7 @@ export const ORDER_STATUS_OPTIONS: Array<{
   value: OrderStatus | "ALL";
 }> = [
   { label: "All", value: "ALL" },
-  { label: "Sent to Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
-  { label: "Preparing", value: OrderStatus.IN_PROGRESS },
+  { label: "Placed", value: OrderStatus.PLACED },
+  { label: "Preparing", value: OrderStatus.PREPARING },
   { label: "Ready", value: OrderStatus.READY },
-  { label: "Completed", value: OrderStatus.COMPLETED },
 ];

@@ -6,7 +6,7 @@ import type {
   CategoryData,
   HourlyRevenueData,
   TopProductData,
-} from "../types/dashboard";
+} from "../dto/dashboard.dto";
 
 /**
  * Dashboard React Query Hooks

@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus } from '@repo/types';
+import { TicketStatus } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
@@ -142,7 +142,7 @@ export class OrderItemService {
       where: {
         orderItemId,
         station: station ?? null,
-        status: { in: [OrderStatus.SENT_TO_KITCHEN, OrderStatus.PENDING] },
+        status: TicketStatus.QUEUED,
       },
       select: { id: true },
     });
@@ -152,7 +152,7 @@ export class OrderItemService {
         'A ticket already exists for this item/station',
       );
     }
-    const finalStatus = status ?? OrderStatus.SENT_TO_KITCHEN;
+    const finalStatus = status ?? TicketStatus.QUEUED;
 
     const ticket = await this.prisma.orderItemTicket.create({
       data: {

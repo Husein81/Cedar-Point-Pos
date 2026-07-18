@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BranchSummarySchema, ProductSummarySchema } from "./common.dto";
 
 export const PurchaseOrderItemFormSchema = z.object({
   productId: z.string().min(1, "Product is required"),
@@ -29,12 +30,7 @@ const PurchaseOrderItemResponseSchema = z.object({
   unitCost: z.string(),
   totalCost: z.string(),
   notes: z.string().nullable(),
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-    sku: z.string().nullable(),
-    barcode: z.string().nullable(),
-  }),
+  product: ProductSummarySchema,
 });
 export type PurchaseOrderItemResponse = z.infer<
   typeof PurchaseOrderItemResponseSchema
@@ -55,10 +51,7 @@ export const PurchaseOrderDetailsSchema = z.object({
     phone: z.string().nullable(),
     email: z.string().nullable(),
   }),
-  branch: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  branch: BranchSummarySchema,
   items: z.array(PurchaseOrderItemResponseSchema),
 });
 export type PurchaseOrderDetails = z.infer<typeof PurchaseOrderDetailsSchema>;
@@ -76,10 +69,7 @@ export const PurchaseOrderSummarySchema = z.object({
     name: z.string(),
     companyName: z.string().nullable(),
   }),
-  branch: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  branch: BranchSummarySchema,
   _count: z.object({
     items: z.number(),
   }),

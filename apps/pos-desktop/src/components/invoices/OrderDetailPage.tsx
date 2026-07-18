@@ -1,4 +1,5 @@
 import { RefundForm, RefundHistory } from "@/components/refunds";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useOrder } from "@/hooks/useOrder";
 import { useOrderRefunds } from "@/hooks/useRefund";
@@ -46,9 +47,9 @@ export function OrderDetailPage() {
     return computeInvoiceFinancials(order, refunds);
   }, [order, refunds]);
 
-  const canRefund =
-    order?.status === OrderStatus.COMPLETED ||
-    order?.status === OrderStatus.PARTIALLY_REFUNDED;
+  // Refunds only apply to closed orders; a partially refunded order stays
+  // COMPLETED (refund state lives on the payment axis).
+  const canRefund = order?.status === OrderStatus.COMPLETED;
 
   /** Build multi-currency amounts for a value */
   const mc = (value: number) =>
@@ -132,7 +133,7 @@ export function OrderDetailPage() {
   if (!order || !financials) {
     return (
       <div className="py-20 text-center text-sm text-muted-foreground">
-        Invoice not found
+        404 Invoice not found
       </div>
     );
   }
@@ -158,14 +159,14 @@ export function OrderDetailPage() {
             Invoice #{order.orderNumber ?? orderId.slice(0, 8)}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {new Date(order.createdAt).toLocaleDateString("en-US", {
+            {new Date(order.createdAt).toLocaleDateString(DEFAULT_LOCALE, {
               weekday: "long",
               year: "numeric",
               month: "long",
               day: "numeric",
             })}{" "}
             ·{" "}
-            {new Date(order.createdAt).toLocaleTimeString("en-US", {
+            {new Date(order.createdAt).toLocaleTimeString(DEFAULT_LOCALE, {
               hour: "2-digit",
               minute: "2-digit",
             })}

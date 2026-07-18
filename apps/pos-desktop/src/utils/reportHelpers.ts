@@ -2,7 +2,8 @@
  * Shared utility functions for all reports
  */
 
-import type { DateRangePreset } from "@/types/reports";
+import type { DateRangePreset } from "@/dto/reports.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 /**
  * Get date range from preset
@@ -43,7 +44,7 @@ export const getDateRangeFromPreset = (
  * Format value as currency
  */
 export const formatCurrency = (value: number, currency = "USD") =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat(DEFAULT_LOCALE, {
     style: "currency",
     currency: currency,
     minimumFractionDigits: 2,
@@ -53,7 +54,7 @@ export const formatCurrency = (value: number, currency = "USD") =>
  * Format date string to readable format with time
  */
 export const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
+  new Date(dateStr).toLocaleDateString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -65,7 +66,7 @@ export const formatDate = (dateStr: string) =>
  * Format date string to readable format without time
  */
 export const formatDateOnly = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-US", {
+  new Date(dateStr).toLocaleDateString(DEFAULT_LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -81,11 +82,16 @@ export const getStatusVariant = (
     case "COMPLETED":
     case "PAID":
       return "default";
-    case "PENDING":
-    case "IN_PROGRESS":
-    case "CONFIRMED":
+    case "PLACED":
+    case "PREPARING":
+    case "READY":
+    case "SERVED":
+    case "PARTIALLY_PAID":
+    case "UNPAID":
       return "secondary";
     case "CANCELLED":
+    case "REFUNDED":
+    case "PARTIALLY_REFUNDED":
       return "destructive";
     default:
       return "outline";

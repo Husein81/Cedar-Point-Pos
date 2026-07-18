@@ -1,5 +1,5 @@
 import { ReportsFilterBar, SummaryGrid } from "@/components/reports";
-import { getPaymentReportColumns } from "@/constants/columns/reportsColumns";
+import { getPaymentReportColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import {
@@ -19,7 +19,7 @@ import type {
   DateRangePreset,
   PaymentTransactionRow,
   ReportListParams,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatCurrency,
   getDateRangeFromPreset,

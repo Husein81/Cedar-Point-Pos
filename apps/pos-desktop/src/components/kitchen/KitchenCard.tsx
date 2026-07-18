@@ -69,10 +69,17 @@ const KitchenCard = ({ order }: Props) => {
     };
   };
 
+  const mode =
+    order.status === "COMPLETED" ||
+    order.status === "CANCELLED" ||
+    order.status === "READY"
+      ? "hidden"
+      : "visible";
+
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm",
+        "flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm",
         "transition-all duration-200 hover:shadow-md",
         {
           "border-success": order.status === "COMPLETED",
@@ -81,19 +88,35 @@ const KitchenCard = ({ order }: Props) => {
       )}
     >
       {/* TOP HEADER */}
-      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-3 py-2">
-        <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-          <span className="font-semibold text-zinc-700">
-            {order.table?.tableNumber ?? "--"}
-          </span>
+      <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {order.table?.tableNumber ?? "--"}
+            </span>
 
-          <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
+            <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
+          </div>
+
+          {/* Order Type Badge */}
+          <Badge
+            variant="outline"
+            className="text-[10px] font-medium"
+          >
+            {order.type === "DINE_IN"
+              ? "Dine-In"
+              : order.type === "TAKEAWAY"
+                ? "Takeaway"
+                : order.type === "DELIVERY"
+                  ? "Delivery"
+                  : "Retail"}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">
-          <Icon name="ChefHat" className="size-3.5 text-zinc-400" />
+          <Icon name="ChefHat" className="size-3.5 text-muted-foreground" />
 
-          <span className="text-[11px] text-zinc-500">
+          <span className="text-[11px] text-muted-foreground">
             {order.user?.name || "Kitchen"}
           </span>
         </div>
@@ -103,14 +126,15 @@ const KitchenCard = ({ order }: Props) => {
       <div className="flex flex-1 flex-col gap-3 p-3">
         {/* STATUS */}
         <div className="flex items-center justify-between">
-          <div
+          <Badge
+            variant={order.status === "COMPLETED" ? "default" : "secondary"}
             className={cn(
-              "rounded-md bg-zinc-100 px-2 py-1 text-[11px] capitalize  font-medium text-zinc-600",
+              "rounded-md px-2 py-1 text-[11px] capitalize font-medium text-foreground",
               order.status === "COMPLETED" && "bg-success text-white",
             )}
           >
             {order.status.split("_").join(" ").toLocaleLowerCase()}
-          </div>
+          </Badge>
 
           <Activity mode={order.status === "COMPLETED" ? "hidden" : "visible"}>
             <div
@@ -143,13 +167,13 @@ const KitchenCard = ({ order }: Props) => {
               <div key={item.id} className="space-y-1">
                 {/* ITEM */}
                 <div className="flex items-start gap-2">
-                  <span className="min-w-[20px] text-sm font-semibold text-zinc-700">
+                  <span className="min-w-[20px] text-sm font-semibold text-muted-foreground">
                     {quantity}x
                   </span>
 
                   <p
                     className={cn(
-                      "text-sm font-medium leading-5 text-zinc-800",
+                      "text-sm font-medium leading-5 text-muted-foreground",
                       refundInfo?.isPartiallyRefunded && "text-amber-600",
                     )}
                   >
@@ -161,7 +185,7 @@ const KitchenCard = ({ order }: Props) => {
                 {item.modifiers && item.modifiers.length > 0 && (
                   <div className="ml-6 flex flex-col gap-1">
                     {item.modifiers.map((mod) => (
-                      <p key={mod.id} className="text-xs text-zinc-500">
+                      <p key={mod.id} className="text-xs text-muted-foreground">
                         - {mod.modifier?.name}
                       </p>
                     ))}
@@ -193,15 +217,7 @@ const KitchenCard = ({ order }: Props) => {
       </div>
 
       {/* FOOTER */}
-      <Activity
-        mode={
-          order.status === "COMPLETED" ||
-          order.status === "CANCELLED" ||
-          order.status === "READY"
-            ? "hidden"
-            : "visible"
-        }
-      >
+      <Activity mode={mode}>
         <div className="border-t border-zinc-100 p-3">
           <Button
             onClick={onActionButtonClick}

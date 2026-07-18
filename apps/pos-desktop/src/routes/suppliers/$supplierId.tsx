@@ -1,7 +1,8 @@
 import { DetailsSkeleton } from "@/components/common/DetailsSkeleton";
 import { SupplierInfo } from "@/components/supplier/SupplierInfo";
 import TitleBar from "@/components/title-bar";
-import { getPurchaseOrderColumns } from "@/constants/columns/supplierColumn";
+import { getPurchaseOrderColumns } from "@/components/supplier/supplierColumn";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
 import { Button, DataTable, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -62,7 +63,7 @@ function RouteComponent() {
     {
       title: "Last Purchase",
       value: supplier.lastPurchaseDate
-        ? new Date(supplier.lastPurchaseDate).toLocaleDateString("en-US", {
+        ? new Date(supplier.lastPurchaseDate).toLocaleDateString(DEFAULT_LOCALE, {
             month: "short",
             day: "numeric",
             year: "numeric",

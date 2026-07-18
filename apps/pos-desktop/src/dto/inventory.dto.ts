@@ -1,8 +1,6 @@
+import type { PaginationResponse } from "@repo/types";
 import { z } from "zod";
-
-/* -------------------------------------------------------------------------- */
-/*                               ENUMS / TYPES                                */
-/* -------------------------------------------------------------------------- */
+import { BranchSummarySchema, ProductSummarySchema } from "./common.dto";
 
 export const AdjustmentTypeSchema = z.enum([
   "STOCK_IN",
@@ -11,10 +9,6 @@ export const AdjustmentTypeSchema = z.enum([
 ]);
 
 export type AdjustmentType = z.infer<typeof AdjustmentTypeSchema>;
-
-/* -------------------------------------------------------------------------- */
-/*                             STOCK ADJUSTMENT                                */
-/* -------------------------------------------------------------------------- */
 
 export const StockAdjustmentSchema = z.object({
   branchId: z.string().min(1, "Branch ID is required"),
@@ -30,23 +24,6 @@ export const StockAdjustmentSchema = z.object({
 
 export type StockAdjustmentDto = z.infer<typeof StockAdjustmentSchema>;
 
-/* -------------------------------------------------------------------------- */
-/*                          INVENTORY WITH RELATIONS                           */
-/* -------------------------------------------------------------------------- */
-
-export const InventoryProductSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  sku: z.string().nullable(),
-  barcode: z.string().nullable(),
-});
-
-export const InventoryBranchSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-
 export const InventoryBaseSchema = z.object({
   id: z.string(),
   tenantId: z.string(),
@@ -58,15 +35,11 @@ export const InventoryBaseSchema = z.object({
 });
 
 export const InventoryWithProductSchema = InventoryBaseSchema.extend({
-  product: InventoryProductSchema,
-  branch: InventoryBranchSchema,
+  product: ProductSummarySchema,
+  branch: BranchSummarySchema,
 });
 
 export type InventoryWithProduct = z.infer<typeof InventoryWithProductSchema>;
-
-/* -------------------------------------------------------------------------- */
-/*                        ADJUSTMENT HISTORY QUERY                              */
-/* -------------------------------------------------------------------------- */
 
 export const AdjustmentHistoryQuerySchema = z.object({
   page: z.preprocess(Number, z.number().int().positive()).optional(),
@@ -82,22 +55,5 @@ export type AdjustmentHistoryQuery = z.infer<
   typeof AdjustmentHistoryQuerySchema
 >;
 
-/* -------------------------------------------------------------------------- */
-/*                         PAGINATED INVENTORY RESPONSE                        */
-/* -------------------------------------------------------------------------- */
-
-export const PaginationMetaSchema = z.object({
-  page: z.number().int().positive(),
-  limit: z.number().int().positive(),
-  totalCount: z.number().int().nonnegative(),
-  totalPages: z.number().int().nonnegative(),
-});
-
-export const PaginatedInventoryResponseSchema = z.object({
-  data: z.array(InventoryWithProductSchema),
-  pagination: PaginationMetaSchema,
-});
-
-export type PaginatedInventoryResponse = z.infer<
-  typeof PaginatedInventoryResponseSchema
->;
+export type PaginatedInventoryResponse =
+  PaginationResponse<InventoryWithProduct>;

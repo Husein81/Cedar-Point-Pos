@@ -7,7 +7,7 @@ import type {
   UpdateSupplierDto,
 } from "@/dto/supplier.dto";
 import type { PaginationResponse, QueryParams } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const supplierApi = {
   /**
@@ -15,7 +15,7 @@ export const supplierApi = {
    */
   searchSuppliers: async (
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<SupplierSummary[]> => {
     const response = await api.get("/suppliers/search", {
       params: { query, limit },
@@ -27,7 +27,7 @@ export const supplierApi = {
    * Get suppliers with pagination, sorting and filtering
    */
   getSuppliersPaginated: async (
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginationResponse<SupplierDetails>> => {
     const response = await api.get("/suppliers/paginated", {
       params,
@@ -48,7 +48,7 @@ export const supplierApi = {
    */
   getSupplierPurchaseOrders: async (
     id: string,
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginationResponse<SupplierPurchaseOrder>> => {
     const response = await api.get(`/suppliers/${id}/purchase-orders`, {
       params,
@@ -59,9 +59,7 @@ export const supplierApi = {
   /**
    * Create a new supplier
    */
-  createSupplier: async (
-    data: CreateSupplierDto
-  ): Promise<SupplierSummary> => {
+  createSupplier: async (data: CreateSupplierDto): Promise<SupplierSummary> => {
     const response = await api.post("/suppliers", data);
     return response.data;
   },
@@ -71,7 +69,7 @@ export const supplierApi = {
    */
   updateSupplier: async (
     id: string,
-    data: UpdateSupplierDto
+    data: UpdateSupplierDto,
   ): Promise<SupplierDetails> => {
     const response = await api.put(`/suppliers/${id}`, data);
     return response.data;

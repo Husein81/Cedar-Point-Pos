@@ -6,9 +6,9 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from "recharts";
-import { ChartContainer } from "../dashboard/ChartContainer";
+import { ChartCard } from "../dashboard/ChartCard";
 import { Empty } from "@repo/ui";
-import type { OrderStatusItem } from "@/types/reports";
+import type { OrderStatusItem } from "@/dto/reports.dto";
 
 interface OrdersByStatusChartProps {
     data: OrderStatusItem[];
@@ -20,14 +20,13 @@ interface OrdersByStatusChartProps {
 
 // Status colors mapping
 const STATUS_COLORS: Record<string, string> = {
-    PENDING: "#f59e0b",
-    CONFIRMED: "#3b82f6",
+    DRAFT: "#9ca3af",
+    PLACED: "#3b82f6",
     PREPARING: "#8b5cf6",
     READY: "#06b6d4",
+    SERVED: "#f59e0b",
     COMPLETED: "#22c55e",
     CANCELLED: "#ef4444",
-    REFUNDED: "#6b7280",
-    ON_HOLD: "#f97316",
 };
 
 const getStatusColor = (status: string, index: number) => {
@@ -59,7 +58,7 @@ export const OrdersByStatusChart = ({
     }));
 
     return (
-        <ChartContainer
+        <ChartCard
             title="Orders by Status"
             subtitle={`${totalOrders} total orders`}
             isLoading={isLoading}
@@ -126,6 +125,6 @@ export const OrdersByStatusChart = ({
                     </PieChart>
                 </ResponsiveContainer>
             )}
-        </ChartContainer>
+        </ChartCard>
     );
 };

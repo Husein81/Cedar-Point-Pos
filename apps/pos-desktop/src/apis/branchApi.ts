@@ -1,5 +1,5 @@
-import type { Branch } from "@repo/types";
-import { api } from "./api";
+import { Branch } from "@repo/types";
+import { api } from "../lib/api";
 
 export const branchApi = {
   getBranches: async (): Promise<Branch[]> => {

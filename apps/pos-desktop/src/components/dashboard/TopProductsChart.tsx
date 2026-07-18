@@ -1,16 +1,25 @@
+import { Empty } from "@repo/ui";
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { TopProductData } from "../../types/dashboard";
-import { ChartContainer } from "./ChartContainer";
-import { Empty } from "@repo/ui";
+import type { TopProductData } from "../../dto/dashboard.dto";
+import { formatCurrency } from "../../utils/reportHelpers";
+import { ChartCard } from "./ChartCard";
+import {
+  CHART_AXIS_TICK,
+  CHART_GRID_STROKE,
+  CHART_TOOLTIP_CONTENT_STYLE,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  formatAxisCurrency,
+  truncateLabel,
+} from "./chart-theme";
 
 type Props = {
   data: TopProductData[];
@@ -25,54 +34,70 @@ export const TopProductsChart = ({
   error,
   onRetry,
 }: Props) => {
-  const isEmpty = !data || data.length === 0;
+  const isEmpty = data.length === 0;
 
   return (
-    <ChartContainer
+    <ChartCard
       title="Top Selling Products"
-      subtitle="Best performers by units sold"
+      subtitle="Best performers by revenue, last 30 days"
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
     >
       {isEmpty ? (
-        <Empty description="No product data available" />
+        <div className="flex h-[300px] items-center justify-center">
+          <Empty
+            icon="ChartBar"
+            description="No product sales in this period"
+          />
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-            <XAxis type="number" tick={{ fontSize: 12 }} tickLine={false} />
+          <BarChart data={data} layout="vertical" barCategoryGap="30%">
+            <CartesianGrid
+              horizontal={false}
+              vertical
+              strokeDasharray="3 3"
+              stroke={CHART_GRID_STROKE}
+            />
+            <XAxis
+              type="number"
+              tick={CHART_AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={formatAxisCurrency}
+            />
             <YAxis
               dataKey="product"
               type="category"
-              width={100}
-              tick={{ fontSize: 12 }}
+              width={130}
+              tick={CHART_AXIS_TICK}
               tickLine={false}
+              axisLine={false}
+              tickFormatter={(product: string) => truncateLabel(product)}
             />
             <Tooltip
-              // @ts-expect-error - Recharts Formatter type compatibility
-              formatter={(value: number | undefined, name: string) => [
-                name === "sold"
-                  ? `${value ?? 0} units`
-                  : `$${(value ?? 0).toFixed(2)}`,
-                name === "sold" ? "Units Sold" : "Revenue",
-              ]}
-              contentStyle={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
+              cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+              formatter={(value, _name, item) => {
+                const product = (item as { payload?: TopProductData }).payload;
+                return [
+                  `${formatCurrency(Number(value) || 0)} · ${product?.sold ?? 0} units`,
+                  "Revenue",
+                ];
               }}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
             />
-            <Legend />
             <Bar
-              dataKey="sold"
-              fill="#8884d8"
-              radius={[0, 8, 8, 0]}
-              name="Units Sold"
+              dataKey="revenue"
+              fill="var(--chart-3)"
+              radius={[0, 4, 4, 0]}
+              name="Revenue"
             />
           </BarChart>
         </ResponsiveContainer>
       )}
-    </ChartContainer>
+    </ChartCard>
   );
 };

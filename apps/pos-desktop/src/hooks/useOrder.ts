@@ -18,7 +18,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "@repo/ui";
 
 const ORDER_QUERY_KEY = ["orders"];
@@ -37,6 +37,24 @@ export const useOrder = (id: string) => {
     queryFn: () => ordersApi.getOrder(id),
     enabled: !!id,
   });
+};
+
+/**
+ * Imperative one-off fetch of a single order (always fresh), for flows that
+ * need the latest server state before acting — e.g. split bill.
+ */
+export const useFetchOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (id: string): Promise<Order> =>
+      queryClient.fetchQuery({
+        queryKey: [...ORDER_QUERY_KEY, id],
+        queryFn: () => ordersApi.getOrder(id),
+        staleTime: 0,
+      }),
+    [queryClient],
+  );
 };
 
 export const useCreateOrder = () => {
@@ -342,6 +360,24 @@ export const useTableSelectorTransferOrder = (): UseMutationResult<
     conflict,
     clearConflict: () => setConflict(null),
   };
+};
+
+export const useSplitOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { originalOrder: Order; newOrder: Order },
+    Error,
+    { id: string; items: { itemId: string; quantity: number }[] },
+    unknown
+  >({
+    mutationFn: ({ id, items }) => ordersApi.splitOrder(id, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
+    },
+  });
 };
 
 export const useMergeOrders = () => {

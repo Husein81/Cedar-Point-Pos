@@ -4,8 +4,8 @@ import type {
   HourlyRevenueData,
   TopProductData,
   WeeklySalesData,
-} from "../types/dashboard";
-import { api } from "./api";
+} from "../dto/dashboard.dto";
+import { api } from "../lib/api";
 
 interface QueryParams {
   branchId?: string;

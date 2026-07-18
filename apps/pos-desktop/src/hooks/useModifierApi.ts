@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/apis/api";
+import { api } from "@/lib/api";
 import { Modifier } from "@/types/modifiers";
 
 const MODIFIER_QUERY_KEY = ["modifiers"];

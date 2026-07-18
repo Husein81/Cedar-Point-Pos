@@ -10,6 +10,7 @@ import {
   LoyaltyDirection,
   LoyaltyTransactionType,
   OrderStatus,
+  PaymentStatus,
   ShiftStatus,
 } from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
@@ -123,6 +124,7 @@ export class RefundsService {
       total: Number(order.total),
       subtotal: Number(order.subtotal),
       status: order.status,
+      paymentStatus: order.paymentStatus,
       paymentMethod: order.payments[0]?.method || null,
       customerName: order.customer?.name || null,
       itemCount: order.items.length,
@@ -240,9 +242,9 @@ export class RefundsService {
       0,
     );
 
-    // Check if order can be refunded (COMPLETED or PARTIALLY_REFUNDED)
-    const canRefund =
-      order.status === 'COMPLETED' || order.status === 'PARTIALLY_REFUNDED';
+    // Refunds only apply to closed orders; repeat-refund state lives on the
+    // payment axis, and a partially refunded order remains COMPLETED.
+    const canRefund = order.status === OrderStatus.COMPLETED;
 
     // Check if fully refunded
     const isFullyRefunded = itemsWithRefundInfo.every(
@@ -305,12 +307,12 @@ export class RefundsService {
       throw new NotFoundException('Order not found');
     }
 
-    if (
-      order.status !== OrderStatus.COMPLETED &&
-      order.status !== OrderStatus.PARTIALLY_REFUNDED
-    ) {
+    // Refunds only apply to closed orders. Repeat/partial refund state lives
+    // on the payment axis (paymentStatus), so a partially refunded order is
+    // still COMPLETED and passes this gate.
+    if (order.status !== OrderStatus.COMPLETED) {
       throw new BadRequestException(
-        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED or PARTIALLY_REFUNDED orders can be refunded.`,
+        `Orders with status "${order.status}" cannot be refunded. Only COMPLETED orders can be refunded.`,
       );
     }
 
@@ -647,21 +649,18 @@ export class RefundsService {
               );
             });
 
-            // Update order status based on refund state
+            // Refunds move the PAYMENT axis only — the order remains
+            // COMPLETED (a refunded sale still happened).
             if (isFullyRefunded) {
               await tx.order.update({
                 where: { id: orderId },
-                data: { status: OrderStatus.FULLY_REFUNDED },
+                data: { paymentStatus: PaymentStatus.REFUNDED },
               });
-            } else {
-              // Check if this is the first refund or additional partial refund
-              const hasAnyRefunds = refund.refundItems.length > 0;
-              if (hasAnyRefunds && order.status === OrderStatus.COMPLETED) {
-                await tx.order.update({
-                  where: { id: orderId },
-                  data: { status: OrderStatus.PARTIALLY_REFUNDED },
-                });
-              }
+            } else if (refund.refundItems.length > 0) {
+              await tx.order.update({
+                where: { id: orderId },
+                data: { paymentStatus: PaymentStatus.PARTIALLY_REFUNDED },
+              });
             }
 
             return {

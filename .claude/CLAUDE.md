@@ -297,7 +297,7 @@ Staff are `User` rows. Tenant-side management lives in `modules/staff/`; POS ter
 - `@Roles(...)` always takes `UserRole` enum constants, never raw strings — a typo in a string silently breaks authorization with no type error.
 
 ### Testing pure logic
-- Pure business-logic helpers (no Prisma, no DI) get a co-located `*.spec.ts` exercised as a decision table — `role-authorization.spec.ts` is the reference. Specs that use `@repo/types` runtime values rely on the Jest `moduleNameMapper` that points `@repo/types` at its TypeScript source (`apps/api/package.json`).
+- Pure business-logic helpers (no Prisma, no DI) get a co-located `*.spec.ts` exercised as a decision table — `role-authorization.spec.ts` is the reference. Specs that use `@repo/types` runtime values rely on the vitest `moduleNameMapper` that points `@repo/types` at its TypeScript source (`apps/api/package.json`).
 
 ---
 

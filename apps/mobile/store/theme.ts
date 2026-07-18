@@ -1,47 +1,49 @@
-import { create } from "zustand";
-import { persist, StorageValue } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Appearance } from "react-native";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+export type ThemeMode = "light" | "dark" | "system";
 
 type State = {
-  theme: "light" | "dark" | "system";
+  theme: ThemeMode;
   isDark?: boolean;
 };
 
 type Actions = {
-  setTheme: (theme: State["theme"]) => void;
+  setTheme: (theme: ThemeMode) => void;
+  initializeTheme: () => void;
 };
 
-const asyncStorageAdapter = {
-  getItem: async (
-    name: string,
-  ): Promise<StorageValue<State & Actions> | null> => {
-    const item = await AsyncStorage.getItem(name);
-    return item ? JSON.parse(item) : null;
-  },
-  setItem: async (
-    name: string,
-    value: StorageValue<State & Actions>,
-  ): Promise<void> => {
-    await AsyncStorage.setItem(name, JSON.stringify(value));
-  },
-  removeItem: async (name: string): Promise<void> => {
-    await AsyncStorage.removeItem(name);
-  },
-};
+const asyncStorage = createJSONStorage(() => AsyncStorage);
+
+const getSystemIsDark = () => Appearance.getColorScheme() === "dark";
+
+const resolveIsDark = (theme: ThemeMode) =>
+  theme === "system" ? getSystemIsDark() : theme === "dark";
 
 export const useThemeStore = create<State & Actions>()(
   persist(
-    (set) => ({
-      theme: "dark",
-      isDark: false,
-      setTheme: async (theme) => {
-        await AsyncStorage.setItem("mobile-theme", theme);
-        set({ theme, isDark: theme === "dark" });
+    (set, get) => ({
+      theme: "light",
+      isDark: getSystemIsDark(),
+      setTheme: (theme) => {
+        const isDark = resolveIsDark(theme);
+        set({ theme, isDark });
+        Appearance.setColorScheme(theme === "system" ? null : theme);
+      },
+      initializeTheme: () => {
+        set({ isDark: resolveIsDark(get().theme) });
       },
     }),
     {
       name: "mobile-theme",
-      storage: asyncStorageAdapter,
+      storage: asyncStorage,
     },
   ),
 );
+
+Appearance.addChangeListener(() => {
+  const { theme, initializeTheme } = useThemeStore.getState();
+  if (theme === "system") initializeTheme();
+});

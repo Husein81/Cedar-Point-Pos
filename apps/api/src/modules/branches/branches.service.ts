@@ -12,6 +12,19 @@ export class BranchesService {
 
   async createBranch(data: Prisma.BranchCreateInput) {
     try {
+      // TODO: Modify when we add the subscription plan to limit the number of branches per tenant. For now, we will limit it to 4 branches per tenant.
+      const tenantId = (data.tenant as { connect: { id: string } }).connect.id;
+
+      const branches = await this.prisma.branch.findMany({
+        where: { tenantId },
+      });
+
+      if (branches.length >= 4) {
+        throw new InternalServerErrorException(
+          `Cannot create more than 4 branches for tenant ${tenantId}`,
+        );
+      }
+
       await this.prisma.branch.create({
         data,
       });

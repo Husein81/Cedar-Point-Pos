@@ -3,32 +3,39 @@ export const statusConfig: Record<
   { label: string; color: string; icon: string }
 > = {
   DRAFT: { label: "Draft", color: "bg-gray-500", icon: "FileEdit" },
-  ON_HOLD: { label: "On Hold", color: "bg-amber-500", icon: "PauseCircle" },
-  PENDING: { label: "Pending", color: "bg-blue-500", icon: "Clock" },
-  CONFIRMED: { label: "Confirmed", color: "bg-cyan-500", icon: "CircleCheck" },
-  IN_PROGRESS: { label: "In Progress", color: "bg-indigo-500", icon: "Loader" },
-  SENT_TO_KITCHEN: {
-    label: "In Kitchen",
-    color: "bg-purple-500",
-    icon: "ChefHat",
-  },
+  PLACED: { label: "Placed", color: "bg-purple-500", icon: "ChefHat" },
+  PREPARING: { label: "Preparing", color: "bg-indigo-500", icon: "Loader" },
   READY: { label: "Ready", color: "bg-green-500", icon: "Package" },
+  SERVED: { label: "Served", color: "bg-cyan-500", icon: "Utensils" },
   COMPLETED: {
     label: "Completed",
     color: "bg-emerald-600",
     icon: "CheckCheck",
   },
+  CANCELLED: { label: "Cancelled", color: "bg-red-500", icon: "XCircle" },
+};
+
+export const paymentStatusConfig: Record<
+  string,
+  { label: string; color: string; icon: string }
+> = {
+  UNPAID: { label: "Unpaid", color: "bg-orange-500", icon: "Clock" },
+  PARTIALLY_PAID: {
+    label: "Partially Paid",
+    color: "bg-amber-500",
+    icon: "WalletCards",
+  },
+  PAID: { label: "Paid", color: "bg-emerald-600", icon: "Wallet" },
   PARTIALLY_REFUNDED: {
     label: "Partially Refunded",
     color: "bg-amber-600",
     icon: "RotateCcw",
   },
-  FULLY_REFUNDED: {
-    label: "Fully Refunded",
-    color: "bg-purple-600",
+  REFUNDED: {
+    label: "Refunded",
+    color: "bg-red-600",
     icon: "RotateCcw",
   },
-  CANCELLED: { label: "Cancelled", color: "bg-red-500", icon: "XCircle" },
 };
 
 export const orderTypeConfig: Record<string, { label: string; icon: string }> =

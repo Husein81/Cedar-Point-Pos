@@ -98,7 +98,9 @@ export function useOrderActions() {
         ...(orderType === OrderType.DINE_IN && active.tableId
           ? { tableId: active.tableId }
           : {}),
-        ...(active.guestCount !== undefined && { guestCount: active.guestCount }),
+        ...(active.guestCount !== undefined && {
+          guestCount: active.guestCount,
+        }),
         items: active.items.map(toItemDto),
         ...(discount > 0 && { discount }),
       };
@@ -182,7 +184,9 @@ export function useOrderActions() {
           if (!dto) return;
 
           // Generate a local order number in offline mode
-          const localOrderNumber = active.orderNumber || (branch ? generateLocalOrderNumber(branch.name) : "DRAFT");
+          const localOrderNumber =
+            active.orderNumber ||
+            (branch ? generateLocalOrderNumber(branch.name) : "DRAFT");
 
           setLastCompletedOrder({
             order: active,
@@ -416,7 +420,7 @@ export function useOrderActions() {
             type: "UPDATE_ORDER_STATUS",
             localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             label,
-            payload: { orderId: active.id, status: OrderStatus.PENDING },
+            payload: { orderId: active.id, status: OrderStatus.PLACED },
           });
         } else {
           enqueue({
@@ -442,7 +446,7 @@ export function useOrderActions() {
 
           await updateOrderStatus.mutateAsync({
             id: orderId,
-            status: OrderStatus.PENDING,
+            status: OrderStatus.PLACED,
           });
 
           toast.success("Order confirmed");
@@ -496,7 +500,6 @@ export function useOrderActions() {
     if (active.type === OrderType.DELIVERY && !active.customerId) return;
     if (active.type === OrderType.DELIVERY && !active.customerAddress) return;
 
-    const unsentCount = unsentItems.length;
     const wasLoadedOrder = isLoadedOrder(active);
 
     // Optimistic: mark sent immediately
@@ -522,10 +525,7 @@ export function useOrderActions() {
         }
 
         const result = await sendToKitchen.mutateAsync(orderId);
-        setOrderStatus((result?.status ?? OrderStatus.PENDING) as OrderStatus);
-        toast.success(
-          `Kitchen confirmed ${unsentCount} item${unsentCount !== 1 ? "s" : ""}`,
-        );
+        setOrderStatus((result?.status ?? OrderStatus.PLACED) as OrderStatus);
       } catch (error) {
         toast.error(extractErrorMessage(error, "Kitchen sync failed"));
       }

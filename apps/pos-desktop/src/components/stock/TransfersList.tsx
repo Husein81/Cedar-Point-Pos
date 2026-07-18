@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { useTransfers } from "@/hooks/useTransfers";
-import { useBranchStore } from "@/store/branchStore";
-import { useModalStore } from "@/store/modalStore";
-import { DataTable, Button } from "@repo/ui";
-import { transferColumns } from "@/constants/columns/transferColumn";
+import { transferColumns } from "@/components/stock/columns";
 import { TransferForm } from "@/components/stock/TransferForm";
-import { ArrowLeftRight } from "lucide-react";
+import { usePaginationState } from "@/hooks/usePaginationState";
+import { useTransfers } from "@/hooks/useTransfers";
+import { useModalStore } from "@/store/modalStore";
+import { Button, DataTable } from "@repo/ui";
 
 export function TransfersList() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const { page, setPage, pageSize, onPageSizeChange } = usePaginationState({});
 
-  const { branchId } = useBranchStore();
   const { openModal } = useModalStore();
 
-  const { data: response, isLoading, refetch } = useTransfers({
+  const {
+    data: response,
+    isLoading,
+    refetch,
+  } = useTransfers({
     page: String(page),
     limit: String(pageSize),
   });
@@ -27,13 +27,8 @@ export function TransfersList() {
     openModal(
       "New Transfer",
       <TransferForm />,
-      "Transfer inventory products to another branch"
+      "Transfer inventory products to another branch",
     );
-  };
-
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setPage(1);
   };
 
   return (
@@ -53,7 +48,7 @@ export function TransfersList() {
         pageSize,
         totalPages,
         onPageChange: setPage,
-        onPageSizeChange: handlePageSizeChange,
+        onPageSizeChange,
       }}
     />
   );

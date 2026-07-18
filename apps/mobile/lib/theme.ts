@@ -1,68 +1,69 @@
 import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
+import { useThemeStore } from "@/store/theme";
 
 export const LIGHT_NAV_THEME = {
-  background: "#F7F9FC",
-  foreground: "#1A202C",
-  card: "#FFFFFF",
-  border: "#E2E8F0",
+  background: "#FBF9F9",
+  foreground: "#262626",
+  card: "#FDFCFC",
+  border: "#E5E0E0",
 
-  primary: "#525FF9",
-  primaryForeground: "#FFFFFF",
+  primary: "#0019FF",
+  primaryForeground: "#FDFCFC",
 
-  accent: "#525FF9",
+  accent: "#1D5BD6",
 
-  muted: "#F0F2F7",
-  mutedForeground: "#64748B",
+  muted: "#F0EDED",
+  mutedForeground: "#72696C",
 
-  success: "#22C55E",
-  warning: "#EAB308",
-  info: "#3B82F6",
-  destructive: "#EF4444",
+  success: "#A3E635",
+  warning: "#F5D231",
+  info: "#2D83E6",
+  destructive: "#D84747",
 
-  sidebar: "#F5F7FA",
-  sidebarForeground: "#1A202C",
+  sidebar: "#F8F5F6",
+  sidebarForeground: "#262626",
 
-  ring: "#525FF9",
+  ring: "#0019FF",
 
   chart: {
-    c1: "#525FF9",
-    c2: "#3B82F6",
-    c3: "#4C6EF5",
-    c4: "#EAB308",
-    c5: "#22C55E",
+    c1: "#0019FF",
+    c2: "#67B26F",
+    c3: "#EDC536",
+    c4: "#9966CC",
+    c5: "#E05555",
   },
 };
 
 export const DARK_NAV_THEME = {
-  background: "#031128",
-  foreground: "#F1F5F9",
-  card: "#0F172A",
-  border: "#334155",
+  background: "#1F1717",
+  foreground: "#FBF9F9",
+  card: "#2A1F1F",
+  border: "#403C3C",
 
-  primary: "#5D9EFF",
-  primaryForeground: "#031128",
+  primary: "#8CB3FF",
+  primaryForeground: "#FDFCFC",
 
-  accent: "#525FF9",
+  accent: "#0019FF",
 
-  muted: "#1E293B",
-  mutedForeground: "#94A3B8",
+  muted: "#382F2F",
+  mutedForeground: "#B2A8A8",
 
-  success: "#16A34A",
-  warning: "#CA8A04",
-  info: "#3B82F6",
-  destructive: "#B91C1C",
+  success: "#98D82E",
+  warning: "#E5C030",
+  info: "#2D83E6",
+  destructive: "#7C3636",
 
-  sidebar: "#020C1C",
-  sidebarForeground: "#F1F5F9",
+  sidebar: "#19131B",
+  sidebarForeground: "#FBF9F9",
 
-  ring: "#5D9EFF",
+  ring: "#8CB3FF",
 
   chart: {
-    c1: "#5D9EFF",
-    c2: "#525FF9",
-    c3: "#4C6EF5",
-    c4: "#CA8A04",
-    c5: "#16A34A",
+    c1: "#8CB3FF",
+    c2: "#75BF7F",
+    c3: "#F0D96E",
+    c4: "#A87DC4",
+    c5: "#E07A7A",
   },
 };
 
@@ -94,4 +95,10 @@ export const NAV_THEME: Record<"light" | "dark", Theme> = {
       text: THEME.dark.foreground,
     },
   },
+};
+
+/** Resolves the active palette for the current mode — the single source of truth for native (non-Tailwind) colors. */
+export const useAppTheme = () => {
+  const isDark = useThemeStore((s) => s.isDark);
+  return isDark ? THEME.dark : THEME.light;
 };

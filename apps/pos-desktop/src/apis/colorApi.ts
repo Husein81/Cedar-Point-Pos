@@ -1,5 +1,5 @@
 import type { Color } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const getColors = async (): Promise<Color[]> => {
   const response = await api.get("/colors");

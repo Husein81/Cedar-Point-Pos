@@ -1,6 +1,6 @@
 import { CurrencyForm } from "@/components/currency/CurrencyForm";
 import TitleBar from "@/components/title-bar";
-import { getCurrencyColumns } from "@/constants/columns/currencyColumn";
+import { getCurrencyColumns } from "@/components/currency/currencyColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable, Icon, Badge } from "@repo/ui";

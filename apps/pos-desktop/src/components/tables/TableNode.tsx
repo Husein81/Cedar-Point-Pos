@@ -9,14 +9,17 @@ import {
   formatElapsedSince,
   formatTableMoney,
   getTableSize,
-  MENU_BY_STATUS,
+  getVisibleMenuEntries,
 } from "./config";
 
 export type TableNodeAction =
   | "open"
+  | "free"
   | "seat"
   | "reserve"
   | "unreserve"
+  | "serve"
+  | "pay"
   | "complete"
   | "transfer"
   | "edit"
@@ -185,8 +188,10 @@ export const TableNode = memo(function TableNode({
   // Editor mode: raw node (no context menu, drag owns the pointer).
   if (isEditing) return node;
 
-  const entries = MENU_BY_STATUS[uiStatus].filter(
-    (entry) => !entry.managerOnly || canManage,
+  const entries = getVisibleMenuEntries(
+    uiStatus,
+    canManage,
+    order?.paymentStatus,
   );
 
   return (

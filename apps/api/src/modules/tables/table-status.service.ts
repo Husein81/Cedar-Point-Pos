@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { ACTIVE_ORDER_STATUSES } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   TableStatus,
@@ -15,13 +16,10 @@ import {
 export class TableStatusService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Canonical list from @repo/types — a SERVED (even fully paid) order keeps
+  // its table in service until the order is COMPLETED or CANCELLED.
   private readonly ACTIVE_ORDER_STATUSES: OrderStatus[] = [
-    OrderStatus.DRAFT,
-    OrderStatus.PENDING,
-    OrderStatus.CONFIRMED,
-    OrderStatus.IN_PROGRESS,
-    OrderStatus.SENT_TO_KITCHEN,
-    OrderStatus.READY,
+    ...ACTIVE_ORDER_STATUSES,
   ];
 
   async updateTableStatus(

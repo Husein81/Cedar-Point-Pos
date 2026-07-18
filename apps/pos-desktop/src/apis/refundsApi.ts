@@ -7,7 +7,7 @@ import {
   RefundHistory,
 } from "@/dto/refund.dto";
 import type { PaginationResponse, Refund } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const refundsApi = {
   // Get refundable info for an order
@@ -21,7 +21,6 @@ export const refundsApi = {
     filters?: RefundableOrdersFilters,
   ): Promise<PaginationResponse<RefundableOrderSummary>> => {
     const response = await api.get("/refunds/orders", { params: filters });
-    console.log(response.data);
     return response.data;
   },
 

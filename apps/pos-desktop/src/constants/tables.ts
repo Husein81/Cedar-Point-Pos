@@ -7,38 +7,6 @@ export const TABLE_CONSTANTS = {
 } as const;
 
 /**
- * Toast notification messages
- */
-export const TOAST_MESSAGES = {
-  TABLE: {
-    CREATED: (name: string) => `Table "${name}" created successfully`,
-    UPDATED: (name: string) => `Table "${name}" updated successfully`,
-    DELETED: "Table deleted successfully",
-    STATUS_UPDATED: (status: string) =>
-      `Table status updated to ${status.toLowerCase()}`,
-    DELETE_WITH_ORDERS: "Cannot delete table with active orders",
-  },
-  FLOOR: {
-    CREATED: (name: string) => `Floor "${name}" created successfully`,
-    UPDATED: (name: string) => `Floor "${name}" updated successfully`,
-    DELETED: "Floor deleted successfully. Tables have been unassigned.",
-    DELETE_WITH_TABLES: "Cannot delete floor with active tables",
-  },
-  ERROR: {
-    LOAD_TABLES: "Failed to load tables",
-    CREATE_TABLE: "Failed to create table",
-    UPDATE_TABLE: "Failed to update table",
-    DELETE_TABLE: "Failed to delete table",
-    UPDATE_STATUS: "Failed to update table status",
-    LOAD_FLOORS: "Failed to load floors",
-    CREATE_FLOOR: "Failed to create floor",
-    UPDATE_FLOOR: "Failed to update floor",
-    DELETE_FLOOR: "Failed to delete floor",
-    NO_BRANCH: "Please select a branch to manage tables",
-  },
-} as const;
-
-/**
  * React Query configuration constants
  * Centralizes cache and retry settings
  */

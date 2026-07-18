@@ -36,22 +36,78 @@ export const OrderType = {
 } as const;
 export type OrderType = (typeof OrderType)[keyof typeof OrderType];
 
+/**
+ * Fulfillment status — tracks the order's journey through service.
+ * Payment state lives on the independent PaymentStatus axis, never here.
+ */
 export const OrderStatus = {
-  DRAFT: "DRAFT", // New: For orders being built on the POS
-  ON_HOLD: "ON_HOLD", // Held by cashier
-  CONFIRMED: "CONFIRMED", // Restaurant: Order confirmed by staff
-  IN_PROGRESS: "IN_PROGRESS", // Restaurant: Order being prepared
-  PENDING: "PENDING", // Order created but not processed
-  SENT_TO_KITCHEN: "SENT_TO_KITCHEN", // Order sent to kitchen/bar
-  READY: "READY", // Ready for pickup/serve
-  PAID: "PAID", // Payment received, inventory deducted
-  PARTIALLY_PAID: "PARTIALLY_PAID", // Partial payment received
-  COMPLETED: "COMPLETED", // Order fully completed
-  PARTIALLY_REFUNDED: "PARTIALLY_REFUNDED", // Order partially refunded
-  FULLY_REFUNDED: "FULLY_REFUNDED", // Order fully refunded
-  CANCELLED: "CANCELLED",
+  DRAFT: "DRAFT", // Being built on the POS; not visible to kitchen
+  PLACED: "PLACED", // Committed: sent to kitchen (restaurant) or confirmed unpaid (retail credit sale)
+  PREPARING: "PREPARING", // Kitchen actively cooking
+  READY: "READY", // On the pass, awaiting runner / pickup
+  SERVED: "SERVED", // Food delivered; guests dining, bill open (dine-in)
+  COMPLETED: "COMPLETED", // Closed: paid in full and service finished
+  CANCELLED: "CANCELLED", // Aborted pre-completion; audited when post-fire
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+
+/**
+ * Payment status — derived server-side from sum(payments)/sum(refunds) vs
+ * total. Never set directly by a client.
+ */
+export const PaymentStatus = {
+  UNPAID: "UNPAID",
+  PARTIALLY_PAID: "PARTIALLY_PAID",
+  PAID: "PAID",
+  PARTIALLY_REFUNDED: "PARTIALLY_REFUNDED",
+  REFUNDED: "REFUNDED",
+} as const;
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+
+/** Kitchen ticket lifecycle (OrderItemTicket.status). */
+export const TicketStatus = {
+  QUEUED: "QUEUED",
+  PREPARING: "PREPARING",
+  READY: "READY",
+} as const;
+export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
+
+/**
+ * THE single source of truth for "this order keeps its table in service /
+ * counts as open". COMPLETED and CANCELLED are the only exits.
+ */
+export const ACTIVE_ORDER_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.DRAFT,
+  OrderStatus.PLACED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY,
+  OrderStatus.SERVED,
+] as const;
+
+/** Terminal statuses — no transitions out, order is locked. */
+export const TERMINAL_ORDER_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.COMPLETED,
+  OrderStatus.CANCELLED,
+] as const;
+
+/**
+ * Statuses in which items may still be added to a restaurant order
+ * (new items fire fresh kitchen tickets). Removing/decreasing already-sent
+ * items is a manager action. Retail orders are only editable in DRAFT.
+ */
+export const EDITABLE_ORDER_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.DRAFT,
+  OrderStatus.PLACED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY,
+  OrderStatus.SERVED,
+] as const;
+
+/** Payment states that still owe money (drives "debts" reporting). */
+export const OWING_PAYMENT_STATUSES: readonly PaymentStatus[] = [
+  PaymentStatus.UNPAID,
+  PaymentStatus.PARTIALLY_PAID,
+] as const;
 
 export const SortOrder = {
   ASC: "asc",
@@ -218,6 +274,23 @@ export const TableShape = {
   CUSTOM: "CUSTOM",
 } as const;
 export type TableShape = (typeof TableShape)[keyof typeof TableShape];
+
+/**
+ * Default footprint (px on the POS floor plan, also written to Table.width/
+ * height on create/shape-change) for each shape. Single source of truth for
+ * both the API (tables.service.ts) and POS desktop (components/tables/config.ts)
+ * so a table's size resets to a sane default whenever its shape changes.
+ */
+export const TABLE_SHAPE_DEFAULT_SIZE: Record<
+  TableShape,
+  { width: number; height: number }
+> = {
+  RECTANGLE: { width: 168, height: 120 },
+  SQUARE: { width: 136, height: 136 },
+  CIRCLE: { width: 148, height: 148 },
+  OVAL: { width: 176, height: 112 },
+  CUSTOM: { width: 160, height: 120 },
+};
 
 export const PurchaseOrderStatus = {
   PENDING: "PENDING",

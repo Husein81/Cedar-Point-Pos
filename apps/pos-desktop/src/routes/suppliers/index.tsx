@@ -1,6 +1,6 @@
 import { SupplierForm } from "@/components/supplier/SupplierForm";
 import TitleBar from "@/components/title-bar";
-import { getSupplierColumns } from "@/constants/columns/supplierColumn";
+import { getSupplierColumns } from "@/components/supplier/supplierColumn";
 import { useSuppliersPaginated } from "@/hooks/useSupplier";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";

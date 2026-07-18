@@ -1,6 +1,6 @@
 import { PurchaseOrderForm } from "@/components/purchase-orders/PurchaseOrderForm";
 import TitleBar from "@/components/title-bar";
-import { getPurchaseOrdersColumns } from "@/constants/columns/purchaseOrderColumn";
+import { getPurchaseOrdersColumns } from "@/components/purchase-orders/purchaseOrderColumn";
 import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { usePurchaseOrdersPaginated } from "@/hooks/usePurchaseOrder";

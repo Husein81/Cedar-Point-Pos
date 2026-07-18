@@ -7,17 +7,26 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  ACTIVE_ORDER_STATUSES,
   BusinessType,
   CashMovementReferenceType,
   CashMovementType,
+  EDITABLE_ORDER_STATUSES,
   LoyaltyDirection,
   LoyaltyTransactionType,
   OrderStatus,
   OrderType,
+  PaymentStatus,
   QueryParams,
   ShiftStatus,
+  TicketStatus,
+  UserRole,
 } from '@repo/types';
 import { PaymentMethod, Prisma } from '../../generated/prisma/client.js';
+import {
+  assertRoleCanTransition,
+  assertTransition,
+} from './order-status.js';
 import { LoyaltyMath } from '../../utils/loyalty-math.util.js';
 import { InventoryDeductionService } from '../inventory/inventory-deduction.service.js';
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
@@ -27,6 +36,7 @@ import { TableStatusService } from '../tables/table-status.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import type { CreateOrderDto, PaymentDto } from './dto/create-order.dto.js';
+import type { SplitOrderItemDto } from './dto/split-order.dto.js';
 
 type OrderQueryParams = QueryParams & {
   status?: OrderStatus;
@@ -66,6 +76,7 @@ export class OrdersService {
     private readonly offersService: OffersService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
   private round(v: number) {
     return Math.round((v + Number.EPSILON) * 100) / 100;
   }
@@ -122,7 +133,8 @@ export class OrdersService {
 
     return {
       orderId,
-      status: order?.status || OrderStatus.PENDING,
+      status: order?.status || OrderStatus.PLACED,
+      paymentStatus: this.derivePaymentStatus(totalPaid, totalDue),
       totalDue,
       paid: this.money(Math.min(totalPaid, totalDue)),
       remaining: this.money(Math.max(0, totalDue - totalPaid)),
@@ -135,61 +147,50 @@ export class OrdersService {
     };
   }
 
-  private validateTransition(
-    businessType: BusinessType,
-    current: OrderStatus,
-    next: OrderStatus,
-  ) {
-    // Retail: DRAFT → ON_HOLD/PENDING/COMPLETED/CANCELLED
-    const retail: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      DRAFT: [
-        OrderStatus.ON_HOLD,
-        OrderStatus.PENDING,
-        OrderStatus.COMPLETED,
-        OrderStatus.CANCELLED,
-      ],
-      ON_HOLD: [OrderStatus.DRAFT, OrderStatus.CANCELLED],
-      PENDING: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
-      COMPLETED: [],
-      CANCELLED: [],
-    };
-
-    // Restaurant: DRAFT → (CONFIRMED) → SENT_TO_KITCHEN → IN_PROGRESS → READY → COMPLETED
-    const restaurant: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      DRAFT: [
-        OrderStatus.CONFIRMED,
-        OrderStatus.SENT_TO_KITCHEN,
-        OrderStatus.CANCELLED,
-      ],
-      CONFIRMED: [OrderStatus.IN_PROGRESS, OrderStatus.SENT_TO_KITCHEN],
-      SENT_TO_KITCHEN: [OrderStatus.IN_PROGRESS],
-      IN_PROGRESS: [OrderStatus.READY],
-      READY: [OrderStatus.COMPLETED],
-      PAID: [OrderStatus.COMPLETED],
-      PARTIALLY_PAID: [OrderStatus.COMPLETED],
-      COMPLETED: [],
-      CANCELLED: [],
-    };
-
-    const map = businessType === BusinessType.RESTAURANT ? restaurant : retail;
-
-    if (current === next) return;
-
-    const allowed = map[current] ?? [];
-
-    if (!allowed.includes(next)) {
-      throw new BadRequestException(
-        `Invalid ${businessType} transition: ${current} → ${next}`,
-      );
-    }
+  /**
+   * Payment axis derivation — the ONLY way paymentStatus is computed.
+   * Refund states are written exclusively by RefundsService.
+   */
+  private derivePaymentStatus(
+    paidBase: number,
+    totalDue: number,
+  ): PaymentStatus {
+    if (totalDue <= 0) return PaymentStatus.PAID;
+    if (paidBase <= 0) return PaymentStatus.UNPAID;
+    if (paidBase >= totalDue) return PaymentStatus.PAID;
+    return PaymentStatus.PARTIALLY_PAID;
   }
 
-  private async validateShiftAndDevice(
-    tenantId: string,
-    branchId: string,
-    shiftId?: string | null,
-    deviceId?: string | null,
+  /** Audit row for a fulfillment transition; call inside the same tx. */
+  private async recordTransition(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    from: OrderStatus,
+    to: OrderStatus,
+    userId?: string | null,
   ) {
+    if (from === to) return;
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId,
+        from,
+        to,
+        userId: userId && userId !== 'SYSTEM' ? userId : null,
+      },
+    });
+  }
+
+  private async validateShiftAndDevice({
+    tenantId,
+    branchId,
+    shiftId,
+    deviceId,
+  }: {
+    tenantId: string;
+    branchId: string;
+    shiftId?: string | null;
+    deviceId?: string | null;
+  }) {
     if (!shiftId && !deviceId) return;
 
     if (shiftId) {
@@ -227,11 +228,10 @@ export class OrdersService {
     }
   }
 
-  /* ----------------------------------------------------
-     CREATE
-  ---------------------------------------------------- */
-
-  async create(tenantId: string, userId: string, dto: CreateOrderDto) {
+  async create(
+    { tenantId, userId }: { tenantId: string; userId: string },
+    dto: CreateOrderDto,
+  ) {
     const {
       branchId,
       type,
@@ -412,7 +412,12 @@ export class OrdersService {
 
     const total = this.round(subtotalAfterDiscountAndShipping + vatAmount);
 
-    await this.validateShiftAndDevice(tenantId, branchId, shiftId, deviceId);
+    await this.validateShiftAndDevice({
+      tenantId,
+      branchId,
+      shiftId,
+      deviceId,
+    });
 
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
@@ -539,15 +544,58 @@ export class OrdersService {
             refundItems: true,
           },
         },
+        user: true,
+        table: true,
+        customer: true,
         refunds: true,
         payments: true,
       },
     });
     if (!order) throw new NotFoundException('Order not found');
-    return order;
+
+    const paidAmount = order.payments
+      ? order.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+      : 0;
+
+    return {
+      id: order.id,
+      status: order.status,
+      type: order.type,
+      items: order.items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.product.name,
+        price: Number(item.unitPrice),
+        quantity: Number(item.quantity),
+        notes: item.notes,
+        imageUrl: item.product.imageUrl,
+        modifiers: item.modifiers?.map((m) => ({
+          id: m.id,
+          modifierId: m.modifierId,
+          name: m.modifier.name,
+          price: m.price ? Number(m.price) : 0,
+        })),
+        discount: item.discount as any,
+        sentToKitchen: false,
+      })),
+      discount: null,
+      shippingFee: Number(order.shippingFee || 0),
+      includeVAT: order.includeVAT,
+      paidAmount,
+      customerId: order.customerId,
+      customerName: order.customer?.name || null,
+      customerAddress: order.customer?.address || null,
+      tableId: order.tableId,
+      tableName: order.table?.tableNumber ? `Table ${order.table.tableNumber}` : null,
+      guestCount: order.guestCount || undefined,
+      notes: '',
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      modifiedAt: order.createdAt,
+    };
   }
 
-  async getNextOrderNumber(tenantId: string, branchId: string) {
+  async getNextOrderNumber(branchId: string) {
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
       select: { name: true },
@@ -626,16 +674,19 @@ export class OrdersService {
     };
   }
 
-  /* ----------------------------------------------------
-     STATUS UPDATE
-  ---------------------------------------------------- */
-
-  async updateStatus(
-    tenantId: string,
-    orderId: string,
-    nextStatus: OrderStatus,
-    userId: string,
-  ) {
+  async updateStatus({
+    tenantId,
+    orderId,
+    nextStatus,
+    userId,
+    actorRole,
+  }: {
+    tenantId: string;
+    orderId: string;
+    nextStatus: OrderStatus;
+    userId: string;
+    actorRole?: UserRole;
+  }) {
     // Phase 1: Atomic status update + table status
     const updated = await this.prisma.$transaction(async (tx) => {
       // Get order with table info
@@ -643,6 +694,7 @@ export class OrdersService {
         where: { id: orderId, tenantId },
         select: {
           status: true,
+          paymentStatus: true,
           tableId: true,
           branchId: true,
           total: true,
@@ -654,43 +706,47 @@ export class OrdersService {
 
       if (!order) throw new NotFoundException('Order not found');
 
-      this.validateTransition(
-        order.tenant.businessType,
-        order.status,
-        nextStatus,
-      );
+      assertTransition(order.tenant.businessType, order.status, nextStatus);
+      if (actorRole) {
+        assertRoleCanTransition(actorRole, order.status, nextStatus);
+      }
 
-      // Guard: order must be fully paid before marking COMPLETED
-      // EXCEPT for restaurant orders being completed (e.g. from the kitchen),
-      // as they are typically paid after service.
-      if (
-        nextStatus === OrderStatus.COMPLETED &&
-        order.tenant.businessType !== BusinessType.RESTAURANT
-      ) {
-        const totalPaid = order.payments.reduce(
-          (sum, p) => sum.add(p.amount),
-          new Prisma.Decimal(0),
-        );
+      // Guard: an order must be fully paid before it can be COMPLETED.
+      // Applies to BOTH business types — unpaid closures are an explicit
+      // manager CANCELLED (write-off), never a silent unpaid completion.
+      //
+      // Trust the derived paymentStatus (set authoritatively by the payment
+      // flow) rather than re-deriving from raw Decimal sums here — the two
+      // used different rounding, so a genuinely-paid order could round to
+      // PAID on the payment axis yet fail a full-precision `<` recheck.
+      // A fully-comped order (nothing due, e.g. 100% loyalty) is settled by
+      // definition even if no payment row was ever written.
+      if (nextStatus === OrderStatus.COMPLETED) {
         const loyaltyDiscount =
           order.loyaltyRedeemedAmount ?? new Prisma.Decimal(0);
-        const totalDue = order.total.sub(loyaltyDiscount);
-        if (totalPaid.lt(totalDue)) {
-          throw new BadRequestException(
-            'Order cannot be completed: payment has not been fully settled',
-          );
+        const nothingDue = order.total.sub(loyaltyDiscount).lte(0);
+        if (order.paymentStatus !== PaymentStatus.PAID && !nothingDue) {
+          throw new BadRequestException({
+            message:
+              'Order cannot be completed: payment has not been fully settled',
+            code: 'ORDER_NOT_PAID',
+          });
         }
       }
 
-      // Update order status
+      // Update order status (+ lifecycle timestamps)
+      const now = new Date();
       const result = await tx.order.update({
         where: { id: orderId },
         data: {
           status: nextStatus,
-          ...(nextStatus === OrderStatus.COMPLETED && {
-            completedAt: new Date(),
-          }),
+          ...(nextStatus === OrderStatus.PLACED && { placedAt: now }),
+          ...(nextStatus === OrderStatus.SERVED && { servedAt: now }),
+          ...(nextStatus === OrderStatus.COMPLETED && { completedAt: now }),
         },
       });
+
+      await this.recordTransition(tx, orderId, order.status, nextStatus, userId);
 
       // Auto-update table status when order completed/cancelled
       if (
@@ -739,13 +795,6 @@ export class OrdersService {
     return result;
   }
 
-  /**
-   * Process batch or single payment for an order
-   * - Creates Payment records for all payments
-   * - Marks order as PAID only if fully paid after ALL payments combined
-   * - All payments pre-converted to base currency by frontend
-   * - Deducts inventory ONCE when fully paid
-   */
   async processPayment(
     tenantId: string,
     orderId: string,
@@ -814,12 +863,12 @@ export class OrdersService {
         select: { branchId: true },
       });
       if (!orderForBranch) throw new NotFoundException('Order not found');
-      await this.validateShiftAndDevice(
+      await this.validateShiftAndDevice({
         tenantId,
-        orderForBranch.branchId,
-        resolvedShiftId,
-        resolvedDeviceId,
-      );
+        branchId: orderForBranch.branchId,
+        shiftId: resolvedShiftId,
+        deviceId: resolvedDeviceId,
+      });
     }
 
     if (resolvedShiftId) {
@@ -1127,55 +1176,80 @@ export class OrdersService {
         const isRestaurant =
           order.tenant?.businessType === BusinessType.RESTAURANT;
 
+        // Payment writes the PAYMENT axis. The only fulfillment move a
+        // payment may trigger is closing/committing a RETAIL sale —
+        // restaurant orders complete explicitly (cashier close), never here.
         let shouldDeductInventory = false;
         let newStatus: OrderStatus | null = null;
+        const newPaymentStatus = this.derivePaymentStatus(
+          newTotalPaid,
+          totalDue,
+        );
 
-        if (isRestaurant) {
-          newStatus = isFullyPaid
-            ? OrderStatus.PAID
-            : OrderStatus.PARTIALLY_PAID;
+        if (!isRestaurant && isFullyPaid) {
+          // Retail instant sale: full payment closes the order.
+          const orderWithTable = await tx.order.findFirst({
+            where: { id: orderId },
+            select: { tableId: true },
+          });
+
+          newStatus = OrderStatus.COMPLETED;
 
           await tx.order.update({
             where: { id: orderId },
-            data: { status: newStatus },
+            data: {
+              status: newStatus,
+              paymentStatus: newPaymentStatus,
+              completedAt: new Date(),
+            },
           });
-        } else {
-          if (isFullyPaid) {
-            // Get table info before updating order
-            const orderWithTable = await tx.order.findFirst({
-              where: { id: orderId },
-              select: { tableId: true },
-            });
+          await this.recordTransition(
+            tx,
+            orderId,
+            order.status,
+            newStatus,
+            userId,
+          );
 
-            newStatus = OrderStatus.COMPLETED;
-
-            await tx.order.update({
-              where: { id: orderId },
-              data: {
-                status: newStatus,
-                completedAt: new Date(),
-              },
-            });
-
-            // ✅ Update table status if order was associated with a table
-            if (orderWithTable?.tableId) {
-              await this.tableStatusService.markTableAvailableIfPossible(
-                orderWithTable.tableId,
-                orderId,
-                tenantId,
-                tx,
-              );
-            }
-
-            // Flag for post-commit inventory deduction (non-restaurant only)
-            shouldDeductInventory = true;
-          } else if (order.status === OrderStatus.DRAFT) {
-            newStatus = OrderStatus.PENDING;
-            await tx.order.update({
-              where: { id: orderId },
-              data: { status: newStatus },
-            });
+          if (orderWithTable?.tableId) {
+            await this.tableStatusService.markTableAvailableIfPossible(
+              orderWithTable.tableId,
+              orderId,
+              tenantId,
+              tx,
+            );
           }
+
+          // Flag for post-commit inventory deduction (retail only —
+          // restaurant deducts when the order is COMPLETED via updateStatus)
+          shouldDeductInventory = true;
+        } else if (
+          !isRestaurant &&
+          !isFullyPaid &&
+          order.status === OrderStatus.DRAFT
+        ) {
+          // Retail credit sale: partial payment commits the draft.
+          newStatus = OrderStatus.PLACED;
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: newStatus,
+              paymentStatus: newPaymentStatus,
+              placedAt: new Date(),
+            },
+          });
+          await this.recordTransition(
+            tx,
+            orderId,
+            order.status,
+            newStatus,
+            userId,
+          );
+        } else {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { paymentStatus: newPaymentStatus },
+          });
         }
 
         /* ============================================
@@ -1227,13 +1301,12 @@ export class OrdersService {
           });
         }
 
-        const finalStatus =
-          newStatus ??
-          (isFullyPaid ? OrderStatus.COMPLETED : OrderStatus.PENDING);
+        const finalStatus = newStatus ?? order.status;
 
         return {
           orderId,
           status: finalStatus,
+          paymentStatus: newPaymentStatus,
           totalDue,
           paid: this.money(Math.min(newTotalPaid, totalDue)),
           remaining: this.money(Math.max(0, totalDue - newTotalPaid)),
@@ -1335,12 +1408,6 @@ export class OrdersService {
     }
   }
 
-  /**
-   * Process a single payment for an order
-   * - Creates Payment record
-   * - Marks order as PAID if fully paid
-   * - Deducts inventory ONCE when fully paid
-   */
   async processPayment_LEGACY(
     tenantId: string,
     orderId: string,
@@ -1436,49 +1503,75 @@ export class OrdersService {
      -------------------------------------------- */
 
       let shouldDeductInventory = false;
+      let legacyNewStatus: OrderStatus | null = null;
+      const legacyPaymentStatus = this.derivePaymentStatus(
+        newPaidBase,
+        totalDue,
+      );
+      const isRestaurantTenant =
+        order.tenant?.businessType === BusinessType.RESTAURANT;
 
-      if (isFullyPaid) {
-        // Get table info before updating order
+      if (isFullyPaid && !isRestaurantTenant) {
+        // Retail instant sale: full payment closes the order.
         const orderWithTable = await tx.order.findFirst({
           where: { id: orderId },
           select: { tableId: true },
         });
 
-        if (order.tenant?.businessType === BusinessType.RESTAURANT) {
-          await tx.order.update({
-            where: { id: orderId },
-            data: { status: OrderStatus.PAID },
-          });
-        } else {
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              status: OrderStatus.COMPLETED,
-              completedAt: new Date(),
-            },
-          });
-
-          // ✅ Update table status if order was associated with a table
-          if (orderWithTable?.tableId) {
-            await this.tableStatusService.markTableAvailableIfPossible(
-              orderWithTable.tableId,
-              orderId,
-              tenantId,
-              tx,
-            );
-          }
-
-          shouldDeductInventory = true;
-        }
-      } else if (order.tenant?.businessType === BusinessType.RESTAURANT) {
+        legacyNewStatus = OrderStatus.COMPLETED;
         await tx.order.update({
           where: { id: orderId },
-          data: { status: OrderStatus.PARTIALLY_PAID },
+          data: {
+            status: legacyNewStatus,
+            paymentStatus: legacyPaymentStatus,
+            completedAt: new Date(),
+          },
         });
-      } else if (order.status === OrderStatus.DRAFT) {
+        await this.recordTransition(
+          tx,
+          orderId,
+          order.status,
+          legacyNewStatus,
+          userId,
+        );
+
+        if (orderWithTable?.tableId) {
+          await this.tableStatusService.markTableAvailableIfPossible(
+            orderWithTable.tableId,
+            orderId,
+            tenantId,
+            tx,
+          );
+        }
+
+        shouldDeductInventory = true;
+      } else if (
+        !isRestaurantTenant &&
+        !isFullyPaid &&
+        order.status === OrderStatus.DRAFT
+      ) {
+        // Retail credit sale: partial payment commits the draft.
+        legacyNewStatus = OrderStatus.PLACED;
         await tx.order.update({
           where: { id: orderId },
-          data: { status: OrderStatus.PENDING },
+          data: {
+            status: legacyNewStatus,
+            paymentStatus: legacyPaymentStatus,
+            placedAt: new Date(),
+          },
+        });
+        await this.recordTransition(
+          tx,
+          orderId,
+          order.status,
+          legacyNewStatus,
+          userId,
+        );
+      } else {
+        // Restaurant: payment never moves the fulfillment axis.
+        await tx.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: legacyPaymentStatus },
         });
       }
 
@@ -1495,14 +1588,8 @@ export class OrdersService {
 
       return {
         orderId,
-        status: isFullyPaid
-          ? order.tenant?.businessType === BusinessType.RESTAURANT
-            ? OrderStatus.PAID
-            : OrderStatus.COMPLETED
-          : order.tenant?.businessType === BusinessType.RESTAURANT
-            ? OrderStatus.PARTIALLY_PAID
-            : OrderStatus.PENDING,
-
+        status: legacyNewStatus ?? order.status,
+        paymentStatus: legacyPaymentStatus,
         totalDue,
         paid: this.money(Math.min(newPaidBase, totalDue)),
         remaining: this.money(Math.max(0, totalDue - newPaidBase)),
@@ -1560,16 +1647,7 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
     const isRestaurant = order.tenant.businessType === BusinessType.RESTAURANT;
     if (isRestaurant) {
-      const editableStatuses = new Set<OrderStatus>([
-        OrderStatus.DRAFT,
-        OrderStatus.CONFIRMED,
-        OrderStatus.SENT_TO_KITCHEN,
-        OrderStatus.IN_PROGRESS,
-        OrderStatus.READY,
-        OrderStatus.PARTIALLY_PAID,
-        OrderStatus.PAID,
-      ]);
-      if (!editableStatuses.has(order.status)) {
+      if (!EDITABLE_ORDER_STATUSES.includes(order.status)) {
         throw new BadRequestException(
           `Cannot add items to order with status ${order.status}`,
         );
@@ -1759,11 +1837,10 @@ export class OrdersService {
 
       if (
         order.status === OrderStatus.CANCELLED ||
-        order.status === OrderStatus.COMPLETED ||
-        order.status === OrderStatus.FULLY_REFUNDED
+        order.status === OrderStatus.COMPLETED
       ) {
         throw new BadRequestException(
-          'Cannot send a completed, cancelled, or refunded order to kitchen',
+          'Cannot send a completed or cancelled order to kitchen',
         );
       }
 
@@ -1781,22 +1858,25 @@ export class OrdersService {
         data: itemsToSend.map((item) => ({
           orderItemId: item.id,
           station: null,
-          status: OrderStatus.SENT_TO_KITCHEN,
+          status: TicketStatus.QUEUED,
           sentAt,
         })),
       });
 
-      // For restaurant flow, move order to SENT_TO_KITCHEN when first sent
+      // First fire commits the draft: DRAFT → PLACED
       let updatedOrder: unknown;
 
-      if (
-        order.status === OrderStatus.DRAFT ||
-        order.status === OrderStatus.CONFIRMED
-      ) {
+      if (order.status === OrderStatus.DRAFT) {
         updatedOrder = await tx.order.update({
           where: { id: orderId },
-          data: { status: OrderStatus.SENT_TO_KITCHEN },
+          data: { status: OrderStatus.PLACED, placedAt: sentAt },
         });
+        await this.recordTransition(
+          tx,
+          orderId,
+          order.status,
+          OrderStatus.PLACED,
+        );
       } else {
         updatedOrder = order;
       }
@@ -1811,9 +1891,6 @@ export class OrdersService {
     });
   }
 
-  /**
-   * Batch add items to an order for better performance
-   */
   async batchAddItemsToOrder(
     tenantId: string,
     orderId: string,
@@ -1827,17 +1904,7 @@ export class OrdersService {
       if (!order) throw new NotFoundException('Order not found');
 
       // Allow batch additions in any editable status
-      const editableStatuses = new Set<OrderStatus>([
-        OrderStatus.DRAFT,
-        OrderStatus.CONFIRMED,
-        OrderStatus.SENT_TO_KITCHEN,
-        OrderStatus.IN_PROGRESS,
-        OrderStatus.READY,
-        OrderStatus.PARTIALLY_PAID,
-        OrderStatus.PAID,
-      ]);
-
-      if (!editableStatuses.has(order.status)) {
+      if (!EDITABLE_ORDER_STATUSES.includes(order.status)) {
         throw new BadRequestException(
           `Cannot add items to order with status ${order.status}`,
         );
@@ -2069,11 +2136,6 @@ export class OrdersService {
     return result;
   }
 
-  /**
-   * Merge a source order into a target order on the same table.
-   * Moves all items from source → target, then cancels source.
-   * Both orders must be on the same table and in an editable status.
-   */
   async mergeOrders(
     tenantId: string,
     targetOrderId: string,
@@ -2083,16 +2145,7 @@ export class OrdersService {
       throw new BadRequestException('Cannot merge an order with itself');
     }
 
-    const MERGEABLE_STATUSES = new Set<string>([
-      OrderStatus.DRAFT,
-      OrderStatus.CONFIRMED,
-      OrderStatus.SENT_TO_KITCHEN,
-      OrderStatus.IN_PROGRESS,
-      OrderStatus.PENDING,
-      OrderStatus.READY,
-      OrderStatus.PAID,
-      OrderStatus.PARTIALLY_PAID,
-    ]);
+    const MERGEABLE_STATUSES = new Set<string>(ACTIVE_ORDER_STATUSES);
 
     const merged = await this.prisma.$transaction(async (tx) => {
       const [target, source] = await Promise.all([
@@ -2172,6 +2225,12 @@ export class OrdersService {
         where: { id: sourceOrderId },
         data: { status: OrderStatus.CANCELLED },
       });
+      await this.recordTransition(
+        tx,
+        sourceOrderId,
+        source.status,
+        OrderStatus.CANCELLED,
+      );
 
       // Recalculate target order totals
       // (inline to use tx)
@@ -2210,21 +2269,13 @@ export class OrdersService {
           0,
         ),
       );
-      const remaining = this.money(Math.max(0, total - paid));
-
-      let newStatus: OrderStatus | undefined;
-      if (paid > 0) {
-        newStatus =
-          remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
-      }
-
       await tx.order.update({
         where: { id: targetOrderId },
         data: {
           subtotal,
           total,
           vat,
-          ...(newStatus && { status: newStatus }),
+          paymentStatus: this.derivePaymentStatus(paid, total),
         },
       });
 
@@ -2255,16 +2306,400 @@ export class OrdersService {
     return merged;
   }
 
+  private async findIdempotentSplitOrder(
+    tenantId: string,
+    orderId: string,
+    idempotencyKey: string,
+    include: Prisma.OrderInclude,
+  ) {
+    const newOrder = await this.prisma.order.findFirst({
+      where: { tenantId, idempotencyKey },
+      include,
+    });
+    if (!newOrder) return null;
+
+    const originalOrder = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      include,
+    });
+    return { originalOrder, newOrder };
+  }
+
+  async splitOrder(
+    tenantId: string,
+    userId: string,
+    orderId: string,
+    splits: SplitOrderItemDto[],
+    idempotencyKey?: string,
+  ) {
+    const fullInclude = {
+      items: {
+        include: {
+          product: true,
+          modifiers: { include: { modifier: true } },
+        },
+      },
+      payments: true,
+      customer: true,
+      table: true,
+    } satisfies Prisma.OrderInclude;
+
+    // ── Idempotency check (tenant-scoped) ─────────────────────────────────
+    if (idempotencyKey) {
+      const existing = await this.findIdempotentSplitOrder(
+        tenantId,
+        orderId,
+        idempotencyKey,
+        fullInclude,
+      );
+      if (existing) return existing;
+    }
+
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const source = await tx.order.findFirst({
+              where: { id: orderId, tenantId },
+              include: {
+                items: { include: { modifiers: true, tickets: true } },
+                payments: true,
+              },
+            });
+            if (!source) throw new NotFoundException('Order not found');
+
+            const activeStatuses: OrderStatus[] = this.ACTIVE_ORDER_STATUSES;
+            if (!activeStatuses.includes(source.status as OrderStatus)) {
+              throw new BadRequestException({
+                message: `Order status "${source.status}" does not allow splitting`,
+                code: 'ORDER_NOT_SPLITTABLE',
+              });
+            }
+
+            // Payment allocation during split is not implemented; reject if
+            // any payment has been made to the order yet.
+            if (source.payments && source.payments.length > 0) {
+              throw new BadRequestException({
+                message: 'Cannot split an order that has existing payments',
+                code: 'SPLIT_ORDER_HAS_PAYMENTS',
+              });
+            }
+
+            // Collapse duplicate itemIds, then validate against the source items.
+            const requestedByItemId = new Map<string, number>();
+            for (const { itemId, quantity } of splits) {
+              requestedByItemId.set(
+                itemId,
+                (requestedByItemId.get(itemId) ?? 0) + quantity,
+              );
+            }
+
+            const moves: {
+              item: (typeof source.items)[number];
+              quantity: number;
+              isFullMove: boolean;
+            }[] = [];
+
+            for (const [itemId, quantity] of requestedByItemId) {
+              const item = source.items.find((i) => i.id === itemId);
+              if (!item) {
+                throw new BadRequestException({
+                  message: 'Order item not found on this order',
+                  code: 'SPLIT_ITEM_NOT_FOUND',
+                });
+              }
+              const available = Number(item.quantity);
+              if (quantity > available) {
+                throw new BadRequestException({
+                  message: `Cannot split ${quantity} of an item with quantity ${available}`,
+                  code: 'SPLIT_QUANTITY_EXCEEDS_ITEM',
+                });
+              }
+              moves.push({
+                item,
+                quantity,
+                isFullMove: quantity === available,
+              });
+            }
+
+            const fullyMovedCount = moves.filter((m) => m.isFullMove).length;
+            if (fullyMovedCount === source.items.length) {
+              throw new BadRequestException({
+                message:
+                  'Cannot split the entire order — settle it directly instead',
+                code: 'SPLIT_LEAVES_ORDER_EMPTY',
+              });
+            }
+
+            const branch = await tx.branch.findUnique({
+              where: { id: source.branchId },
+              select: { name: true },
+            });
+            if (!branch) throw new NotFoundException('Branch not found');
+
+            const dateStr = formatOrderDate(new Date());
+            const sequence = await tx.orderSequence.upsert({
+              where: {
+                branchId_date: { branchId: source.branchId, date: dateStr },
+              },
+              update: { lastValue: { increment: 1 } },
+              create: {
+                tenantId,
+                branchId: source.branchId,
+                date: dateStr,
+                lastValue: 1,
+              },
+            });
+            const orderNumber = `${dateStr}-${getBranchCode(branch.name)}-${sequence.lastValue
+              .toString()
+              .padStart(4, '0')}`;
+
+            // Split the order-level discount in proportion to the subtotal
+            // each side keeps, so a fixed discount doesn't fully land on
+            // whichever side happens to retain the source orderId (and
+            // doesn't get clamped away in recalculateTotalsInTx if the
+            // remaining subtotal shrinks below it).
+            const originalItemsSubtotal = this.round(
+              source.items.reduce((s, i) => s + Number(i.subtotal), 0),
+            );
+            const movedSubtotalTotal = this.round(
+              moves.reduce((s, m) => {
+                const itemSubtotal = Number(m.item.subtotal);
+                if (m.isFullMove) return s + itemSubtotal;
+                const sourceQty = Number(m.item.quantity);
+                return s + (itemSubtotal / sourceQty) * m.quantity;
+              }, 0),
+            );
+            const originalDiscount = Number(source.discount || 0);
+            const newOrderDiscount =
+              originalItemsSubtotal > 0
+                ? this.round(
+                    originalDiscount *
+                      (movedSubtotalTotal / originalItemsSubtotal),
+                  )
+                : 0;
+            const sourceOrderDiscount = this.round(
+              originalDiscount - newOrderDiscount,
+            );
+
+            // New order inherits the table/customer context and the source
+            // status (items already sent to kitchen stay "sent" — nothing
+            // re-fires).
+            const newOrder = await tx.order.create({
+              data: {
+                tenantId,
+                branchId: source.branchId,
+                userId,
+                orderNumber,
+                type: source.type,
+                status: source.status,
+                total: 0,
+                subtotal: 0,
+                discount: newOrderDiscount,
+                shippingFee: 0,
+                includeVAT: source.includeVAT,
+                vat: 0,
+                ...(source.tableId && { tableId: source.tableId }),
+                ...(source.customerId && { customerId: source.customerId }),
+                ...(source.shiftId && { shiftId: source.shiftId }),
+                ...(source.deviceId && { deviceId: source.deviceId }),
+                ...(idempotencyKey && { idempotencyKey }),
+              },
+            });
+
+            for (const { item, quantity, isFullMove } of moves) {
+              if (isFullMove) {
+                // Reassign the row wholesale — modifiers and tickets follow it.
+                await tx.orderItem.update({
+                  where: { id: item.id },
+                  data: { orderId: newOrder.id },
+                });
+                continue;
+              }
+
+              // Partial move: carve the quantity out. Subtract the moved
+              // share from the source line so the two sides always sum to
+              // the original. The Serializable isolation level below
+              // guarantees this read-then-write is safe against a
+              // concurrent split racing on the same source item.
+              const sourceQty = Number(item.quantity);
+              const movedSubtotal = this.round(
+                (Number(item.subtotal) / sourceQty) * quantity,
+              );
+              const remainingSubtotal = this.round(
+                Number(item.subtotal) - movedSubtotal,
+              );
+
+              await tx.orderItem.update({
+                where: { id: item.id },
+                data: {
+                  quantity: new Prisma.Decimal(sourceQty - quantity),
+                  subtotal: new Prisma.Decimal(remainingSubtotal),
+                  total: new Prisma.Decimal(remainingSubtotal),
+                },
+              });
+
+              await tx.orderItem.create({
+                data: {
+                  orderId: newOrder.id,
+                  productId: item.productId,
+                  quantity: new Prisma.Decimal(quantity),
+                  unitPrice: item.unitPrice,
+                  subtotal: new Prisma.Decimal(movedSubtotal),
+                  total: new Prisma.Decimal(movedSubtotal),
+                  notes: item.notes,
+                  ...(item.discount !== null && {
+                    discount: item.discount as Prisma.InputJsonValue,
+                  }),
+                  ...(item.modifiers.length > 0 && {
+                    modifiers: {
+                      create: item.modifiers.map((m) => ({
+                        modifierId: m.modifierId,
+                        price: m.price,
+                      })),
+                    },
+                  }),
+                  // Carry the source line's kitchen-ticket state onto the
+                  // moved quantity so it isn't re-fired via sendToKitchen
+                  // (which only sends items with no ticket) and so the
+                  // kitchen display reflects that it's already sent/cooking.
+                  ...(item.tickets.length > 0 && {
+                    tickets: {
+                      create: item.tickets.map((t) => ({
+                        station: t.station,
+                        status: t.status,
+                        sentAt: t.sentAt,
+                        bumpedAt: t.bumpedAt,
+                      })),
+                    },
+                  }),
+                },
+              });
+            }
+
+            // The source order keeps whatever discount the split above
+            // didn't allocate to the new order.
+            await tx.order.update({
+              where: { id: source.id },
+              data: { discount: sourceOrderDiscount },
+            });
+
+            await this.recalculateTotalsInTx(tx, source.id);
+            await this.recalculateTotalsInTx(tx, newOrder.id);
+
+            const [originalOrder, splitOrder] = await Promise.all([
+              tx.order.findUnique({
+                where: { id: source.id },
+                include: fullInclude,
+              }),
+              tx.order.findUnique({
+                where: { id: newOrder.id },
+                include: fullInclude,
+              }),
+            ]);
+
+            return {
+              originalOrder,
+              newOrder: splitOrder,
+              branchId: source.branchId,
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+
+        // Post-commit: the table's bill breakdown changed on the floor plan.
+        this.eventEmitter.emit('table.updated', { branchId: result.branchId });
+
+        return {
+          originalOrder: result.originalOrder,
+          newOrder: result.newOrder,
+        };
+      } catch (error) {
+        if (
+          error instanceof BadRequestException ||
+          error instanceof NotFoundException
+        ) {
+          throw error;
+        }
+
+        if (idempotencyKey && this.isIdempotencyUniqueError(error)) {
+          const existing = await this.findIdempotentSplitOrder(
+            tenantId,
+            orderId,
+            idempotencyKey,
+            fullInclude,
+          );
+          if (existing) return existing;
+        }
+
+        const isPrismaConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+        if (isPrismaConflict && attempt < MAX_RETRIES) {
+          await new Promise((r) =>
+            setTimeout(r, 50 * Math.pow(3, attempt - 1)),
+          );
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new BadRequestException('Failed to split order after retries');
+  }
+
+  private async recalculateTotalsInTx(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+  ) {
+    const items = await tx.orderItem.findMany({
+      where: { orderId },
+      select: { subtotal: true },
+    });
+    const subtotal = this.round(
+      items.reduce((s, i) => s + Number(i.subtotal), 0),
+    );
+
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: {
+        discount: true,
+        shippingFee: true,
+        includeVAT: true,
+        payments: { select: { amount: true } },
+      },
+    });
+
+    const discount = Number(order?.discount || 0);
+    const shippingFee = Number(order?.shippingFee || 0);
+    const includeVAT = Boolean(order?.includeVAT);
+    const afterDiscount = this.round(
+      Math.max(0, subtotal - discount + shippingFee),
+    );
+    const vat = includeVAT ? this.round(afterDiscount * VAT_RATE) : 0;
+    const total = this.round(afterDiscount + vat);
+
+    const paid = this.money(
+      (order?.payments || []).reduce((sum, p) => sum + Number(p.amount), 0),
+    );
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: {
+        subtotal,
+        total,
+        vat,
+        paymentStatus: this.derivePaymentStatus(paid, total),
+      },
+    });
+  }
+
   // ---- Private helpers for transfer+merge ----
 
-  private readonly ACTIVE_ORDER_STATUSES = [
-    OrderStatus.DRAFT,
-    OrderStatus.PENDING,
-    OrderStatus.CONFIRMED,
-    OrderStatus.IN_PROGRESS,
-    OrderStatus.SENT_TO_KITCHEN,
-    OrderStatus.READY,
-  ];
+  // Canonical list shared with tables/kitchen via @repo/types.
+  private readonly ACTIVE_ORDER_STATUSES = [...ACTIVE_ORDER_STATUSES];
 
   /**
    * Get active (non-terminal) orders on a table within a transaction.
@@ -2293,16 +2728,7 @@ export class OrdersService {
     targetOrderId: string,
     sourceOrderId: string,
   ) {
-    const MERGEABLE_STATUSES = new Set<string>([
-      OrderStatus.DRAFT,
-      OrderStatus.CONFIRMED,
-      OrderStatus.SENT_TO_KITCHEN,
-      OrderStatus.IN_PROGRESS,
-      OrderStatus.PENDING,
-      OrderStatus.READY,
-      OrderStatus.PAID,
-      OrderStatus.PARTIALLY_PAID,
-    ]);
+    const MERGEABLE_STATUSES = new Set<string>(ACTIVE_ORDER_STATUSES);
 
     const [target, source] = await Promise.all([
       tx.order.findFirst({
@@ -2370,6 +2796,12 @@ export class OrdersService {
       where: { id: sourceOrderId },
       data: { status: OrderStatus.CANCELLED },
     });
+    await this.recordTransition(
+      tx,
+      sourceOrderId,
+      source.status,
+      OrderStatus.CANCELLED,
+    );
 
     // Recalculate totals
     const allItems = await tx.orderItem.findMany({
@@ -2403,15 +2835,15 @@ export class OrdersService {
         0,
       ),
     );
-    const remaining = this.money(Math.max(0, total - paid));
-    let newStatus: OrderStatus | undefined;
-    if (paid > 0) {
-      newStatus = remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
-    }
 
     await tx.order.update({
       where: { id: targetOrderId },
-      data: { subtotal, total, vat, ...(newStatus && { status: newStatus }) },
+      data: {
+        subtotal,
+        total,
+        vat,
+        paymentStatus: this.derivePaymentStatus(paid, total),
+      },
     });
 
     return tx.order.findUnique({
@@ -2435,21 +2867,11 @@ export class OrdersService {
    * Returns null if no active order exists
    */
   async findActiveOrderByTableId(tenantId: string, tableId: string) {
-    // Active order statuses (same as TableStatusService.ACTIVE_ORDER_STATUSES)
-    const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
-      OrderStatus.DRAFT,
-      OrderStatus.PENDING,
-      OrderStatus.CONFIRMED,
-      OrderStatus.IN_PROGRESS,
-      OrderStatus.SENT_TO_KITCHEN,
-      OrderStatus.READY,
-    ];
-
     return this.prisma.order.findFirst({
       where: {
         tenantId,
         tableId,
-        status: { in: ACTIVE_ORDER_STATUSES },
+        status: { in: this.ACTIVE_ORDER_STATUSES },
       },
       include: {
         items: {
@@ -2495,6 +2917,7 @@ export class OrdersService {
         shippingFee: true,
         includeVAT: true,
         status: true,
+        paymentStatus: true,
         customerId: true,
         loyaltyRedeemedPoints: true,
         loyaltyRedeemedAmount: true,
@@ -2582,20 +3005,21 @@ export class OrdersService {
       }
     }
 
-    let nextStatus = order?.status;
+    // Re-derive the payment axis for the new totals. Refund states are
+    // owned by RefundsService and never overwritten here.
+    let paymentStatusUpdate: { paymentStatus: PaymentStatus } | undefined;
     if (
       order &&
-      order.tenant?.businessType === BusinessType.RESTAURANT &&
-      (order.status === OrderStatus.PAID ||
-        order.status === OrderStatus.PARTIALLY_PAID)
+      order.paymentStatus !== PaymentStatus.PARTIALLY_REFUNDED &&
+      order.paymentStatus !== PaymentStatus.REFUNDED
     ) {
       const paid = this.money(
         order.payments.reduce((sum, p) => sum + Number(p.amount), 0),
       );
       const effectiveTotal = this.money(total - loyaltyRedeemedAmount);
-      const remaining = this.money(Math.max(0, effectiveTotal - paid));
-      nextStatus =
-        remaining > 0 ? OrderStatus.PARTIALLY_PAID : OrderStatus.PAID;
+      paymentStatusUpdate = {
+        paymentStatus: this.derivePaymentStatus(paid, effectiveTotal),
+      };
     }
 
     return db.order.update({
@@ -2605,13 +3029,11 @@ export class OrdersService {
         total,
         vat,
         ...loyaltyUpdate,
-        ...(nextStatus &&
-          nextStatus !== order?.status && { status: nextStatus }),
+        ...paymentStatusUpdate,
       },
     });
   }
 
-  // Earn loyalty points when an order is completed.
   private async earnLoyaltyPoints(
     tenantId: string,
     orderId: string,
@@ -2699,18 +3121,6 @@ export class OrdersService {
     return Math.round(value * 100) / 100;
   }
 
-  // ─── Offer → Order Integration ───
-
-  /**
-   * Add items from an offer selection to an existing order.
-   *
-   * The server computes authoritative pricing via OffersService.pricePreview().
-   * Each selected product becomes its own OrderItem. The offer's basePrice is
-   * distributed proportionally across all selected items, and each item's
-   * extraPrice (minus any free-item discount) is added on top.
-   *
-   * Notes field on each order item records the offer origin for auditability.
-   */
   async addOfferItemsToOrder(
     tenantId: string,
     orderId: string,
@@ -2728,15 +3138,7 @@ export class OrdersService {
 
     const isRestaurant = order.tenant.businessType === BusinessType.RESTAURANT;
     if (isRestaurant) {
-      const editableStatuses = new Set<OrderStatus>([
-        OrderStatus.DRAFT,
-        OrderStatus.SENT_TO_KITCHEN,
-        OrderStatus.CONFIRMED,
-        OrderStatus.IN_PROGRESS,
-        OrderStatus.PAID,
-        OrderStatus.PARTIALLY_PAID,
-      ]);
-      if (!editableStatuses.has(order.status)) {
+      if (!EDITABLE_ORDER_STATUSES.includes(order.status)) {
         throw new BadRequestException(
           'Cannot add offer items: order is not in an editable state',
         );

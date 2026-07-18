@@ -1,6 +1,7 @@
 import { Skeleton } from "@repo/ui";
 import { DollarSign, ShoppingCart, TrendingUp, Percent } from "lucide-react";
-import type { SalesReportData } from "@/types/reports";
+import type { SalesReportData } from "@/dto/reports.dto";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 interface ReportsSummaryCardsProps {
   data?: SalesReportData;
@@ -9,7 +10,7 @@ interface ReportsSummaryCardsProps {
 
 // Currency formatter using Intl.NumberFormat
 const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(DEFAULT_LOCALE, {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
@@ -18,7 +19,7 @@ const formatCurrency = (value: number): string => {
 };
 
 const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat(DEFAULT_LOCALE).format(value);
 };
 
 interface SummaryCardProps {

@@ -65,6 +65,13 @@
   /* Radius */
   --radius: 0.75rem;
 
+  /* Charts — chart-1 follows the active brand theme */
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.62 0.17 160);
+  --chart-3: oklch(0.66 0.18 50);
+  --chart-4: oklch(0.56 0.21 300);
+  --chart-5: oklch(0.6 0.19 15);
+
   /* Sidebar */
   --sidebar: oklch(0.97 0.01 264);
   --sidebar-foreground: oklch(0.15 0.04 264);
@@ -122,6 +129,13 @@
   --border: oklch(0.25 0.03 264);
   --input: oklch(0.25 0.03 264);
   --ring: oklch(0.55 0.28 264);
+
+  /* Charts — brighter variants for dark surfaces */
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.7 0.15 160);
+  --chart-3: oklch(0.72 0.16 50);
+  --chart-4: oklch(0.66 0.19 300);
+  --chart-5: oklch(0.68 0.17 15);
 
   /* Sidebar */
   --sidebar: oklch(0.1 0.02 264);

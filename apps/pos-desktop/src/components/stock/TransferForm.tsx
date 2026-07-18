@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useForm } from "@tanstack/react-form";
-import { Button, InputField, SelectField, TextareaField } from "@repo/ui";
+import { useBranches } from "@/hooks/useBranch";
+import { useProducts } from "@/hooks/useProduct";
+import { useCreateTransfer } from "@/hooks/useTransfers";
 import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
-import { useProducts } from "@/hooks/useProduct";
-import { useBranches } from "@/hooks/useBranch";
-import { useCreateTransfer } from "@/hooks/useTransfers";
+import { Button, SelectField, TextareaField } from "@repo/ui";
+import { useForm } from "@tanstack/react-form";
 import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface TransferLineItem {
@@ -27,8 +27,7 @@ export function TransferForm() {
   ]);
 
   // Exclude current branch from destination list
-  const destinationBranches =
-    branches?.filter((b) => b.id !== branchId) ?? [];
+  const destinationBranches = branches?.filter((b) => b.id !== branchId) ?? [];
 
   const form = useForm({
     defaultValues: {
@@ -37,7 +36,7 @@ export function TransferForm() {
     },
     onSubmit: async ({ value }) => {
       const validItems = items.filter(
-        (i) => i.productId && Number(i.quantity) > 0
+        (i) => i.productId && Number(i.quantity) > 0,
       );
       if (validItems.length === 0) {
         toast.error("Add at least one product with a valid quantity.");
@@ -47,7 +46,9 @@ export function TransferForm() {
       // Prevent duplicate products in the same transfer
       const productIds = validItems.map((i) => i.productId);
       if (new Set(productIds).size !== productIds.length) {
-        toast.error("Duplicate products found. Each product can only appear once.");
+        toast.error(
+          "Duplicate products found. Each product can only appear once.",
+        );
         return;
       }
 
@@ -76,10 +77,10 @@ export function TransferForm() {
   const handleItemChange = (
     index: number,
     field: keyof TransferLineItem,
-    value: string
+    value: string,
   ) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
   };
 
@@ -155,8 +156,7 @@ export function TransferForm() {
                       key={p.id}
                       value={p.id}
                       disabled={
-                        usedProductIds.includes(p.id) &&
-                        p.id !== item.productId
+                        usedProductIds.includes(p.id) && p.id !== item.productId
                       }
                     >
                       {p.name}

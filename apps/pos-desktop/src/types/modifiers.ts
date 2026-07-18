@@ -24,7 +24,7 @@ export interface Modifier {
 export interface ModifierGroupItem {
   id: string;
   name: string;
-  type: ModifierType; // 'SINGLE' | 'MULTIPLE'
+  type: ModifierType;
   modifiers: Modifier[];
 }
 
@@ -39,12 +39,6 @@ export interface SelectedModifier {
   price: number;
 }
 
-/**
- * ========================================
- * CART ITEM WITH MODIFIERS
- * ========================================
- */
-
 export interface CartItemModifier {
   id: string;
   productId: string;
@@ -53,18 +47,12 @@ export interface CartItemModifier {
   quantity: number;
   notes?: string;
   imageUrl?: string | null;
-  modifiers: SelectedModifier[]; // Selected modifiers for this item
+  modifiers: SelectedModifier[];
   discount?: {
     value: number;
     type: "PERCENTAGE" | "FIXED";
   };
 }
-
-/**
- * ========================================
- * MODIFIER VALIDATION
- * ========================================
- */
 
 export interface ModifierValidationError {
   groupId: string;
@@ -76,30 +64,17 @@ export interface ModifierValidationResult {
   isValid: boolean;
   errors: ModifierValidationError[];
 }
-
-/**
- * ========================================
- * MODIFIER SELECTION STATE
- * ========================================
- */
-
 export interface ModifierSelectionState {
   // Map: groupId -> selected modifier IDs
   selections: Record<string, Set<string>>;
 }
-
-/**
- * ========================================
- * ORDER PAYLOAD (BACKEND COMPATIBLE)
- * ========================================
- */
 
 export interface OrderItemPayload {
   productId: string;
   quantity: number;
   unitPrice: number;
   notes?: string;
-  modifiers: string[]; // Array of modifier IDs
+  modifiers: string[];
 }
 
 export interface OrderItemWithModifiers {

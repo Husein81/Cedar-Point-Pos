@@ -169,6 +169,27 @@ export function TablesPage() {
         </div>
       </div>
     ),
+    renderFreeConfirm: ({ table, onConfirm, onCancel }) => (
+      <div className="space-y-4">
+        <p className="text-muted-foreground text-sm">
+          This will cancel every unpaid order on{" "}
+          <strong>{getTableDisplayName(table)}</strong> and mark the table
+          available again.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            iconName="CircleCheck"
+            onClick={onConfirm}
+          >
+            Free Table
+          </Button>
+        </div>
+      </div>
+    ),
   });
 
   // No branch selected
@@ -230,16 +251,6 @@ export function TablesPage() {
 
       <TablesStatsRow stats={stats} />
 
-      {/*
-            The page shell (ClientLayout) is a natural-height scroll area —
-            there is no fixed-height ancestor for a `flex-1`/`h-full` chain
-            to resolve against (see main-layout.tsx / client-layout.tsx; no
-            other page in this app relies on one, e.g. kitchen.tsx just flows
-            naturally). The floor canvas is a pan/zoom viewport though, so it
-            genuinely needs a bounded box — give it a concrete height instead
-            of fighting the page for space. Grid view has no such need and
-            flows with the page like everywhere else.
-          */}
       <div className="flex gap-4">
         {view === "canvas" ? (
           <div className="h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] flex-1">

@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
 import { useKeypadStore } from "@/store/keypadStore";
-import { Button, cn, Icon, Shad } from "@repo/ui";
+import { cn, Icon } from "@repo/ui";
 import { formatPrice } from "./config";
 import { DiscountType, OrderItemModifier } from "@/dto/order.dto";
 
@@ -28,10 +29,38 @@ type Props = {
   onPriceChange?: (id: string, price: number) => void;
   onDiscountChange?: (id: string, value: number, type: DiscountType) => void;
   onRemove: (id: string) => void;
-  onEditModifiers?: (item: Item) => void; // Edit modifiers callback
+  onEditModifiers?: (item: Item) => void;
 };
 
-export const CartItem = ({
+const StepperButton = ({
+  icon,
+  label,
+  destructive,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  destructive?: boolean;
+  onClick: (e: React.MouseEvent) => void;
+}) => (
+  <button
+    type="button"
+    aria-label={label}
+    onClick={onClick}
+    className={cn(
+      "flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background",
+      "transition-all duration-75 active:scale-90",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      destructive
+        ? "text-destructive hover:border-destructive/40 hover:bg-destructive/10"
+        : "text-foreground hover:border-primary/40 hover:bg-primary/5",
+    )}
+  >
+    <Icon name={icon} className="h-3.5 w-3.5" />
+  </button>
+);
+
+export const CartItem = memo(function CartItem({
   item,
   isSelected = false,
   onSelect,
@@ -40,11 +69,10 @@ export const CartItem = ({
   onDiscountChange,
   onRemove,
   onEditModifiers,
-}: Props) => {
-  const { openKeypad, isOpen, itemId } = useKeypadStore();
+}: Props) {
+  const openKeypad = useKeypadStore((s) => s.openKeypad);
   const { warning } = useCartItemStockWarning(item.productId);
 
-  // Calculate line total with modifiers
   const modifiersTotal =
     item.modifiers?.reduce((sum, mod) => sum + mod.price, 0) || 0;
   const unitPrice = item.price + modifiersTotal;
@@ -57,14 +85,13 @@ export const CartItem = ({
     : 0;
   const finalTotal = lineTotal - discountAmount;
 
-  // Stock warning state
   const showStockWarning = warning?.isNegative ?? false;
   const resultingStock = warning?.resultingStock ?? 0;
 
   const handleSelect = () => {
     onSelect?.(item.id);
 
-    // Open keypad with item context - can switch between Qty/Price/Discount
+    // Open keypad with item context — can switch between Qty/Price/Discount
     openKeypad({
       context: "QUANTITY",
       currentValue: item.quantity,
@@ -73,8 +100,6 @@ export const CartItem = ({
       itemPrice: item.price,
       itemDiscountValue: item.discount?.value ?? 0,
       discountType: item.discount?.type || "PERCENTAGE",
-
-      // Quantity confirm
       onConfirm: (value) => {
         if (value > 0) {
           onQuantityChange(item.id, value);
@@ -82,155 +107,186 @@ export const CartItem = ({
           onRemove(item.id);
         }
       },
-
-      // Price override
       onPriceChange: onPriceChange
         ? (value) => onPriceChange(item.id, value)
         : undefined,
-
-      // Item-level discount
       onDiscountChange: onDiscountChange
         ? (value, type) => onDiscountChange(item.id, value, type)
         : undefined,
     });
   };
 
-  const isActive = isSelected || (isOpen && itemId === item.id);
+  const handleDecrease = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (item.quantity <= 1) {
+      onRemove(item.id);
+    } else {
+      onQuantityChange(item.id, item.quantity - 1);
+    }
+  };
+
+  const handleIncrease = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onQuantityChange(item.id, item.quantity + 1);
+  };
 
   return (
     <div
-      className={cn(
-        "flex items-start gap-3 px-3 py-2 cursor-pointer transition-colors",
-        "border-b border-border/40",
-        isActive
-          ? "bg-primary/5 border-l-2 border-l-primary"
-          : "hover:bg-muted/30",
-        showStockWarning && "bg-amber-50/50 dark:bg-amber-950/20",
-      )}
+      role="button"
+      tabIndex={0}
+      aria-label={`${item.name}, quantity ${item.quantity}`}
       onClick={handleSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleSelect();
+        }
+      }}
+      className={cn(
+        "group relative cursor-pointer border-b border-border/40 px-3 py-2.5 outline-none",
+        "animate-in fade-in slide-in-from-right-2 duration-200",
+        "transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        isSelected
+          ? "border-l-2 border-l-primary bg-primary/5"
+          : "border-l-2 border-l-transparent hover:bg-muted/40",
+      )}
     >
-      {/* Quantity with Stock Warning */}
-      <div className="flex items-center gap-1">
-        <span className="w-6 text-xs font-semibold text-foreground tabular-nums">
-          {item.quantity}
-        </span>
-        {showStockWarning && (
-          <Shad.Tooltip>
-            <Shad.TooltipTrigger asChild>
-              <span
-                className="cursor-help"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Icon
-                  name="TriangleAlert"
-                  className="h-3.5 w-3.5 text-amber-500"
-                />
-              </span>
-            </Shad.TooltipTrigger>
-            <Shad.TooltipContent side="top" className="max-w-50">
-              <p className="text-xs">
-                <span className="font-semibold text-amber-600">
-                  Low stock warning
-                </span>
-                <br />
-                Stock after sale: {resultingStock.toFixed(2)}
-              </p>
-            </Shad.TooltipContent>
-          </Shad.Tooltip>
-        )}
-      </div>
-
-      {/* Item Details */}
-      <div className="flex-1 min-w-0">
-        {/* Item Name */}
-        <div className="flex items-center gap-1">
-          <p className="text-xs font-medium text-foreground line-clamp-1">
-            {item.name}
-          </p>
-          {item.sentToKitchen && (
-            <Icon
-              name="ChefHat"
-              className="h-3 w-3 text-emerald-500 shrink-0"
-            />
-          )}
-        </div>
-
-        {/* Note Indicator */}
-        {item.notes && (
-          <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1 line-clamp-1">
-            <Icon
-              name="StickyNote"
-              className="h-2.5 w-2.5 text-primary shrink-0"
-            />
-            <span className="truncate">{item.notes}</span>
-          </p>
-        )}
-
-        {/* Modifiers */}
-        {item.modifiers && item.modifiers.length > 0 && (
-          <div className="text-[10px] text-muted-foreground mt-0.5">
-            {item.modifiers.map((mod, idx) => (
-              <span key={mod.modifierId}>
-                {mod.name}
-                {mod.price > 0 && ` (+$${mod.price.toFixed(2)})`}
-                {idx < item.modifiers!.length - 1 && ", "}
-              </span>
-            ))}
-            {onEditModifiers && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditModifiers(item);
-                }}
-                className="ml-1 text-primary hover:underline"
-              >
-                Edit
-              </button>
-            )}
+      <div className="flex items-start gap-2.5">
+        {/* Thumbnail */}
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt=""
+            draggable={false}
+            className="mt-0.5 h-10 w-10 shrink-0 rounded-md border border-border/50 object-cover"
+          />
+        ) : (
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+            <Icon name="Package" className="h-4 w-4 text-muted-foreground/60" />
           </div>
         )}
 
-        {/* Unit Price */}
-        <p className="text-[10px] text-muted-foreground mt-0.5">
-          {formatPrice(unitPrice)} $/Units
-        </p>
+        {/* Details */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-medium leading-tight">
+              {item.name}
+            </p>
+            {item.sentToKitchen && (
+              <span
+                title="Sent to kitchen"
+                className="flex shrink-0 items-center"
+              >
+                <Icon name="ChefHat" className="h-3.5 w-3.5 text-emerald-500" />
+              </span>
+            )}
+          </div>
 
-        {/* Discount Info (if any) */}
-        {item.discount && item.discount.value > 0 && (
-          <p className="text-[10px] text-primary">
-            {item.discount.value}
-            {item.discount.type === "PERCENTAGE" ? "%" : " $"} discount -
-            {formatPrice(discountAmount)} $ off
+          <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+            ${formatPrice(unitPrice)} × {item.quantity}
           </p>
-        )}
 
-        {/* Stock Warning Inline (alternative to tooltip for visibility) */}
-        {showStockWarning && (
-          <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
-            <Icon name="CircleAlert" className="h-3 w-3" />
-            Stock after sale: {resultingStock.toFixed(2)}
-          </p>
-        )}
+          {item.modifiers && item.modifiers.length > 0 && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {item.modifiers
+                .map(
+                  (mod) =>
+                    `${mod.name}${mod.price > 0 ? ` +$${mod.price.toFixed(2)}` : ""}`,
+                )
+                .join(", ")}
+              {onEditModifiers && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditModifiers(item);
+                  }}
+                  className="ml-1.5 font-medium text-primary hover:underline"
+                >
+                  Edit
+                </button>
+              )}
+            </p>
+          )}
+
+          {/* Status chips */}
+          {(item.notes || discountAmount > 0 || showStockWarning) && (
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              {item.notes && (
+                <span className="inline-flex max-w-40 items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  <Icon name="StickyNote" className="h-2.5 w-2.5 shrink-0" />
+                  <span className="truncate">{item.notes}</span>
+                </span>
+              )}
+              {discountAmount > 0 && item.discount && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                  <Icon name="TicketPercent" className="h-2.5 w-2.5" />
+                  {item.discount.type === "PERCENTAGE"
+                    ? `${item.discount.value}%`
+                    : `$${item.discount.value}`}{" "}
+                  off
+                </span>
+              )}
+              {showStockWarning && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                  <Icon name="TriangleAlert" className="h-2.5 w-2.5" />
+                  Stock after: {resultingStock.toFixed(2)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Total + stepper */}
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <div className="text-right leading-tight">
+            <span className="text-sm font-semibold tabular-nums">
+              ${formatPrice(finalTotal)}
+            </span>
+            {discountAmount > 0 && (
+              <p className="text-[10px] tabular-nums text-muted-foreground line-through">
+                ${formatPrice(lineTotal)}
+              </p>
+            )}
+          </div>
+
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <StepperButton
+              icon={item.quantity <= 1 ? "Trash2" : "Minus"}
+              label={
+                item.quantity <= 1 ? "Remove item" : "Decrease quantity"
+              }
+              destructive={item.quantity <= 1}
+              onClick={handleDecrease}
+            />
+            <button
+              type="button"
+              aria-label="Edit quantity"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelect();
+              }}
+              className={cn(
+                "h-8 min-w-8 rounded-md px-1 text-sm font-semibold tabular-nums",
+                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSelected
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground hover:bg-muted",
+              )}
+            >
+              {item.quantity}
+            </button>
+            <StepperButton
+              icon="Plus"
+              label="Increase quantity"
+              onClick={handleIncrease}
+            />
+          </div>
+        </div>
       </div>
-
-      {/* Line Total */}
-      <div className="text-right shrink-0">
-        <span className={cn("text-xs font-semibold tabular-nums")}>
-          {finalTotal} ${" "}
-        </span>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-        onClick={(e) => {
-          (e as React.MouseEvent<HTMLButtonElement>).stopPropagation();
-          onRemove(item.id);
-        }}
-      >
-        <Icon name="X" className="h-3.5 w-3.5" />
-      </Button>
     </div>
   );
-};
+});

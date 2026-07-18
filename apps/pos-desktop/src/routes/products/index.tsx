@@ -1,6 +1,6 @@
 import TitleBar from "@/components/title-bar";
 import { ProductForm } from "@/components/products/ProductForm";
-import { productColumns } from "@/constants/columns/productColumn";
+import { productColumns } from "@/components/products/productColumn";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useProductsPaginated } from "@/hooks/useProduct";
 import { useModalStore } from "@/store/modalStore";

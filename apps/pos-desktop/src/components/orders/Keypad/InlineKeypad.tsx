@@ -1,17 +1,23 @@
 import { useKeypadStore } from "@/store/keypadStore";
+import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
-import { Icon, Shad } from "@repo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
-import OrderActions from "../OrderActions";
+import ApplyDiscount from "../ApplyDiscount";
+import { ItemNoteForm } from "../ItemNoteForm";
 import { KEYPAD_CONFIG, type KeypadContext } from "../config";
-import KeypadActions from "./KeypadActions";
+import KeypadDisplay, { type KeypadTab } from "./KeypadDisplay";
 import KeypadGrid from "./KeypadGrid";
 
 type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
 type DiscountMode = "FIXED" | "PERCENTAGE";
 
+/**
+ * Inline numeric editor for the selected line / order adjustment.
+ * Values apply live (debounced) while typing; Enter/✓ applies and closes,
+ * Escape closes. Supports the physical keyboard and numpad.
+ */
 export const InlineKeypad = () => {
   const {
     isOpen,
@@ -43,17 +49,29 @@ export const InlineKeypad = () => {
     })),
   );
 
-  const { setDiscount, setShippingFee, order } = useOrderStore(
-    useShallow((s) => ({
-      setDiscount: s.setDiscount,
-      setShippingFee: s.setShippingFee,
-      order: s.getActiveOrder(),
-    })),
-  );
+  const { openModal, closeModal } = useModalStore();
 
-  const safeContext = (context ?? "QUANTITY") as KeypadContext;
-  const config = KEYPAD_CONFIG[safeContext!];
+  const { setDiscount, setShippingFee, updateItemNotes, order, subtotal } =
+    useOrderStore(
+      useShallow((s) => ({
+        setDiscount: s.setDiscount,
+        setShippingFee: s.setShippingFee,
+        updateItemNotes: s.updateItemNotes,
+        order: s.getActiveOrder(),
+        subtotal: s.getOrderSubtotal(),
+      })),
+    );
+
+  const safeContext = (context ?? "QUANTITY") as Exclude<
+    KeypadContext,
+    undefined
+  >;
+  const config = KEYPAD_CONFIG[safeContext];
   const maxValue = maxValueOverride ?? config.maxValue;
+
+  const selectedItem = itemId
+    ? order?.items.find((i) => i.id === itemId)
+    : undefined;
 
   const [value, setValue] = useState("0");
   const [mode, setMode] = useState<InputMode>("IDLE");
@@ -83,16 +101,6 @@ export const InlineKeypad = () => {
     [config.decimals, config.minValue, maxValue],
   );
 
-  const clearEntry = useCallback(() => {
-    setMode("IDLE");
-    setValue(String(config.allowZero ? 0 : config.minValue));
-
-    setIsDiffMode(false);
-    setDiffBaseValue(null);
-
-    switchContext(undefined);
-  }, [config.allowZero, config.minValue, switchContext]);
-
   const resolveDiscountMode = useCallback(
     (ctx: KeypadContext): DiscountMode => {
       if (ctx === "DISCOUNT_FIXED") return "FIXED";
@@ -109,7 +117,10 @@ export const InlineKeypad = () => {
       if (config.requiresPermission && onPermissionRequired) {
         const allowed = await onPermissionRequired(safeContext);
         if (!allowed) {
-          clearEntry();
+          setMode("IDLE");
+          setValue(String(config.allowZero ? 0 : config.minValue));
+          setIsDiffMode(false);
+          setDiffBaseValue(null);
           return;
         }
       }
@@ -151,7 +162,8 @@ export const InlineKeypad = () => {
     },
     [
       clamp,
-      clearEntry,
+      config.allowZero,
+      config.minValue,
       config.requiresPermission,
       diffBaseValue,
       isDiffMode,
@@ -167,6 +179,7 @@ export const InlineKeypad = () => {
     ],
   );
 
+  // Sync display when the target value/context changes (item switch, context switch)
   useEffect(() => {
     const formatted =
       config.decimals > 0 && currentValue !== 0
@@ -189,6 +202,7 @@ export const InlineKeypad = () => {
     setDiffBaseValue(null);
   }, [safeContext, itemId]);
 
+  // Live apply — debounced so rapid typing settles before hitting the store
   useEffect(() => {
     if (mode !== "APPEND") return;
 
@@ -211,93 +225,332 @@ export const InlineKeypad = () => {
     };
   }, [applyKeypadValue, clamp, mode, parse, value]);
 
+  // ── Input handlers ────────────────────────────────────────────────────────
+
+  const handleDigit = useCallback(
+    (digit: number) => {
+      setValue((prev) => {
+        const next =
+          mode !== "APPEND"
+            ? String(digit)
+            : prev === "0"
+              ? String(digit)
+              : prev + digit;
+
+        if (
+          config.decimals > 0 &&
+          next.includes(".") &&
+          next.split(".")[1]!.length > config.decimals
+        ) {
+          return prev;
+        }
+
+        setMode("APPEND");
+        return next;
+      });
+    },
+    [mode, config.decimals],
+  );
+
+  const handleDoubleZero = useCallback(() => {
+    handleDigit(0);
+    handleDigit(0);
+  }, [handleDigit]);
+
+  const handleDecimal = useCallback(() => {
+    if (config.decimals === 0) return;
+
+    setValue((prev) => {
+      if (mode !== "APPEND") {
+        setMode("APPEND");
+        return "0.";
+      }
+      return prev.includes(".") ? prev : prev + ".";
+    });
+  }, [config.decimals, mode]);
+
+  const handleBackspace = useCallback(() => {
+    setValue((prev) => {
+      const next = prev.slice(0, -1);
+      if (!next.length) {
+        setMode("IDLE");
+        return String(config.allowZero ? 0 : config.minValue);
+      }
+
+      setMode("APPEND");
+      return next;
+    });
+  }, [config.allowZero, config.minValue]);
+
+  const handleClear = useCallback(() => {
+    setMode("IDLE");
+    setValue(String(config.allowZero ? 0 : config.minValue));
+    setIsDiffMode(false);
+    setDiffBaseValue(null);
+  }, [config.allowZero, config.minValue]);
+
+  /** Apply immediately (flushing any pending debounce) and close. */
+  const handleConfirmAndClose = useCallback(() => {
+    const numeric = clamp(parse(value));
+    void applyKeypadValue(numeric);
+    closeKeypad();
+  }, [applyKeypadValue, clamp, closeKeypad, parse, value]);
+
+  const handleDiff = useCallback(() => {
+    if (safeContext !== "PRICE_OVERRIDE") return;
+
+    const base = parseFloat(String(currentValue || 0));
+    setIsDiffMode(true);
+    setDiffBaseValue(base);
+    setMode("REPLACE");
+    setValue("0");
+  }, [currentValue, safeContext]);
+
+  // ── Context switching / intents ───────────────────────────────────────────
+
   const isDiscountContext =
     safeContext === "DISCOUNT" ||
     safeContext === "DISCOUNT_PERCENT" ||
     safeContext === "DISCOUNT_FIXED";
 
-  const contextLabel = useMemo(() => {
-    const discountMode = isDiscountContext
-      ? resolveDiscountMode(safeContext)
-      : null;
+  const handleSwitchContext = useCallback(
+    (next: Exclude<KeypadContext, undefined>) => {
+      if (next === safeContext) return;
+      setMode("REPLACE");
+      switchContext(next);
+    },
+    [safeContext, switchContext],
+  );
 
-    const isLineDiscount = Boolean(itemId);
+  const openDiscountForItem = useCallback(
+    (discountContext: "DISCOUNT_PERCENT" | "DISCOUNT_FIXED") => {
+      if (!itemId) return;
+      closeModal();
+      handleSwitchContext(discountContext);
+    },
+    [closeModal, handleSwitchContext, itemId],
+  );
 
-    const config = {
-      QUANTITY: {
-        text: "Editing Quantity",
+  const openDiscountForOrder = useCallback(
+    (discountContext: "DISCOUNT_PERCENT" | "DISCOUNT_FIXED") => {
+      const currentDiscount = order?.discount;
+      const discountValue = currentDiscount?.value ?? 0;
+      const discountTypeValue =
+        discountContext === "DISCOUNT_PERCENT" ? "PERCENTAGE" : "FIXED";
+
+      closeModal();
+      closeKeypad();
+
+      useKeypadStore.getState().openKeypad({
+        context: discountContext,
+        currentValue: discountValue,
+        discountType: discountTypeValue,
+        onConfirm: () => {},
+        onDiscountChange: (value, type) => {
+          setDiscount({ value, type });
+        },
+        maxValueOverride:
+          discountContext === "DISCOUNT_FIXED" ? subtotal : undefined,
+      });
+    },
+    [closeKeypad, closeModal, order?.discount, setDiscount, subtotal],
+  );
+
+  const handleDiscountIntent = useCallback(() => {
+    openModal(
+      "Apply Discount",
+      <ApplyDiscount
+        openDiscountForItem={openDiscountForItem}
+        openDiscountForOrder={openDiscountForOrder}
+      />,
+      "Choose discount type and scope.",
+    );
+  }, [openDiscountForItem, openDiscountForOrder, openModal]);
+
+  const handleNoteIntent = useCallback(() => {
+    if (!itemId || !selectedItem) return;
+
+    openModal(
+      `Note — ${selectedItem.name}`,
+      <ItemNoteForm
+        initialNote={selectedItem.notes ?? ""}
+        onSave={(note) => {
+          updateItemNotes(itemId, note);
+          closeModal();
+        }}
+      />,
+    );
+  }, [closeModal, itemId, openModal, selectedItem, updateItemNotes]);
+
+  // ── Physical keyboard / numpad support ────────────────────────────────────
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable ||
+          target.closest('[role="dialog"], [role="alertdialog"]'))
+      ) {
+        return;
+      }
+
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        handleDigit(Number(e.key));
+      } else if (e.key === "." || e.key === ",") {
+        e.preventDefault();
+        handleDecimal();
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        handleBackspace();
+      } else if (e.key === "Delete") {
+        e.preventDefault();
+        handleClear();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        handleConfirmAndClose();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeKeypad();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    closeKeypad,
+    handleBackspace,
+    handleClear,
+    handleConfirmAndClose,
+    handleDecimal,
+    handleDigit,
+    isOpen,
+  ]);
+
+  // ── Presentation ──────────────────────────────────────────────────────────
+
+  const activeDiscountMode = isDiscountContext
+    ? resolveDiscountMode(safeContext)
+    : null;
+
+  const title = useMemo(() => {
+    if (selectedItem) return selectedItem.name;
+
+    if (isDiscountContext) {
+      return activeDiscountMode === "FIXED"
+        ? "Order Discount ($)"
+        : "Order Discount (%)";
+    }
+
+    return config.label;
+  }, [activeDiscountMode, config.label, isDiscountContext, selectedItem]);
+
+  const { prefix, suffix } = useMemo(() => {
+    if (isDiscountContext) {
+      return activeDiscountMode === "FIXED"
+        ? { prefix: "$", suffix: undefined }
+        : { prefix: undefined, suffix: "%" };
+    }
+    if (
+      safeContext === "PRICE_OVERRIDE" ||
+      safeContext === "SHIPPING" ||
+      safeContext === "PAYMENT"
+    ) {
+      return { prefix: "$", suffix: undefined };
+    }
+    return { prefix: undefined, suffix: safeContext === "QUANTITY" ? "×" : undefined };
+  }, [activeDiscountMode, isDiscountContext, safeContext]);
+
+  const tabs = useMemo((): KeypadTab[] => {
+    if (!itemId) return [];
+
+    const list: KeypadTab[] = [
+      {
+        key: "qty",
+        label: "Qty",
         icon: "Hash",
+        active: safeContext === "QUANTITY",
+        onClick: () => handleSwitchContext("QUANTITY"),
       },
+    ];
 
-      PRICE_OVERRIDE: {
-        text: "Custom Price ($)",
+    if (onPriceChange) {
+      list.push({
+        key: "price",
+        label: "Price",
         icon: "DollarSign",
-      },
-
-      DISCOUNT_PERCENT: {
-        text: isLineDiscount ? "Line Discount (%)" : "Order Discount (%)",
-        icon: "Percent",
-      },
-
-      DISCOUNT_FIXED: {
-        text: isLineDiscount ? "Line Discount ($)" : "Order Discount ($)",
-        icon: "DollarSign",
-      },
-
-      SHIPPING: {
-        text: "Shipping Fee ($)",
-        icon: "Truck",
-      },
-    } satisfies Record<keyof KeypadContext, { text: string; icon: string }>;
-
-    if (discountMode === "PERCENTAGE") {
-      return config.DISCOUNT_PERCENT;
+        active: safeContext === "PRICE_OVERRIDE",
+        onClick: () => handleSwitchContext("PRICE_OVERRIDE"),
+      });
     }
 
-    if (discountMode === "FIXED") {
-      return config.DISCOUNT_FIXED;
+    if (onDiscountChange) {
+      list.push({
+        key: "discount",
+        label: "Disc",
+        icon: "TicketPercent",
+        active: isDiscountContext,
+        indicator: (selectedItem?.discount?.value ?? 0) > 0,
+        onClick: handleDiscountIntent,
+      });
     }
 
-    return config[safeContext as keyof typeof config] ?? null;
-  }, [safeContext, isDiscountContext, resolveDiscountMode, itemId]);
+    list.push({
+      key: "note",
+      label: "Note",
+      icon: "StickyNote",
+      active: false,
+      indicator: !!selectedItem?.notes,
+      onClick: handleNoteIntent,
+    });
 
-  if (!isOpen) return null;
+    return list;
+  }, [
+    handleDiscountIntent,
+    handleNoteIntent,
+    handleSwitchContext,
+    isDiscountContext,
+    itemId,
+    onDiscountChange,
+    onPriceChange,
+    safeContext,
+    selectedItem?.discount?.value,
+    selectedItem?.notes,
+  ]);
+
+  if (!isOpen || !order || order.items.length === 0) return null;
 
   return (
-    <Shad.Collapsible
-      open={isOpen && !!order && order?.items.length > 0}
-      onOpenChange={(open) => !open && closeKeypad()}
-    >
-      <Shad.CollapsibleContent className="border-t border-border bg-background">
-        {/* Header */}
-        <OrderActions />
+    <div className="animate-in fade-in slide-in-from-bottom-2 border-t border-border bg-background duration-200">
+      <KeypadDisplay
+        title={title}
+        value={value}
+        prefix={prefix}
+        suffix={suffix}
+        diffBase={isDiffMode ? diffBaseValue : null}
+        tabs={tabs}
+        onClose={closeKeypad}
+      />
 
-        {/* Context indicator */}
-        {contextLabel && (
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-muted/50 border-b border-border">
-            <Icon
-              name={contextLabel.icon}
-              className="h-3.5 w-3.5 text-primary"
-            />
-            <span className="text-xs font-semibold text-primary">
-              {contextLabel.text}
-            </span>
-            <span className="text-xs text-muted-foreground ml-auto tabular-nums">
-              {value}
-            </span>
-          </div>
-        )}
-
-        <KeypadGrid
-          onChange={setValue}
-          mode={mode}
-          onModeChange={setMode}
-          onDiffBaseValue={setDiffBaseValue}
-          onIsDiffModeChange={setIsDiffMode}
-        />
-
-        <KeypadActions />
-      </Shad.CollapsibleContent>
-    </Shad.Collapsible>
+      <KeypadGrid
+        decimalsAllowed={config.decimals > 0}
+        showDiff={safeContext === "PRICE_OVERRIDE"}
+        isDiffActive={isDiffMode}
+        onDigit={handleDigit}
+        onDoubleZero={handleDoubleZero}
+        onDecimal={handleDecimal}
+        onBackspace={handleBackspace}
+        onClear={handleClear}
+        onConfirm={handleConfirmAndClose}
+        onDiff={handleDiff}
+      />
+    </div>
   );
 };

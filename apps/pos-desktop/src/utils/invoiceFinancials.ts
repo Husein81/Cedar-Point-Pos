@@ -1,4 +1,6 @@
 import type { Order, TenantCurrency } from "@repo/types";
+import { VAT_RATE_PERCENT_LABEL } from "@/constants/finance";
+import { DEFAULT_LOCALE } from "@/constants/locale";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -47,10 +49,6 @@ export interface ItemRefundInfo {
   isFullyRefunded: boolean;
 }
 
-// ─── Constants ───────────────────────────────────────────────────
-
-const VAT_RATE = 0.11;
-
 // ─── Computation ─────────────────────────────────────────────────
 
 /**
@@ -85,7 +83,7 @@ export function computeInvoiceFinancials(
     subtotal,
     discount,
     hasVat,
-    vatLabel: `${(VAT_RATE * 100).toFixed(0)}%`,
+    vatLabel: VAT_RATE_PERCENT_LABEL,
     vatAmount,
     shippingFee,
     originalTotal,
@@ -129,7 +127,7 @@ export function formatCurrency(
   decimalPlaces?: number,
 ): string {
   const dp = decimalPlaces ?? 2;
-  const formatted = new Intl.NumberFormat("en-US", {
+  const formatted = new Intl.NumberFormat(DEFAULT_LOCALE, {
     minimumFractionDigits: dp > 0 ? Math.min(dp, 2) : 0,
     maximumFractionDigits: dp > 0 ? Math.min(dp, 2) : 0,
   }).format(amount);

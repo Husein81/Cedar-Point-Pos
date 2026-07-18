@@ -10,7 +10,7 @@ import type {
   TenantCurrenciesResponse,
   TenantCurrency,
 } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 // ==========================================
 // Currency API
@@ -25,11 +25,11 @@ export const currencyApi = {
    * Get paginated currencies for the current tenant
    */
   getTenantCurrenciesPaginated: async (
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginationResponse<TenantCurrency>> => {
     const response = await api.get<PaginationResponse<TenantCurrency>>(
       "/currencies/paginated",
-      { params }
+      { params },
     );
     return response.data;
   },
@@ -62,7 +62,7 @@ export const currencyApi = {
    * Add a new currency to the tenant's configuration
    */
   createTenantCurrency: async (
-    data: CreateTenantCurrencyDto
+    data: CreateTenantCurrencyDto,
   ): Promise<TenantCurrency> => {
     const response = await api.post<TenantCurrency>("/currencies", data);
     return response.data;
@@ -74,7 +74,7 @@ export const currencyApi = {
    */
   updateTenantCurrency: async (
     id: string,
-    data: UpdateTenantCurrencyDto
+    data: UpdateTenantCurrencyDto,
   ): Promise<TenantCurrency> => {
     const response = await api.put<TenantCurrency>(`/currencies/${id}`, data);
     return response.data;
@@ -93,10 +93,10 @@ export const currencyApi = {
    * This is a significant operation affecting reporting
    */
   setBaseCurrency: async (
-    currencyCode: string
+    currencyCode: string,
   ): Promise<SetBaseCurrencyResponse> => {
     const response = await api.put<SetBaseCurrencyResponse>(
-      `/currencies/base/${currencyCode}`
+      `/currencies/base/${currencyCode}`,
     );
     return response.data;
   },

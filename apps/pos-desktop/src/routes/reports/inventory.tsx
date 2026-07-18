@@ -1,5 +1,5 @@
 import { ReportsFilterBar } from "@/components/reports";
-import { getInventoryColumns } from "@/constants/columns/reportsColumns";
+import { getInventoryColumns } from "@/components/reports/reportsColumns";
 import { useBranches } from "@/hooks/useBranch";
 import { useReportPageState } from "@/hooks/useReportPageState";
 import { useInventoryMovementsReport } from "@/hooks/useReports";
@@ -16,7 +16,7 @@ import type {
   DateRangePreset,
   InventoryMovementRow,
   ReportListParams,
-} from "@/types/reports";
+} from "@/dto/reports.dto";
 import {
   formatChangeType,
   getDateRangeFromPreset,

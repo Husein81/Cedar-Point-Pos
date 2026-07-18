@@ -22,14 +22,16 @@ import {
 } from '@repo/types';
 import type { Request } from 'express';
 import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
+import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { AddItemDto } from './dto/add-item.dto.js';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto.js';
 import { AssignTableDto } from './dto/assign-table.dto.js';
 import { CreateOrderDto, ProcessPaymentDto } from './dto/create-order.dto.js';
 import { UpdateQuantityDto } from './dto/update-quantity.dto.js';
 import { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
 import { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
-import { SplitPaymentDto } from './dto/split-payment.dto.js';
+import { SplitOrderDto } from './dto/split-order.dto.js';
 import { AddModifierDto } from './dto/add-modifier-dto.js';
 
 import { OrdersService } from './orders.service.js';
@@ -45,7 +47,8 @@ export class OrdersController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   create(@Req() req: Request, @Body() dto: CreateOrderDto) {
     const user = req.user as { tenantId: string; id: string };
-    return this.ordersService.create(user.tenantId, user.id, dto);
+    const params = { tenantId: user.tenantId, userId: user.id };
+    return this.ordersService.create(params, dto);
   }
 
   /* ----------------------------------------------------
@@ -74,7 +77,7 @@ export class OrdersController {
   ) {
     const user = req.user as { tenantId: string };
 
-    return this.ordersService.findAll(user.tenantId, {
+    const params = {
       page,
       limit,
       status,
@@ -87,13 +90,11 @@ export class OrdersController {
       search,
       sort,
       order,
-    });
+    };
+
+    return this.ordersService.findAll(user.tenantId, params);
   }
 
-  /**
-   * Get active (unpaid) order for a specific table
-   * Returns the order if found, null if no active order exists
-   */
   @Get('table/:tableId/active')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   findActiveOrderByTable(
@@ -110,8 +111,8 @@ export class OrdersController {
     if (!branchId) {
       throw new BadRequestException('Branch ID is required');
     }
-    const user = req.user as { tenantId: string };
-    return this.ordersService.getNextOrderNumber(user.tenantId, branchId);
+
+    return this.ordersService.getNextOrderNumber(branchId);
   }
 
   /**
@@ -124,18 +125,15 @@ export class OrdersController {
     return this.ordersService.findOne(user.tenantId, id);
   }
 
-  /* ----------------------------------------------------
-     ORDER STATE MACHINE
-  ---------------------------------------------------- */
-
-  /**
-   * Update order status
-   *
-   * ✅ Single entry point for state machine
-   * ✅ Inventory deducted ONLY when status → PAID
-   */
   @Patch(':id/status')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.CASHIER,
+    UserRole.WAITER,
+    UserRole.KITCHEN,
+    UserRole.DRIVER,
+  )
   @LogActivity(
     StaffActivityAction.ORDER_CANCELLED,
     StaffActivityModule.ORDERS,
@@ -148,16 +146,20 @@ export class OrdersController {
   updateStatus(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: { status: OrderStatus },
+    @Body() dto: UpdateOrderStatusDto,
+    @CurrentRole() actorRole: UserRole,
   ) {
     const user = req.user as { tenantId: string; id: string };
 
-    return this.ordersService.updateStatus(
-      user.tenantId,
-      id,
-      body.status,
-      user.id,
-    );
+    // Per-transition permissions (who may fire/serve/complete/cancel) are
+    // enforced inside updateStatus via the shared state machine.
+    return this.ordersService.updateStatus({
+      tenantId: user.tenantId,
+      orderId: id,
+      nextStatus: dto.status,
+      userId: user.id,
+      actorRole,
+    });
   }
 
   /* ----------------------------------------------------
@@ -178,9 +180,6 @@ export class OrdersController {
      ORDER MODIFICATIONS (DRAFT ONLY)
   ---------------------------------------------------- */
 
-  /**
-   * Update discount
-   */
   @Patch(':id/discount')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
   @LogActivity(
@@ -256,6 +255,23 @@ export class OrdersController {
       user.tenantId,
       id,
       body.sourceOrderId,
+    );
+  }
+
+  @Post(':id/split')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  splitOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: SplitOrderDto,
+  ) {
+    const user = req.user as { tenantId: string; id: string };
+    return this.ordersService.splitOrder(
+      user.tenantId,
+      user.id,
+      id,
+      dto.items,
+      dto.idempotencyKey,
     );
   }
 

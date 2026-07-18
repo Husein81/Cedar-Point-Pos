@@ -118,7 +118,7 @@ export const LoyaltyProgramForm = ({ canEdit }: Props) => {
     return (
       <div className="space-y-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
+          <Skeleton key={i} className="h-10 w-full bg-muted/60" />
         ))}
       </div>
     );

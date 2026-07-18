@@ -1,4 +1,5 @@
 import TitleBar from "@/components/title-bar";
+import { isDev } from "@/electron/utils";
 import { useAppInfo } from "@/hooks/useAppInfo";
 import { useAppUpdater } from "@/hooks/useAppUpdater";
 import { Badge, Button, Icon, Progress, Shad } from "@repo/ui";
@@ -17,6 +18,8 @@ export default function UpdatePage() {
     checkForUpdates,
     installUpdate,
   } = useAppUpdater();
+
+  const isDevelopment = isDev() && appInfo && !appInfo.isPackaged;
 
   return (
     <div className="space-y-6">
@@ -52,7 +55,7 @@ export default function UpdatePage() {
 
         <Shad.CardContent className="space-y-4 pt-6">
           {!isSupported ? (
-            <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4">
+            <div className="flex items-start gap-3 rounded-lg  bg-muted/30 p-4">
               <Icon
                 name="Info"
                 className="size-5 shrink-0 text-muted-foreground"
@@ -61,8 +64,8 @@ export default function UpdatePage() {
                 Updates are only available in the installed desktop app.
               </p>
             </div>
-          ) : appInfo && !appInfo.isPackaged ? (
-            <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4">
+          ) : isDevelopment ? (
+            <div className="flex items-start gap-3 rounded-lg  bg-muted/30 p-4">
               <Icon
                 name="Info"
                 className="size-5 shrink-0 text-muted-foreground"
@@ -74,7 +77,7 @@ export default function UpdatePage() {
           ) : (
             <>
               {status === "idle" && (
-                <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center justify-between rounded-lg  p-4">
                   <p className="text-sm text-muted-foreground">
                     Check now to see if a newer version is available.
                   </p>
@@ -85,7 +88,7 @@ export default function UpdatePage() {
               )}
 
               {status === "checking" && (
-                <div className="flex items-center gap-3 rounded-lg border p-4">
+                <div className="flex items-center gap-3 rounded-lg  p-4">
                   <Icon
                     name="LoaderCircle"
                     className="size-5 animate-spin text-primary"
@@ -95,7 +98,7 @@ export default function UpdatePage() {
               )}
 
               {status === "not-available" && (
-                <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center justify-between rounded-lg  p-4">
                   <div className="flex items-center gap-3">
                     <Icon
                       name="CircleCheck"
@@ -116,7 +119,7 @@ export default function UpdatePage() {
               )}
 
               {status === "available" && (
-                <div className="flex items-center gap-3 rounded-lg border p-4">
+                <div className="flex items-center gap-3 rounded-lg  p-4">
                   <Icon
                     name="LoaderCircle"
                     className="size-5 animate-spin text-primary"
@@ -128,7 +131,7 @@ export default function UpdatePage() {
               )}
 
               {status === "downloading" && (
-                <div className="space-y-3 rounded-lg border p-4">
+                <div className="space-y-3 rounded-lg  p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Downloading update...</p>
                     <span className="text-sm text-muted-foreground">
@@ -146,7 +149,7 @@ export default function UpdatePage() {
               )}
 
               {status === "downloaded" && (
-                <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center justify-between rounded-lg bg-primary/5 p-4">
                   <div className="flex items-center gap-3">
                     <Icon name="CircleCheck" className="size-5 text-primary" />
                     <p className="text-sm font-medium">
@@ -160,7 +163,7 @@ export default function UpdatePage() {
               )}
 
               {status === "error" && (
-                <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                <div className="space-y-3 rounded-lg bg-destructive/5 p-4">
                   <div className="flex items-center gap-3">
                     <Icon
                       name="TriangleAlert"

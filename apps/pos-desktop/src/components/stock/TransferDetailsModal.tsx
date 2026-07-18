@@ -1,16 +1,9 @@
 import { TransferWithDetails } from "@/apis/transfersApi";
-import { useCompleteTransfer, useCancelTransfer } from "@/hooks/useTransfers";
-import { Badge, Button, Shad } from "@repo/ui";
+import { useCancelTransfer, useCompleteTransfer } from "@/hooks/useTransfers";
 import { useModalStore } from "@/store/modalStore";
-import { useBranchStore } from "@/store/branchStore";
+import { Badge, Button } from "@repo/ui";
 import { format } from "date-fns";
-import {
-  ArrowRight,
-  PackageCheck,
-  PackageX,
-  CalendarDays,
-  FileText,
-} from "lucide-react";
+import { ArrowRight, FileText, PackageCheck, PackageX } from "lucide-react";
 
 interface TransferDetailsModalProps {
   transfer: TransferWithDetails;
@@ -32,7 +25,6 @@ function StatusBadge({ status }: { status: TransferWithDetails["status"] }) {
 
 export function TransferDetailsModal({ transfer }: TransferDetailsModalProps) {
   const { closeModal } = useModalStore();
-  const { branchId } = useBranchStore();
 
   const { mutate: completeTransfer, isPending: isCompleting } =
     useCompleteTransfer();
@@ -51,7 +43,7 @@ export function TransferDetailsModal({ transfer }: TransferDetailsModalProps) {
 
   const totalItems = transfer.items.reduce(
     (sum, item) => sum + Number(item.quantity),
-    0
+    0,
   );
 
   return (

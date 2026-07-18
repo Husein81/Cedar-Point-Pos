@@ -211,13 +211,12 @@ export class ProductsService {
   }
 
   async updateProduct(
-    id: string,
-    tenantId: string,
+    params: { id?: string; tenantId?: string },
     data: Prisma.ProductUpdateInput,
   ) {
     try {
       const result = await this.prisma.product.update({
-        where: { id, tenantId },
+        where: { id: params.id, tenantId: params.tenantId },
         data,
       });
       return this.withImageUrl(result);

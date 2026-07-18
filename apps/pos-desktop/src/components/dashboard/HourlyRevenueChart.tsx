@@ -1,16 +1,25 @@
+import { Empty } from "@repo/ui";
 import {
-  LineChart,
-  Line,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from "recharts";
-import { ChartContainer } from "./ChartContainer";
-import type { HourlyRevenueData } from "../../types/dashboard";
-import { Empty } from "@repo/ui";
+import type { HourlyRevenueData } from "../../dto/dashboard.dto";
+import { formatCurrency } from "../../utils/reportHelpers";
+import { ChartCard } from "./ChartCard";
+import {
+  CHART_AXIS_TICK,
+  CHART_GRID_STROKE,
+  CHART_TOOLTIP_CONTENT_STYLE,
+  CHART_TOOLTIP_ITEM_STYLE,
+  CHART_TOOLTIP_LABEL_STYLE,
+  formatAxisCurrency,
+  formatHourLabel,
+} from "./chart-theme";
 
 type Props = {
   data: HourlyRevenueData[];
@@ -25,57 +34,68 @@ export const HourlyRevenueChart = ({
   error,
   onRetry,
 }: Props) => {
-  const isEmpty = !data || data.length === 0;
+  // The API returns all 24 hours zero-filled, so "empty" means no revenue yet
+  const hasRevenue = data.some((entry) => entry.revenue > 0);
 
   return (
-    <ChartContainer
-      title="Hourly Revenue Distribution"
+    <ChartCard
+      title="Hourly Revenue"
       subtitle="Today's revenue by hour"
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
     >
-      {isEmpty ? (
-        <Empty description="No hourly data available for today" />
+      {!hasRevenue ? (
+        <div className="flex h-[300px] items-center justify-center">
+          <Empty
+            icon="ChartColumn"
+            description="No revenue recorded today yet"
+          />
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data}>
+          <BarChart data={data} barCategoryGap="25%">
             <CartesianGrid
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="#e0e0e0"
+              stroke={CHART_GRID_STROKE}
             />
-            <XAxis dataKey="hour" tick={{ fontSize: 12 }} tickLine={false} />
-            <YAxis
-              tick={{ fontSize: 12 }}
+            <XAxis
+              dataKey="hour"
+              tick={CHART_AXIS_TICK}
               tickLine={false}
-              tickFormatter={(value: number) => `$${value.toLocaleString()}`}
+              axisLine={false}
+              interval={2}
+              tickFormatter={(hour: number) => formatHourLabel(hour)}
+            />
+            <YAxis
+              tick={CHART_AXIS_TICK}
+              tickLine={false}
+              axisLine={false}
+              width={56}
+              tickFormatter={formatAxisCurrency}
             />
             <Tooltip
-              formatter={(value?: unknown) => [
-                `$${(Number(value) || 0).toFixed(2)}`,
+              cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+              labelFormatter={(hour) => formatHourLabel(Number(hour))}
+              formatter={(value) => [
+                formatCurrency(Number(value) || 0),
                 "Revenue",
               ]}
-              contentStyle={{
-                backgroundColor: "rgba(255, 255, 255, 0.95)",
-
-                borderRadius: "8px",
-              }}
+              contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
+              labelStyle={CHART_TOOLTIP_LABEL_STYLE}
+              itemStyle={CHART_TOOLTIP_ITEM_STYLE}
             />
-            <Legend />
-            <Line
-              type="monotone"
+            <Bar
               dataKey="revenue"
-              stroke="#82ca9d"
-              strokeWidth={2}
-              dot={{ r: 4, fill: "#82ca9d" }}
-              activeDot={{ r: 6 }}
-              name="Revenue ($)"
+              fill="var(--chart-2)"
+              radius={[4, 4, 0, 0]}
+              name="Revenue"
             />
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       )}
-    </ChartContainer>
+    </ChartCard>
   );
 };

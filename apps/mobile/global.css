@@ -1,119 +1,176 @@
 @import 'tailwindcss';
 @import 'uniwind';
 
+
 @layer theme {
   :root {
+    /* ================= LIGHT MODE (DEFAULT) ================= */
+    /* Base */
+    @variant light{
 
-    /* ================= DARK (DEFAULT POS MODE) ================= */
+    
+    --background: oklch(0.98 0.01 264);
+    --foreground: oklch(0.15 0.04 264);
+    --text: oklch(0.15 0.04 264);
+
+    --card: oklch(0.99 0.01 264);
+    --card-foreground: oklch(0.15 0.04 264);
+
+    --popover: oklch(0.99 0.01 264);
+    --popover-foreground: oklch(0.15 0.04 264);
+
+    /* Brand - Cedar Point Blue */
+    --primary: oklch(0.45 0.31 264); /* #0019FF */
+    --primary-foreground: oklch(0.99 0.01 264);
+
+    --accent: oklch(0.55 0.28 264);
+    --accent-foreground: oklch(0.98 0.01 264);
+
+    --secondary: oklch(0.92 0.03 264);
+    --secondary-foreground: oklch(0.25 0.04 264);
+
+    --muted: oklch(0.94 0.02 264);
+    --muted-foreground: oklch(0.45 0.04 264);
+
+    /* Status */
+    --success: oklch(0.65 0.2 150);
+    --success-foreground: oklch(0.99 0.01 264);
+
+    --warning: oklch(0.75 0.18 80);
+    --warning-foreground: oklch(0.15 0.04 264);
+
+    --info: oklch(0.55 0.25 264);
+    --info-foreground: oklch(0.99 0.01 264);
+
+    --destructive: oklch(0.55 0.22 25);
+    --destructive-foreground: oklch(0.99 0.01 264);
+
+    /* Borders & Focus */
+    --border: oklch(0.9 0.02 264);
+    --input: oklch(0.9 0.02 264);
+    --ring: oklch(0.45 0.31 264);
+
+    /* Sidebar */
+    --sidebar: oklch(0.97 0.01 264);
+    --sidebar-foreground: oklch(0.15 0.04 264);
+    --sidebar-primary: oklch(0.45 0.31 264);
+    --sidebar-primary-foreground: oklch(0.99 0.01 264);
+    --sidebar-accent: oklch(0.92 0.03 264);
+    --sidebar-accent-foreground: oklch(0.15 0.04 264);
+    --sidebar-border: oklch(0.9 0.02 264);
+    --sidebar-ring: oklch(0.45 0.31 264);
+
+    /* Charts */
+    --chart-1: var(--primary);
+    --chart-2: oklch(0.62 0.17 160);
+    --chart-3: oklch(0.66 0.18 50);
+    --chart-4: oklch(0.56 0.21 300);
+    --chart-5: oklch(0.6 0.19 15);
+    }
+  
+
+    /* ================= DARK MODE ================= */
     @variant dark {
-
       /* Base */
-      --color-background: rgb(3 17 40);
-      --color-foreground: rgb(241 245 249);
-      --color-text: rgb(241 245 249);
+      --background: oklch(0.12 0.02 264); /* Deep Midnight Blue */
+      --foreground: oklch(0.98 0.01 264);
+      --text: oklch(0.98 0.01 264);
 
-      --color-card: rgb(15 23 42);
-      --color-card-foreground: rgb(241 245 249);
+      --card: oklch(0.16 0.03 264);
+      --card-foreground: oklch(0.98 0.01 264);
 
-      --color-popover: rgb(15 23 42);
-      --color-popover-foreground: rgb(241 245 249);
+      --popover: oklch(0.16 0.03 264);
+      --popover-foreground: oklch(0.98 0.01 264);
 
-      /* Brand */
-      --color-primary: rgb(93 158 255);
-      --color-primary-foreground: rgb(3 17 40);
+      /* Brand - Matching Shared Image */
+      --primary: oklch(0.55 0.28 264); /* Vibrant Blue for Dark Mode */
+      --primary-foreground: oklch(0.99 0.01 264);
 
-      --color-accent: rgb(82 95 249);
-      --color-accent-foreground: rgb(241 245 249);
+      --accent: oklch(0.45 0.31 264);
+      --accent-foreground: oklch(0.99 0.01 264);
 
-      --color-secondary: rgb(30 41 59);
-      --color-secondary-foreground: rgb(241 245 249);
+      --secondary: oklch(0.22 0.04 264);
+      --secondary-foreground: oklch(0.98 0.01 264);
 
-      --color-muted: rgb(30 41 59);
-      --color-muted-foreground: rgb(148 163 184);
+      --muted: oklch(0.22 0.04 264);
+      --muted-foreground: oklch(0.7 0.04 264);
 
       /* Status */
-      --color-success: rgb(22 163 74);
-      --color-success-foreground: rgb(241 245 249);
+      --success: oklch(0.6 0.15 150);
+      --success-foreground: oklch(0.98 0.01 264);
 
-      --color-warning: rgb(202 138 4);
-      --color-warning-foreground: rgb(3 17 40);
+      --warning: oklch(0.7 0.15 80);
+      --warning-foreground: oklch(0.12 0.02 264);
 
-      --color-info: rgb(59 130 246);
-      --color-info-foreground: rgb(3 17 40);
+      --info: oklch(0.55 0.28 264);
+      --info-foreground: oklch(0.99 0.01 264);
 
-      --color-destructive: rgb(185 28 28);
-      --color-destructive-foreground: rgb(241 245 249);
+      --destructive: oklch(0.45 0.18 25);
+      --destructive-foreground: oklch(0.98 0.01 264);
 
-      /* Borders */
-      --color-border: rgb(51 65 85);
-      --color-input: rgb(51 65 85);
-      --color-ring: rgb(93 158 255);
-
-      /* Sidebar */
-      --color-sidebar: rgb(2 12 28);
-      --color-sidebar-foreground: rgb(241 245 249);
-      --color-sidebar-primary: rgb(82 95 249);
-      --color-sidebar-primary-foreground: rgb(241 245 249);
-      --color-sidebar-accent: rgb(93 158 255);
-      --color-sidebar-accent-foreground: rgb(3 17 40);
-      --color-sidebar-border: rgb(51 65 85);
-      --color-sidebar-ring: rgb(82 95 249);
-    }
-
-    /* ================= LIGHT (ADMIN DASHBOARD) ================= */
-    @variant light {
-
-      /* Base */
-      --color-background: rgb(247 249 252);
-      --color-foreground: rgb(26 32 44);
-      --color-text: rgb(26 32 44);
-
-      --color-card: rgb(255 255 255);
-      --color-card-foreground: rgb(26 32 44);
-
-      --color-popover: rgb(255 255 255);
-      --color-popover-foreground: rgb(26 32 44);
-
-      /* Brand */
-      --color-primary: rgb(82 95 249);
-      --color-primary-foreground: rgb(255 255 255);
-
-      --color-accent: rgb(82 95 249);
-      --color-accent-foreground: rgb(240 242 247);
-
-      --color-secondary: rgb(233 236 242);
-      --color-secondary-foreground: rgb(51 65 85);
-
-      --color-muted: rgb(240 242 247);
-      --color-muted-foreground: rgb(100 116 139);
-
-      /* Status */
-      --color-success: rgb(34 197 94);
-      --color-success-foreground: rgb(255 255 255);
-
-      --color-warning: rgb(234 179 8);
-      --color-warning-foreground: rgb(26 32 44);
-
-      --color-info: rgb(59 130 246);
-      --color-info-foreground: rgb(26 32 44);
-
-      --color-destructive: rgb(239 68 68);
-      --color-destructive-foreground: rgb(255 255 255);
-
-      /* Borders */
-      --color-border: rgb(226 232 240);
-      --color-input: rgb(226 232 240);
-      --color-ring: rgb(82 95 249);
+      /* Borders & Focus */
+      --border: oklch(0.25 0.03 264);
+      --input: oklch(0.25 0.03 264);
+      --ring: oklch(0.55 0.28 264);
 
       /* Sidebar */
-      --color-sidebar: rgb(245 247 250);
-      --color-sidebar-foreground: rgb(26 32 44);
-      --color-sidebar-primary: rgb(82 95 249);
-      --color-sidebar-primary-foreground: rgb(255 255 255);
-      --color-sidebar-accent: rgb(26 32 44);
-      --color-sidebar-accent-foreground: rgb(26 32 44);
-      --color-sidebar-border: rgb(226 232 240);
-      --color-sidebar-ring: rgb(82 95 249);
+      --sidebar: oklch(0.1 0.02 264);
+      --sidebar-foreground: oklch(0.98 0.01 264);
+      --sidebar-primary: oklch(0.45 0.31 264);
+      --sidebar-primary-foreground: oklch(0.99 0.01 264);
+      --sidebar-accent: oklch(0.16 0.03 264);
+      --sidebar-accent-foreground: oklch(0.98 0.01 264);
+      --sidebar-border: oklch(0.25 0.03 264);
+      --sidebar-ring: oklch(0.45 0.31 264);
+
+      /* Charts — brighter variants for dark surfaces */
+      --chart-1: var(--primary);
+      --chart-2: oklch(0.7 0.15 160);
+      --chart-3: oklch(0.72 0.16 50);
+      --chart-4: oklch(0.66 0.19 300);
+      --chart-5: oklch(0.68 0.17 15);
     }
+  }
+  /* Tailwind color mapping */
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-text: var(--text);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-info: var(--info);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
   }
 }

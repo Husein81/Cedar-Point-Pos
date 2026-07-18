@@ -6,7 +6,7 @@ import type {
   CustomerSummary,
 } from "@/dto/customer.dto";
 import type { PaginationResponse, QueryParams } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const customerApi = {
   /**
@@ -14,7 +14,7 @@ export const customerApi = {
    */
   searchCustomers: async (
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<CustomerSummary[]> => {
     const response = await api.get("/customers/search", {
       params: { query, limit },
@@ -26,7 +26,7 @@ export const customerApi = {
    * Get customers with pagination, sorting and filtering
    */
   getCustomersPaginated: async (
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginationResponse<CustomerDetails>> => {
     const response = await api.get("/customers/paginated", {
       params,
@@ -47,7 +47,7 @@ export const customerApi = {
    */
   getCustomerOrders: async (
     id: string,
-    params?: QueryParams
+    params?: QueryParams,
   ): Promise<PaginationResponse<CustomerOrder>> => {
     const response = await api.get(`/customers/${id}/orders`, {
       params,
@@ -68,7 +68,7 @@ export const customerApi = {
    */
   updateCustomer: async (
     id: string,
-    data: Partial<CreateCustomerDto>
+    data: Partial<CreateCustomerDto>,
   ): Promise<CustomerDetails> => {
     const response = await api.put(`/customers/${id}`, data);
     return response.data;

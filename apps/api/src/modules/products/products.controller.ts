@@ -122,8 +122,8 @@ export class ProductsController {
         updateData.branch = { disconnect: true };
       }
     }
-
-    return this.productsService.updateProduct(id, tenantId, updateData);
+    const params = { id, tenantId };
+    return this.productsService.updateProduct(params, updateData);
   }
 
   @Put('/delete/:id')

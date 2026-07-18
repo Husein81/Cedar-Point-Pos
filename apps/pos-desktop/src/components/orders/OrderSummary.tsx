@@ -6,8 +6,9 @@ import {
 import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
-import { cn, Icon } from "@repo/ui";
+import { cn, Icon, Separator } from "@repo/ui";
 import { formatPrice } from "./config";
+import { Activity } from "react";
 
 const Row = ({
   label,
@@ -28,9 +29,7 @@ const Row = ({
     <>
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
         {label}
-        {editable && (
-          <Icon name="Pencil" className="h-2.5 w-2.5 opacity-50" />
-        )}
+        {editable && <Icon name="Pencil" className="h-2.5 w-2.5 opacity-50" />}
       </span>
       <span
         className={cn(
@@ -194,7 +193,12 @@ const OrderSummary = () => {
       )}
 
       {/* Grand total */}
-      <div className="flex items-baseline justify-between border-t border-border/60 pt-1.5">
+      {
+        <Activity mode={hasBreakdown ? "visible" : "hidden"}>
+          <Separator />
+        </Activity>
+      }
+      <div className="flex items-baseline justify-between border-border/60 pt-1.5">
         <span className="text-sm font-semibold">
           {hasPayments ? "Balance Due" : "Total"}
         </span>

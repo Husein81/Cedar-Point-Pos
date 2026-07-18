@@ -1,4 +1,4 @@
-import type { ColorTheme, ThemeMode } from "@/store/theme";
+import type { ThemeMode } from "@/store/theme";
 
 export type ThemeModeOption = {
   value: ThemeMode;
@@ -25,39 +25,5 @@ export const THEME_MODE_OPTIONS: ThemeModeOption[] = [
     label: "System",
     description: "Automatically match your device's appearance",
     icon: "Smartphone",
-  },
-];
-
-export type ColorThemeOption = {
-  value: ColorTheme;
-  label: string;
-  description: string;
-};
-
-export const COLOR_THEME_OPTIONS: ColorThemeOption[] = [
-  {
-    value: "cedar",
-    label: "Cedar Blue",
-    description: "The classic Cedar Point brand color",
-  },
-  {
-    value: "emerald",
-    label: "Emerald",
-    description: "A fresh, natural green",
-  },
-  {
-    value: "rose",
-    label: "Rose",
-    description: "A warm, vibrant red",
-  },
-  {
-    value: "violet",
-    label: "Violet",
-    description: "A rich, modern purple",
-  },
-  {
-    value: "sunset",
-    label: "Sunset",
-    description: "A bold, energetic orange",
   },
 ];

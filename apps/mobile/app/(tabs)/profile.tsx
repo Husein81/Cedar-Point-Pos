@@ -13,6 +13,7 @@ import { useAppTheme } from "@/lib/theme";
 import { useAuthStore } from "@/store/auth";
 import { useBranchStore } from "@/store/branch";
 import { EditableInfoRow } from "@/components/form";
+import ThemeSection from "@/components/app/theme-section";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -96,22 +97,7 @@ export default function ProfileScreen() {
         />
       </View>
 
-      {/* Settings */}
-      <Pressable
-        onPress={() => router.push("/themes")}
-        className="bg-card border-border flex-row items-center gap-3 rounded-xl border p-4 active:opacity-80"
-      >
-        <View className="h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-          <Icon
-            name="Palette"
-            size={16}
-            color={theme.primary}
-            onPress={() => router.push("/themes")}
-          />
-        </View>
-        <Text className="flex-1 font-semibold">Themes</Text>
-        <Icon name="ChevronRight" size={18} color={theme.mutedForeground} />
-      </Pressable>
+      <ThemeSection />
 
       {/* About */}
       <View className="bg-card border-border rounded-xl border p-4 gap-3">

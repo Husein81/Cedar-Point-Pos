@@ -43,12 +43,13 @@ module.exports = {
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
   },
-  publish: {
-    provider: "github",
-    owner: "Husein81",
-    PublisherName: "Cedar Point POS",
-    repo: "Cedar-Point-Pos",
-    releaseType: "draft",
-    private: true,
-  },
+  publish: [
+    {
+      provider: "github",
+      owner: "Husein81",
+      repo: "Cedar-Point-Pos",
+      releaseType: "draft",
+      private: true,
+    },
+  ],
 };

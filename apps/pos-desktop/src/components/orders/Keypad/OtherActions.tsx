@@ -12,6 +12,7 @@ import { ReceiptModal } from "../ReceiptModal";
 import { SplitBillForm } from "../SplitBillForm";
 import { TransferOrderModal } from "../TransferOrderModal";
 import { MergeOrderModal } from "../MergeOrderModal";
+import { LoadOrderModal } from "../LoadOrderModal";
 import { useAuthStore } from "@/store/authStore";
 
 type Action = {
@@ -110,13 +111,6 @@ export default function OtherActions() {
             return;
           }
 
-          // Server-backed order: reflect the split in the UI immediately —
-          // the user should never wait on the network — then reconcile with
-          // the backend in the background. The split endpoint needs real
-          // server item ids, but items already sent to the kitchen keep
-          // their local id in the tab (nothing rewrites it after sync), so
-          // the background step re-fetches and translates by product/price/
-          // notes instead of relying on the ids the user split against.
           const sourceOrderId = order.id;
           const sourceTabId = useOrderStore.getState().activeTabId;
           const sourceItemsSnapshot = order.items;
@@ -137,14 +131,11 @@ export default function OtherActions() {
                 fresh.items ?? [],
               );
 
-              const { originalOrder, newOrder } =
-                await splitOrder.mutateAsync({
-                  id: sourceOrderId,
-                  items: translated,
-                });
+              const { originalOrder, newOrder } = await splitOrder.mutateAsync({
+                id: sourceOrderId,
+                items: translated,
+              });
 
-              // Quietly swap in the authoritative data — same items/prices
-              // the user already sees, just real ids and order numbers.
               loadOrder(originalOrder as ServerOrderWithPayments, true);
               useOrderStore
                 .getState()
@@ -178,7 +169,20 @@ export default function OtherActions() {
     openModal("Merge Order", <MergeOrderModal />);
   };
 
+  const handleLoadOrder = () => {
+    openModal("Load Order", <LoadOrderModal />);
+  };
+
   const actions: Action[] = [
+    {
+      key: "load-order",
+      label: "Load Order",
+      icon: "FolderOpen",
+      variant: "outline" as const,
+      disabled: false,
+      tenantType: ["RESTAURANT", "RETAIL"],
+      onClick: handleLoadOrder,
+    },
     {
       key: "refund",
       label: "Refund",

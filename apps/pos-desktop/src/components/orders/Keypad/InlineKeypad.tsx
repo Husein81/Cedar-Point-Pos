@@ -13,11 +13,6 @@ type InputMode = "IDLE" | "REPLACE" | "APPEND";
 
 type DiscountMode = "FIXED" | "PERCENTAGE";
 
-/**
- * Inline numeric editor for the selected line / order adjustment.
- * Values apply live (debounced) while typing; Enter/✓ applies and closes,
- * Escape closes. Supports the physical keyboard and numpad.
- */
 export const InlineKeypad = () => {
   const {
     isOpen,
@@ -465,7 +460,10 @@ export const InlineKeypad = () => {
     ) {
       return { prefix: "$", suffix: undefined };
     }
-    return { prefix: undefined, suffix: safeContext === "QUANTITY" ? "×" : undefined };
+    return {
+      prefix: undefined,
+      suffix: safeContext === "QUANTITY" ? "×" : undefined,
+    };
   }, [activeDiscountMode, isDiscountContext, safeContext]);
 
   const tabs = useMemo((): KeypadTab[] => {

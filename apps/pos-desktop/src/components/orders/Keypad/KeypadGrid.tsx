@@ -56,10 +56,6 @@ const Key = ({
   </button>
 );
 
-/**
- * Pure numeric grid — phone layout with backspace/clear on the right and a
- * double-height confirm key. All behavior lives in the parent (InlineKeypad).
- */
 export default function KeypadGrid({
   decimalsAllowed,
   showDiff,
@@ -74,23 +70,41 @@ export default function KeypadGrid({
 }: Props) {
   return (
     <div className="grid grid-cols-4 gap-1.5 p-2 pt-1">
-      <Key ariaLabel="1" onClick={() => onDigit(1)}>1</Key>
-      <Key ariaLabel="2" onClick={() => onDigit(2)}>2</Key>
-      <Key ariaLabel="3" onClick={() => onDigit(3)}>3</Key>
+      <Key ariaLabel="1" onClick={() => onDigit(1)}>
+        1
+      </Key>
+      <Key ariaLabel="2" onClick={() => onDigit(2)}>
+        2
+      </Key>
+      <Key ariaLabel="3" onClick={() => onDigit(3)}>
+        3
+      </Key>
       <Key ariaLabel="Backspace" variant="utility" onClick={onBackspace}>
         <Icon name="Delete" className="h-5 w-5" />
       </Key>
 
-      <Key ariaLabel="4" onClick={() => onDigit(4)}>4</Key>
-      <Key ariaLabel="5" onClick={() => onDigit(5)}>5</Key>
-      <Key ariaLabel="6" onClick={() => onDigit(6)}>6</Key>
+      <Key ariaLabel="4" onClick={() => onDigit(4)}>
+        4
+      </Key>
+      <Key ariaLabel="5" onClick={() => onDigit(5)}>
+        5
+      </Key>
+      <Key ariaLabel="6" onClick={() => onDigit(6)}>
+        6
+      </Key>
       <Key ariaLabel="Clear entry" variant="utility" onClick={onClear}>
         C
       </Key>
 
-      <Key ariaLabel="7" onClick={() => onDigit(7)}>7</Key>
-      <Key ariaLabel="8" onClick={() => onDigit(8)}>8</Key>
-      <Key ariaLabel="9" onClick={() => onDigit(9)}>9</Key>
+      <Key ariaLabel="7" onClick={() => onDigit(7)}>
+        7
+      </Key>
+      <Key ariaLabel="8" onClick={() => onDigit(8)}>
+        8
+      </Key>
+      <Key ariaLabel="9" onClick={() => onDigit(9)}>
+        9
+      </Key>
       <Key
         ariaLabel="Apply"
         variant="confirm"
@@ -114,7 +128,9 @@ export default function KeypadGrid({
           00
         </Key>
       )}
-      <Key ariaLabel="0" onClick={() => onDigit(0)}>0</Key>
+      <Key ariaLabel="0" onClick={() => onDigit(0)}>
+        0
+      </Key>
       <Key
         ariaLabel="Decimal point"
         disabled={!decimalsAllowed}

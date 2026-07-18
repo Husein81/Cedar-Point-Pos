@@ -9,6 +9,7 @@ import { getDatabase } from "./database/index.js";
 import * as syncQueue from "./database/syncQueue.js";
 import { getPreloadPath } from "./pathResolver.js";
 import { isDev } from "./utils.js";
+import { config } from "dotenv";
 
 const APP_USER_MODEL_ID = "com.cedarcore.cedarpointpos";
 
@@ -31,6 +32,15 @@ let mainWindow: BrowserWindow | null = null;
 // ===============================
 // AUTO UPDATER
 // ===============================
+const envPath = path.join(
+  __dirname,
+  isDev() ? ".env.development" : ".env.production",
+);
+const envResult = config({ path: envPath });
+
+if (envResult.error && isDev()) {
+  console.warn(`Could not load environment file: ${envPath}`);
+}
 
 function setupAutoUpdater() {
   if (isDev()) return;

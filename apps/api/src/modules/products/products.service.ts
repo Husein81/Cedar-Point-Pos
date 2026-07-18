@@ -19,12 +19,6 @@ export class ProductsService {
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
   ) {}
 
-  /**
-   * Derive the public `imageUrl` from the durable `imageKey` when present,
-   * falling back to any legacy stored URL (pre-B2 Supabase rows). Keeping the
-   * key as the source of truth means a CDN/bucket change is a one-line config
-   * edit, not a data migration.
-   */
   private withImageUrl<
     T extends { imageKey: string | null; imageUrl: string | null },
   >(product: T): T {
@@ -240,6 +234,7 @@ export class ProductsService {
       throw new InternalServerErrorException('Failed to delete product');
     }
   }
+
   async getModifiersByProduct(productId: string, tenantId: string) {
     try {
       const modifiers = await this.prisma.modifier.findMany({

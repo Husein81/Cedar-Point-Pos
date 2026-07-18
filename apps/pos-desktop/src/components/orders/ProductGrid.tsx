@@ -1,12 +1,12 @@
 import { useNetworkStatus } from "@/context/NetworkContext";
 import { useCategories } from "@/hooks/useCategory";
 import { useProducts } from "@/hooks/useProduct";
+import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import type { Product } from "@repo/types";
 import { Subcategory } from "@repo/types";
 import {
   Button,
-  Empty,
   Icon,
   Input,
   SButton,
@@ -37,8 +37,12 @@ export const ProductGrid = () => {
 
   const isLoading = productsLoading || categoriesLoading;
 
+  // Type-to-search: any printable key focuses the search box — unless the
+  // inline keypad is open (digits belong to it) or an input already has focus.
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      if (useKeypadStore.getState().isOpen) return;
+
       if (
         e.key.length === 1 &&
         !e.ctrlKey &&
@@ -51,10 +55,20 @@ export const ProductGrid = () => {
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+
     window.addEventListener("keypress", handleKeyPress);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       window.removeEventListener("keypress", handleKeyPress);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -145,6 +159,19 @@ export const ProductGrid = () => {
     isAvailableOnly,
   ]);
 
+  const hasActiveFilters =
+    !!searchQuery.trim() ||
+    !!selectedCategoryId ||
+    !!selectedSubcategoryId ||
+    isAvailableOnly;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
+    setIsAvailableOnly(false);
+  };
+
   const handleProductClick = (product: Product) => {
     addItem({
       productId: product.id,
@@ -156,45 +183,65 @@ export const ProductGrid = () => {
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter adds the single match (also how barcode scanners confirm)
     if (
       e.key === "Enter" &&
       filteredProducts.length === 1 &&
       filteredProducts[0]
     ) {
       handleProductClick(filteredProducts[0]);
-
       setSearchQuery("");
+    }
+
+    if (e.key === "Escape") {
+      setSearchQuery("");
+      e.currentTarget.blur();
     }
   };
 
   const renderProducts = () => {
     if (filteredProducts.length === 0) {
       return (
-        <div className="flex items-center justify-center h-48">
-          <Empty title="No products found" icon="PackageX" />
+        <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+            <Icon
+              name="PackageX"
+              className="h-6 w-6 text-muted-foreground/50"
+            />
+          </div>
+          <div>
+            <p className="text-sm font-medium">No products found</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Try a different search or category.
+            </p>
+          </div>
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <Icon name="FilterX" className="mr-1.5 h-4 w-4" />
+              Clear filters
+            </Button>
+          )}
         </div>
       );
     }
 
     return (
-      <div className="flex-1 overflow-y-auto p-0">
-        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-2 pb-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+        {filteredProducts.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
       </div>
     );
   };
 
   return (
-    <div className={cn("flex flex-col h-full gap-4")}>
+    <div className={cn("flex h-full flex-col gap-3")}>
       {/* Search */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Icon
             name="Search"
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
           />
 
           <Input
@@ -203,25 +250,42 @@ export const ProductGrid = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Search products..."
-            className="pl-10 h-12 text-lg"
+            placeholder="Search name, SKU, or scan barcode…"
+            aria-label="Search products"
+            className="h-12 pl-10 pr-16 text-lg"
           />
+
+          {searchQuery ? (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Icon name="X" className="h-4 w-4" />
+            </button>
+          ) : (
+            <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline-block">
+              Ctrl F
+            </kbd>
+          )}
         </div>
 
         <Button
           variant={isAvailableOnly ? "default" : "outline"}
           onClick={() => setIsAvailableOnly((prev) => !prev)}
           className="h-12 whitespace-nowrap"
+          aria-pressed={isAvailableOnly}
         >
-          <Icon name="PackageCheck" className="w-5 h-5 mr-2" />
-          Available
+          <Icon name="PackageCheck" className="mr-2 h-5 w-5" />
+          <span className="hidden xl:inline">Available</span>
         </Button>
       </div>
 
       {/* Offline Cache Badge */}
       {!isOnline && products && lastOnlineAt && (
         <div className="flex items-center gap-1.5 px-1 text-xs text-amber-600 dark:text-amber-400">
-          <Icon name="Database" className="w-3.5 h-3.5" />
+          <Icon name="Database" className="h-3.5 w-3.5" />
 
           <span>
             Catalog cached · last synced{" "}
@@ -232,7 +296,7 @@ export const ProductGrid = () => {
 
       {/* Categories */}
       {!searchQuery && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Shad.Carousel
             opts={{
               align: "start",
@@ -254,33 +318,34 @@ export const ProductGrid = () => {
                 </SButton>
               </Shad.CarouselItem>
 
-              {activeCategories.map((category) => (
-                <Shad.CarouselItem
-                  key={category.id}
-                  className="basis-auto pl-2"
-                >
-                  <SButton
-                    variant={
-                      selectedCategoryId === category.id
-                        ? "secondary"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      setSelectedCategoryId(category.id);
-                      setSelectedSubcategoryId(null);
-                    }}
-                    className="whitespace-nowrap"
-                    style={{
-                      borderColor: category.color?.hex
-                        ? `${category.color.hex}40`
-                        : undefined,
-                      color: category.color?.hex || undefined,
-                    }}
+              {activeCategories.map((category) => {
+                const isSelected = selectedCategoryId === category.id;
+                const hex = category.color?.hex;
+
+                return (
+                  <Shad.CarouselItem
+                    key={category.id}
+                    className="basis-auto pl-2"
                   >
-                    {category.name}
-                  </SButton>
-                </Shad.CarouselItem>
-              ))}
+                    <SButton
+                      variant={isSelected ? "secondary" : "outline"}
+                      onClick={() => {
+                        setSelectedCategoryId(category.id);
+                        setSelectedSubcategoryId(null);
+                      }}
+                      className="whitespace-nowrap transition-colors"
+                      style={{
+                        borderColor: hex ? `${hex}40` : undefined,
+                        color: hex || undefined,
+                        backgroundColor:
+                          isSelected && hex ? `${hex}1A` : undefined,
+                      }}
+                    >
+                      {category.name}
+                    </SButton>
+                  </Shad.CarouselItem>
+                );
+              })}
             </Shad.CarouselContent>
 
             <Shad.CarouselPrevious className="left-0" />
@@ -309,7 +374,7 @@ export const ProductGrid = () => {
                       : "outline"
                   }
                   onClick={() => setSelectedSubcategoryId(subcategory.id)}
-                  className="h-8 "
+                  className="h-8"
                 >
                   {subcategory.name}
                 </Button>
@@ -320,14 +385,12 @@ export const ProductGrid = () => {
       )}
 
       {/* Content */}
-      <Shad.ScrollArea className="flex-1 min-h-0 pr-3">
+      <Shad.ScrollArea className="min-h-0 flex-1 pr-3">
         {isLoading ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 bg-muted" />
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-xl bg-muted" />
+            ))}
           </div>
         ) : (
           renderProducts()

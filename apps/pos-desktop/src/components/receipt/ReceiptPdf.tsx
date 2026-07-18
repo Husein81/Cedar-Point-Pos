@@ -30,8 +30,8 @@ export const ReceiptPdf = ({
   const { user } = useAuthStore();
 
   const subtotal = order.items.reduce(
-    (sum: number, item: { price: number; quantity: number }) =>
-      sum + item.price * item.quantity,
+    (sum: number, item: { price?: number | null; quantity: number }) =>
+      sum + (item.price ? Number(item.price) * item.quantity : 0),
     0,
   );
 
@@ -54,7 +54,7 @@ export const ReceiptPdf = ({
         <View style={styles.header}>
           {/* LOGO */}
           {/* Replace with your logo if available */}
-          {/* <Image src="/assets/icon.png" style={[styles.logo]} /> */}
+          {false && <Image src="/assets/icon.png" style={[styles.logo]} />}
 
           <Text style={[styles.logoText, { paddingBottom: 2 }]}>
             {tenantName}
@@ -83,12 +83,12 @@ export const ReceiptPdf = ({
                   <Text style={styles.itemName}>{item.name}</Text>
 
                   <Text style={styles.itemSub}>
-                    ${item.price.toFixed(2)} / Units
+                    ${item.price ? Number(item.price).toFixed(2) : "0.00"} / Units
                   </Text>
                 </View>
 
                 <Text style={styles.itemTotal}>
-                  ${(item.price * item.quantity).toFixed(2)}
+                  ${item.price ? (Number(item.price) * item.quantity).toFixed(2) : "0.00"}
                 </Text>
               </View>
 
@@ -97,7 +97,7 @@ export const ReceiptPdf = ({
                 <View style={styles.modifierContainer}>
                   {item.modifiers.map((m) => (
                     <Text key={m.modifierId} style={styles.modifier}>
-                      + {m.name} {m.price ? `($${m.price.toFixed(2)})` : ""}
+                      + {m.name} {m.price ? `($${Number(m.price).toFixed(2)})` : ""}
                     </Text>
                   ))}
                 </View>
@@ -144,7 +144,9 @@ export const ReceiptPdf = ({
 
           {order.includeVAT && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>VAT {VAT_RATE_PERCENT_LABEL}</Text>
+              <Text style={styles.totalLabel}>
+                VAT {VAT_RATE_PERCENT_LABEL}
+              </Text>
 
               <Text style={styles.totalValue}>${vat.toFixed(2)}</Text>
             </View>

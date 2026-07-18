@@ -1,23 +1,49 @@
-import { PaymentForm, type PaymentEntry } from "@/components/orders/PaymentForm";
+import {
+  PaymentForm,
+  type PaymentEntry,
+} from "@/components/orders/PaymentForm";
+import { printReceipt } from "@/components/receipt/ReceiptPdf";
+import { useFetchOrder } from "@/hooks/useOrder";
 import { useProcessPayment } from "@/hooks/useOrder";
+import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
 import { toast } from "@repo/ui";
 import { extractErrorMessage } from "@/utils/error";
+import { useBranch } from "@/hooks/useBranch";
+import { useAuthStore } from "@/store/authStore";
+import { Order } from "@/dto/order.dto";
 
 interface TablePaymentFormProps {
   orderId: string;
   total: number;
 }
 
-/**
- * Payment entry for a table's order, launched from the table drawer/quick
- * actions. Unlike the main checkout flow (useOrderActions.handlePaymentConfirm),
- * this order already exists server-side, so it talks to useProcessPayment
- * directly instead of routing through the cart/tab store.
- */
 export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
   const processPayment = useProcessPayment();
+  const fetchOrder = useFetchOrder();
   const closeModal = useModalStore((s) => s.closeModal);
+  const { branchId } = useBranchStore();
+  const { user } = useAuthStore();
+
+  const { data: currentBranch } = useBranch(branchId || "");
+
+  const handlePrintReceipt = async () => {
+    try {
+      const order = await fetchOrder(orderId);
+      if (order && currentBranch) {
+        await printReceipt({
+          order: order as unknown as Order,
+          tenantName: user?.tenant?.name || "Receipt",
+          branchName: currentBranch.name,
+          branchAddress: currentBranch.address || "",
+          orderNumber: order.orderNumber || order.id,
+        });
+      }
+    } catch (printError) {
+      console.error("Failed to print receipt:", printError);
+      toast.error("Payment recorded but receipt printing failed");
+    }
+  };
 
   const handleConfirm = async (payments: PaymentEntry[]) => {
     if (payments.length === 0) return;
@@ -32,6 +58,9 @@ export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
         })),
       });
       toast.success("Payment recorded");
+
+      await handlePrintReceipt();
+
       closeModal();
     } catch (error) {
       toast.error(extractErrorMessage(error, "Payment failed"));

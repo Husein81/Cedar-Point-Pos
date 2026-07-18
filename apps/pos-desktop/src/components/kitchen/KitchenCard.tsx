@@ -89,12 +89,28 @@ const KitchenCard = ({ order }: Props) => {
     >
       {/* TOP HEADER */}
       <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <span className="font-semibold text-foreground">
-            {order.table?.tableNumber ?? "--"}
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {order.table?.tableNumber ?? "--"}
+            </span>
 
-          <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
+            <span>#{order.orderNumber || order.id.slice(0, 4)}</span>
+          </div>
+
+          {/* Order Type Badge */}
+          <Badge
+            variant="outline"
+            className="text-[10px] font-medium"
+          >
+            {order.type === "DINE_IN"
+              ? "Dine-In"
+              : order.type === "TAKEAWAY"
+                ? "Takeaway"
+                : order.type === "DELIVERY"
+                  ? "Delivery"
+                  : "Retail"}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">

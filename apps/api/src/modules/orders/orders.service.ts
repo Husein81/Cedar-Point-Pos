@@ -546,12 +546,53 @@ export class OrdersService {
         },
         user: true,
         table: true,
+        customer: true,
         refunds: true,
         payments: true,
       },
     });
     if (!order) throw new NotFoundException('Order not found');
-    return order;
+
+    const paidAmount = order.payments
+      ? order.payments.reduce((sum, p) => sum + Number(p.amount), 0)
+      : 0;
+
+    return {
+      id: order.id,
+      status: order.status,
+      type: order.type,
+      items: order.items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.product.name,
+        price: Number(item.unitPrice),
+        quantity: Number(item.quantity),
+        notes: item.notes,
+        imageUrl: item.product.imageUrl,
+        modifiers: item.modifiers?.map((m) => ({
+          id: m.id,
+          modifierId: m.modifierId,
+          name: m.modifier.name,
+          price: m.price ? Number(m.price) : 0,
+        })),
+        discount: item.discount as any,
+        sentToKitchen: false,
+      })),
+      discount: null,
+      shippingFee: Number(order.shippingFee || 0),
+      includeVAT: order.includeVAT,
+      paidAmount,
+      customerId: order.customerId,
+      customerName: order.customer?.name || null,
+      customerAddress: order.customer?.address || null,
+      tableId: order.tableId,
+      tableName: order.table?.tableNumber ? `Table ${order.table.tableNumber}` : null,
+      guestCount: order.guestCount || undefined,
+      notes: '',
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      modifiedAt: order.createdAt,
+    };
   }
 
   async getNextOrderNumber(branchId: string) {

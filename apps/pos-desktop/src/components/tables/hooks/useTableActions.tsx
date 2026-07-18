@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { OrderStatus, TableStatus } from "@repo/types";
 import { toast } from "@repo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import type { TableOverview } from "@/dto/tables.dto";
 import { useUpdateOrderStatus } from "@/hooks/useOrder";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/hooks/useTable";
 import { extractErrorMessage } from "@/utils/error";
 import { useModalStore } from "@/store/modalStore";
+import { useOrderStore } from "@/store/orderStore";
 import { useTableUiStore } from "@/store/tableUiStore";
 import { getTableDisplayName } from "../config";
 import { TablePaymentForm } from "../TablePaymentForm";
@@ -63,8 +65,10 @@ export const useTableActions = (options: {
     renderSeatGuests,
   } = options;
 
+  const queryClient = useQueryClient();
   const { openModal, closeModal } = useModalStore();
   const selectTable = useTableUiStore((s) => s.selectTable);
+  const { closeTab } = useOrderStore();
 
   const statusMutation = useUpdateTableStatus();
   const updateTableMutation = useUpdateTable();
@@ -186,7 +190,20 @@ export const useTableActions = (options: {
             orderStatusMutation.mutate(
               { id: table.activeOrder.orderId, status: OrderStatus.COMPLETED },
               {
-                onSuccess: () => toast.success("Order completed, table freed"),
+                onSuccess: () => {
+                  // Close the tab in the cart if it's open
+                  const activeTabId = useOrderStore.getState().activeTabId;
+                  if (activeTabId) {
+                    closeTab(activeTabId);
+                  }
+
+                  // Invalidate order queries to refresh UI
+                  queryClient.invalidateQueries({ queryKey: ["orders"] });
+                  queryClient.invalidateQueries({ queryKey: ["tables"] });
+
+                  toast.success("Order completed, table freed");
+                  selectTable(null);
+                },
                 onError: (error) =>
                   toast.error(error.message || "Failed to complete the order"),
               },
@@ -230,11 +247,13 @@ export const useTableActions = (options: {
     },
     [
       closeModal,
+      closeTab,
       deleteTableMutation,
       freeTable,
       openModal,
       openTableOrder,
       orderStatusMutation,
+      queryClient,
       renderDeleteConfirm,
       renderEditForm,
       renderFreeConfirm,

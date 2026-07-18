@@ -1,22 +1,35 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useCartStockWarnings } from "@/hooks/useCartStockWarning";
+import { useDeliveryCustomerEnforcement } from "@/hooks/useDeliveryCustomerEnforcement";
 import { useProducts } from "@/hooks/useProduct";
 import { useUpdateTableStatus } from "@/hooks/useTable";
 import { useKeypadStore } from "@/store/keypadStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { SelectedModifier } from "@/types/modifiers";
-import { OrderType, Product } from "@repo/types";
-import { Button, cn, Empty, Icon, Shad } from "@repo/ui";
-import { InlineKeypad } from "./Keypad/InlineKeypad";
-import { CartItem } from "./CartItem";
-import { CustomerSelector } from "./CustomerSelector";
-import { ModifierModal } from "./ModifierModal";
-import { TableSelector } from "./TableSelector";
-import OrderSummary from "./OrderSummary";
-import { useDeliveryCustomerEnforcement } from "@/hooks/useDeliveryCustomerEnforcement";
-import { useAuthStore } from "@/store/authStore";
 import { OrderItem } from "@/dto/order.dto";
+import { Product } from "@repo/types";
+import { Icon, Shad } from "@repo/ui";
+import { CartItem } from "./CartItem";
+import CheckoutActions from "./CheckoutActions";
+import { InlineKeypad } from "./Keypad/InlineKeypad";
+import { ModifierModal } from "./ModifierModal";
+import { OrderHeader } from "./OrderHeader";
+import OrderSummary from "./OrderSummary";
+
+const EmptyCart = () => (
+  <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+      <Icon name="ShoppingCart" className="h-7 w-7 text-muted-foreground/50" />
+    </div>
+    <div>
+      <p className="text-sm font-medium">No items added yet</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Select a product to begin the order.
+      </p>
+    </div>
+  </div>
+);
 
 export const OrderCart = () => {
   const {
@@ -24,16 +37,12 @@ export const OrderCart = () => {
     updateItemQuantity,
     updateItemPrice,
     removeItem,
-    clearOrder,
     updateItemDiscount,
     updateItemModifiers,
   } = useOrderStore();
 
-  const { user } = useAuthStore();
   const { openModal } = useModalStore();
   const { closeKeypad, itemId: selectedKeypadItemId } = useKeypadStore();
-
-  const isRestaurant = user?.tenant?.businessType === "RESTAURANT" || false;
 
   useDeliveryCustomerEnforcement();
 
@@ -43,17 +52,13 @@ export const OrderCart = () => {
 
   const order = getActiveOrder();
   const items = order?.items || [];
-  const isDineIn = (order?.type ?? OrderType.DINE_IN) === OrderType.DINE_IN;
 
-  // Track previous items count to detect when first item is added
+  // Auto-set table to OCCUPIED when the first item is added
   const prevItemsCount = useRef(0);
-
-  // Auto-set table to OCCUPIED when first item is added
   useEffect(() => {
     const currentCount = items.length;
     const tableId = order?.tableId;
 
-    // Only trigger when going from 0 items to 1+ items with a table assigned
     if (prevItemsCount.current === 0 && currentCount > 0 && tableId) {
       updateTableStatus({ id: tableId, status: "OCCUPIED" });
     }
@@ -61,113 +66,100 @@ export const OrderCart = () => {
     prevItemsCount.current = currentCount;
   }, [items.length, order?.tableId, updateTableStatus]);
 
-  // Calculate raw subtotal (before any discounts)
-  const handleQuantityChange = (id: string, quantity: number) => {
-    updateItemQuantity(id, quantity);
-  };
+  const handleQuantityChange = useCallback(
+    (id: string, quantity: number) => {
+      if (quantity <= 0) {
+        removeItem(id);
+        closeKeypad();
+        return;
+      }
 
-  const handlePriceChange = (id: string, price: number) => {
-    updateItemPrice(id, price);
-  };
+      updateItemQuantity(id, quantity);
 
-  const handleDiscountChange = (
-    id: string,
-    value: number,
-    type: "PERCENTAGE" | "FIXED",
-  ) => {
-    updateItemDiscount(id, { value, type });
-  };
+      // Keep the open keypad in sync when quantity changes via the stepper
+      const keypad = useKeypadStore.getState();
+      if (
+        keypad.isOpen &&
+        keypad.itemId === id &&
+        keypad.context === "QUANTITY"
+      ) {
+        keypad.updateValue(quantity);
+      }
+    },
+    [closeKeypad, removeItem, updateItemQuantity],
+  );
 
-  const handleRemoveItem = (id: string) => {
-    removeItem(id);
-    closeKeypad();
-  };
+  const handlePriceChange = useCallback(
+    (id: string, price: number) => {
+      updateItemPrice(id, price);
+    },
+    [updateItemPrice],
+  );
 
-  const handleEditModifiers = (item: OrderItem) => {
-    // Find the product for this cart item
-    const product = products?.find((p: Product) => p.id === item.productId);
-    if (!product) return;
+  const handleDiscountChange = useCallback(
+    (id: string, value: number, type: "PERCENTAGE" | "FIXED") => {
+      updateItemDiscount(id, { value, type });
+    },
+    [updateItemDiscount],
+  );
 
-    // Convert existing modifiers to SelectedModifier format
-    const initialModifiers: SelectedModifier[] =
-      item.modifiers?.map((m) => ({
-        modifierId: m.modifierId,
-        name: m.name,
-        price: m.price,
-        groupId: "", // Will be populated by the hook
-      })) || [];
+  const handleRemoveItem = useCallback(
+    (id: string) => {
+      removeItem(id);
+      closeKeypad();
+    },
+    [closeKeypad, removeItem],
+  );
 
-    openModal(
-      `Edit - ${item.name}`,
-      <ModifierModal
-        product={product}
-        initialModifiers={initialModifiers}
-        initialQuantity={item.quantity}
-        onConfirm={(modifiers, quantity) => {
-          // Update the item modifiers
-          updateItemModifiers(
-            item.id,
-            modifiers.map((m) => ({
-              modifierId: m.modifierId,
-              name: m.name,
-              price: m.price,
-            })),
-          );
-          // Update quantity if changed
-          if (quantity !== item.quantity) {
-            updateItemQuantity(item.id, quantity);
-          }
-        }}
-      />,
-      "Update your selections",
-    );
-  };
+  const handleEditModifiers = useCallback(
+    (item: OrderItem) => {
+      const product = products?.find((p: Product) => p.id === item.productId);
+      if (!product) return;
+
+      const initialModifiers: SelectedModifier[] =
+        item.modifiers?.map((m) => ({
+          modifierId: m.modifierId,
+          name: m.name,
+          price: m.price,
+          groupId: "", // Will be populated by the hook
+        })) || [];
+
+      openModal(
+        `Edit - ${item.name}`,
+        <ModifierModal
+          product={product}
+          initialModifiers={initialModifiers}
+          initialQuantity={item.quantity}
+          onConfirm={(modifiers, quantity) => {
+            updateItemModifiers(
+              item.id,
+              modifiers.map((m) => ({
+                modifierId: m.modifierId,
+                name: m.name,
+                price: m.price,
+              })),
+            );
+            if (quantity !== item.quantity) {
+              updateItemQuantity(item.id, quantity);
+            }
+          }}
+        />,
+        "Update your selections",
+      );
+    },
+    [openModal, products, updateItemModifiers, updateItemQuantity],
+  );
 
   return (
-    <div className={cn("flex flex-col h-full bg-background")}>
-      {/* Cart Header */}
-      <div className="flex flex-col gap-2 px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex flex-col justify-between gap-1 ">
-          <div className="flex items-center gap-2">
-            <Icon
-              name="ShoppingCart"
-              className="w-4 h-4 text-muted-foreground"
-            />
-            <h2 className="text-sm font-semibold">Order</h2>
-            {items.length > 0 && (
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {items.length}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {isRestaurant && isDineIn && <TableSelector />}
-            {items.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  clearOrder();
-                  closeKeypad();
-                }}
-                className="h-7 rounded-sm text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Icon name="Trash2" className="w-3.5 h-3.5 mr-1" />
-                Clear
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <CustomerSelector />
-      </div>
+    <div className="flex h-full flex-col bg-background">
+      <OrderHeader />
 
       {/* Stock Warning Banner */}
-      {hasAnyWarning && items.length >= 0 && (
-        <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
+      {hasAnyWarning && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
           <Icon
             name="TriangleAlert"
-            className="h-4 w-4 text-amber-500 shrink-0"
+            className="h-4 w-4 shrink-0 text-amber-500"
           />
           <p className="text-xs text-amber-700 dark:text-amber-300">
             Some items will exceed available stock
@@ -175,13 +167,11 @@ export const OrderCart = () => {
         </div>
       )}
 
-      {/* Items List - Scrollable */}
+      {/* Items List */}
       {items.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Empty title="No items in order" icon="ShoppingCart" />
-        </div>
+        <EmptyCart />
       ) : (
-        <Shad.ScrollArea className="flex-1 min-h-0">
+        <Shad.ScrollArea className="min-h-0 flex-1">
           <div className="flex flex-col">
             {items.map((item) => (
               <CartItem
@@ -204,11 +194,14 @@ export const OrderCart = () => {
         </Shad.ScrollArea>
       )}
 
-      {/* Taxes & Total Section */}
+      {/* Inline editor for the selected line / adjustment */}
+      <InlineKeypad />
+
+      {/* Totals */}
       <OrderSummary />
 
-      {/* Inline Keypad - Collapsible */}
-      <InlineKeypad />
+      {/* Persistent checkout bar */}
+      <CheckoutActions />
     </div>
   );
 };

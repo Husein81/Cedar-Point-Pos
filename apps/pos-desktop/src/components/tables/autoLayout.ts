@@ -9,12 +9,6 @@ export interface ResolvedPosition {
 const GAP = 32;
 const COLUMNS = 5;
 
-/**
- * Resolve every table to a world position. Tables with saved geometry keep
- * it; unplaced tables flow into a grid below the placed ones so a floor is
- * usable before a manager has arranged it (and stays deterministic).
- * Pure function — safe to memoize on the tables array.
- */
 export const resolveTablePositions = (
   tables: TableOverview[],
 ): Map<string, ResolvedPosition> => {
@@ -26,7 +20,11 @@ export const resolveTablePositions = (
   for (const table of tables) {
     if (table.posX != null && table.posY != null) {
       positions.set(table.id, { x: table.posX, y: table.posY });
-      const { height } = getTableSize(table);
+      const { height } = getTableSize({
+        width: table.width,
+        height: table.height,
+        shape: table.shape,
+      });
       placedMaxY = Math.max(placedMaxY, table.posY + height);
     } else {
       unplaced.push(table);

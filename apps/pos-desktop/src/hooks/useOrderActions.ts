@@ -416,7 +416,7 @@ export function useOrderActions() {
             type: "UPDATE_ORDER_STATUS",
             localId: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             label,
-            payload: { orderId: active.id, status: OrderStatus.PENDING },
+            payload: { orderId: active.id, status: OrderStatus.PLACED },
           });
         } else {
           enqueue({
@@ -442,7 +442,7 @@ export function useOrderActions() {
 
           await updateOrderStatus.mutateAsync({
             id: orderId,
-            status: OrderStatus.PENDING,
+            status: OrderStatus.PLACED,
           });
 
           toast.success("Order confirmed");
@@ -522,7 +522,7 @@ export function useOrderActions() {
         }
 
         const result = await sendToKitchen.mutateAsync(orderId);
-        setOrderStatus((result?.status ?? OrderStatus.PENDING) as OrderStatus);
+        setOrderStatus((result?.status ?? OrderStatus.PLACED) as OrderStatus);
         toast.success(
           `Kitchen confirmed ${unsentCount} item${unsentCount !== 1 ? "s" : ""}`,
         );

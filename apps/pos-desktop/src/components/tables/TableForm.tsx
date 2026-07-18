@@ -10,11 +10,11 @@ import { useModalStore } from "@/store/modalStore";
 import { TableShape } from "@repo/types";
 import { Button, InputField, SelectField } from "@repo/ui";
 import { useForm } from "@tanstack/react-form";
-import { DEFAULT_TABLE_SHAPE, TABLE_SHAPE_CONFIG } from "./config";
+import { TABLE_SHAPE_CONFIG } from "./config";
 
 type Props = {
   table?: TableWithFloor;
-}
+};
 
 export function TableForm({ table }: Props) {
   const { branchId } = useBranchStore();
@@ -41,7 +41,7 @@ export function TableForm({ table }: Props) {
       name: table?.name || "",
       capacity: table?.capacity?.toString() || "4",
       floorId: table?.floorId || "",
-      shape: table?.shape || DEFAULT_TABLE_SHAPE,
+      shape: table?.shape,
     },
     onSubmit: async ({ value }) => {
       const data = table

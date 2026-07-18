@@ -4,7 +4,7 @@ import type {
   PurchaseOrderSummary,
 } from "@/dto/purchaseOrder.dto";
 import type { PaginationResponse, QueryParams } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const purchaseOrdersApi = {
   getPurchaseOrdersPaginated: async (
@@ -12,7 +12,7 @@ export const purchaseOrdersApi = {
       status?: string;
       supplierId?: string;
       branchId?: string;
-    }
+    },
   ): Promise<PaginationResponse<PurchaseOrderSummary>> => {
     const response = await api.get("/purchase-orders/paginated", { params });
     return response.data;
@@ -24,7 +24,7 @@ export const purchaseOrdersApi = {
   },
 
   createPurchaseOrder: async (
-    data: CreatePurchaseOrderFormDto
+    data: CreatePurchaseOrderFormDto,
   ): Promise<PurchaseOrderDetails> => {
     const response = await api.post("/purchase-orders", data);
     return response.data;
@@ -32,7 +32,7 @@ export const purchaseOrdersApi = {
 
   updatePurchaseOrder: async (
     id: string,
-    data: { notes?: string; status?: string; orderNumber?: string }
+    data: { notes?: string; status?: string; orderNumber?: string },
   ): Promise<PurchaseOrderDetails> => {
     const response = await api.patch(`/purchase-orders/${id}`, data);
     return response.data;

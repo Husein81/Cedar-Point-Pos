@@ -44,14 +44,6 @@ export interface FloorEditorApi {
   discard: () => void;
 }
 
-/**
- * Manager-mode floor editor: drag (with zoom-scale compensation), snap-to-grid,
- * rotate/resize/shape controls, undo/redo, and bulk save. Orchestrates three
- * single-purpose collaborators — draft geometry + history (useDraftGeometry),
- * pointer-driven dragging (useTableDrag), and this hook's own selection +
- * persistence — rather than owning all of it directly. Only touched tables
- * are sent to `PATCH /tables/layout`.
- */
 export const useFloorEditor = (options: {
   tables: TableOverview[];
   basePositions: Map<string, ResolvedPosition>;

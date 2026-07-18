@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ACTIVE_ORDER_STATUSES, TABLE_SHAPE_DEFAULT_SIZE } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TableStatusService } from './table-status.service.js';
 import { OrderStatus, TableStatus } from '../../generated/prisma/client.js';
@@ -15,28 +16,7 @@ import type {
   UpdateTableStatusDto,
 } from './dto/tables.dto.js';
 
-/**
- * Order statuses that keep a table visually "in service" on the floor plan.
- * Includes PAID/PARTIALLY_PAID: for restaurants a paid table stays OCCUPIED
- * until the order is COMPLETED, so the floor plan must still show its bill.
- */
-const OVERVIEW_ORDER_STATUSES: OrderStatus[] = [
-  OrderStatus.DRAFT,
-  OrderStatus.PENDING,
-  OrderStatus.CONFIRMED,
-  OrderStatus.IN_PROGRESS,
-  OrderStatus.SENT_TO_KITCHEN,
-  OrderStatus.READY,
-  OrderStatus.PAID,
-  OrderStatus.PARTIALLY_PAID,
-];
-
-/**
- * Table.posX/posY/width/height/rotation are non-nullable, so every table
- * needs real geometry at creation time. New tables get a default footprint
- * auto-arranged into a grid (by creation order) so they don't all stack on
- * top of each other before a manager opens the Floor Editor.
- */
+const OVERVIEW_ORDER_STATUSES: OrderStatus[] = [...ACTIVE_ORDER_STATUSES];
 const DEFAULT_TABLE_SIZE = { width: 160, height: 120 };
 const LAYOUT_GRID_GAP = 32;
 const LAYOUT_GRID_COLUMNS = 5;
@@ -192,6 +172,12 @@ export class TablesService {
         const column = existingCount % LAYOUT_GRID_COLUMNS;
         const row = Math.floor(existingCount / LAYOUT_GRID_COLUMNS);
 
+        // Grid cell spacing stays fixed so tables don't overlap regardless
+        // of shape; the table's own footprint reflects its chosen shape.
+        const size = data.shape
+          ? TABLE_SHAPE_DEFAULT_SIZE[data.shape]
+          : DEFAULT_TABLE_SIZE;
+
         return tx.table.create({
           data: {
             tableNumber: data.tableNumber,
@@ -204,8 +190,8 @@ export class TablesService {
             posY:
               LAYOUT_GRID_GAP +
               row * (DEFAULT_TABLE_SIZE.height + LAYOUT_GRID_GAP),
-            width: DEFAULT_TABLE_SIZE.width,
-            height: DEFAULT_TABLE_SIZE.height,
+            width: size.width,
+            height: size.height,
             rotation: 0,
             tenantId,
             branchId: data.branchId,
@@ -281,6 +267,16 @@ export class TablesService {
           }
         }
 
+        // Reset the footprint to the new shape's default only when the
+        // shape is actually changing — an unrelated edit (name, capacity)
+        // must not discard a manually resized table.
+        const shapeChanged =
+          data.shape !== undefined && data.shape !== existingTable.shape;
+        // Safe: shapeChanged only true when data.shape is defined above.
+        const size = shapeChanged
+          ? TABLE_SHAPE_DEFAULT_SIZE[data.shape!]
+          : null;
+
         return tx.table.update({
           where: { id },
           data: {
@@ -290,6 +286,7 @@ export class TablesService {
             floorId: data.floorId,
             isActive: data.isActive,
             shape: data.shape,
+            ...(size && { width: size.width, height: size.height }),
           },
           include: {
             floor: {
@@ -405,9 +402,7 @@ export class TablesService {
         const activeOrdersCount = await tx.order.count({
           where: {
             tableId: id,
-            status: {
-              in: ['DRAFT', 'PENDING', 'CONFIRMED'],
-            },
+            status: { in: [...ACTIVE_ORDER_STATUSES] },
           },
         });
 
@@ -491,6 +486,7 @@ export class TablesService {
         tableId: true,
         orderNumber: true,
         status: true,
+        paymentStatus: true,
         total: true,
         guestCount: true,
         createdAt: true,
@@ -521,6 +517,7 @@ export class TablesService {
               orderId: order.id,
               orderNumber: order.orderNumber,
               status: order.status,
+              paymentStatus: order.paymentStatus,
               total: order.total,
               paidAmount: order.payments.reduce(
                 (sum, p) => sum + Number(p.amount),

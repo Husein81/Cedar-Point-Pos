@@ -112,6 +112,7 @@ model User {
   branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([email, role])
   @@index([tenantId, role])
   @@index([tenantId, branchId])
 }
@@ -534,6 +535,18 @@ model ModifierProductAssignment {
   @@index([productId])
 }
 
+model OrderStatusHistory {
+  id        String      @id @default(uuid())
+  orderId   String
+  from      OrderStatus
+  to        OrderStatus
+  userId    String?
+  createdAt DateTime    @default(now())
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
 model Order {
   id          String    @id @default(uuid())
   tenantId    String
@@ -545,13 +558,16 @@ model Order {
   shiftId     String?
   orderNumber String?
   type        OrderType
-  guestCount  Int?                 // Number of guests for dine-in orders
+  guestCount  Int? // Number of guests for dine-in orders
 
   status                          OrderStatus          @default(DRAFT)
+  paymentStatus                   PaymentStatus        @default(UNPAID)
   subtotal                        Decimal              @default(0) @db.Decimal(10, 2)
   total                           Decimal              @default(0) @db.Decimal(10, 2)
   discount                        Decimal?             @default(0) @db.Decimal(10, 2)
   createdAt                       DateTime             @default(now())
+  placedAt                        DateTime?
+  servedAt                        DateTime?
   completedAt                     DateTime?
   shippingFee                     Decimal?             @default(0) @db.Decimal(10, 2)
   currencyCode                    String?              @default("USD")
@@ -577,10 +593,13 @@ model Order {
   payments                        Payment[]
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
+  statusHistory                   OrderStatusHistory[]
 
   @@unique([branchId, orderNumber])
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, branchId, createdAt])
+  @@index([tenantId, branchId, status])
+  @@index([tenantId, paymentStatus])
 }
 
 model OrderItem {
@@ -601,13 +620,13 @@ model OrderItem {
 }
 
 model OrderItemTicket {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   orderItemId String
   station     String?
-  status      OrderStatus @default(SENT_TO_KITCHEN)
-  sentAt      DateTime    @default(now())
+  status      TicketStatus @default(QUEUED)
+  sentAt      DateTime     @default(now())
   bumpedAt    DateTime?
-  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 }
 
 model OrderItemModifier {
@@ -983,20 +1002,31 @@ enum OrderType {
   RETAIL
 }
 
+// Fulfillment axis only — payment state lives in PaymentStatus.
 enum OrderStatus {
   DRAFT
-  ON_HOLD
-  PENDING
-  PARTIALLY_PAID
-  CONFIRMED
-  IN_PROGRESS
-  SENT_TO_KITCHEN
+  PLACED
+  PREPARING
   READY
-  PAID
+  SERVED
   COMPLETED
-  PARTIALLY_REFUNDED
-  FULLY_REFUNDED
   CANCELLED
+}
+
+// Derived server-side from payments/refunds vs total. Never client-set.
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+// Kitchen ticket lifecycle (OrderItemTicket.status).
+enum TicketStatus {
+  QUEUED
+  PREPARING
+  READY
 }
 
 enum PaymentMethod {

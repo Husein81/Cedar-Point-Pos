@@ -1,5 +1,5 @@
 import type { PublicUser } from "@repo/types";
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const authApi = {
   login: async (

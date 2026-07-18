@@ -14,7 +14,8 @@ import { KitchenService } from './kitchen.service.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { UserRole } from '../../generated/prisma/client.js';
 import type { Request } from 'express';
-import { OrderStatus } from '@repo/types';
+import { UpdateOrderStatusDto } from '../orders/dto/update-order-status.dto.js';
+import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto.js';
 
 interface AuthRequest extends Request {
   user: {
@@ -62,7 +63,7 @@ export class KitchenController {
   @HttpCode(HttpStatus.OK)
   updateOrderStatus(
     @Param('id') orderId: string,
-    @Body() body: { status: OrderStatus },
+    @Body() dto: UpdateOrderStatusDto,
     @Req() req: AuthRequest,
   ) {
     const tenantId = req.user.tenantId;
@@ -71,9 +72,10 @@ export class KitchenController {
     }
     return this.kitchenService.updateOrderStatus(
       orderId,
-      body.status,
+      dto.status,
       tenantId,
       req.user.id,
+      req.user.role,
     );
   }
 
@@ -81,7 +83,7 @@ export class KitchenController {
   @HttpCode(HttpStatus.OK)
   updateTicketStatus(
     @Param('id') ticketId: string,
-    @Body() body: { status: OrderStatus },
+    @Body() dto: UpdateTicketStatusDto,
     @Req() req: AuthRequest,
   ) {
     const tenantId = req.user.tenantId;
@@ -90,7 +92,7 @@ export class KitchenController {
     }
     return this.kitchenService.updateTicketStatus(
       ticketId,
-      body.status,
+      dto.status,
       tenantId,
     );
   }

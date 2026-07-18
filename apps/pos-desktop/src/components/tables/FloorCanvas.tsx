@@ -15,24 +15,16 @@ import {
 const WORLD_SIZE = 6000;
 
 interface FloorCanvasProps {
-  /** Tables of the active floor (already floor-filtered, NOT search-filtered). */
   tables: TableOverview[];
-  /** Ids matching the active search/status filters — the rest render dimmed. */
   matchedIds: Set<string>;
   selectedTableId: string | null;
   canManage: boolean;
-  /** Remount the canvas with a new key per floor; used for transform memory. */
   floorKey: string;
   isEditing: boolean;
   onSelect: (tableId: string) => void;
   onAction: (table: TableOverview, action: TableNodeAction) => void;
 }
 
-/**
- * The interactive floor plan: pan/zoom viewport (gesture math in
- * useCanvasGestures, applied outside React), absolutely-positioned table
- * nodes, and — in manager mode — the drag/rotate/resize floor editor.
- */
 export function FloorCanvas({
   tables,
   matchedIds,

@@ -47,9 +47,9 @@ export function OrderDetailPage() {
     return computeInvoiceFinancials(order, refunds);
   }, [order, refunds]);
 
-  const canRefund =
-    order?.status === OrderStatus.COMPLETED ||
-    order?.status === OrderStatus.PARTIALLY_REFUNDED;
+  // Refunds only apply to closed orders; a partially refunded order stays
+  // COMPLETED (refund state lives on the payment axis).
+  const canRefund = order?.status === OrderStatus.COMPLETED;
 
   /** Build multi-currency amounts for a value */
   const mc = (value: number) =>
@@ -133,7 +133,7 @@ export function OrderDetailPage() {
   if (!order || !financials) {
     return (
       <div className="py-20 text-center text-sm text-muted-foreground">
-        Invoice not found
+        404 Invoice not found
       </div>
     );
   }

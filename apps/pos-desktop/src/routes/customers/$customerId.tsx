@@ -48,16 +48,16 @@ const getOrderStatusBadge = (status: string) => {
   switch (status) {
     case OrderStatus.COMPLETED:
       return <Badge className="bg-green-500">Completed</Badge>;
-    case OrderStatus.PENDING:
-      return <Badge variant="secondary">Pending</Badge>;
     case OrderStatus.DRAFT:
       return <Badge variant="outline">Draft</Badge>;
-    case OrderStatus.ON_HOLD:
-      return <Badge variant="secondary">On Hold</Badge>;
-    case OrderStatus.SENT_TO_KITCHEN:
-      return <Badge className="bg-blue-500">In Kitchen</Badge>;
+    case OrderStatus.PLACED:
+      return <Badge className="bg-blue-500">Placed</Badge>;
+    case OrderStatus.PREPARING:
+      return <Badge variant="secondary">Preparing</Badge>;
     case OrderStatus.READY:
       return <Badge className="bg-yellow-500">Ready</Badge>;
+    case OrderStatus.SERVED:
+      return <Badge className="bg-cyan-500">Served</Badge>;
     case OrderStatus.CANCELLED:
       return <Badge variant="destructive">Cancelled</Badge>;
     default:

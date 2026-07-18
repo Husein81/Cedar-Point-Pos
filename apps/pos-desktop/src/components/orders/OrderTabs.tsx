@@ -1,4 +1,4 @@
-import { Badge, Button, Icon, Shad } from "@repo/ui";
+import { Button, Icon, Shad } from "@repo/ui";
 import { useOrderStore } from "@/store/orderStore";
 import { cn } from "@repo/ui";
 import { useState } from "react";
@@ -30,7 +30,6 @@ export const OrderTabs = ({ leftElement }: Props) => {
           {tabs.map((tab) => {
             const isActive = tab.id === activeTabId;
             const hasItems = tab.order.items.length > 0;
-            const isOnHold = tab.order.status === "ON_HOLD";
             const isDirty = hasUnsavedChanges(tab.id);
 
             return (
@@ -67,16 +66,7 @@ export const OrderTabs = ({ leftElement }: Props) => {
                         {tab.label}
                       </span>
 
-                      {isOnHold && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] px-1.5 py-0"
-                        >
-                          Hold
-                        </Badge>
-                      )}
-
-                      {hasItems && !isOnHold && (
+                      {hasItems && (
                         <span
                           className={cn(
                             "min-w-4 h-4 px-1 text-[10px] font-medium rounded-full flex items-center justify-center",

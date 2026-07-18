@@ -3,6 +3,7 @@ import type {
   Order,
   OrderStatus,
   Payment,
+  PaymentStatus,
   TableShape,
   TableStatus,
 } from "@repo/types";
@@ -70,6 +71,7 @@ const TableOrderSummarySchema = z.object({
   orderId: z.string(),
   orderNumber: z.string().nullable().optional(),
   status: z.custom<OrderStatus>(),
+  paymentStatus: z.custom<PaymentStatus>().optional(),
   total: z.union([z.string(), z.number()]),
   paidAmount: z.number(),
   itemCount: z.number(),

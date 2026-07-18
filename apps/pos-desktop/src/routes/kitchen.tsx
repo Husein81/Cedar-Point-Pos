@@ -53,32 +53,19 @@ function KitchenPage() {
   const filteredAndSortedOrders = useMemo(() => {
     let filtered = orders;
 
-    // Apply order status filter
+    // The server only ships PLACED/PREPARING/READY to the KDS; the filter
+    // here just narrows within that working set.
     if (filters.orderStatus !== "ALL") {
       filtered = filtered.filter(
         (order) => order.status === filters.orderStatus,
       );
     }
 
-    if (filters.orderStatus === "ALL") {
-      filtered = filtered.filter(
-        (order) =>
-          order.status !== "COMPLETED" && order.status !== "FULLY_REFUNDED",
-      );
-    }
-
-    // Sort: oldest first, refunded orders at the bottom
-    return [...filtered].sort((a, b) => {
-      const aIsRefunded = a.status === "FULLY_REFUNDED";
-      const bIsRefunded = b.status === "FULLY_REFUNDED";
-
-      // Refunded orders go to the bottom
-      if (aIsRefunded && !bIsRefunded) return 1;
-      if (!aIsRefunded && bIsRefunded) return -1;
-
-      // Otherwise, sort by createdAt (oldest first)
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
+    // Oldest first — the kitchen works the queue in fire order.
+    return [...filtered].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
   }, [orders, filters.orderStatus]);
 
   return (

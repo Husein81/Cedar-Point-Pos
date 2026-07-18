@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { OrderStatus, PaymentStatus } from "@repo/types";
 import type { RefundableItem } from "@/dto/refund.dto";
 
 export const REFUND_ORDERS_PAGE_SIZE = 12;
@@ -69,47 +69,38 @@ export const isFullRefund = (lines: RefundLine[]): boolean =>
 
 export const getStatusBadge = (
   status: OrderStatus,
-  hasRefunds: boolean = false,
+  paymentStatus?: PaymentStatus | null,
 ): { className: string; label: string } => {
-  if (hasRefunds && status !== OrderStatus.FULLY_REFUNDED) {
-    return {
-      className:
-        "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-      label: "Partially Refunded",
-    };
-  }
-
-  switch (status) {
-    case OrderStatus.FULLY_REFUNDED:
+  // Refund state lives on the payment axis; the order itself stays COMPLETED.
+  switch (paymentStatus) {
+    case PaymentStatus.REFUNDED:
       return {
         className:
           "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30",
         label: "Fully Refunded",
       };
-    case OrderStatus.PARTIALLY_REFUNDED:
+    case PaymentStatus.PARTIALLY_REFUNDED:
       return {
         className:
           "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
         label: "Partially Refunded",
       };
-    case OrderStatus.PAID:
-      return {
-        className:
-          "bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/30",
-        label: "Paid",
-      };
-    case OrderStatus.COMPLETED:
-      return {
-        className:
-          "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-        label: "Completed",
-      };
     default:
-      return {
-        className: "bg-muted text-muted-foreground border-border",
-        label: status,
-      };
+      break;
   }
+
+  if (status === OrderStatus.COMPLETED) {
+    return {
+      className:
+        "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
+      label: "Completed",
+    };
+  }
+
+  return {
+    className: "bg-muted text-muted-foreground border-border",
+    label: status,
+  };
 };
 
 export const formatPaymentMethod = (method: string | null): string => {

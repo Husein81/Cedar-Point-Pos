@@ -20,19 +20,11 @@ export interface JwtPayload {
   username: string;
   tenantId?: string;
   role: UserRole;
-  /** Present only for POS PIN logins, so `logout()` can close the StaffSession. */
   sessionId?: string;
 }
 
-/** POS PIN sessions are short-lived; the terminal re-authenticates per shift. */
 const POS_PIN_TOKEN_TTL = '8h';
 
-/**
- * A pre-computed, valid bcrypt hash (cost 12) compared against when a PIN login
- * targets an unknown / PIN-less staff record. Running the same bcrypt work on
- * every path keeps the response time uniform so timing cannot be used to
- * enumerate which staff IDs exist. It never matches a real PIN.
- */
 const DUMMY_PIN_HASH =
   '$2b$12$vaFuGQqGzkaKYHTT6a7JVOANjpoLLZdVgFdWbuDmIl44a/Ss2UOy.';
 
@@ -83,9 +75,6 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Explicitly pick allowed fields — never spread the DTO into Prisma, so a
-    // client cannot mass-assign columns like `pinHash`, `refreshToken`, or
-    // flip `isActive`. (undefined `role`/`tenantId` are ignored by Prisma.)
     const user = await this.prisma.user.create({
       data: {
         username,
@@ -122,6 +111,10 @@ export class AuthService {
     { email, password }: AdminLoginDto,
     res: Response,
   ): Promise<PublicUser> {
+    if (!email || !password) {
+      throw new BadRequestException('Email and password are required');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email, role: UserRole.SYSTEM_ADMIN },
     });
@@ -183,6 +176,10 @@ export class AuthService {
     accessToken: string;
     refreshToken: string;
   }> {
+    if (!username || !password) {
+      throw new BadRequestException('Username and password are required');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { username },
       include: { tenant: true },

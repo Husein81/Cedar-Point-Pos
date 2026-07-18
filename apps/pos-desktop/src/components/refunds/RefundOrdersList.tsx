@@ -83,7 +83,7 @@ export const RefundOrdersList = ({
       <Shad.ScrollArea className="flex-1 min-h-0">
         <div className="p-2 space-y-1.5">
           {orders.map((order) => {
-            const badge = getStatusBadge(order.status, order.hasRefunds);
+            const badge = getStatusBadge(order.status, order.paymentStatus);
             const isSelected = selectedOrderId === order.id;
 
             return (

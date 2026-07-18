@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api } from "../lib/api";
 
 export const tenantApi = {
   updateMyTenant: async (data: Record<string, any>) => {

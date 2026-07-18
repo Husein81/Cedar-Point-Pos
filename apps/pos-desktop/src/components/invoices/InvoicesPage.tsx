@@ -57,15 +57,11 @@ export function InvoicesPage() {
           options={[
             // { label: "All Statuses", value: "" },
             { label: "Completed", value: "COMPLETED" },
+            { label: "Served", value: "SERVED" },
             { label: "Ready", value: "READY" },
-            { label: "In Progress", value: "IN_PROGRESS" },
-            { label: "Confirmed", value: "CONFIRMED" },
-            { label: "In Kitchen", value: "SENT_TO_KITCHEN" },
-            { label: "Pending", value: "PENDING" },
-            { label: "On Hold", value: "ON_HOLD" },
+            { label: "Preparing", value: "PREPARING" },
+            { label: "Placed", value: "PLACED" },
             { label: "Draft", value: "DRAFT" },
-            { label: "Partial Refund", value: "PARTIALLY_REFUNDED" },
-            { label: "Fully Refunded", value: "FULLY_REFUNDED" },
             { label: "Cancelled", value: "CANCELLED" },
           ]}
         />

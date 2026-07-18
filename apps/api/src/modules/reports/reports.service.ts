@@ -5,8 +5,29 @@ import {
   ALLOWED_SORT_FIELDS,
   type PaginationMeta,
 } from './dto/report-query.dto.js';
-import { Prisma, OrderType } from '../../generated/prisma/client.js';
+import {
+  Prisma,
+  OrderType,
+  OrderStatus,
+  PaymentStatus,
+} from '../../generated/prisma/client.js';
 import { PaginationResponse } from '@repo/types';
+
+// ============================================================
+// Debt semantics on the two-axis status model:
+// - full debt: committed credit sales that took no money yet
+// - partial debt: any non-cancelled order that took partial payment
+// ============================================================
+
+const FULL_DEBT_WHERE = {
+  status: OrderStatus.PLACED,
+  paymentStatus: PaymentStatus.UNPAID,
+} satisfies Prisma.OrderWhereInput;
+
+const PARTIAL_DEBT_WHERE = {
+  paymentStatus: PaymentStatus.PARTIALLY_PAID,
+  status: { not: OrderStatus.CANCELLED },
+} satisfies Prisma.OrderWhereInput;
 
 // ============================================================
 // Response Row Types (exported for controller return type inference)
@@ -452,7 +473,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -572,7 +593,7 @@ export class ReportsService {
 
     const where: Prisma.OrderWhereInput = {
       tenantId,
-      status: 'COMPLETED',
+      status: OrderStatus.COMPLETED,
       createdAt: {
         gte: from,
         lte: to,
@@ -609,7 +630,7 @@ export class ReportsService {
     const partiallyPaidOrders = await this.prisma.order.findMany({
       where: {
         tenantId,
-        status: 'PARTIALLY_PAID',
+        ...PARTIAL_DEBT_WHERE,
         createdAt: {
           gte: from,
           lte: to,
@@ -671,7 +692,7 @@ export class ReportsService {
 
     const where: Prisma.OrderWhereInput = {
       tenantId,
-      status: 'PENDING', // Only pending orders are considered debts
+      ...FULL_DEBT_WHERE, // committed credit sales that took no payment
       createdAt: {
         gte: from,
         lte: to,
@@ -696,7 +717,7 @@ export class ReportsService {
     const partiallyPaidOrders = await this.prisma.order.findMany({
       where: {
         tenantId,
-        status: 'PARTIALLY_PAID',
+        ...PARTIAL_DEBT_WHERE,
         createdAt: {
           gte: from,
           lte: to,
@@ -727,7 +748,7 @@ export class ReportsService {
       by: ['customerId'],
       where: {
         tenantId,
-        status: { in: ['PENDING', 'PARTIALLY_PAID'] },
+        OR: [FULL_DEBT_WHERE, PARTIAL_DEBT_WHERE],
         createdAt: {
           gte: from,
           lte: to,
@@ -769,7 +790,7 @@ export class ReportsService {
       const customerPendingOrders = await this.prisma.order.aggregate({
         where: {
           customerId: topDebtorId,
-          status: 'PENDING',
+          ...FULL_DEBT_WHERE,
           createdAt: { gte: from, lte: to },
           ...(branchId && { branchId }),
           ...(shiftId && { shiftId }),
@@ -824,7 +845,7 @@ export class ReportsService {
     // Build where clause for PENDING orders
     const where: Prisma.OrderWhereInput = {
       tenantId,
-      status: 'PENDING',
+      ...FULL_DEBT_WHERE,
       createdAt: {
         gte: from,
         lte: to,
@@ -902,7 +923,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -962,7 +983,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -1019,7 +1040,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -1075,7 +1096,9 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
       order: {
         tenantId,
-        status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
+        // Payments on closed orders (refunded ones stay COMPLETED on the
+        // fulfillment axis) plus partially-paid open orders.
+        OR: [{ status: OrderStatus.COMPLETED }, PARTIAL_DEBT_WHERE],
         createdAt: {
           gte: from,
           lte: to,
@@ -1142,7 +1165,9 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
       order: {
         tenantId,
-        status: { in: ['COMPLETED', 'PARTIALLY_PAID', 'FULLY_REFUNDED'] },
+        // Payments on closed orders (refunded ones stay COMPLETED on the
+        // fulfillment axis) plus partially-paid open orders.
+        OR: [{ status: OrderStatus.COMPLETED }, PARTIAL_DEBT_WHERE],
         createdAt: {
           gte: from,
           lte: to,
@@ -1277,7 +1302,7 @@ export class ReportsService {
 
     const where: Prisma.OrderWhereInput = {
       tenantId,
-      status: 'COMPLETED',
+      status: OrderStatus.COMPLETED,
       createdAt: {
         gte: today,
         lt: tomorrow,
@@ -1328,7 +1353,7 @@ export class ReportsService {
     const orders = await this.prisma.order.findMany({
       where: {
         tenantId,
-        status: 'COMPLETED',
+        status: OrderStatus.COMPLETED,
         createdAt: {
           gte: sevenDaysAgo,
           lte: today,
@@ -1373,7 +1398,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -1441,7 +1466,7 @@ export class ReportsService {
     const orders = await this.prisma.order.findMany({
       where: {
         tenantId,
-        status: 'COMPLETED',
+        status: OrderStatus.COMPLETED,
         createdAt: {
           gte: today,
           lt: tomorrow,
@@ -1484,7 +1509,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -1559,7 +1584,7 @@ export class ReportsService {
       by: ['customerId'],
       where: {
         ...orderWhere,
-        status: 'COMPLETED',
+        status: OrderStatus.COMPLETED,
       },
       _sum: {
         total: true,
@@ -1679,13 +1704,13 @@ export class ReportsService {
 
             // Completed orders total
             this.prisma.order.aggregate({
-              where: { ...orderWhere, status: 'COMPLETED' },
+              where: { ...orderWhere, status: OrderStatus.COMPLETED },
               _sum: { total: true },
             }),
 
             // Pending orders total (debt)
             this.prisma.order.aggregate({
-              where: { ...orderWhere, status: 'PENDING' },
+              where: { ...orderWhere, ...FULL_DEBT_WHERE },
               _sum: { total: true },
             }),
 
@@ -1750,7 +1775,7 @@ export class ReportsService {
     // Build where clause for completed orders
     const orderWhere: Prisma.OrderWhereInput = {
       tenantId,
-      status: 'COMPLETED',
+      status: OrderStatus.COMPLETED,
       createdAt: {
         gte: from,
         lte: to,
@@ -1773,7 +1798,7 @@ export class ReportsService {
     const partiallyPaidOrders = await this.prisma.order.findMany({
       where: {
         tenantId,
-        status: 'PARTIALLY_PAID',
+        ...PARTIAL_DEBT_WHERE,
         createdAt: {
           gte: from,
           lte: to,
@@ -1800,7 +1825,7 @@ export class ReportsService {
     const debtsAgg = await this.prisma.order.aggregate({
       where: {
         tenantId,
-        status: 'PENDING',
+        ...FULL_DEBT_WHERE,
         createdAt: {
           gte: from,
           lte: to,
@@ -1918,7 +1943,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,
@@ -2003,7 +2028,7 @@ export class ReportsService {
       where: {
         order: {
           tenantId,
-          status: 'COMPLETED',
+          status: OrderStatus.COMPLETED,
           createdAt: {
             gte: from,
             lte: to,

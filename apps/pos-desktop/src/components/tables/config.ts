@@ -1,5 +1,10 @@
 import type { TableOverview, TableStats } from "@/dto/tables.dto";
-import { OrderStatus, TableShape } from "@repo/types";
+import {
+  OrderStatus,
+  PaymentStatus,
+  TableShape,
+  TABLE_SHAPE_DEFAULT_SIZE,
+} from "@repo/types";
 import { TableNodeAction } from "./TableNode";
 
 export type TableUiStatus =
@@ -27,13 +32,8 @@ export const TABLE_STATUS_OPTIONS = TABLE_UI_STATUSES.map((status) => ({
 }));
 
 const PREPARING_ORDER_STATUSES = new Set<OrderStatus>([
-  OrderStatus.SENT_TO_KITCHEN,
-  OrderStatus.IN_PROGRESS,
-]);
-
-const BILLING_ORDER_STATUSES = new Set<OrderStatus>([
-  OrderStatus.PAID,
-  OrderStatus.PARTIALLY_PAID,
+  OrderStatus.PLACED,
+  OrderStatus.PREPARING,
 ]);
 
 export const deriveTableUiStatus = (
@@ -46,8 +46,8 @@ export const deriveTableUiStatus = (
     if (orderStatus && PREPARING_ORDER_STATUSES.has(orderStatus))
       return "PREPARING";
     if (orderStatus === OrderStatus.READY) return "READY";
-    if (orderStatus && BILLING_ORDER_STATUSES.has(orderStatus))
-      return "BILLING";
+    // Food delivered, bill open (unpaid, partial, or paid awaiting close).
+    if (orderStatus === OrderStatus.SERVED) return "BILLING";
     return "OCCUPIED";
   }
   return "AVAILABLE";
@@ -144,37 +144,32 @@ export const TABLE_SHAPE_CONFIG: Record<TableShape, TableShapeConfig> = {
   RECTANGLE: {
     label: "Rectangle",
     icon: "RectangleHorizontal",
-    width: 168,
-    height: 120,
-    className: "rounded-xl",
+    ...TABLE_SHAPE_DEFAULT_SIZE.RECTANGLE,
+    className: "rounded-md",
   },
   SQUARE: {
     label: "Square",
     icon: "Square",
-    width: 136,
-    height: 136,
-    className: "rounded-xl",
+    ...TABLE_SHAPE_DEFAULT_SIZE.SQUARE,
+    className: "rounded-md",
   },
   CIRCLE: {
     label: "Circle",
     icon: "Circle",
-    width: 148,
-    height: 148,
+    ...TABLE_SHAPE_DEFAULT_SIZE.CIRCLE,
     className: "rounded-full",
   },
   OVAL: {
     label: "Oval",
     icon: "Egg",
-    width: 176,
-    height: 112,
+    ...TABLE_SHAPE_DEFAULT_SIZE.OVAL,
     className: "rounded-full",
   },
   CUSTOM: {
     label: "Custom",
     icon: "Shapes",
-    width: 160,
-    height: 120,
-    className: "rounded-xl",
+    ...TABLE_SHAPE_DEFAULT_SIZE.CUSTOM,
+    className: "rounded-3xl",
   },
 };
 
@@ -186,10 +181,10 @@ export const getTableSize = (table: {
   height?: number | null;
   shape?: TableShape;
 }): { width: number; height: number } => {
-  const shapeConfig = TABLE_SHAPE_CONFIG[table.shape! ?? DEFAULT_TABLE_SHAPE];
+  const shapeConfig = TABLE_SHAPE_CONFIG[table.shape ?? DEFAULT_TABLE_SHAPE];
   return {
-    width: table.width ?? shapeConfig.width,
-    height: table.height ?? shapeConfig.height,
+    width: table.width || shapeConfig.width,
+    height: table.height || shapeConfig.height,
   };
 };
 
@@ -244,9 +239,9 @@ export const getTableDisplayName = (
 
 export const formatTableMoney = (value: string | number): string => {
   const amount = typeof value === "string" ? Number(value) : value;
-  
+
   if (!Number.isFinite(amount)) return "—";
-  
+
   return `$${amount.toFixed(2)}`;
 };
 
@@ -345,6 +340,7 @@ export const ACTIONS_BY_STATUS: Record<TableUiStatus, ActionSpec[]> = {
     },
   ],
   READY: [
+    { action: "serve", label: "Mark Served", icon: "Utensils" },
     { action: "open", label: "Open Order", icon: "ReceiptText" },
     {
       action: "transfer",
@@ -354,6 +350,7 @@ export const ACTIONS_BY_STATUS: Record<TableUiStatus, ActionSpec[]> = {
     },
   ],
   BILLING: [
+    { action: "pay", label: "Take Payment", icon: "Banknote" },
     { action: "complete", label: "Complete & Free Table", icon: "CircleCheck" },
     {
       action: "open",
@@ -424,11 +421,13 @@ export const MENU_BY_STATUS: Record<TableUiStatus, MenuEntry[]> = {
     { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
   ],
   READY: [
+    { action: "serve", label: "Mark Served", icon: "Utensils" },
     { action: "open", label: "Open Order", icon: "ReceiptText" },
     { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
   ],
   BILLING: [
     { action: "open", label: "View Invoice", icon: "ReceiptText" },
+    { action: "pay", label: "Take Payment", icon: "Banknote" },
     { action: "complete", label: "Complete & Free Table", icon: "CircleCheck" },
     { action: "transfer", label: "Transfer Table", icon: "ArrowLeftRight" },
   ],
@@ -452,3 +451,39 @@ export const MENU_BY_STATUS: Record<TableUiStatus, MenuEntry[]> = {
     },
   ],
 };
+
+/**
+ * Payment gating for the BILLING actions: "pay" only while a balance is
+ * owed, "complete" only once fully paid — mirrors the backend guard that
+ * rejects COMPLETED for an unpaid order.
+ */
+const isBillingActionVisible = (
+  action: TableNodeAction,
+  paymentStatus?: PaymentStatus,
+): boolean => {
+  if (action === "pay") return paymentStatus !== PaymentStatus.PAID;
+  if (action === "complete") return paymentStatus === PaymentStatus.PAID;
+  return true;
+};
+
+export const getVisibleActions = (
+  uiStatus: TableUiStatus,
+  canManage: boolean,
+  paymentStatus?: PaymentStatus,
+): ActionSpec[] =>
+  ACTIONS_BY_STATUS[uiStatus].filter(
+    (a) =>
+      (!a.managerOnly || canManage) &&
+      isBillingActionVisible(a.action, paymentStatus),
+  );
+
+export const getVisibleMenuEntries = (
+  uiStatus: TableUiStatus,
+  canManage: boolean,
+  paymentStatus?: PaymentStatus,
+): MenuEntry[] =>
+  MENU_BY_STATUS[uiStatus].filter(
+    (entry) =>
+      (!entry.managerOnly || canManage) &&
+      isBillingActionVisible(entry.action, paymentStatus),
+  );

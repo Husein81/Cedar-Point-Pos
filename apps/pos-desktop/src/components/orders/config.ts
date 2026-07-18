@@ -166,24 +166,20 @@ export const generateQuickCashAmounts = (total: number) => {
 
 export const ONGOING_STATUSES: OrderStatus[] = [
   "DRAFT",
-  "ON_HOLD",
-  "PENDING",
-  "CONFIRMED",
-  "SENT_TO_KITCHEN",
-  "IN_PROGRESS",
+  "PLACED",
+  "PREPARING",
   "READY",
+  "SERVED",
   "COMPLETED",
 ];
 
 export const STATUS_FILTER_OPTIONS = [
   { label: "All Ongoing", value: "ALL" },
   { label: "Draft", value: "DRAFT" },
-  { label: "Pending", value: "PENDING" },
-  { label: "Sent to Kitchen", value: "SENT_TO_KITCHEN" },
-  { label: "In Progress", value: "IN_PROGRESS" },
+  { label: "Placed", value: "PLACED" },
+  { label: "Preparing", value: "PREPARING" },
   { label: "Ready", value: "READY" },
-  { label: "Confirmed", value: "CONFIRMED" },
-  { label: "On Hold", value: "ON_HOLD" },
+  { label: "Served", value: "SERVED" },
   { label: "Completed", value: "COMPLETED" },
 ];
 
@@ -195,27 +191,13 @@ export const STATUS_BADGE_CONFIG: Record<
     label: "Draft",
     className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   },
-  ON_HOLD: {
-    label: "On Hold",
-    className:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  },
-  PENDING: {
-    label: "Pending",
-    className:
-      "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  },
-  CONFIRMED: {
-    label: "Confirmed",
-    className: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  },
-  SENT_TO_KITCHEN: {
-    label: "Kitchen",
+  PLACED: {
+    label: "Placed",
     className:
       "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
   },
-  IN_PROGRESS: {
-    label: "In Progress",
+  PREPARING: {
+    label: "Preparing",
     className:
       "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
   },
@@ -224,9 +206,46 @@ export const STATUS_BADGE_CONFIG: Record<
     className:
       "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
   },
+  SERVED: {
+    label: "Served",
+    className: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
+  },
   COMPLETED: {
     label: "Completed",
     className:
       "bg-green-200 text-gray-800 dark:bg-green-700 dark:text-gray-200",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    className: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  },
+};
+
+export const PAYMENT_BADGE_CONFIG: Record<
+  string,
+  { label: string; className: string }
+> = {
+  UNPAID: {
+    label: "Unpaid",
+    className:
+      "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  },
+  PARTIALLY_PAID: {
+    label: "Partially Paid",
+    className:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  },
+  PAID: {
+    label: "Paid",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+  },
+  PARTIALLY_REFUNDED: {
+    label: "Partially Refunded",
+    className: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300",
+  },
+  REFUNDED: {
+    label: "Refunded",
+    className: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   },
 };

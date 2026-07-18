@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { OrdersService } from '../orders/orders.service.js';
-import { OrderStatus, QueryParams } from '@repo/types';
+import { OrderStatus, QueryParams, TicketStatus, UserRole } from '@repo/types';
 import { Prisma } from '../../generated/prisma/browser.js';
 import { OnEvent } from '@nestjs/event-emitter';
 import { KitchenGateway } from './kitchen.gateway.js';
@@ -92,14 +92,17 @@ export class KitchenService {
     const skip = (Number(page) - 1) * Number(limit);
     const day = Date.now() - 24 * 60 * 60 * 1000;
     const twentyFourHoursAgo = new Date(day);
+
     const where: Prisma.OrderWhereInput = {
       tenantId,
       ...(branchId && { branchId }),
+      status: {
+        in: [OrderStatus.PLACED, OrderStatus.PREPARING, OrderStatus.READY],
+      },
       createdAt: {
         gte: twentyFourHoursAgo,
       },
     };
-    // Get orders that are in kitchen-relevant statuses
     const [totalCount, data] = await Promise.all([
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
@@ -301,18 +304,20 @@ export class KitchenService {
     status: OrderStatus,
     tenantId: string,
     userId?: string,
+    actorRole?: UserRole,
   ) {
     return this.ordersService.updateStatus({
       tenantId,
       orderId,
       nextStatus: status,
       userId: userId ?? 'SYSTEM',
+      actorRole,
     });
   }
 
   async updateTicketStatus(
     ticketId: string,
-    status: OrderStatus,
+    status: TicketStatus,
     tenantId: string,
   ) {
     const ticket = await this.prisma.orderItemTicket.findFirst({
@@ -334,7 +339,7 @@ export class KitchenService {
       where: { id: ticketId },
       data: {
         status,
-        ...(status === 'READY' && { bumpedAt: new Date() }),
+        ...(status === TicketStatus.READY && { bumpedAt: new Date() }),
       },
     });
   }

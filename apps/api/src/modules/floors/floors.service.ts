@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ACTIVE_ORDER_STATUSES } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateFloorDto, UpdateFloorDto } from '../tables/dto/tables.dto.js';
 
@@ -210,16 +211,7 @@ export class FloorsService {
               include: {
                 orders: {
                   where: {
-                    status: {
-                      in: [
-                        'DRAFT',
-                        'PENDING',
-                        'CONFIRMED',
-                        'IN_PROGRESS',
-                        'SENT_TO_KITCHEN',
-                        'READY',
-                      ],
-                    },
+                    status: { in: [...ACTIVE_ORDER_STATUSES] },
                   },
                   select: { id: true },
                 },

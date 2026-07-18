@@ -106,20 +106,32 @@ describe('OrdersController', () => {
   describe('updateStatus', () => {
     it('should update order status', () => {
       const mockRequest = { user: { tenantId: 'tenant-1', id: 'user-1' } };
-      const body = { status: OrderStatus.CONFIRMED };
+      const body = { status: OrderStatus.PLACED };
       const mockUpdatedOrder = {
         id: 'order-1',
-        status: OrderStatus.CONFIRMED,
+        status: OrderStatus.PLACED,
       };
 
       vi.mocked(service.updateStatus).mockReturnValue(
         mockUpdatedOrder as any,
       );
 
-      const result = controller.updateStatus(mockRequest as any, 'order-1', body);
+      const result = controller.updateStatus(
+        mockRequest as any,
+        'order-1',
+        body,
+        UserRole.CASHIER,
+      );
 
       expect(result).toEqual(mockUpdatedOrder);
-      expect(service.updateStatus).toHaveBeenCalled();
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant-1',
+          orderId: 'order-1',
+          nextStatus: OrderStatus.PLACED,
+          actorRole: UserRole.CASHIER,
+        }),
+      );
     });
   });
 

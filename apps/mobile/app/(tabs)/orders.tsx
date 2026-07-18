@@ -28,9 +28,10 @@ import { useThemeStore } from "@/store/theme";
 const STATUS_FILTERS: { label: string; value?: OrderStatus }[] = [
   { label: "All" },
   { label: "Draft", value: OrderStatus.DRAFT },
-  { label: "In Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
+  { label: "Placed", value: OrderStatus.PLACED },
+  { label: "Preparing", value: OrderStatus.PREPARING },
   { label: "Ready", value: OrderStatus.READY },
-  { label: "Paid", value: OrderStatus.PAID },
+  { label: "Served", value: OrderStatus.SERVED },
   { label: "Completed", value: OrderStatus.COMPLETED },
   { label: "Cancelled", value: OrderStatus.CANCELLED },
 ];

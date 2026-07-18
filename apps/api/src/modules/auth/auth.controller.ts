@@ -9,18 +9,18 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { Public } from '../common/decorators/public.decorator.js';
-import { AuthService } from './auth.service.js';
-import { CreateUserDto, LoginDto } from './dto/user.dto.js';
-import type { AdminLoginDto } from './dto/admin-login.dto.js';
-import { PinLoginDto } from './dto/pin-login.dto.js';
-import { Roles } from '../common/decorators/roles.decorator.js';
-import { UserRole } from '../../generated/prisma/client.js';
-import type { User as PrismaUser } from '../../generated/prisma/client.js';
 import { AuthGuard } from '@nestjs/passport';
-import type { User } from '@repo/types';
 import { Throttle } from '@nestjs/throttler';
+import type { User } from '@repo/types';
+import type { Request, Response } from 'express';
+import type { User as PrismaUser } from '../../generated/prisma/client.js';
+import { UserRole } from '../../generated/prisma/client.js';
+import { Public } from '../common/decorators/public.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { AuthService } from './auth.service.js';
+import { PinLoginDto } from './dto/pin-login.dto.js';
+import { CreateUserDto, LoginDto } from './dto/user.dto.js';
+import { AdminLoginDto } from './dto/admin-login.dto.js';
 
 @Controller('auth')
 export class AuthController {

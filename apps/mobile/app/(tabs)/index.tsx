@@ -1,4 +1,4 @@
-import { OrderStatus } from "@repo/types";
+import { ACTIVE_ORDER_STATUSES, OrderStatus, PaymentStatus } from "@repo/types";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
@@ -16,14 +16,7 @@ import { useBranchStore } from "@/store/branch";
 import { useThemeStore } from "@/store/theme";
 import { Separator } from "@/components/ui/separator";
 
-const ACTIVE_STATUSES: OrderStatus[] = [
-  OrderStatus.DRAFT,
-  OrderStatus.PENDING,
-  OrderStatus.CONFIRMED,
-  OrderStatus.IN_PROGRESS,
-  OrderStatus.SENT_TO_KITCHEN,
-  OrderStatus.READY,
-];
+const ACTIVE_STATUSES: readonly OrderStatus[] = ACTIVE_ORDER_STATUSES;
 
 const startOfToday = () => {
   const date = new Date();
@@ -69,7 +62,8 @@ export default function HomeScreen() {
     const revenue = orders
       .filter(
         (o) =>
-          o.status === OrderStatus.PAID || o.status === OrderStatus.COMPLETED,
+          o.status === OrderStatus.COMPLETED ||
+          o.paymentStatus === PaymentStatus.PAID,
       )
       .reduce((sum, o) => sum + toNumber(o.total), 0);
     return { total: orders.length, active, revenue };

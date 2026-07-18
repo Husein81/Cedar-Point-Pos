@@ -19,26 +19,31 @@ const statusConfig: Record<
   { label: string; color: string; textSize?: string }
 > = {
   DRAFT: { label: "Draft", color: "bg-gray-500" },
-  ON_HOLD: { label: "On Hold", color: "bg-amber-500" },
-  PENDING: { label: "Pending", color: "bg-blue-500" },
+  PLACED: { label: "Placed", color: "bg-purple-500" },
+  PREPARING: { label: "Preparing", color: "bg-indigo-500" },
+  READY: { label: "Ready", color: "bg-green-500" },
+  SERVED: { label: "Served", color: "bg-cyan-500" },
+  COMPLETED: { label: "Completed", color: "bg-emerald-600" },
+  CANCELLED: { label: "Cancelled", color: "bg-red-500" },
+};
+
+const paymentStatusConfig: Record<
+  string,
+  { label: string; color: string; textSize?: string }
+> = {
+  UNPAID: { label: "Unpaid", color: "bg-orange-500" },
   PARTIALLY_PAID: {
     label: "Par. Paid",
     color: "bg-sky-500",
     textSize: "text-[10px]",
   },
-  CONFIRMED: { label: "Confirmed", color: "bg-cyan-500" },
-  IN_PROGRESS: { label: "In Progress", color: "bg-indigo-500" },
-  SENT_TO_KITCHEN: { label: "In Kitchen", color: "bg-purple-500" },
-  READY: { label: "Ready", color: "bg-green-500" },
   PAID: { label: "Paid", color: "bg-teal-600" },
-  COMPLETED: { label: "Completed", color: "bg-emerald-600" },
   PARTIALLY_REFUNDED: {
     label: "Par. Refund",
     color: "bg-amber-600",
     textSize: "text-[10px]",
   },
-  FULLY_REFUNDED: { label: "Refunded", color: "bg-red-600" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-500" },
+  REFUNDED: { label: "Refunded", color: "bg-red-600" },
 };
 
 const orderTypeConfig: Record<string, { label: string; icon: string }> = {
@@ -146,6 +151,31 @@ export function getInvoiceColumns(
       },
     },
     {
+      accessorKey: "paymentStatus",
+      header: "Payment",
+      cell: ({ row }) => {
+        const paymentStatus = row.original.paymentStatus;
+        const config = paymentStatusConfig[paymentStatus] ?? {
+          label: paymentStatus,
+          color: "bg-gray-500",
+        };
+
+        return (
+          <div
+            className={`
+              inline-flex items-center justify-center
+              w-25 h-7 rounded-full
+              ${config.color} text-white
+              ${config.textSize ?? "text-xs"} font-medium
+              leading-none
+            `}
+          >
+            {config.label}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "items",
       header: "Items",
       cell: ({ row }) => {
@@ -228,9 +258,9 @@ export function getInvoiceColumns(
         const { data: branch } = useBranch(branchId || "");
 
         const order = row.original;
-        const canRefund =
-          order.status === OrderStatus.COMPLETED ||
-          order.status === OrderStatus.PARTIALLY_REFUNDED;
+        // Refunds only apply to closed orders; a partially refunded order
+        // stays COMPLETED (refund state lives on the payment axis).
+        const canRefund = order.status === OrderStatus.COMPLETED;
 
         const handleRefund = () => {
           openModal("Create Refund", <RefundForm orderId={order.id} />);

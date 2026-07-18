@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStatus } from '@repo/types';
+import { TicketStatus } from '@repo/types';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateTicketDto {
@@ -12,8 +12,8 @@ export class CreateTicketDto {
   @IsString()
   station?: string;
 
-  @ApiProperty({ enum: OrderStatus, required: false })
+  @ApiProperty({ enum: TicketStatus, required: false })
   @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
+  @IsEnum(TicketStatus)
+  status?: TicketStatus;
 }

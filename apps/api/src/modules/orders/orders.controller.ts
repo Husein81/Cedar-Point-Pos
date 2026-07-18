@@ -22,7 +22,9 @@ import {
 } from '@repo/types';
 import type { Request } from 'express';
 import { LogActivity } from '../staff/decorators/log-activity.decorator.js';
+import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { AddItemDto } from './dto/add-item.dto.js';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto.js';
 import { AssignTableDto } from './dto/assign-table.dto.js';
 import { CreateOrderDto, ProcessPaymentDto } from './dto/create-order.dto.js';
 import { UpdateQuantityDto } from './dto/update-quantity.dto.js';
@@ -124,7 +126,14 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.CASHIER,
+    UserRole.WAITER,
+    UserRole.KITCHEN,
+    UserRole.DRIVER,
+  )
   @LogActivity(
     StaffActivityAction.ORDER_CANCELLED,
     StaffActivityModule.ORDERS,
@@ -137,18 +146,20 @@ export class OrdersController {
   updateStatus(
     @Req() req: Request,
     @Param('id') id: string,
-    @Body() body: { status: OrderStatus },
+    @Body() dto: UpdateOrderStatusDto,
+    @CurrentRole() actorRole: UserRole,
   ) {
     const user = req.user as { tenantId: string; id: string };
 
-    const data = {
+    // Per-transition permissions (who may fire/serve/complete/cancel) are
+    // enforced inside updateStatus via the shared state machine.
+    return this.ordersService.updateStatus({
       tenantId: user.tenantId,
       orderId: id,
-      nextStatus: body.status,
+      nextStatus: dto.status,
       userId: user.id,
-    };
-
-    return this.ordersService.updateStatus(data);
+      actorRole,
+    });
   }
 
   /* ----------------------------------------------------

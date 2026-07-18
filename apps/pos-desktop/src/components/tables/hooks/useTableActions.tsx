@@ -13,6 +13,7 @@ import { extractErrorMessage } from "@/utils/error";
 import { useModalStore } from "@/store/modalStore";
 import { useTableUiStore } from "@/store/tableUiStore";
 import { getTableDisplayName } from "../config";
+import { TablePaymentForm } from "../TablePaymentForm";
 import type { TableNodeAction } from "../TableNode";
 import { useOpenTableOrder } from "./useOpenTableOrder";
 import { useTableTransfer } from "./useTableTransfer";
@@ -24,18 +25,6 @@ export interface TableActionsApi {
   isTransferPending: boolean;
 }
 
-/**
- * Central dispatcher for every table action (canvas context menu, details
- * drawer quick actions, grid view). It owns only the simple, single-step
- * mutations (reserve/unreserve/enable/disable/complete/edit/delete) and
- * routes the two multi-step flows to their own hooks: seating/resuming an
- * order (useOpenTableOrder) and transferring one (useTableTransfer,
- * including the merge-conflict detour).
- *
- * The transfer target picker and merge selector are modals; their components
- * are passed in by the page (renderTransferPicker/renderMergeSelector) so this
- * hook stays JSX-free.
- */
 export const useTableActions = (options: {
   renderTransferPicker: (params: {
     sourceTable: TableOverview;
@@ -89,13 +78,6 @@ export const useTableActions = (options: {
   });
   const fetchActiveOrders = useFetchActiveOrdersByTable();
 
-  /**
-   * Free an occupied table: cancel every unpaid order on it (the backend
-   * releases the table once the last active order closes), or — for a table
-   * stuck OCCUPIED with no orders — release it directly. Orders already in
-   * the kitchen are protected by the order state machine and will fail the
-   * cancel with a clear error.
-   */
   const freeTable = useCallback(
     async (table: TableOverview) => {
       try {
@@ -171,6 +153,33 @@ export const useTableActions = (options: {
             id: table.id,
             status: TableStatus.AVAILABLE,
           });
+          break;
+        case "serve":
+          if (table.activeOrder) {
+            orderStatusMutation.mutate(
+              { id: table.activeOrder.orderId, status: OrderStatus.SERVED },
+              {
+                onError: (error) =>
+                  toast.error(error.message || "Failed to mark as served"),
+              },
+            );
+          }
+          break;
+        case "pay":
+          if (table.activeOrder) {
+            const remaining = Math.max(
+              0,
+              Number(table.activeOrder.total) - table.activeOrder.paidAmount,
+            );
+            openModal(
+              "Take Payment",
+              <TablePaymentForm
+                orderId={table.activeOrder.orderId}
+                total={remaining}
+              />,
+              `Table ${table.tableNumber}`,
+            );
+          }
           break;
         case "complete":
           if (table.activeOrder) {

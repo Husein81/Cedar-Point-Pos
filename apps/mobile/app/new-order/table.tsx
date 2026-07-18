@@ -108,7 +108,7 @@ export default function SelectTableScreen() {
         >
           {floors.length === 0 ? (
             <EmptyState
-              icon="Armchair"
+              icon="Utensils"
               title="No tables in this branch"
               message={
                 tablesQuery.isError

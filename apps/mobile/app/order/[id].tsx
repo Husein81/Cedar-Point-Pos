@@ -1,4 +1,8 @@
-import { OrderStatus } from "@repo/types";
+import {
+  OrderStatus,
+  TERMINAL_ORDER_STATUSES,
+  canRoleTransitionOrder,
+} from "@repo/types";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -26,23 +30,11 @@ import {
 } from "@/hooks/use-orders";
 import { formatDateTime, formatMoney, toNumber } from "@/lib/format";
 import { THEME } from "@/lib/theme";
+import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 import { useThemeStore } from "@/store/theme";
 
-const TERMINAL_STATUSES: OrderStatus[] = [
-  OrderStatus.PAID,
-  OrderStatus.COMPLETED,
-  OrderStatus.CANCELLED,
-  OrderStatus.PARTIALLY_REFUNDED,
-  OrderStatus.FULLY_REFUNDED,
-];
-
-// Status states where order cancellation is allowed by the backend state machine
-const CANCELLABLE_STATUSES: OrderStatus[] = [
-  OrderStatus.DRAFT,
-  OrderStatus.PENDING,
-  OrderStatus.CONFIRMED,
-];
+const TERMINAL_STATUSES: readonly OrderStatus[] = TERMINAL_ORDER_STATUSES;
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
@@ -55,9 +47,27 @@ export default function OrderDetailsScreen() {
   const sendToKitchen = useSendToKitchen();
   const updateStatus = useUpdateOrderStatus();
   const clearCart = useCartStore((state) => state.clear);
+  const { user } = useAuthStore();
 
   const order = orderQuery.data;
   const isActing = sendToKitchen.isPending || updateStatus.isPending;
+
+  const paidAmount = (order?.payments ?? []).reduce(
+    (sum, payment) => sum + toNumber(payment.amount),
+    0,
+  );
+  const balanceDue = Math.max(0, toNumber(order?.total) - paidAmount);
+
+  // The shared state machine decides what this user may do — the backend
+  // enforces the same rules, so hidden actions would be rejected anyway.
+  const canCancel =
+    order && user
+      ? canRoleTransitionOrder(user.role, order.status, OrderStatus.CANCELLED)
+      : false;
+  const canServe =
+    order && user && order.status === OrderStatus.READY
+      ? canRoleTransitionOrder(user.role, order.status, OrderStatus.SERVED)
+      : false;
 
   const showError = (error: unknown) => {
     let message = "Please try again.";
@@ -102,6 +112,19 @@ export default function OrderDetailsScreen() {
     );
   };
 
+  const handleMarkServed = async () => {
+    if (!order) return;
+    try {
+      await updateStatus.mutateAsync({
+        id: order.id,
+        status: OrderStatus.SERVED,
+      });
+      orderQuery.refetch();
+    } catch (error) {
+      showError(error);
+    }
+  };
+
   const handleAddItems = () => {
     if (!order) return;
     clearCart();
@@ -132,10 +155,6 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  const paidAmount = (order.payments ?? []).reduce(
-    (sum, payment) => sum + toNumber(payment.amount),
-    0,
-  );
   const isTerminal = TERMINAL_STATUSES.includes(order.status);
 
   return (
@@ -239,6 +258,14 @@ export default function OrderDetailsScreen() {
               <Text className="text-success">{formatMoney(paidAmount)}</Text>
             </View>
           ) : null}
+          {balanceDue > 0 && !isTerminal ? (
+            <View className="flex-row justify-between">
+              <Text className="text-muted-foreground">Balance Due</Text>
+              <Text className="font-semibold text-warning">
+                {formatMoney(balanceDue)}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -270,6 +297,26 @@ export default function OrderDetailsScreen() {
               )}
             </Button>
           ) : null}
+          {canServe ? (
+            <Button
+              onPress={handleMarkServed}
+              disabled={isActing}
+              className="h-14 rounded-xl"
+            >
+              {updateStatus.isPending ? (
+                <ActivityIndicator color={theme.primaryForeground} />
+              ) : (
+                <View className="flex-row items-center gap-2">
+                  <Icon
+                    name="Utensils"
+                    size={18}
+                    color={theme.primaryForeground}
+                  />
+                  <Text className="font-semibold text-base">Mark Served</Text>
+                </View>
+              )}
+            </Button>
+          ) : null}
           <View className="flex-row gap-2">
             <Button
               onPress={handleAddItems}
@@ -278,7 +325,7 @@ export default function OrderDetailsScreen() {
             >
               <Text>Add Items</Text>
             </Button>
-            {CANCELLABLE_STATUSES.includes(order.status) ? (
+            {canCancel ? (
               <Button
                 variant="destructive"
                 onPress={handleCancel}

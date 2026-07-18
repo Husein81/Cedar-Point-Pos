@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { OrderStatus } from "@repo/types";
+import { PaymentStatus } from "@repo/types";
 import { toast } from "@repo/ui";
 import type { ServerOrderWithPayments } from "@/dto/order.dto";
 import type { TableOverview } from "@/dto/tables.dto";
@@ -14,11 +14,6 @@ export interface OpenTableOrderApi {
   openTableOrder: (table: TableOverview) => Promise<void>;
 }
 
-/**
- * Gets the user into a table's order: seat fresh guests in a new order tab,
- * or resume whatever's already there — the latest active order, falling
- * back to the invoice when the only order left is PAID (no longer "active").
- */
 export const useOpenTableOrder = (): OpenTableOrderApi => {
   const navigate = useNavigate();
   const { loadOrder, createTabWithTable } = useOrderStore();
@@ -50,8 +45,8 @@ export const useOpenTableOrder = (): OpenTableOrderApi => {
         return;
       }
 
-      // A PAID order is no longer "active" — show its invoice instead.
-      if (summary.status === OrderStatus.PAID) {
+      // A fully paid bill is view-only — show its invoice instead.
+      if (summary.paymentStatus === PaymentStatus.PAID) {
         selectTable(null);
         void navigate({
           to: "/invoices/$orderId",
@@ -60,8 +55,6 @@ export const useOpenTableOrder = (): OpenTableOrderApi => {
         return;
       }
 
-      // Navigate straight to the order screen, then hydrate the tab as soon
-      // as the order payload arrives (usually already cached by the drawer).
       selectTable(null);
       void navigate({ to: "/", search: { tableId: table.id } });
 

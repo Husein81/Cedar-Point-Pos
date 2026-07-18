@@ -1,4 +1,4 @@
-import { OrderStatus, TableStatus } from "@repo/types";
+import { OrderStatus, PaymentStatus, TableStatus } from "@repo/types";
 
 export const toNumber = (value: number | string | null | undefined): number => {
   if (value === null || value === undefined) return 0;
@@ -46,28 +46,13 @@ const ORDER_STATUS_STYLES: Record<OrderStatus, StatusStyle> = {
     badge: "bg-muted",
     text: "text-muted-foreground",
   },
-  [OrderStatus.ON_HOLD]: {
-    label: "On Hold",
-    badge: "bg-warning/15",
-    text: "text-warning",
-  },
-  [OrderStatus.PENDING]: {
-    label: "Pending",
+  [OrderStatus.PLACED]: {
+    label: "Placed",
     badge: "bg-info/15",
     text: "text-info",
   },
-  [OrderStatus.CONFIRMED]: {
-    label: "Confirmed",
-    badge: "bg-info/15",
-    text: "text-info",
-  },
-  [OrderStatus.IN_PROGRESS]: {
+  [OrderStatus.PREPARING]: {
     label: "Preparing",
-    badge: "bg-warning/15",
-    text: "text-warning",
-  },
-  [OrderStatus.SENT_TO_KITCHEN]: {
-    label: "In Kitchen",
     badge: "bg-warning/15",
     text: "text-warning",
   },
@@ -76,30 +61,15 @@ const ORDER_STATUS_STYLES: Record<OrderStatus, StatusStyle> = {
     badge: "bg-success/15",
     text: "text-success",
   },
-  [OrderStatus.PAID]: {
-    label: "Paid",
-    badge: "bg-success/15",
-    text: "text-success",
-  },
-  [OrderStatus.PARTIALLY_PAID]: {
-    label: "Partially Paid",
-    badge: "bg-warning/15",
-    text: "text-warning",
+  [OrderStatus.SERVED]: {
+    label: "Served",
+    badge: "bg-info/15",
+    text: "text-info",
   },
   [OrderStatus.COMPLETED]: {
     label: "Completed",
     badge: "bg-success/15",
     text: "text-success",
-  },
-  [OrderStatus.PARTIALLY_REFUNDED]: {
-    label: "Partially Refunded",
-    badge: "bg-destructive/15",
-    text: "text-destructive",
-  },
-  [OrderStatus.FULLY_REFUNDED]: {
-    label: "Refunded",
-    badge: "bg-destructive/15",
-    text: "text-destructive",
   },
   [OrderStatus.CANCELLED]: {
     label: "Cancelled",
@@ -110,6 +80,41 @@ const ORDER_STATUS_STYLES: Record<OrderStatus, StatusStyle> = {
 
 export const orderStatusStyle = (status: OrderStatus): StatusStyle =>
   ORDER_STATUS_STYLES[status] ?? {
+    label: status,
+    badge: "bg-muted",
+    text: "text-muted-foreground",
+  };
+
+const PAYMENT_STATUS_STYLES: Record<PaymentStatus, StatusStyle> = {
+  [PaymentStatus.UNPAID]: {
+    label: "Unpaid",
+    badge: "bg-warning/15",
+    text: "text-warning",
+  },
+  [PaymentStatus.PARTIALLY_PAID]: {
+    label: "Partially Paid",
+    badge: "bg-warning/15",
+    text: "text-warning",
+  },
+  [PaymentStatus.PAID]: {
+    label: "Paid",
+    badge: "bg-success/15",
+    text: "text-success",
+  },
+  [PaymentStatus.PARTIALLY_REFUNDED]: {
+    label: "Partially Refunded",
+    badge: "bg-destructive/15",
+    text: "text-destructive",
+  },
+  [PaymentStatus.REFUNDED]: {
+    label: "Refunded",
+    badge: "bg-destructive/15",
+    text: "text-destructive",
+  },
+};
+
+export const paymentStatusStyle = (status: PaymentStatus): StatusStyle =>
+  PAYMENT_STATUS_STYLES[status] ?? {
     label: status,
     badge: "bg-muted",
     text: "text-muted-foreground",

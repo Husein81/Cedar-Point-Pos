@@ -211,7 +211,7 @@ describe('OrdersService', () => {
 
       vi.mocked(prisma.order.findFirst).mockResolvedValue({
         id: orderId,
-        status: OrderStatus.CONFIRMED,
+        status: OrderStatus.PLACED,
       } as any);
 
       await expect(

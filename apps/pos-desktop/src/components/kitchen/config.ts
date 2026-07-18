@@ -20,13 +20,9 @@ export const getTimeColor = (createdAt: string | Date): string => {
 };
 
 const statusColors = {
-  [OrderStatus.CONFIRMED]: "bg-blue-100 text-blue-800 border-blue-200",
-  [OrderStatus.IN_PROGRESS]: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  [OrderStatus.SENT_TO_KITCHEN]:
-    "bg-orange-100 text-orange-800 border-orange-200",
+  [OrderStatus.PLACED]: "bg-orange-100 text-orange-800 border-orange-200",
+  [OrderStatus.PREPARING]: "bg-yellow-100 text-yellow-800 border-yellow-200",
   [OrderStatus.READY]: "bg-green-100 text-green-800 border-green-200",
-  [OrderStatus.PAID]: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  [OrderStatus.PARTIALLY_PAID]: "bg-amber-100 text-amber-800 border-amber-200",
 } as Record<OrderStatus, string>;
 
 export const getStatusColor = (status: OrderStatus): string => {
@@ -34,12 +30,9 @@ export const getStatusColor = (status: OrderStatus): string => {
 };
 
 const statusIcons = {
-  [OrderStatus.CONFIRMED]: "CircleAlert",
-  [OrderStatus.IN_PROGRESS]: "Clock",
-  [OrderStatus.SENT_TO_KITCHEN]: "ChefHat",
+  [OrderStatus.PLACED]: "ChefHat",
+  [OrderStatus.PREPARING]: "Clock",
   [OrderStatus.READY]: "CircleCheck",
-  [OrderStatus.PAID]: "Wallet",
-  [OrderStatus.PARTIALLY_PAID]: "WalletCards",
 } as Record<OrderStatus, string>;
 
 export const getStatusIcon = (status: OrderStatus): string => {
@@ -64,34 +57,20 @@ type ActionButtonStatus = {
   buttonLabel: string;
 };
 
+// The kitchen only advances cooking progress: PLACED → PREPARING → READY.
+// Serving, payment, and closing are floor/cashier actions — never KDS.
 const actionButtonStatuses: Record<string, ActionButtonStatus> = {
-  CONFIRMED: {
-    nextStatus: OrderStatus.IN_PROGRESS,
+  PLACED: {
+    nextStatus: OrderStatus.PREPARING,
     buttonLabel: "Start Cooking",
   },
-  IN_PROGRESS: {
+  PREPARING: {
     nextStatus: OrderStatus.READY,
     buttonLabel: "Mark Ready",
   },
-  SENT_TO_KITCHEN: {
-    nextStatus: OrderStatus.IN_PROGRESS,
-    buttonLabel: "Start Cooking",
-  },
   READY: {
-    nextStatus: OrderStatus.COMPLETED,
-    buttonLabel: "Complete Order",
-  },
-  PAID: {
-    nextStatus: OrderStatus.COMPLETED,
-    buttonLabel: "Complete Order",
-  },
-  PARTIALLY_PAID: {
     nextStatus: null,
-    buttonLabel: "Awaiting Full Payment",
-  },
-  FULLY_REFUNDED: {
-    nextStatus: null,
-    buttonLabel: "Order Fully Refunded",
+    buttonLabel: "Awaiting Pickup",
   },
 };
 
@@ -106,8 +85,7 @@ export const ORDER_STATUS_OPTIONS: Array<{
   value: OrderStatus | "ALL";
 }> = [
   { label: "All", value: "ALL" },
-  { label: "Sent to Kitchen", value: OrderStatus.SENT_TO_KITCHEN },
-  { label: "Preparing", value: OrderStatus.IN_PROGRESS },
+  { label: "Placed", value: OrderStatus.PLACED },
+  { label: "Preparing", value: OrderStatus.PREPARING },
   { label: "Ready", value: OrderStatus.READY },
-  { label: "Completed", value: OrderStatus.COMPLETED },
 ];

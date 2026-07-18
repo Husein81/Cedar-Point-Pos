@@ -82,11 +82,16 @@ export const getStatusVariant = (
     case "COMPLETED":
     case "PAID":
       return "default";
-    case "PENDING":
-    case "IN_PROGRESS":
-    case "CONFIRMED":
+    case "PLACED":
+    case "PREPARING":
+    case "READY":
+    case "SERVED":
+    case "PARTIALLY_PAID":
+    case "UNPAID":
       return "secondary";
     case "CANCELLED":
+    case "REFUNDED":
+    case "PARTIALLY_REFUNDED":
       return "destructive";
     default:
       return "outline";

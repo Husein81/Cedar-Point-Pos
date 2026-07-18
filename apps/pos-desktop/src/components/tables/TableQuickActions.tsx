@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Button } from "@repo/ui";
 import type { TableOverview } from "@/dto/tables.dto";
 import type { TableNodeAction } from "./TableNode";
-import { ACTIONS_BY_STATUS, type TableUiStatus } from "./config";
+import { getVisibleActions, type TableUiStatus } from "./config";
 
 interface TableQuickActionsProps {
   table: TableOverview;
@@ -11,11 +11,6 @@ interface TableQuickActionsProps {
   onAction: (table: TableOverview, action: TableNodeAction) => void;
 }
 
-/**
- * Status-dependent action row shown in the details drawer footer. The first
- * action is the primary one for that status (fewest-clicks rule).
- * Memoized to prevent unnecessary re-renders from parent tick updates.
- */
 export const TableQuickActions = memo(function TableQuickActions({
   table,
   uiStatus,
@@ -23,11 +18,8 @@ export const TableQuickActions = memo(function TableQuickActions({
   onAction,
 }: TableQuickActionsProps) {
   const actions = useMemo(
-    () =>
-      ACTIONS_BY_STATUS[uiStatus].filter(
-        (a) => !a.managerOnly || canManage,
-      ),
-    [uiStatus, canManage],
+    () => getVisibleActions(uiStatus, canManage, table.activeOrder?.paymentStatus),
+    [uiStatus, canManage, table.activeOrder?.paymentStatus],
   );
 
   const handleActionClick = useCallback(

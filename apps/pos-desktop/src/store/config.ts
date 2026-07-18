@@ -56,10 +56,10 @@ export const renumberTabs = (tabs: OrderTab[]): OrderTab[] => {
 };
 
 const KITCHEN_SENT_STATUSES = new Set([
-  "SENT_TO_KITCHEN",
-  "IN_PROGRESS",
-  "CONFIRMED",
+  "PLACED",
+  "PREPARING",
   "READY",
+  "SERVED",
 ]);
 
 /** Maps a server order payload into the local tab's Order shape. */

@@ -43,7 +43,7 @@ export const OrderTab = memo(function OrderTab({
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           {summary.itemCount} item{summary.itemCount === 1 ? "" : "s"} — order{" "}
-          {summary.status === "PAID"
+          {summary.paymentStatus === "PAID"
             ? "paid, awaiting clear"
             : "not editable here"}
           .

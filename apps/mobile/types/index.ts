@@ -1,6 +1,7 @@
 import type {
   OrderStatus,
   OrderType,
+  PaymentStatus,
   TableShape,
   TableStatus,
   UserRole,
@@ -71,6 +72,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   status: OrderStatus;
+  paymentStatus?: PaymentStatus;
   type: OrderType;
   subtotal: number | string;
   vat: number | string;
@@ -113,6 +115,7 @@ export interface TableOverview {
     orderId: string;
     orderNumber: string;
     status: OrderStatus;
+    paymentStatus?: PaymentStatus;
     total: number | string;
     paidAmount: number;
     itemCount: number;

@@ -123,7 +123,12 @@ export const ProductForm = ({ product, onCreated }: Props) => {
           cost: value.cost ? value.cost : undefined,
           categoryId: value.categoryId || undefined,
           subcategoryId: value.subcategoryId || undefined,
-          branchId: value.branchId === "all" ? (product ? null : undefined) : (value.branchId || (product ? null : undefined)),
+          branchId:
+            value.branchId === "all"
+              ? product
+                ? null
+                : undefined
+              : value.branchId || (product ? null : undefined),
           ...imageFields,
           isActive: value.isActive,
           isModifiable: value.isModifiable,

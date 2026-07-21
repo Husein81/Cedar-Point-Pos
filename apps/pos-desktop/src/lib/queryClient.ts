@@ -30,6 +30,10 @@ persistQueryClient({
   queryClient,
   persister,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  // Bump when persisted data can go stale in a way a refetch won't fix on its
+  // own (e.g. cached image URLs pointing at a since-changed CDN host) — this
+  // discards all previously persisted cache on next launch.
+  buster: "2026-07-19-media-cdn-host-change",
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => {
       const key = query.queryKey[0];

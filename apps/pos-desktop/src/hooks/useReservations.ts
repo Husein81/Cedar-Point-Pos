@@ -73,6 +73,25 @@ export const useReservationCalendar = (date: string, branchId?: string) =>
   });
 
 /**
+ * A single table's reservations, newest slot first. Used by the table drawer to
+ * show and act on bookings for that table. Not paginated — a table has few
+ * reservations at a time.
+ */
+export const useTableReservations = (tableId: string | null) =>
+  useQuery({
+    queryKey: reservationKeys.list({ tableId: tableId ?? undefined }),
+    queryFn: () =>
+      reservationApi.getReservations({
+        tableId: tableId as string,
+        limit: 50,
+        sort: "reservationAt",
+        order: "asc",
+      }),
+    enabled: !!tableId,
+    select: (result) => result.data,
+  });
+
+/**
  * Availability for a slot. `enabled` is caller-controlled so the query only
  * fires once the form has a branch/date/time (avoids spamming the endpoint on
  * every keystroke).

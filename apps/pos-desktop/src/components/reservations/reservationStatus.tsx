@@ -71,3 +71,17 @@ export const formatReservationTime = (iso: string): string =>
     hour: "numeric",
     minute: "2-digit",
   });
+
+/** "in 25m" / "in 2h 5m" / "5m ago" for a reservation's start time vs `now`. */
+export const formatReservationCountdown = (
+  reservationAt: string,
+  now: number,
+): string => {
+  const diffMs = new Date(reservationAt).getTime() - now;
+  const pastDue = diffMs < 0;
+  const totalMinutes = Math.round(Math.abs(diffMs) / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const label = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  return pastDue ? `${label} ago` : `in ${label}`;
+};

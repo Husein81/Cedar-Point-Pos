@@ -4,6 +4,9 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { BranchesService } from './branches.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
+// Branch creation is SYSTEM_ADMIN-only (see SystemAdminDevicesController's
+// tenants/:tenantId/branches route) — tenants cannot self-provision branches,
+// mirroring the device-provisioning lockdown. Tenants keep read/update/delete.
 @Controller('branches')
 export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
@@ -14,17 +17,6 @@ export class BranchesController {
       throw new Error('Tenant ID is required');
     }
     return this.branchesService.getBranchesByTenantId(tenantId);
-  }
-
-  @Roles('ADMIN', 'MANAGER')
-  @Post()
-  createBranch(@Req() req: Request) {
-    const body = req.body as Prisma.BranchCreateInput;
-    const { tenantId } = req.user as { tenantId: string };
-    return this.branchesService.createBranch({
-      ...body,
-      tenant: { connect: { id: tenantId } },
-    });
   }
 
   @Roles('ADMIN', 'MANAGER')

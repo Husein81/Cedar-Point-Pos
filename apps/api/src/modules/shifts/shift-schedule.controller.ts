@@ -14,9 +14,11 @@ import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { ShiftScheduleService } from './shift-schedule.service.js';
 import {
+  CreateRecurringScheduleDto,
   CreateScheduleDto,
   PublishScheduleDto,
   QueryScheduleDto,
+  QueryScheduleRangeDto,
   UpdateScheduleDto,
 } from './dto/schedule.dto.js';
 
@@ -40,6 +42,15 @@ export class ShiftScheduleController {
     return this.scheduleService.getMySchedules(user.tenantId, user.id, query);
   }
 
+  // ── Range (bounded calendar feed) ──────────────────────────────────────
+  // Declared before `:id` so the literal segment matches first.
+  @Get('range')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  findRange(@Req() req: Request, @Query() query: QueryScheduleRangeDto) {
+    const user = req.user as { tenantId: string };
+    return this.scheduleService.findRange(user.tenantId, query);
+  }
+
   // ── Get Schedule By ID ─────────────────────────────────────────────────
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
@@ -59,6 +70,17 @@ export class ShiftScheduleController {
     return this.scheduleService.create(user.tenantId, body);
   }
 
+  // ── Create Recurring (dateless weekly pattern) ─────────────────────────
+  @Post('recurring')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  createRecurring(
+    @Req() req: Request,
+    @Body() body: CreateRecurringScheduleDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.scheduleService.createRecurring(user.tenantId, body);
+  }
+
   // ── Update Schedule ────────────────────────────────────────────────────
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
@@ -69,6 +91,14 @@ export class ShiftScheduleController {
   ) {
     const user = req.user as { tenantId: string };
     return this.scheduleService.update(user.tenantId, id, body);
+  }
+
+  // ── Cancel Schedule (DRAFT | PUBLISHED → CANCELLED) ────────────────────
+  @Patch(':id/cancel')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  cancel(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { tenantId: string };
+    return this.scheduleService.cancel(user.tenantId, id);
   }
 
   // ── Delete Schedule ────────────────────────────────────────────────────

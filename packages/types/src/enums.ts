@@ -154,6 +154,13 @@ export const StaffActivityAction = {
   STAFF_PIN_SET: "STAFF_PIN_SET",
   STAFF_PASSWORD_RESET: "STAFF_PASSWORD_RESET",
   STAFF_SESSION_ENDED: "STAFF_SESSION_ENDED",
+  // Reservations (high-value operational actions; audited)
+  RESERVATION_CREATED: "RESERVATION_CREATED",
+  RESERVATION_UPDATED: "RESERVATION_UPDATED",
+  RESERVATION_CANCELLED: "RESERVATION_CANCELLED",
+  RESERVATION_SEATED: "RESERVATION_SEATED",
+  RESERVATION_COMPLETED: "RESERVATION_COMPLETED",
+  RESERVATION_NO_SHOW: "RESERVATION_NO_SHOW",
 } as const;
 export type StaffActivityAction =
   (typeof StaffActivityAction)[keyof typeof StaffActivityAction];
@@ -166,6 +173,7 @@ export const StaffActivityModule = {
   SHIFTS: "shifts",
   REFUNDS: "refunds",
   STAFF: "staff",
+  RESERVATIONS: "reservations",
 } as const;
 export type StaffActivityModule =
   (typeof StaffActivityModule)[keyof typeof StaffActivityModule];
@@ -309,3 +317,60 @@ export const PurchaseOrderStatus = {
 } as const;
 export type PurchaseOrderStatus =
   (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus];
+
+/**
+ * Reservation lifecycle.
+ * PENDING/CONFIRMED are pre-arrival; ARRIVED means the guest is on-site but not
+ * yet seated; SEATED links to an active dine-in Order. COMPLETED / CANCELLED /
+ * NO_SHOW are terminal.
+ */
+export const ReservationStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  ARRIVED: "ARRIVED",
+  SEATED: "SEATED",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+export type ReservationStatus =
+  (typeof ReservationStatus)[keyof typeof ReservationStatus];
+
+/** How the reservation was booked. */
+export const ReservationSource = {
+  WALK_IN: "WALK_IN",
+  PHONE: "PHONE",
+  ONLINE: "ONLINE",
+  ADMIN: "ADMIN",
+} as const;
+export type ReservationSource =
+  (typeof ReservationSource)[keyof typeof ReservationSource];
+
+/**
+ * Reservations that still hold a slot / keep a table reserved. The single
+ * source of truth for "this reservation is live" (drives availability checks
+ * and reserved-table badges). COMPLETED, CANCELLED and NO_SHOW are the exits.
+ */
+export const ACTIVE_RESERVATION_STATUSES: readonly ReservationStatus[] = [
+  ReservationStatus.PENDING,
+  ReservationStatus.CONFIRMED,
+  ReservationStatus.ARRIVED,
+  ReservationStatus.SEATED,
+] as const;
+
+/** Terminal reservation statuses — no transitions out. */
+export const TERMINAL_RESERVATION_STATUSES: readonly ReservationStatus[] = [
+  ReservationStatus.COMPLETED,
+  ReservationStatus.CANCELLED,
+  ReservationStatus.NO_SHOW,
+] as const;
+
+/**
+ * Statuses eligible for automatic no-show expiration once the reservation time
+ * (plus a grace window) has elapsed. A guest who already ARRIVED/SEATED is never
+ * auto-expired.
+ */
+export const EXPIRABLE_RESERVATION_STATUSES: readonly ReservationStatus[] = [
+  ReservationStatus.PENDING,
+  ReservationStatus.CONFIRMED,
+] as const;

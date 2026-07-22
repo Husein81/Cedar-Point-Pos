@@ -10,24 +10,13 @@ export class BranchesService {
     return await this.prisma.branch.findMany();
   }
 
+  /**
+   * Creates a branch for a tenant. Only called from SYSTEM_ADMIN routes —
+   * branch creation is not tenant-self-service (see BranchesController).
+   */
   async createBranch(data: Prisma.BranchCreateInput) {
     try {
-      // TODO: Modify when we add the subscription plan to limit the number of branches per tenant. For now, we will limit it to 4 branches per tenant.
-      const tenantId = (data.tenant as { connect: { id: string } }).connect.id;
-
-      const branches = await this.prisma.branch.findMany({
-        where: { tenantId },
-      });
-
-      if (branches.length >= 4) {
-        throw new InternalServerErrorException(
-          `Cannot create more than 4 branches for tenant ${tenantId}`,
-        );
-      }
-
-      await this.prisma.branch.create({
-        data,
-      });
+      return await this.prisma.branch.create({ data });
     } catch (error) {
       console.error('Error creating branch:', error);
       throw new InternalServerErrorException(

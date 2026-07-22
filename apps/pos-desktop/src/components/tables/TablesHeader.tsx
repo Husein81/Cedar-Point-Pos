@@ -15,6 +15,8 @@ interface TablesHeaderProps {
   onRefresh: () => void;
   onAddTable: () => void;
   onManageFloors: () => void;
+  /** Restaurant-only: jump to the reservations page. Omitted for retail. */
+  onOpenReservations?: () => void;
 }
 
 export function TablesHeader({
@@ -30,6 +32,7 @@ export function TablesHeader({
   onRefresh,
   onAddTable,
   onManageFloors,
+  onOpenReservations,
 }: TablesHeaderProps) {
   const view = useTableUiStore((s) => s.view);
   const setView = useTableUiStore((s) => s.setView);
@@ -128,6 +131,17 @@ export function TablesHeader({
           disabled={isRefreshing}
           className={cn(isRefreshing && "[&_svg]:animate-spin")}
         />
+
+        {onOpenReservations && (
+          <Button
+            variant="outline"
+            size="sm"
+            iconName="CalendarClock"
+            onClick={onOpenReservations}
+          >
+            Reservations
+          </Button>
+        )}
 
         {canManage && (
           <>

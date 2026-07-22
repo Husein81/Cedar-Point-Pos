@@ -28,6 +28,9 @@ import { getTableDisplayName, useTableActions } from "./hooks";
 
 export function TablesPage() {
   const { isHighLevelUser } = useAuthStore();
+  const businessType = useAuthStore(
+    (state) => state.user?.tenant?.businessType,
+  );
   const { branchId } = useBranchStore();
   const { openModal } = useModalStore();
   const navigate = useNavigate();
@@ -246,6 +249,11 @@ export function TablesPage() {
         onAddTable={() => openModal("Add Table", <TableForm />)}
         onManageFloors={() =>
           openModal("Manage Floors", <FloorManagementModal />)
+        }
+        onOpenReservations={
+          businessType === "RESTAURANT"
+            ? () => void navigate({ to: "/reservations" })
+            : undefined
         }
       />
 

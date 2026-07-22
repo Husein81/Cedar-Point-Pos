@@ -63,6 +63,18 @@ export default function TenantsPage() {
         ),
       },
       {
+        accessorKey: "code",
+        header: "Login Code",
+        cell: ({ row }) =>
+          row.original.code ? (
+            <span className="rounded bg-muted px-2 py-1 font-mono text-xs">
+              {row.original.code}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">Not set</span>
+          ),
+      },
+      {
         accessorKey: "businessType",
         header: "Business Type",
         cell: ({ row }) => (

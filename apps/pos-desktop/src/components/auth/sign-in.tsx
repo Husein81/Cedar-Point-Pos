@@ -7,12 +7,14 @@ const SignIn = () => {
   const login = useLogin();
   const form = useForm({
     defaultValues: {
+      tenantCode: "",
       username: "",
       password: "",
     },
     onSubmit: async ({ value }) => {
       try {
         await login.mutateAsync({
+          tenantCode: value.tenantCode,
           username: value.username,
           password: value.password,
         });
@@ -48,8 +50,20 @@ const SignIn = () => {
           </h2>
 
           <p className="text-sm text-muted-foreground text-center mb-6">
-            Enter your username and Password to continue
+            Enter your tenant code, username and password to continue
           </p>
+
+          {/* TENANT CODE INPUT */}
+          <form.Field name="tenantCode">
+            {(field) => (
+              <InputField
+                label="Tenant Code"
+                id={field.name}
+                placeholder="e.g. CEDAR01"
+                field={field}
+              />
+            )}
+          </form.Field>
 
           {/* USERNAME INPUT */}
           <form.Field name="username">

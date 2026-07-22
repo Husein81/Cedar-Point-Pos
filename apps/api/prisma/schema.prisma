@@ -13,6 +13,7 @@ datasource db {
 model Tenant {
   id               String       @id @default(uuid())
   name             String
+  code             String?      @unique
   businessType     BusinessType
   baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
   isActive         Boolean      @default(true)
@@ -78,11 +79,12 @@ model TenantCurrency {
 }
 
 model User {
-  id                  String               @id @default(uuid())
-  name                String
-  email               String?              @unique
-  phone               String?              @unique
-  username            String               @unique
+  id    String  @id @default(uuid())
+  name  String
+  email String? @unique
+  phone String? @unique
+
+  username            String
   password            String
   pinHash             String? // bcrypt-hashed 4-6 digit PIN for POS login
   hasPosAccess        Boolean              @default(true) // POS register access, separate from isActive
@@ -113,6 +115,7 @@ model User {
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([email, role])
+  @@unique([tenantId, username])
   @@index([tenantId, role])
   @@index([tenantId, branchId])
 }

@@ -22,6 +22,7 @@ export const TenantCountSchema = z.object({
 export const TenantWithCountSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  code: z.string().nullable(),
   businessType: BusinessTypeSchema,
   createdAt: z.string(), // keep string since you're using string in types (ISO)
   updatedAt: z.string(),
@@ -55,6 +56,13 @@ export type TenantUser = z.infer<typeof TenantUserSchema>;
 export const CreateTenantPayloadSchema = z.object({
   name: z.string().min(1, "Tenant name is required"),
   businessType: BusinessTypeSchema,
+  code: z
+    .string()
+    .regex(
+      /^[A-Z0-9-]{3,20}$/,
+      "Code must be 3-20 uppercase letters, digits, or hyphens"
+    )
+    .optional(),
 });
 
 export type CreateTenantPayload = z.infer<typeof CreateTenantPayloadSchema>;
@@ -66,6 +74,13 @@ export type CreateTenantPayload = z.infer<typeof CreateTenantPayloadSchema>;
 export const UpdateTenantPayloadSchema = z.object({
   name: z.string().min(1, "Tenant name is required").optional(),
   businessType: BusinessTypeSchema.optional(),
+  code: z
+    .string()
+    .regex(
+      /^[A-Z0-9-]{3,20}$/,
+      "Code must be 3-20 uppercase letters, digits, or hyphens"
+    )
+    .optional(),
 });
 
 export type UpdateTenantPayload = z.infer<typeof UpdateTenantPayloadSchema>;

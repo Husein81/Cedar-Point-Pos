@@ -3,11 +3,17 @@ import { api } from "../lib/api";
 
 export const authApi = {
   login: async (
+    tenantCode: string,
     username: string,
     password: string,
-  ): Promise<{ accessToken: string; user: PublicUser }> => {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: PublicUser;
+  }> => {
     try {
       const response = await api.post("/auth/sign-in", {
+        tenantCode,
         username,
         password,
       });

@@ -3,6 +3,7 @@ import type { BusinessType, UserRole } from "@repo/types";
 export type TenantWithCount = {
   id: string;
   name: string;
+  code: string | null;
   businessType: BusinessType;
   createdAt: string;
   updatedAt: string;

@@ -24,6 +24,7 @@ export function EditTenantDialog({ open, onOpenChange, tenant }: Props) {
     defaultValues: {
       name: tenant?.name ?? "",
       businessType: (tenant?.businessType ?? "") as BusinessType,
+      code: tenant?.code ?? "",
     },
     onSubmit: async ({ value }) => {
       if (!tenant) return;
@@ -33,6 +34,7 @@ export function EditTenantDialog({ open, onOpenChange, tenant }: Props) {
           payload: {
             name: value.name,
             businessType: value.businessType,
+            code: value.code ? value.code.toUpperCase() : undefined,
           },
         });
         onOpenChange(false);
@@ -102,6 +104,25 @@ export function EditTenantDialog({ open, onOpenChange, tenant }: Props) {
                 field={field}
                 options={businessTypeOptions}
                 placeholder="Select business type"
+              />
+            )}
+          </form.Field>
+
+          <form.Field
+            name="code"
+            validators={{
+              onChange: ({ value }) =>
+                value && !/^[A-Za-z0-9-]{3,20}$/.test(value)
+                  ? "3-20 letters, digits, or hyphens"
+                  : undefined,
+            }}
+          >
+            {(field) => (
+              <InputField
+                label="Tenant Code"
+                subLabel="Unique code staff use to sign in, e.g. CEDAR01. Uppercased automatically."
+                field={field}
+                placeholder="e.g. CEDAR01"
               />
             )}
           </form.Field>

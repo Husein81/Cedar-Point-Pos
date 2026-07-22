@@ -12,6 +12,8 @@ import {
   CreateUserDialog,
   TenantUsersDialog,
   DeleteTenantDialog,
+  EditTenantDialog,
+  TenantBranchesDialog,
 } from "@/components/tenants";
 
 const formatDate = (dateString: string) => {
@@ -44,6 +46,8 @@ export default function TenantsPage() {
   const [viewUsersOpen, setViewUsersOpen] = useState(false);
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editTenantOpen, setEditTenantOpen] = useState(false);
+  const [viewBranchesOpen, setViewBranchesOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,6 +125,25 @@ export default function TenantsPage() {
                 <Shad.DropdownMenuItem
                   onClick={() => {
                     setSelectedTenant(tenant);
+                    setEditTenantOpen(true);
+                  }}
+                >
+                  <Icon name="Pencil" size={14} className="mr-2" />
+                  Edit Tenant
+                </Shad.DropdownMenuItem>
+                <Shad.DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTenant(tenant);
+                    setViewBranchesOpen(true);
+                  }}
+                >
+                  <Icon name="Building2" size={14} className="mr-2" />
+                  Manage Branches
+                </Shad.DropdownMenuItem>
+                <Shad.DropdownMenuSeparator />
+                <Shad.DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTenant(tenant);
                     setViewUsersOpen(true);
                   }}
                 >
@@ -186,6 +209,29 @@ export default function TenantsPage() {
         open={createTenantOpen}
         onOpenChange={setCreateTenantOpen}
       />
+
+      {/* Edit Tenant Dialog */}
+      <EditTenantDialog
+        open={editTenantOpen}
+        onOpenChange={(open) => {
+          setEditTenantOpen(open);
+          if (!open) setSelectedTenant(null);
+        }}
+        tenant={selectedTenant}
+      />
+
+      {/* Manage Branches Dialog */}
+      {selectedTenant && (
+        <TenantBranchesDialog
+          open={viewBranchesOpen}
+          onOpenChange={(open) => {
+            setViewBranchesOpen(open);
+            if (!open) setSelectedTenant(null);
+          }}
+          tenantId={selectedTenant.id}
+          tenantName={selectedTenant.name}
+        />
+      )}
 
       {/* View Users Dialog */}
       {selectedTenant && (

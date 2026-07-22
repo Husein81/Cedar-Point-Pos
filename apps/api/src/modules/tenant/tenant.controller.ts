@@ -13,6 +13,7 @@ import { UserRole } from '@repo/types';
 import { TenantService } from './tenant.service.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
+import { UpdateTenantDto } from './dto/update-tenant.dto.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('tenants')
@@ -42,6 +43,12 @@ export class TenantController {
   @HttpCode(HttpStatus.CREATED)
   createTenant(@Body() body: Prisma.TenantCreateInput) {
     return this.tenantService.createTenant(body);
+  }
+
+  @Roles(UserRole.SYSTEM_ADMIN)
+  @Patch(':id')
+  updateTenant(@Param('id') id: string, @Body() body: UpdateTenantDto) {
+    return this.tenantService.updateTenant(id, body);
   }
 
   @Roles(UserRole.SYSTEM_ADMIN)

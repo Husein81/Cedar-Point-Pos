@@ -1,22 +1,14 @@
 import { z } from "zod";
+import { BusinessType, UserRole } from "@repo/types";
 
-/* -------------------------------------------------------------------------- */
-/*                         Enums (use your existing)                           */
-/* -------------------------------------------------------------------------- */
-/**
- * If you already have zod enums elsewhere, reuse them.
- * Otherwise define them like this (adjust values to match your Prisma enums):
- */
-export const BusinessTypeSchema = z.enum(["RETAIL", "RESTAURANT"]);
-export type BusinessType = z.infer<typeof BusinessTypeSchema>;
+export type { BusinessType, UserRole };
 
-export const UserRoleSchema = z.enum([
-  "SYSTEM_ADMIN",
-  "ADMIN",
-  "MANAGER",
-  "CASHIER",
-]);
-export type UserRole = z.infer<typeof UserRoleSchema>;
+const BusinessTypeSchema = z.enum(
+  Object.values(BusinessType) as [BusinessType, ...BusinessType[]]
+);
+const UserRoleSchema = z.enum(
+  Object.values(UserRole) as [UserRole, ...UserRole[]]
+);
 
 /* -------------------------------------------------------------------------- */
 /*                               TenantWithCount                               */
@@ -66,6 +58,17 @@ export const CreateTenantPayloadSchema = z.object({
 });
 
 export type CreateTenantPayload = z.infer<typeof CreateTenantPayloadSchema>;
+
+/* -------------------------------------------------------------------------- */
+/*                               UpdateTenantPayload                            */
+/* -------------------------------------------------------------------------- */
+
+export const UpdateTenantPayloadSchema = z.object({
+  name: z.string().min(1, "Tenant name is required").optional(),
+  businessType: BusinessTypeSchema.optional(),
+});
+
+export type UpdateTenantPayload = z.infer<typeof UpdateTenantPayloadSchema>;
 
 /* -------------------------------------------------------------------------- */
 /*                                CreateUserPayload                             */

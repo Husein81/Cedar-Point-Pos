@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../apis/productsApi";
 import type { Product, QueryParams } from "@repo/types";
 import {
+  BulkImportResult,
+  BulkProductRow,
   CreateProductDto,
   ProductWithRelations,
   UpdateProductDto,
 } from "@/dto/products.dto";
 import { useBranchStore } from "@/store/branchStore";
+import { toast } from "@repo/ui";
 
 const PRODUCT_QUERY_KEY = ["products"];
 
@@ -74,6 +77,35 @@ export const useDeleteProduct = () => {
     mutationFn: productsApi.deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_QUERY_KEY });
+    },
+  });
+};
+
+export const useBulkCreateProducts = () => {
+  const queryClient = useQueryClient();
+  const { branchId } = useBranchStore();
+
+  return useMutation<BulkImportResult, Error, BulkProductRow[]>({
+    mutationFn: (rows) =>
+      productsApi.bulkCreateProducts(rows, branchId || undefined),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: PRODUCT_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["stock"] });
+      queryClient.invalidateQueries({ queryKey: ["adjustmentHistory"] });
+      const { createdCount, skippedCount, errorCount } = result;
+      if (createdCount > 0) {
+        toast.success(
+          `Imported ${createdCount} product${createdCount === 1 ? "" : "s"}`,
+        );
+      }
+      if (skippedCount > 0 || errorCount > 0) {
+        toast.warning(
+          `${skippedCount} skipped, ${errorCount} failed — see details`,
+        );
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Bulk import failed");
     },
   });
 };

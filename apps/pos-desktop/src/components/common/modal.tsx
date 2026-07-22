@@ -17,7 +17,13 @@ export const Modal = () => {
             <Shad.DialogDescription>{modalDescription}</Shad.DialogDescription>
           )}
         </Shad.DialogHeader>
-        <Shad.ScrollArea className="max-h-[calc(100vh-10rem)] p-2">
+        {/*
+          Force Radix's internal viewport wrapper (display:table by default) to
+          block so inner content can use `w-full` against a definite width and
+          manage its own horizontal overflow instead of bleeding past the
+          dialog. Scoped here so no other ScrollArea is affected.
+        */}
+        <Shad.ScrollArea className="max-h-[calc(100vh-10rem)] p-2 [&_[data-slot=scroll-area-viewport]>div]:!block">
           {modalContent}
           <Shad.ScrollBar />
         </Shad.ScrollArea>

@@ -1,7 +1,15 @@
-import { Controller, Delete, Get, Param, Post, Put, Req } from '@nestjs/common';
-import { QueryParams } from '@repo/types';
+import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
+import { QueryParams, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
+import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
+import { CurrentUserId } from '../common/decorators/current-user-id.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import {
+  BulkCreateProductsDto,
+  CreateProductDto,
+  UpdateProductDto,
+} from './dto/product.dto.js';
 import { ProductsService } from './products.service.js';
 
 @Controller('products')
@@ -51,17 +59,10 @@ export class ProductsController {
   }
 
   @Post()
-  createProduct(@Req() req: Request) {
-    const body = req.body as Prisma.ProductCreateInput & {
-      branchId?: string;
-      imageUrl?: string;
-      imageKey?: string;
-      categoryId?: string;
-      subcategoryId?: string;
-    };
+  createProduct(@Req() req: Request, @Body() dto: CreateProductDto) {
     const { tenantId } = req.user as { tenantId: string };
 
-    // Extract fields from body - remove tenantId and branchId (they'll be handled as relations)
+    // Extract fields from body - remove branchId/relations (handled as connects)
     const {
       branchId,
       categoryId,
@@ -69,7 +70,7 @@ export class ProductsController {
       imageUrl,
       imageKey,
       ...productData
-    } = body;
+    } = dto;
 
     const createData: Prisma.ProductCreateInput = {
       ...productData,
@@ -83,19 +84,35 @@ export class ProductsController {
     return this.productsService.createProduct(createData);
   }
 
+  /**
+   * Bulk-create products from a parsed CSV. Restricted to ADMIN/MANAGER to
+   * match the stock-adjustment precedent — a row may set initial inventory.
+   */
+  @Post('bulk')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  bulkCreate(
+    @CurrentTenant() tenantId: string,
+    @CurrentUserId() userId: string,
+    @Body() dto: BulkCreateProductsDto,
+  ) {
+    return this.productsService.bulkCreateProducts({
+      tenantId,
+      userId,
+      branchId: dto.branchId,
+      rows: dto.rows,
+    });
+  }
+
   @Put(':id')
-  updateProduct(@Req() req: Request, @Param('id') id: string) {
+  updateProduct(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
     if (!id) {
       throw new Error('Product ID is required');
     }
     const { tenantId } = req.user as { tenantId: string };
-    const body = req.body as Prisma.ProductUpdateInput & {
-      branchId?: string;
-      imageUrl?: string;
-      imageKey?: string;
-      categoryId?: string;
-      subcategoryId?: string;
-    };
 
     // Handle relations and image fields update explicitly
     const {
@@ -105,7 +122,7 @@ export class ProductsController {
       subcategoryId,
       branchId,
       ...productData
-    } = body;
+    } = dto;
 
     const updateData: Prisma.ProductUpdateInput = {
       ...productData,

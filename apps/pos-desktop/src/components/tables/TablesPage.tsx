@@ -249,11 +249,11 @@ export function TablesPage() {
         }
       />
 
-      <TablesStatsRow stats={stats} />
+      {/* <TablesStatsRow stats={stats} /> */}
 
       <div className="flex gap-4">
         {view === "canvas" ? (
-          <div className="h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] flex-1">
+          <div className="h-[calc(100vh-12rem)] w-[calc(100vw-20rem)] flex-1">
             <FloorCanvas
               key={`${branchId}:${effectiveFloorId}`}
               floorKey={`${branchId}:${effectiveFloorId}`}

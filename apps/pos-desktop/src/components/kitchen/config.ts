@@ -69,7 +69,7 @@ const actionButtonStatuses: Record<string, ActionButtonStatus> = {
     buttonLabel: "Mark Ready",
   },
   READY: {
-    nextStatus: null,
+    nextStatus: OrderStatus.SERVED,
     buttonLabel: "Awaiting Pickup",
   },
 };

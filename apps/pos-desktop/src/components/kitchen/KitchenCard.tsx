@@ -70,9 +70,7 @@ const KitchenCard = ({ order }: Props) => {
   };
 
   const mode =
-    order.status === "COMPLETED" ||
-    order.status === "CANCELLED" ||
-    order.status === "READY"
+    order.status === "COMPLETED" || order.status === "CANCELLED"
       ? "hidden"
       : "visible";
 
@@ -99,10 +97,7 @@ const KitchenCard = ({ order }: Props) => {
           </div>
 
           {/* Order Type Badge */}
-          <Badge
-            variant="outline"
-            className="text-[10px] font-medium"
-          >
+          <Badge variant="outline" className="text-[10px] font-medium">
             {order.type === "DINE_IN"
               ? "Dine-In"
               : order.type === "TAKEAWAY"

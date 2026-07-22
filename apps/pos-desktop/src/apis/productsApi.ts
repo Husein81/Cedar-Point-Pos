@@ -1,4 +1,6 @@
 import {
+  BulkImportResult,
+  BulkProductRow,
   CreateProductDto,
   ProductWithRelations,
   UpdateProductDto,
@@ -51,5 +53,16 @@ export const productsApi = {
 
   deleteProduct: async (id: string): Promise<void> => {
     await api.put(`/products/delete/${id}`);
+  },
+
+  bulkCreateProducts: async (
+    rows: BulkProductRow[],
+    branchId?: string,
+  ): Promise<BulkImportResult> => {
+    const response = await api.post<BulkImportResult>("/products/bulk", {
+      branchId,
+      rows,
+    });
+    return response.data;
   },
 };

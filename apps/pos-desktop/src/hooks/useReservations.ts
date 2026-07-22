@@ -1,10 +1,13 @@
+import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "@repo/ui";
+import { ACTIVE_RESERVATION_STATUSES } from "@repo/types";
 import { reservationApi } from "@/apis/reservationApi";
 import type {
   AvailabilityQuery,
   CreateReservationDto,
+  Reservation,
   ReservationFilters,
   SeatReservationDto,
   UpdateReservationDto,
@@ -90,6 +93,41 @@ export const useTableReservations = (tableId: string | null) =>
     enabled: !!tableId,
     select: (result) => result.data,
   });
+
+/**
+ * One-off fetch of a table's soonest active (non-terminal) reservation, for
+ * action handlers that need it at click-time (e.g. "Clear Reservation" on the
+ * floor plan) without subscribing every table row to a live query.
+ */
+export const useFetchTableReservation = () => {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (tableId: string): Promise<Reservation | null> => {
+      const result = await queryClient.fetchQuery({
+        queryKey: reservationKeys.list({ tableId }),
+        queryFn: () =>
+          reservationApi.getReservations({
+            tableId,
+            limit: 50,
+            sort: "reservationAt",
+            order: "asc",
+          }),
+      });
+
+      const activeStatuses = new Set<string>(ACTIVE_RESERVATION_STATUSES);
+      const upcoming = result.data
+        .filter((r) => activeStatuses.has(r.status))
+        .sort(
+          (a, b) =>
+            new Date(a.reservationAt).getTime() -
+            new Date(b.reservationAt).getTime(),
+        );
+      return upcoming[0] ?? null;
+    },
+    [queryClient],
+  );
+};
 
 /**
  * Availability for a slot. `enabled` is caller-controlled so the query only

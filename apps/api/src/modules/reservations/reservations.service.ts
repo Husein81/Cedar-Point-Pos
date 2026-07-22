@@ -201,6 +201,69 @@ export class ReservationsService {
     });
   }
 
+  /**
+   * Mark a table RESERVED as a side effect of assigning a reservation to it.
+   * Only moves a table out of AVAILABLE — never overrides OCCUPIED, since a
+   * walk-in order can be running on the table while a future slot is booked.
+   */
+  private async markTableReservedIfNeeded(
+    tableId: string,
+    tenantId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const table = await tx.table.findFirst({
+      where: { id: tableId, tenantId, deletedAt: null },
+      select: { status: true },
+    });
+    if (table?.status === TableStatus.AVAILABLE) {
+      await this.tableStatusService.updateTableStatus(
+        tableId,
+        TableStatus.RESERVED,
+        tenantId,
+        tx,
+      );
+    }
+  }
+
+  /**
+   * Release a table back to AVAILABLE when a reservation stops claiming it
+   * (cancelled, deleted, no-show, or reassigned elsewhere) — but only if no
+   * *other* active reservation still holds that table (a table can have
+   * several future bookings at different times) and only from RESERVED
+   * (never override OCCUPIED — the table may be mid-service on a walk-in).
+   */
+  private async releaseTableIfUnclaimed(
+    tableId: string,
+    tenantId: string,
+    excludeReservationId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const [table, otherActive] = await Promise.all([
+      tx.table.findFirst({
+        where: { id: tableId, tenantId, deletedAt: null },
+        select: { status: true },
+      }),
+      tx.reservation.count({
+        where: {
+          tableId,
+          tenantId,
+          deletedAt: null,
+          id: { not: excludeReservationId },
+          status: { in: [...ACTIVE_RESERVATION_STATUSES] },
+        },
+      }),
+    ]);
+
+    if (table?.status === TableStatus.RESERVED && otherActive === 0) {
+      await this.tableStatusService.updateTableStatus(
+        tableId,
+        TableStatus.AVAILABLE,
+        tenantId,
+        tx,
+      );
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Create
   // ---------------------------------------------------------------------------
@@ -249,7 +312,7 @@ export class ReservationsService {
         reservationDate,
       );
 
-      return tx.reservation.create({
+      const reservation = await tx.reservation.create({
         data: {
           reservationNumber,
           tenantId,
@@ -271,6 +334,12 @@ export class ReservationsService {
         },
         include: RESERVATION_INCLUDE,
       });
+
+      if (dto.tableId) {
+        await this.markTableReservedIfNeeded(dto.tableId, tenantId, tx);
+      }
+
+      return reservation;
     });
 
     this.emit('reservation.created', tenantId, created.branchId, created.id);
@@ -511,27 +580,54 @@ export class ReservationsService {
       );
     }
 
-    const updated = await this.prisma.reservation.update({
-      where: { id: existing.id },
-      data: {
-        customerId: dto.customerId ?? existing.customerId,
-        customerName: dto.customerName ?? existing.customerName,
-        customerPhone: dto.customerPhone ?? existing.customerPhone,
-        customerEmail:
-          dto.customerEmail !== undefined
-            ? dto.customerEmail
-            : existing.customerEmail,
-        tableId: nextTableId,
-        guestCount,
-        reservationDate,
-        reservationTime: nextTime,
-        reservationAt,
-        durationMinutes: nextDuration,
-        source: dto.source ?? existing.source,
-        status: dto.status ?? existing.status,
-        notes: dto.notes !== undefined ? dto.notes : existing.notes,
-      },
-      include: RESERVATION_INCLUDE,
+    const nextStatus = dto.status ?? existing.status;
+    const tableChanged =
+      dto.tableId !== undefined && dto.tableId !== existing.tableId;
+    const releasingStatus =
+      nextStatus === ReservationStatus.CANCELLED ||
+      nextStatus === ReservationStatus.NO_SHOW;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.reservation.update({
+        where: { id: existing.id },
+        data: {
+          customerId: dto.customerId ?? existing.customerId,
+          customerName: dto.customerName ?? existing.customerName,
+          customerPhone: dto.customerPhone ?? existing.customerPhone,
+          customerEmail:
+            dto.customerEmail !== undefined
+              ? dto.customerEmail
+              : existing.customerEmail,
+          tableId: nextTableId,
+          guestCount,
+          reservationDate,
+          reservationTime: nextTime,
+          durationMinutes: nextDuration,
+          reservationAt,
+          source: dto.source ?? existing.source,
+          status: nextStatus,
+          notes: dto.notes !== undefined ? dto.notes : existing.notes,
+        },
+        include: RESERVATION_INCLUDE,
+      });
+
+      // Table previously held for this booking is no longer claimed by it —
+      // either it moved to another table, or the booking itself was released.
+      if (existing.tableId && (tableChanged || releasingStatus)) {
+        await this.releaseTableIfUnclaimed(
+          existing.tableId,
+          tenantId,
+          existing.id,
+          tx,
+        );
+      }
+
+      // A newly-assigned table (and still an active booking) picks up RESERVED.
+      if (nextTableId && tableChanged && !releasingStatus) {
+        await this.markTableReservedIfNeeded(nextTableId, tenantId, tx);
+      }
+
+      return result;
     });
 
     this.emit('reservation.updated', tenantId, updated.branchId, updated.id);
@@ -541,9 +637,20 @@ export class ReservationsService {
   async remove(id: string, tenantId: string) {
     const existing = await this.getScopedOrThrow(id, tenantId);
 
-    await this.prisma.reservation.update({
-      where: { id: existing.id },
-      data: { deletedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.reservation.update({
+        where: { id: existing.id },
+        data: { deletedAt: new Date() },
+      });
+
+      if (existing.tableId) {
+        await this.releaseTableIfUnclaimed(
+          existing.tableId,
+          tenantId,
+          existing.id,
+          tx,
+        );
+      }
     });
 
     return { message: 'Reservation deleted successfully' };
@@ -656,28 +763,54 @@ export class ReservationsService {
     const existing = await this.getScopedOrThrow(id, tenantId);
     assertReservationTransition(existing.status, ReservationStatus.CANCELLED);
 
-    const updated = await this.prisma.reservation.update({
-      where: { id: existing.id },
-      data: {
-        status: ReservationStatus.CANCELLED,
-        cancellationReason: reason ?? null,
-      },
-      include: RESERVATION_INCLUDE,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.reservation.update({
+        where: { id: existing.id },
+        data: {
+          status: ReservationStatus.CANCELLED,
+          cancellationReason: reason ?? null,
+        },
+        include: RESERVATION_INCLUDE,
+      });
+
+      if (existing.tableId) {
+        await this.releaseTableIfUnclaimed(
+          existing.tableId,
+          tenantId,
+          existing.id,
+          tx,
+        );
+      }
+
+      return result;
     });
 
     this.emit('reservation.cancelled', tenantId, updated.branchId, updated.id);
     return updated;
   }
 
-  /** PENDING/CONFIRMED/ARRIVED → NO_SHOW (guest never seated). */
+  /** PENDING/CONFIRMED/ARRIVED → NO_SHOW (guest never seated). Releases the table. */
   async markNoShow(id: string, tenantId: string) {
     const existing = await this.getScopedOrThrow(id, tenantId);
     assertReservationTransition(existing.status, ReservationStatus.NO_SHOW);
 
-    const updated = await this.prisma.reservation.update({
-      where: { id: existing.id },
-      data: { status: ReservationStatus.NO_SHOW },
-      include: RESERVATION_INCLUDE,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.reservation.update({
+        where: { id: existing.id },
+        data: { status: ReservationStatus.NO_SHOW },
+        include: RESERVATION_INCLUDE,
+      });
+
+      if (existing.tableId) {
+        await this.releaseTableIfUnclaimed(
+          existing.tableId,
+          tenantId,
+          existing.id,
+          tx,
+        );
+      }
+
+      return result;
     });
 
     this.emit('reservation.no_show', tenantId, updated.branchId, updated.id);

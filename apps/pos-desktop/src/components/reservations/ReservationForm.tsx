@@ -6,6 +6,7 @@ import {
   InputField,
   SelectField,
   TextareaField,
+  TimePicker,
 } from "@repo/ui";
 import { ReservationSource } from "@repo/types";
 import { useModalStore } from "@/store/modalStore";
@@ -24,6 +25,8 @@ import { getReservationSourceLabel } from "./reservationStatus";
 
 type Props = {
   reservation?: Reservation;
+  /** Preselect and lock the table — used when reserving from the floor plan. */
+  tableId?: string;
 };
 
 const DEFAULT_DURATION = 90;
@@ -49,7 +52,7 @@ const toDateInput = (d: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const ReservationForm = ({ reservation }: Props) => {
+export const ReservationForm = ({ reservation, tableId }: Props) => {
   const closeModal = useModalStore((state) => state.closeModal);
   const activeBranchId = useBranchStore((state) => state.branchId);
   const createMutation = useCreateReservation();
@@ -68,8 +71,11 @@ export const ReservationForm = ({ reservation }: Props) => {
   );
   const [guestCount, setGuestCount] = useState(reservation?.guestCount ?? 2);
   const [selectedTableId, setSelectedTableId] = useState<string | undefined>(
-    reservation?.tableId ?? undefined,
+    reservation?.tableId ?? tableId ?? undefined,
   );
+  // When opened from the floor plan for a specific table, that table is the
+  // whole point of the flow — don't let the availability panel deselect it.
+  const isTableLocked = !isEditing && !!tableId;
 
   // Fire availability once we have branch + a valid time.
   const availabilityQuery = useMemo(
@@ -141,6 +147,7 @@ export const ReservationForm = ({ reservation }: Props) => {
   });
 
   const handleSelectTable = (table: AvailabilityTable) => {
+    if (isTableLocked) return;
     setSelectedTableId((current) =>
       current === table.id ? undefined : table.id,
     );
@@ -219,18 +226,14 @@ export const ReservationForm = ({ reservation }: Props) => {
           onDateChange={(d) => d && setSelectedDate(d)}
         />
 
-        <div className="flex flex-col gap-3">
-          <label className="px-1 text-sm font-medium" htmlFor="reservationTime">
-            Time
-          </label>
-          <input
-            id="reservationTime"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
+        <TimePicker
+          id="reservationTime"
+          label="Time"
+          required
+          className="w-full"
+          value={time}
+          onChange={setTime}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -271,17 +274,25 @@ export const ReservationForm = ({ reservation }: Props) => {
 
       <div className="space-y-2">
         <p className="text-sm font-medium">Table assignment</p>
-        <AvailabilityPanel
-          isLoading={availabilityLoading}
-          result={availability}
-          selectedTableId={selectedTableId}
-          onSelectTable={handleSelectTable}
-        />
-        <p className="text-xs text-muted-foreground">
-          {selectedTableId
-            ? "Tap the selected table again to leave it unassigned."
-            : "Optional — a table can be assigned now or at seating time."}
-        </p>
+        {isTableLocked ? (
+          <p className="text-xs text-muted-foreground">
+            Reserving this table directly from the floor plan.
+          </p>
+        ) : (
+          <>
+            <AvailabilityPanel
+              isLoading={availabilityLoading}
+              result={availability}
+              selectedTableId={selectedTableId}
+              onSelectTable={handleSelectTable}
+            />
+            <p className="text-xs text-muted-foreground">
+              {selectedTableId
+                ? "Tap the selected table again to leave it unassigned."
+                : "Optional — a table can be assigned now or at seating time."}
+            </p>
+          </>
+        )}
       </div>
 
       <form.Field name="source">

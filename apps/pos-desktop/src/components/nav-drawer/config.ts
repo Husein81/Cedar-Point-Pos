@@ -121,6 +121,14 @@ export const sidebarSections: SidebarSection[] = [
         showFor: ["RETAIL", "RESTAURANT"],
         roles: ["ADMIN", "MANAGER"],
       },
+      {
+        label: "Shifts",
+        icon: "CalendarClock",
+        href: "/shifts",
+        tooltip: "Shift Scheduling",
+        showFor: ["RETAIL", "RESTAURANT"],
+        roles: ["ADMIN", "MANAGER"],
+      },
     ],
   },
   {

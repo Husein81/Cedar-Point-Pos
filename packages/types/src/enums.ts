@@ -233,6 +233,15 @@ export const ShiftScheduleStatus = {
 export type ShiftScheduleStatus =
   (typeof ShiftScheduleStatus)[keyof typeof ShiftScheduleStatus];
 
+/**
+ * Anchor day for recurring shift patterns. A pattern stores only a time-of-day;
+ * its start/end timestamps are pinned to this UTC day (the calendar date is
+ * meaningless for a pattern). The API and POS MUST use this exact value — it is
+ * the single source of truth for that contract; changing it silently corrupts
+ * every stored pattern time.
+ */
+export const SHIFT_PATTERN_SENTINEL_DAY = "2000-01-01";
+
 export const LoyaltyEnrollmentMode = {
   AUTO: "AUTO",
   MANUAL: "MANUAL",

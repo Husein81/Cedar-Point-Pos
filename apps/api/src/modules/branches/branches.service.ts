@@ -1,6 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreateBranchDto } from './dto/create-branch.dto.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class BranchesService {
@@ -10,13 +11,16 @@ export class BranchesService {
     return await this.prisma.branch.findMany();
   }
 
-  /**
-   * Creates a branch for a tenant. Only called from SYSTEM_ADMIN routes —
-   * branch creation is not tenant-self-service (see BranchesController).
-   */
-  async createBranch(data: Prisma.BranchCreateInput) {
+  async createBranch(tenantId: string, dto: CreateBranchDto) {
     try {
-      return await this.prisma.branch.create({ data });
+      return await this.prisma.branch.create({
+        data: {
+          tenantId,
+          name: dto.name,
+          address: dto.address,
+          phone: dto.phone,
+        },
+      });
     } catch (error) {
       console.error('Error creating branch:', error);
       throw new InternalServerErrorException(

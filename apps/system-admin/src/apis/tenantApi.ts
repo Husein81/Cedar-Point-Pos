@@ -3,6 +3,7 @@ import {
   CreateUserPayload,
   TenantUser,
   TenantWithCount,
+  UpdateTenantPayload,
 } from "@/dto/tenant.dto";
 import { api } from "./api";
 
@@ -34,6 +35,19 @@ export const tenantApi = {
   create: async (payload: CreateTenantPayload): Promise<TenantWithCount> => {
     return api("/tenants", {
       method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Update a tenant (system admin only)
+   */
+  update: async (
+    id: string,
+    payload: UpdateTenantPayload
+  ): Promise<TenantWithCount> => {
+    return api(`/tenants/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
   },

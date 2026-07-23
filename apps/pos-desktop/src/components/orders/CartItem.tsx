@@ -1,8 +1,8 @@
 import { memo } from "react";
 import { useCartItemStockWarning } from "@/hooks/useCartStockWarning";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useKeypadStore } from "@/store/keypadStore";
 import { cn, Icon } from "@repo/ui";
-import { formatPrice } from "./config";
 import { DiscountType, OrderItemModifier } from "@/dto/order.dto";
 
 type Item = {
@@ -72,6 +72,7 @@ export const CartItem = memo(function CartItem({
 }: Props) {
   const openKeypad = useKeypadStore((s) => s.openKeypad);
   const { warning } = useCartItemStockWarning(item.productId);
+  const { format: formatMoney } = useBaseCurrency();
 
   const modifiersTotal =
     item.modifiers?.reduce((sum, mod) => sum + mod.price, 0) || 0;
@@ -183,7 +184,7 @@ export const CartItem = memo(function CartItem({
           </div>
 
           <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-            ${formatPrice(unitPrice)} × {item.quantity}
+            {formatMoney(unitPrice)} × {item.quantity}
           </p>
 
           {item.modifiers && item.modifiers.length > 0 && (
@@ -191,7 +192,7 @@ export const CartItem = memo(function CartItem({
               {item.modifiers
                 .map(
                   (mod) =>
-                    `${mod.name}${mod.price > 0 ? ` +$${mod.price.toFixed(2)}` : ""}`,
+                    `${mod.name}${mod.price > 0 ? ` +${formatMoney(mod.price)}` : ""}`,
                 )
                 .join(", ")}
               {onEditModifiers && (
@@ -223,7 +224,7 @@ export const CartItem = memo(function CartItem({
                   <Icon name="TicketPercent" className="h-2.5 w-2.5" />
                   {item.discount.type === "PERCENTAGE"
                     ? `${item.discount.value}%`
-                    : `$${item.discount.value}`}{" "}
+                    : formatMoney(item.discount.value)}{" "}
                   off
                 </span>
               )}
@@ -241,11 +242,11 @@ export const CartItem = memo(function CartItem({
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <div className="text-right leading-tight">
             <span className="text-sm font-semibold tabular-nums">
-              ${formatPrice(finalTotal)}
+              {formatMoney(finalTotal)}
             </span>
             {discountAmount > 0 && (
               <p className="text-[10px] tabular-nums text-muted-foreground line-through">
-                ${formatPrice(lineTotal)}
+                {formatMoney(lineTotal)}
               </p>
             )}
           </div>

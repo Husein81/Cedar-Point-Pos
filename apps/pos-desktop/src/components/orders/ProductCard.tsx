@@ -6,7 +6,7 @@ import { SelectedModifier } from "@/types/modifiers";
 import { Product } from "@repo/types";
 import { cn, Icon } from "@repo/ui";
 import { useProductModifiers } from "@/hooks/useModifiers";
-import { formatPrice } from "./config";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { ModifierModal } from "./ModifierModal";
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -32,6 +32,7 @@ const ProductCard = memo(function ProductCard({ product }: Props) {
 
   const { openModal } = useModalStore();
   const { branchId } = useBranchStore();
+  const { format: formatMoney } = useBaseCurrency();
 
   const { data: modifiers } = useProductModifiers(
     product.id,
@@ -120,7 +121,7 @@ const ProductCard = memo(function ProductCard({ product }: Props) {
 
         {/* Price */}
         <div className="absolute left-2 top-2 rounded-md bg-background/90 px-2 py-1 text-xs font-bold tabular-nums shadow-sm backdrop-blur-sm">
-          ${formatPrice(Number(product.price))}
+          {formatMoney(product.price)}
         </div>
 
         {/* Customizable */}

@@ -32,6 +32,29 @@ export const useTenantCurrencies = () => {
   });
 };
 
+/**
+ * The tenant's base currency (code + symbol) and a money formatter that uses
+ * it. Amounts are stored in the base currency, so all price displays should go
+ * through this instead of a hard-coded "$". Symbol is suffixed (e.g. "50,000
+ * L.L") to match the invoice formatting convention.
+ */
+export const useBaseCurrency = () => {
+  const { data } = useTenantCurrencies();
+  const code = data?.baseCurrencyCode ?? "USD";
+  const symbol =
+    data?.currencies.find((c) => c.currencyCode === code)?.currency?.symbol ||
+    code;
+
+  const format = (value: number | string | null | undefined): string => {
+    if (value === null || value === undefined || value === "") return "—";
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "—";
+    return `${new Intl.NumberFormat("en-US").format(num)} ${symbol}`;
+  };
+
+  return { code, symbol, format };
+};
+
 export const useTenantCurrenciesPaginated = (params?: QueryParams) => {
   return useQuery<PaginationResponse<TenantCurrency>>({
     queryKey: [...TENANT_CURRENCY_QUERY_KEY, "paginated", params],

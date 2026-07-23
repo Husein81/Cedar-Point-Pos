@@ -1,7 +1,7 @@
 import TitleBar from "@/components/title-bar";
 import { BulkImportModal } from "@/components/common";
 import { ProductForm } from "@/components/products/ProductForm";
-import { productColumns } from "@/components/products/productColumn";
+import { getProductColumns } from "@/components/products/productColumn";
 import {
   PRODUCT_IMPORT_COLUMNS,
   PRODUCT_IMPORT_SAMPLE,
@@ -9,6 +9,7 @@ import {
 } from "@/components/products/bulkImportConfig";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useBulkCreateProducts, useProductsPaginated } from "@/hooks/useProduct";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
@@ -41,6 +42,8 @@ function RouteComponent() {
   const bulkCreateProducts = useBulkCreateProducts();
   // Product catalog management (create/import) is Manager/Admin only.
   const canManageProducts = useAuthStore((s) => s.isHighLevelUser);
+  const { format: formatMoney } = useBaseCurrency();
+  const columns = getProductColumns(formatMoney);
 
   const handleCreateProduct = () => {
     openModal("Create Product", <ProductForm />);
@@ -67,7 +70,7 @@ function RouteComponent() {
       <TitleBar title={"Products"} subtitle={"Manage your products"} />
 
       <DataTable
-        columns={productColumns}
+        columns={columns}
         data={products}
         isLoading={isLoading}
         onRefetch={refetch}

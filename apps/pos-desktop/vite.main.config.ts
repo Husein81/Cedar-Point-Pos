@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
         external: ["electron", "better-sqlite3", "electron-updater"],
       },
     },
+    // SSR mode externalizes node_modules by default, leaving a bare
+    // require("dotenv") that electron-builder prunes from app.asar (dotenv is a
+    // devDependency). Force it to be bundled into main.cjs instead.
+    ssr: {
+      noExternal: ["dotenv"],
+    },
     define: {
       __GH_UPDATE_TOKEN__: JSON.stringify(env.VITE_GITHUB_UPDATE_TOKEN ?? ""),
     },

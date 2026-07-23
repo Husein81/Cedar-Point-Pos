@@ -37,7 +37,7 @@ function MergeTargetSelector({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Icon name="Loader2" className="h-5 w-5 animate-spin" />
+        <Icon name="LoaderCircle" className="h-5 w-5 animate-spin" />
       </div>
     );
   }

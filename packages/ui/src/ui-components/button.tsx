@@ -1,4 +1,4 @@
-import { Icon, SButton, Skeleton } from "../components";
+import { Icon, SButton } from "../components";
 import { cn } from "../libs/utils";
 
 type Props = {

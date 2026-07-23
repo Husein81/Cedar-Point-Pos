@@ -328,6 +328,16 @@ export class ProductsService {
     if (categoryId.error) {
       return { row: rowNumber, status: 'error', message: categoryId.error };
     }
+
+    // Subcategory requires a parent category to be scoped correctly
+    if (row.subcategoryName && !categoryId.id) {
+      return {
+        row: rowNumber,
+        status: 'error',
+        message: 'Subcategory requires a category name',
+      };
+    }
+
     const subcategoryId = this.lookupName(
       ctx.subcategoryIndex,
       row.subcategoryName,

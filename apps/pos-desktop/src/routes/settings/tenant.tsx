@@ -13,7 +13,7 @@ export const Route = createFileRoute("/settings/tenant")({
 
 function TenantSettingsPage() {
   // Tenant identity + branch management are admin-only (backend enforces the
-  // same on PATCH /tenants/my-tenant). Guard direct navigation here.
+  // same on PUT /tenants/my-tenant). Guard direct navigation here.
   const isAdmin = useAuthStore((s) => s.user?.role === "ADMIN");
 
   return (

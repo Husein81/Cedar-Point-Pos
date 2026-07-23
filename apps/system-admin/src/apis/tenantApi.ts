@@ -44,10 +44,10 @@ export const tenantApi = {
    */
   update: async (
     id: string,
-    payload: UpdateTenantPayload
+    payload: UpdateTenantPayload,
   ): Promise<TenantWithCount> => {
     return api(`/tenants/${id}`, {
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify(payload),
     });
   },

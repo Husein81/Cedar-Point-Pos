@@ -12,7 +12,11 @@ import { User, UserRole } from '@repo/types';
 import type { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { ColorService } from './color.service.js';
-import type { CreateColorDto, UpdateColorDto } from './dto/color.dto.js';
+// CreateColorDto MUST be a value import: it is a @Body() metatype, and a
+// type-only import erases the class so the ValidationPipe can't validate it.
+// UpdateColorDto is a type alias (no runtime value), so it stays type-only.
+import { CreateColorDto } from './dto/color.dto.js';
+import type { UpdateColorDto } from './dto/color.dto.js';
 
 @Controller('colors')
 export class ColorController {

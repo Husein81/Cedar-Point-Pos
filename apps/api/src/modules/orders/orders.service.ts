@@ -488,6 +488,7 @@ export class OrdersService {
             tableId,
             tenantId,
             tx,
+            guestCount,
           );
         }
 
@@ -2020,7 +2021,7 @@ export class OrdersService {
     const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
-        select: { status: true, type: true, tableId: true },
+        select: { status: true, type: true, tableId: true, guestCount: true },
       });
       if (!order) throw new NotFoundException('Order not found');
 
@@ -2065,6 +2066,7 @@ export class OrdersService {
         tableId,
         tenantId,
         tx,
+        order.guestCount ?? undefined,
       );
 
       // Release old table if it was different and has no remaining active orders
@@ -2105,7 +2107,7 @@ export class OrdersService {
     const result = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findFirst({
         where: { id: orderId, tenantId },
-        select: { id: true, status: true, tableId: true },
+        select: { id: true, status: true, tableId: true, guestCount: true },
       });
       if (!order) throw new NotFoundException('Order not found');
 
@@ -2171,6 +2173,7 @@ export class OrdersService {
         targetTableId,
         tenantId,
         tx,
+        order.guestCount ?? undefined,
       );
 
       // If mergeIntoOrderId provided, merge within the same transaction

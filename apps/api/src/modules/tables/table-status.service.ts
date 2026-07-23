@@ -188,19 +188,29 @@ export class TableStatusService {
   }
 
   /**
-   * Marks a table as OCCUPIED if it's not already occupied
-   * Allows multiple orders on the same table
+   * Marks a table as OCCUPIED if it's not already occupied.
+   * Validates table capacity against guestCount if provided.
    *
    * @param tableId - ID of the table
    * @param tenantId - Tenant ID for security scoping
    * @param tx - Prisma transaction client
+   * @param guestCount - Optional number of guests; if provided, validates table capacity
+   * @throws BadRequestException if guestCount exceeds table capacity
    */
   async markTableOccupiedIfNeeded(
     tableId: string,
     tenantId: string,
     tx?: Prisma.TransactionClient,
+    guestCount?: number,
   ): Promise<void> {
     const table = await this.validateTableForOrder(tableId, tenantId, tx);
+
+    // Validate capacity if guestCount provided and table has a capacity limit
+    if (guestCount !== undefined && table.capacity !== null && guestCount > table.capacity) {
+      throw new BadRequestException(
+        `Table capacity is ${table.capacity} guests but ${guestCount} were requested`,
+      );
+    }
 
     // Only update if transitioning from AVAILABLE or RESERVED
     if (table.status !== TableStatus.OCCUPIED) {

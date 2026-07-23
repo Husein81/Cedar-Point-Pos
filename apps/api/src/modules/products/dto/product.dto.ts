@@ -45,11 +45,13 @@ export class CreateProductDto {
   barcode?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber(MONEY)
   @Min(0)
   price?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber(MONEY)
   @Min(0)
   cost?: number;

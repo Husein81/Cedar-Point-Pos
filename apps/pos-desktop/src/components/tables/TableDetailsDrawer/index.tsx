@@ -3,10 +3,12 @@ import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { Badge, Icon, Shad, cn } from "@repo/ui";
 import { memo, useMemo } from "react";
 import {
+  OVER_CAPACITY_TEXT_CLASS,
   TABLE_UI_STATUS_CONFIG,
   deriveTableUiStatus,
   formatElapsedSince,
   formatTableMoney,
+  isOverCapacity,
   type TableUiStatusConfig,
 } from "../config";
 import { useElapsedNow } from "../hooks/useElapsedNow";
@@ -57,9 +59,18 @@ const DrawerHeader = memo(function DrawerHeader({
 
       {/* Meta strip */}
       <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <span className="flex items-center gap-1">
+        <span
+          className={cn(
+            "flex items-center gap-1",
+            isOverCapacity(summary?.guestCount, table.capacity) &&
+              cn(OVER_CAPACITY_TEXT_CLASS, "font-semibold"),
+          )}
+        >
           <Icon name="Users" className="h-3.5 w-3.5" />
           {summary?.guestCount ?? 0}/{table.capacity} guests
+          {isOverCapacity(summary?.guestCount, table.capacity) && (
+            <Icon name="TriangleAlert" className="h-3.5 w-3.5" />
+          )}
         </span>
         {summary && (
           <>
@@ -74,6 +85,15 @@ const DrawerHeader = memo(function DrawerHeader({
               <span className="flex items-center gap-1">
                 <Icon name="UserCheck" className="h-3.5 w-3.5" />
                 {summary.userName}
+              </span>
+            )}
+            {summary.customerName && (
+              <span className="flex items-center gap-1">
+                <Icon name="User" className="h-3.5 w-3.5" />
+                {summary.customerName}
+                {summary.additionalCustomerNames &&
+                  summary.additionalCustomerNames.length > 0 &&
+                  ` +${summary.additionalCustomerNames.length}`}
               </span>
             )}
           </>

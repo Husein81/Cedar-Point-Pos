@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@repo/ui";
 import {
   createColor,
   deleteColor,
@@ -6,6 +7,7 @@ import {
   seedColors,
   updateColor,
 } from "@/apis/colorApi";
+import { extractErrorMessage } from "@/utils/error";
 
 export const useColors = () => {
   return useQuery({
@@ -18,8 +20,12 @@ export const useCreateColor = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createColor,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Color "${data.name}" created`);
       queryClient.invalidateQueries({ queryKey: ["colors"] });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to create color"));
     },
   });
 };
@@ -35,7 +41,11 @@ export const useUpdateColor = () => {
       data: Parameters<typeof updateColor>[1];
     }) => updateColor(id, data),
     onSuccess: () => {
+      toast.success("Color updated");
       queryClient.invalidateQueries({ queryKey: ["colors"] });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to update color"));
     },
   });
 };
@@ -45,7 +55,11 @@ export const useDeleteColor = () => {
   return useMutation({
     mutationFn: deleteColor,
     onSuccess: () => {
+      toast.success("Color deleted");
       queryClient.invalidateQueries({ queryKey: ["colors"] });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to delete color"));
     },
   });
 };

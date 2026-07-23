@@ -32,6 +32,10 @@ import { InventoryDeductionService } from '../inventory/inventory-deduction.serv
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import { OffersService } from '../offers/offers.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  fetchAdditionalOrderCustomers,
+  isMissingTableError,
+} from '../common/order-customers.util.js';
 import { TableStatusService } from '../tables/table-status.service.js';
 import type { AddItemDto } from './dto/add-item.dto.js';
 import type { AddOfferItemsDto } from './dto/add-offer-items.dto.js';
@@ -237,6 +241,7 @@ export class OrdersService {
       type,
       tableId,
       customerId,
+      additionalCustomerIds,
       items,
       discount,
       shippingFee,
@@ -483,12 +488,25 @@ export class OrdersService {
             tableId,
             tenantId,
             tx,
-            guestCount,
           );
         }
 
         return order;
       });
+
+      // Post-commit side effect: link shared customers. The primary customer
+      // is already saved on the order row; the join table is best-effort, so a
+      // failure here must never fail an already-created order.
+      try {
+        await this.syncOrderCustomers(
+          tenantId,
+          createdOrder.id,
+          customerId ?? null,
+          additionalCustomerIds ?? [],
+        );
+      } catch (error) {
+        console.error('Failed to link order customers:', error);
+      }
 
       // Post-commit: notify the branch floor plan (never inside the tx).
       if (tableId) {
@@ -553,45 +571,26 @@ export class OrdersService {
     });
     if (!order) throw new NotFoundException('Order not found');
 
-    const paidAmount = order.payments
-      ? order.payments.reduce((sum, p) => sum + Number(p.amount), 0)
-      : 0;
+    // Return the raw order (with relations) so consumers — the invoice page,
+    // PDF/receipt export, and split-bill translation — get the full shape they
+    // expect: item.product, item.total/unitPrice, order.subtotal/total/vat and
+    // the loyalty fields. A previous flattened projection dropped all of these,
+    // which is why invoices rendered empty (unknown items, $0 total).
+    const paidAmount = order.payments.reduce(
+      (sum, p) => sum + Number(p.amount),
+      0,
+    );
+
+    // Additional (shared) customers fetched separately so a missing join table
+    // can't break the invoice/receipt.
+    const additional = await fetchAdditionalOrderCustomers(this.prisma, [
+      order.id,
+    ]);
 
     return {
-      id: order.id,
-      status: order.status,
-      type: order.type,
-      items: order.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        name: item.product.name,
-        price: Number(item.unitPrice),
-        quantity: Number(item.quantity),
-        notes: item.notes,
-        imageUrl: item.product.imageUrl,
-        modifiers: item.modifiers?.map((m) => ({
-          id: m.id,
-          modifierId: m.modifierId,
-          name: m.modifier.name,
-          price: m.price ? Number(m.price) : 0,
-        })),
-        discount: item.discount as any,
-        sentToKitchen: false,
-      })),
-      discount: null,
-      shippingFee: Number(order.shippingFee || 0),
-      includeVAT: order.includeVAT,
+      ...order,
+      orderCustomers: additional.get(order.id) ?? [],
       paidAmount,
-      customerId: order.customerId,
-      customerName: order.customer?.name || null,
-      customerAddress: order.customer?.address || null,
-      tableId: order.tableId,
-      tableName: order.table?.tableNumber ? `Table ${order.table.tableNumber}` : null,
-      guestCount: order.guestCount || undefined,
-      notes: '',
-      orderNumber: order.orderNumber,
-      createdAt: order.createdAt,
-      modifiedAt: order.createdAt,
     };
   }
 
@@ -1784,6 +1783,102 @@ export class OrdersService {
     return this.recalculateOrderTotals(tenantId, orderId);
   }
 
+  /**
+   * Set the full customer list on an existing order: the primary customer
+   * (mirrored on Order.customerId, earns loyalty) plus any additional
+   * customers sharing the bill. Pass customerId = null to clear the primary.
+   * Used when customers are added to a table order after it was created.
+   */
+  async setOrderCustomers(
+    tenantId: string,
+    orderId: string,
+    primaryCustomerId: string | null,
+    additionalCustomerIds: string[],
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: { id: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    await this.syncOrderCustomers(
+      tenantId,
+      orderId,
+      primaryCustomerId,
+      additionalCustomerIds,
+    );
+
+    const updated = await this.prisma.order.findFirst({
+      where: { id: orderId, tenantId },
+      select: {
+        id: true,
+        customerId: true,
+        customer: { select: { id: true, name: true } },
+      },
+    });
+    const additional = await fetchAdditionalOrderCustomers(this.prisma, [
+      orderId,
+    ]);
+    return { ...updated, orderCustomers: additional.get(orderId) ?? [] };
+  }
+
+  /**
+   * Set the primary customer on Order.customerId and rebuild the OrderCustomer
+   * join rows (all shared customers). The primary is authoritative and always
+   * persists; the join table is best-effort — if it is missing (e.g. a shared
+   * DB reset dropped it) it is skipped rather than failing the request.
+   * Not transactional: the primary update must survive even if the join write
+   * cannot. `additionalCustomerIds` may include the primary; it is de-duped.
+   */
+  private async syncOrderCustomers(
+    tenantId: string,
+    orderId: string,
+    primaryCustomerId: string | null,
+    additionalCustomerIds: string[],
+  ): Promise<void> {
+    const uniqueIds = [
+      ...new Set(
+        [primaryCustomerId, ...additionalCustomerIds].filter(
+          (id): id is string => !!id,
+        ),
+      ),
+    ];
+
+    if (uniqueIds.length > 0) {
+      const validCount = await this.prisma.customer.count({
+        where: { id: { in: uniqueIds }, tenantId, deletedAt: null },
+      });
+      if (validCount !== uniqueIds.length) {
+        throw new NotFoundException('One or more customers were not found');
+      }
+    }
+
+    // Primary customer lives on Order.customerId — always persisted.
+    await this.prisma.order.update({
+      where: { id: orderId, tenantId },
+      data: { customerId: primaryCustomerId },
+    });
+
+    // Join table = shared customers. Best-effort: skip if the table is absent.
+    try {
+      await this.prisma.orderCustomer.deleteMany({
+        where: { orderId, tenantId },
+      });
+      if (uniqueIds.length > 0) {
+        await this.prisma.orderCustomer.createMany({
+          data: uniqueIds.map((customerId) => ({
+            tenantId,
+            orderId,
+            customerId,
+            isPrimary: customerId === primaryCustomerId,
+          })),
+        });
+      }
+    } catch (error) {
+      if (!isMissingTableError(error)) throw error;
+    }
+  }
+
   /* ----------------------------------------------------
      INVENTORY / KITCHEN
   ---------------------------------------------------- */
@@ -2867,7 +2962,7 @@ export class OrdersService {
    * Returns null if no active order exists
    */
   async findActiveOrderByTableId(tenantId: string, tableId: string) {
-    return this.prisma.order.findFirst({
+    const order = await this.prisma.order.findFirst({
       where: {
         tenantId,
         tableId,
@@ -2888,6 +2983,12 @@ export class OrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    if (!order) return null;
+
+    const additional = await fetchAdditionalOrderCustomers(this.prisma, [
+      order.id,
+    ]);
+    return { ...order, orderCustomers: additional.get(order.id) ?? [] };
   }
 
   /* ----------------------------------------------------

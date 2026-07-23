@@ -17,6 +17,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 
 const CURRENCY_QUERY_KEY = ["currencies"];
 const TENANT_CURRENCY_QUERY_KEY = ["tenant-currencies"];
@@ -73,11 +75,15 @@ export const useCreateTenantCurrency = (): UseMutationResult<
 
   return useMutation({
     mutationFn: currencyApi.createTenantCurrency,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`${data.currencyCode} added`);
       queryClient.invalidateQueries({ queryKey: TENANT_CURRENCY_QUERY_KEY });
       queryClient.invalidateQueries({
         queryKey: ACTIVE_CURRENCIES_QUERY_KEY,
       });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to add currency"));
     },
   });
 };
@@ -92,8 +98,12 @@ export const useUpdateTenantCurrency = () => {
   >({
     mutationFn: ({ id, data }) => currencyApi.updateTenantCurrency(id, data),
     onSuccess: () => {
+      toast.success("Currency updated");
       queryClient.invalidateQueries({ queryKey: TENANT_CURRENCY_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ACTIVE_CURRENCIES_QUERY_KEY });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to update currency"));
     },
   });
 };

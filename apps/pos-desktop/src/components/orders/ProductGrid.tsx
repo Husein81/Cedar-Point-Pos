@@ -2,7 +2,9 @@ import { useNetworkStatus } from "@/context/NetworkContext";
 import { useCategories } from "@/hooks/useCategory";
 import { useProducts } from "@/hooks/useProduct";
 import { useKeypadStore } from "@/store/keypadStore";
+import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
+import { OfferSelectionModal } from "./OfferSelectionModal";
 import type { Product } from "@repo/types";
 import { Subcategory } from "@repo/types";
 import {
@@ -22,7 +24,12 @@ export const ProductGrid = () => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
   const { addItem } = useOrderStore();
+  const { openModal } = useModalStore();
   const { isOnline, lastOnlineAt } = useNetworkStatus();
+
+  const handleOpenOffers = () => {
+    openModal("Add Offer", <OfferSelectionModal />);
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isAvailableOnly, setIsAvailableOnly] = useState(false);
@@ -315,6 +322,18 @@ export const ProductGrid = () => {
                   className="whitespace-nowrap"
                 >
                   All
+                </SButton>
+              </Shad.CarouselItem>
+
+              {/* Offers — opens the offer picker, not a product filter. */}
+              <Shad.CarouselItem className="basis-auto pl-2">
+                <SButton
+                  variant="outline"
+                  onClick={handleOpenOffers}
+                  className="border-primary/40 text-primary hover:bg-primary/10 whitespace-nowrap"
+                >
+                  <Icon name="BadgePercent" className="h-4 w-4" />
+                  Offers
                 </SButton>
               </Shad.CarouselItem>
 

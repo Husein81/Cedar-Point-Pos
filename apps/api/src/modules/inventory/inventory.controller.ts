@@ -84,7 +84,7 @@ export class InventoryController {
     );
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Post(':branchId/product/:productId/adjust')
   adjustStock(
     @Req() req: Request,

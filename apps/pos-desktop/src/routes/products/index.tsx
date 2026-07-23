@@ -9,6 +9,7 @@ import {
 } from "@/components/products/bulkImportConfig";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useBulkCreateProducts, useProductsPaginated } from "@/hooks/useProduct";
+import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
@@ -38,6 +39,8 @@ function RouteComponent() {
 
   const { openModal } = useModalStore();
   const bulkCreateProducts = useBulkCreateProducts();
+  // Product catalog management (create/import) is Manager/Admin only.
+  const canManageProducts = useAuthStore((s) => s.isHighLevelUser);
 
   const handleCreateProduct = () => {
     openModal("Create Product", <ProductForm />);
@@ -74,16 +77,18 @@ function RouteComponent() {
           keys: ["name", "sku", "barcode"],
         }}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleBulkImport}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button onClick={handleCreateProduct}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </div>
+          canManageProducts ? (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleBulkImport}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+              <Button onClick={handleCreateProduct}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </div>
+          ) : undefined
         }
         pagination={{
           rows: data?.pagination.totalCount ?? 0,

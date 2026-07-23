@@ -8,6 +8,8 @@ import type { QueryParams } from "@repo/types";
 import { categoryApi } from "@/apis/categoryApi";
 import { Category } from "@repo/types";
 import { UseQueryResult } from "@tanstack/react-query";
+import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 
 const CATEGORY_QUERY_KEY = ["categories"];
 
@@ -34,8 +36,12 @@ export const useCreateCategory = (): UseMutationResult<Category, Error,CreateCat
 
   return useMutation({
     mutationFn: categoryApi.createCategory,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Category "${data.name}" created`);
       queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEY });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to create category"));
     },
   });
 };

@@ -59,6 +59,7 @@ export class ProductsController {
   }
 
   @Post()
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createProduct(@Req() req: Request, @Body() dto: CreateProductDto) {
     const { tenantId } = req.user as { tenantId: string };
 
@@ -104,6 +105,7 @@ export class ProductsController {
   }
 
   @Put(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateProduct(
     @Req() req: Request,
     @Param('id') id: string,
@@ -144,6 +146,7 @@ export class ProductsController {
   }
 
   @Put('/delete/:id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   deleteProduct(@Req() req: Request, @Param('id') id: string) {
     const { tenantId } = req.user as { tenantId: string };
     if (!id) {

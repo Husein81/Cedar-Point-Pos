@@ -49,6 +49,7 @@ model Tenant {
   orderSequences      OrderSequence[]
   activityLogs        StaffActivityLog[]
   staffSessions       StaffSession[]
+  orderCustomers      OrderCustomer[]
 }
 
 model Currency {
@@ -594,6 +595,7 @@ model Order {
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
   statusHistory                   OrderStatusHistory[]
+  orderCustomers                  OrderCustomer[]
 
   @@unique([branchId, orderNumber])
   @@unique([tenantId, idempotencyKey])
@@ -679,7 +681,28 @@ model Customer {
   orders              Order[]
   loyaltyAccount      LoyaltyAccount?
   loyaltyTransactions LoyaltyTransaction[]
+  orderCustomers      OrderCustomer[]
 
+  @@index([tenantId])
+}
+
+/// Join table linking an Order to one or more Customers (shared bill).
+/// The primary customer (isPrimary) is mirrored on Order.customerId and is the
+/// one that earns/redeems loyalty; the others are linked for shared history.
+model OrderCustomer {
+  id         String   @id @default(uuid())
+  tenantId   String
+  orderId    String
+  customerId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, customerId])
+  @@index([customerId])
   @@index([tenantId])
 }
 

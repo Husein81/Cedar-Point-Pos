@@ -573,6 +573,17 @@ export const OrderSchema = z.object({
     })
     .nullable()
     .optional(),
+  // All customers sharing the order (primary + additional). Present on
+  // fetches that hydrate the POS editor; primary is also on `customerId`.
+  orderCustomers: z
+    .array(
+      z.object({
+        customerId: uuid,
+        isPrimary: z.boolean(),
+        customer: z.object({ id: uuid, name: z.string() }),
+      }),
+    )
+    .optional(),
   shiftId: uuid.nullable().optional(),
   refunds: z.array(RefundSchema).optional(),
   type: z.enum(OrderType),

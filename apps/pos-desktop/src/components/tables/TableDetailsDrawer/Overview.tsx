@@ -22,6 +22,13 @@ export function OverviewTab({ table, summary, uiStatus }: OverviewTabProps) {
       />
       <OverviewRow label="Server" value={summary?.userName ?? "—"} />
       <OverviewRow label="Customer" value={summary?.customerName ?? "—"} />
+      {summary?.additionalCustomerNames &&
+        summary.additionalCustomerNames.length > 0 && (
+          <OverviewRow
+            label="Also on bill"
+            value={summary.additionalCustomerNames.join(", ")}
+          />
+        )}
       <OverviewRow label="Order #" value={summary?.orderNumber ?? "—"} />
       <OverviewRow
         label="Seated"

@@ -1,10 +1,12 @@
 import { Badge, Empty, Icon, Skeleton, cn } from "@repo/ui";
 import type { TableOverview } from "@/dto/tables.dto";
 import {
+  OVER_CAPACITY_TEXT_CLASS,
   TABLE_UI_STATUS_CONFIG,
   deriveTableUiStatus,
   formatElapsedSince,
   formatTableMoney,
+  isOverCapacity,
 } from "./config";
 import { useElapsedNow } from "./hooks/useElapsedNow";
 
@@ -54,6 +56,7 @@ export function TablesGridView({
         const config = TABLE_UI_STATUS_CONFIG[uiStatus];
         const order = table.activeOrder;
         const isSelected = table.id === selectedTableId;
+        const overCapacity = isOverCapacity(order?.guestCount, table.capacity);
 
         return (
           <button
@@ -83,7 +86,12 @@ export function TablesGridView({
             </p>
 
             <div className="text-muted-foreground mt-auto flex w-full items-center gap-3 text-xs">
-              <span className="flex items-center gap-1">
+              <span
+                className={cn(
+                  "flex items-center gap-1",
+                  overCapacity && cn(OVER_CAPACITY_TEXT_CLASS, "font-semibold"),
+                )}
+              >
                 <Icon name="Users" className="h-3 w-3" />
                 {order?.guestCount ?? 0}/{table.capacity}
               </span>
@@ -99,6 +107,18 @@ export function TablesGridView({
                 </>
               )}
             </div>
+
+            {overCapacity && (
+              <span
+                className={cn(
+                  "flex items-center gap-1 text-[11px] font-semibold",
+                  OVER_CAPACITY_TEXT_CLASS,
+                )}
+              >
+                <Icon name="TriangleAlert" className="h-3 w-3" />
+                Over capacity
+              </span>
+            )}
           </button>
         );
       })}

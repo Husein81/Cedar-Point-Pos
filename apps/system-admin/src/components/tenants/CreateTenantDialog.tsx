@@ -22,12 +22,14 @@ export function CreateTenantDialog({ open, onOpenChange }: Props) {
     defaultValues: {
       name: "",
       businessType: "" as BusinessType,
+      code: "",
     },
     onSubmit: async ({ value }) => {
       try {
         await createTenant.mutateAsync({
           name: value.name,
           businessType: value.businessType,
+          code: value.code ? value.code.toUpperCase() : undefined,
         });
         form.reset();
         onOpenChange(false);
@@ -49,7 +51,8 @@ export function CreateTenantDialog({ open, onOpenChange }: Props) {
           <Shad.DialogTitle>Create New Tenant</Shad.DialogTitle>
           <Shad.DialogDescription>
             Create a new tenant organization. The first user created for this
-            tenant must be an Admin.
+            tenant must be an Admin. The tenant code is what staff enter to
+            sign in — set it now or later from Edit Tenant.
           </Shad.DialogDescription>
         </Shad.DialogHeader>
 
@@ -96,6 +99,25 @@ export function CreateTenantDialog({ open, onOpenChange }: Props) {
                 field={field}
                 options={businessTypeOptions}
                 placeholder="Select business type"
+              />
+            )}
+          </form.Field>
+
+          <form.Field
+            name="code"
+            validators={{
+              onChange: ({ value }) =>
+                value && !/^[A-Za-z0-9-]{3,20}$/.test(value)
+                  ? "3-20 letters, digits, or hyphens"
+                  : undefined,
+            }}
+          >
+            {(field) => (
+              <InputField
+                label="Tenant Code (optional)"
+                subLabel="Unique code staff use to sign in, e.g. CEDAR01. Uppercased automatically."
+                field={field}
+                placeholder="e.g. CEDAR01"
               />
             )}
           </form.Field>

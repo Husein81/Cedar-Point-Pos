@@ -74,9 +74,19 @@ const actionButtonStatuses: Record<string, ActionButtonStatus> = {
   },
 };
 
+const pickupActionButtonStatus: ActionButtonStatus = {
+  nextStatus: OrderStatus.COMPLETED,
+  buttonLabel: "Picked Up",
+};
+
 export const getActionButtonStatus = (
   status: OrderStatus,
+  orderType?: OrderType,
 ): ActionButtonStatus => {
+  if (status === OrderStatus.READY && orderType !== OrderType.DINE_IN) {
+    return pickupActionButtonStatus;
+  }
+
   return actionButtonStatuses[status] || { nextStatus: null, buttonLabel: "" };
 };
 

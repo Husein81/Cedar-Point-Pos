@@ -23,6 +23,7 @@ import { Route as ReportsRouteRouteImport } from './routes/reports/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SuppliersIndexRouteImport } from './routes/suppliers/index'
 import { Route as StaffIndexRouteImport } from './routes/staff/index'
+import { Route as ShiftsIndexRouteImport } from './routes/shifts/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as PurchaseOrdersIndexRouteImport } from './routes/purchase-orders/index'
 import { Route as ProductsIndexRouteImport } from './routes/products/index'
@@ -123,6 +124,11 @@ const SuppliersIndexRoute = SuppliersIndexRouteImport.update({
 const StaffIndexRoute = StaffIndexRouteImport.update({
   id: '/staff/',
   path: '/staff/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShiftsIndexRoute = ShiftsIndexRouteImport.update({
+  id: '/shifts/',
+  path: '/shifts/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
@@ -326,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/products/': typeof ProductsIndexRoute
   '/purchase-orders/': typeof PurchaseOrdersIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/shifts/': typeof ShiftsIndexRoute
   '/staff/': typeof StaffIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
@@ -372,6 +379,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsIndexRoute
   '/purchase-orders': typeof PurchaseOrdersIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/shifts': typeof ShiftsIndexRoute
   '/staff': typeof StaffIndexRoute
   '/suppliers': typeof SuppliersIndexRoute
 }
@@ -420,6 +428,7 @@ export interface FileRoutesById {
   '/products/': typeof ProductsIndexRoute
   '/purchase-orders/': typeof PurchaseOrdersIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/shifts/': typeof ShiftsIndexRoute
   '/staff/': typeof StaffIndexRoute
   '/suppliers/': typeof SuppliersIndexRoute
 }
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/purchase-orders/'
     | '/settings/'
+    | '/shifts/'
     | '/staff/'
     | '/suppliers/'
   fileRoutesByTo: FileRoutesByTo
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/purchase-orders'
     | '/settings'
+    | '/shifts'
     | '/staff'
     | '/suppliers'
   id:
@@ -562,6 +573,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/purchase-orders/'
     | '/settings/'
+    | '/shifts/'
     | '/staff/'
     | '/suppliers/'
   fileRoutesById: FileRoutesById
@@ -593,6 +605,7 @@ export interface RootRouteChildren {
   OffersIndexRoute: typeof OffersIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
   PurchaseOrdersIndexRoute: typeof PurchaseOrdersIndexRoute
+  ShiftsIndexRoute: typeof ShiftsIndexRoute
   StaffIndexRoute: typeof StaffIndexRoute
   SuppliersIndexRoute: typeof SuppliersIndexRoute
 }
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       path: '/staff'
       fullPath: '/staff/'
       preLoaderRoute: typeof StaffIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shifts/': {
+      id: '/shifts/'
+      path: '/shifts'
+      fullPath: '/shifts/'
+      preLoaderRoute: typeof ShiftsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
@@ -998,6 +1018,7 @@ const rootRouteChildren: RootRouteChildren = {
   OffersIndexRoute: OffersIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
   PurchaseOrdersIndexRoute: PurchaseOrdersIndexRoute,
+  ShiftsIndexRoute: ShiftsIndexRoute,
   StaffIndexRoute: StaffIndexRoute,
   SuppliersIndexRoute: SuppliersIndexRoute,
 }

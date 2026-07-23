@@ -13,6 +13,7 @@ datasource db {
 model Tenant {
   id               String       @id @default(uuid())
   name             String
+  code             String?      @unique
   businessType     BusinessType
   baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
   isActive         Boolean      @default(true)
@@ -79,11 +80,12 @@ model TenantCurrency {
 }
 
 model User {
-  id                  String               @id @default(uuid())
-  name                String
-  email               String?              @unique
-  phone               String?              @unique
-  username            String               @unique
+  id    String  @id @default(uuid())
+  name  String
+  email String? @unique
+  phone String? @unique
+
+  username            String
   password            String
   pinHash             String? // bcrypt-hashed 4-6 digit PIN for POS login
   hasPosAccess        Boolean              @default(true) // POS register access, separate from isActive
@@ -114,6 +116,7 @@ model User {
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([email, role])
+  @@unique([tenantId, username])
   @@index([tenantId, role])
   @@index([tenantId, branchId])
 }
@@ -918,15 +921,27 @@ model ShiftReportSnapshot {
 //
 // ---------- SHIFT SCHEDULE (Planned Shifts) ----------
 //
+// One table, two mutually-exclusive kinds (discriminated by `isRecurring`):
+//  - dated occurrence:  isRecurring=false, date set,  daysOfWeek empty, no effective window
+//  - recurring pattern: isRecurring=true,  date NULL, daysOfWeek non-empty (times are
+//    anchored to SHIFT_PATTERN_SENTINEL_DAY — only the time-of-day is meaningful)
+// This invariant is enforced in-DB by the CHECK constraint `shift_schedule_kind_ck`
+// (applied via raw SQL — Prisma does not model CHECK constraints; `db push` leaves it
+// alone but will not recreate it, so re-apply after any `--force-reset`).
 model ShiftSchedule {
   id            String              @id @default(uuid())
   tenantId      String
   branchId      String
   userId        String // Assigned employee
   deviceId      String? // Optional device assignment
-  date          DateTime            @db.Date // Schedule date (no time)
-  startTime     DateTime // Planned start (full timestamp)
-  endTime       DateTime // Planned end (full timestamp)
+  date          DateTime?           @db.Date // Occurrence date; NULL for recurring patterns
+  isRecurring   Boolean             @default(false) // true = dateless weekly pattern
+  daysOfWeek    Int[]               @default([]) // 0=Sun..6=Sat; populated for recurring patterns
+  effectiveFrom DateTime?           @db.Date // Recurring: pattern applies from this day (null = open start)
+  effectiveTo   DateTime?           @db.Date // Recurring: pattern applies until this day (null = ongoing)
+  startTime     DateTime // Planned start (recurring: time-of-day on a sentinel date)
+  endTime       DateTime // Planned end (recurring: time-of-day on a sentinel date)
+  breakMinutes  Int                 @default(0) // Unpaid break subtracted from paid hours
   notes         String?
   status        ShiftScheduleStatus @default(DRAFT)
   publishedAt   DateTime?

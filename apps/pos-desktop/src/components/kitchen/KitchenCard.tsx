@@ -20,12 +20,12 @@ const KitchenCard = ({ order }: Props) => {
   );
 
   const onActionButtonClick = useCallback(() => {
-    const { nextStatus } = getActionButtonStatus(order.status);
+    const { nextStatus } = getActionButtonStatus(order.status, order.type);
 
     if (nextStatus) {
       handleStatusChange(order.id, nextStatus);
     }
-  }, [order.id, order.status, handleStatusChange]);
+  }, [order.id, order.status, order.type, handleStatusChange]);
 
   const elapsedMinutes = useMemo(() => {
     return Math.floor(
@@ -222,7 +222,7 @@ const KitchenCard = ({ order }: Props) => {
               "h-9 w-full rounded-md text-sm font-semibold text-white",
             )}
           >
-            {getActionButtonStatus(order.status).buttonLabel}
+            {getActionButtonStatus(order.status, order.type).buttonLabel}
           </Button>
         </div>
       </Activity>

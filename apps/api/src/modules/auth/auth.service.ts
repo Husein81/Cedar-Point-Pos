@@ -39,6 +39,10 @@ export class AuthService {
   async createUser(data: CreateUserDto): Promise<PublicUser> {
     const { username, password, tenantId, role } = data;
 
+    if (!tenantId) {
+      throw new UnauthorizedException('Registration failed');
+    }
+
     // Validate tenant exists
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -49,7 +53,7 @@ export class AuthService {
     }
 
     const existedUser = await this.prisma.user.findUnique({
-      where: { username },
+      where: { tenantId_username: { tenantId, username } },
     });
 
     if (existedUser) {
@@ -171,17 +175,31 @@ export class AuthService {
     };
   }
 
-  async login({ username, password }: LoginDto): Promise<{
+  async login({ tenantCode, username, password }: LoginDto): Promise<{
     user: PublicUser;
     accessToken: string;
     refreshToken: string;
   }> {
-    if (!username || !password) {
-      throw new BadRequestException('Username and password are required');
+    if (!tenantCode || !username || !password) {
+      throw new BadRequestException(
+        'Tenant code, username and password are required',
+      );
+    }
+
+    // Resolve the tenant by its login code first — username is only unique
+    // within a tenant, so there is no way to find the right user without it.
+    // Codes are stored uppercase; normalize what the user typed so casing
+    // never locks them out.
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { code: tenantCode.trim().toUpperCase() },
+    });
+
+    if (!tenant) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { username },
+      where: { tenantId_username: { tenantId: tenant.id, username } },
       include: { tenant: true },
     });
 

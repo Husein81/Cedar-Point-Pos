@@ -19,37 +19,39 @@ model Tenant {
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-
-  users               User[]
-  branches            Branch[]
-  products            Product[]
-  inventory           Inventory[] // Inventory records still belong to the Tenant scope
-  inventoryHistory    InventoryHistory[]
-  orders              Order[]
-  tables              Table[]
-  floors              Floor[] // Restaurant floor layouts
-  modifierGroups      ModifierGroup[]
-  devices             POSDevice[]
-  customers           Customer[]
-  suppliers           Supplier[]
-  purchaseOrders      PurchaseOrder[]
-  shifts              Shift[]
-  shiftSchedules      ShiftSchedule[]
-  transfers           Transfer[]
-  settings            Json? // feature flags, tax rates, etc.
-  modifiers           Modifier[]
-  categories          Category[]
-  tenantCurrencies    TenantCurrency[] // Tenant-specific currency configurations
-  colors              Color[]
-  loyaltyProgram      LoyaltyProgram?
-  loyaltyAccounts     LoyaltyAccount[]
-  loyaltyTransactions LoyaltyTransaction[]
-  offers              Offer[]
-  refunds             Refund[]
-  cashMovements       CashMovement[]
-  orderSequences      OrderSequence[]
-  activityLogs        StaffActivityLog[]
-  staffSessions       StaffSession[]
+  
+  users                User[]
+  branches             Branch[]
+  products             Product[]
+  inventory            Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory     InventoryHistory[]
+  orders               Order[]
+  tables               Table[]
+  floors               Floor[] // Restaurant floor layouts
+  modifierGroups       ModifierGroup[]
+  devices              POSDevice[]
+  customers            Customer[]
+  suppliers            Supplier[]
+  purchaseOrders       PurchaseOrder[]
+  shifts               Shift[]
+  shiftSchedules       ShiftSchedule[]
+  transfers            Transfer[]
+  settings             Json? // feature flags, tax rates, etc.
+  modifiers            Modifier[]
+  categories           Category[]
+  tenantCurrencies     TenantCurrency[] // Tenant-specific currency configurations
+  colors               Color[]
+  loyaltyProgram       LoyaltyProgram?
+  loyaltyAccounts      LoyaltyAccount[]
+  loyaltyTransactions  LoyaltyTransaction[]
+  offers               Offer[]
+  refunds              Refund[]
+  cashMovements        CashMovement[]
+  orderSequences       OrderSequence[]
+  activityLogs         StaffActivityLog[]
+  staffSessions        StaffSession[]
+  reservations         Reservation[]
+  reservationSequences ReservationSequence[]
   orderCustomers      OrderCustomer[]
 }
 
@@ -116,6 +118,7 @@ model User {
   schedulesPublished  ShiftSchedule[]      @relation("SchedulePublishedBy")
   activityLogs        StaffActivityLog[]
   staffSessions       StaffSession[]
+  createdReservations Reservation[]        @relation("ReservationCreatedBy")
   branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -126,30 +129,32 @@ model User {
 }
 
 model Branch {
-  id               String             @id @default(uuid())
-  tenantId         String
-  name             String
-  address          String?
-  phone            String?
-  isDeleted        Boolean            @default(false) // Soft delete
-  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tables           Table[]
-  floors           Floor[] // Restaurant floor layouts
-  devices          POSDevice[]
-  inventory        Inventory[] // Inventory is tracked at the Branch level
-  orders           Order[]
-  shifts           Shift[]
-  shiftSchedules   ShiftSchedule[]
-  inventoryHistory InventoryHistory[]
-  transfersFrom    Transfer[]         @relation("TransfersFrom")
-  transfersTo      Transfer[]         @relation("TransfersTo")
-  products         Product[]
-  purchaseOrders   PurchaseOrder[]
-  refunds          Refund[]
-  cashMovements    CashMovement[]
-  orderSequences   OrderSequence[]
-  staffSessions    StaffSession[]
-  staffMembers     User[]             @relation("UserBranch")
+  id                   String                @id @default(uuid())
+  tenantId             String
+  name                 String
+  address              String?
+  phone                String?
+  isDeleted            Boolean               @default(false) // Soft delete
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tables               Table[]
+  floors               Floor[] // Restaurant floor layouts
+  devices              POSDevice[]
+  inventory            Inventory[] // Inventory is tracked at the Branch level
+  orders               Order[]
+  shifts               Shift[]
+  shiftSchedules       ShiftSchedule[]
+  inventoryHistory     InventoryHistory[]
+  transfersFrom        Transfer[]            @relation("TransfersFrom")
+  transfersTo          Transfer[]            @relation("TransfersTo")
+  products             Product[]
+  purchaseOrders       PurchaseOrder[]
+  refunds              Refund[]
+  cashMovements        CashMovement[]
+  orderSequences       OrderSequence[]
+  staffSessions        StaffSession[]
+  staffMembers         User[]                @relation("UserBranch")
+  reservations         Reservation[]
+  reservationSequences ReservationSequence[]
 }
 
 model POSDevice {
@@ -495,10 +500,11 @@ model Table {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
-  orders Order[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  floor        Floor?        @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  orders       Order[]
+  reservations Reservation[]
 
   @@index([branchId, deletedAt])
   @@index([floorId])
@@ -602,6 +608,7 @@ model Order {
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
   statusHistory                   OrderStatusHistory[]
+  reservation                     Reservation?
   orderCustomers                  OrderCustomer[]
 
   @@unique([branchId, orderNumber])
@@ -688,6 +695,7 @@ model Customer {
   orders              Order[]
   loyaltyAccount      LoyaltyAccount?
   loyaltyTransactions LoyaltyTransaction[]
+  reservations        Reservation[]
   orderCustomers      OrderCustomer[]
 
   @@index([tenantId])
@@ -1187,4 +1195,81 @@ model OrderSequence {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, date])
+}
+
+//
+// ---------- RESERVATIONS ----------
+//
+model Reservation {
+  id                String  @id @default(uuid())
+  reservationNumber String
+  tenantId          String
+  branchId          String
+  customerId        String? // linked Customer when the guest is known; null for guest bookings
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  tableId           String? // optional pre-assigned table; required to SEAT
+  orderId           String? @unique // dine-in Order created when the reservation is seated
+  guestCount        Int
+
+  reservationDate    DateTime          @db.Date
+  reservationTime    String
+  reservationAt      DateTime
+  durationMinutes    Int               @default(90)
+  status             ReservationStatus @default(PENDING)
+  source             ReservationSource @default(PHONE)
+  notes              String?
+  cancellationReason String?
+  createdById        String?
+  deletedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  table     Table?    @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([branchId, reservationNumber])
+  @@index([tenantId, branchId, reservationDate])
+  @@index([tenantId, branchId, status])
+  @@index([tenantId, branchId, tableId, reservationAt])
+  @@index([tenantId, customerPhone])
+  @@index([tenantId, reservationNumber])
+  @@index([status, reservationAt]) // drives the no-show expiration sweep
+  @@index([tableId])
+}
+
+model ReservationSequence {
+  id        String   @id @default(uuid())
+  tenantId  String
+  branchId  String
+  date      String
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, date])
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  ARRIVED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ReservationSource {
+  WALK_IN
+  PHONE
+  ONLINE
+  ADMIN
 }

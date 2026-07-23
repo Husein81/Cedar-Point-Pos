@@ -10,6 +10,10 @@ import {
   useUpdateTable,
   useUpdateTableStatus,
 } from "@/hooks/useTable";
+import {
+  useCancelReservation,
+  useFetchTableReservation,
+} from "@/hooks/useReservations";
 import { extractErrorMessage } from "@/utils/error";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
@@ -55,6 +59,7 @@ export const useTableActions = (options: {
     onConfirm: (guestCount?: number) => void;
     onCancel: () => void;
   }) => React.ReactNode;
+  renderReserveForm: (table: TableOverview) => React.ReactNode;
 }): TableActionsApi => {
   const {
     renderTransferPicker,
@@ -63,6 +68,7 @@ export const useTableActions = (options: {
     renderDeleteConfirm,
     renderFreeConfirm,
     renderSeatGuests,
+    renderReserveForm,
   } = options;
 
   const queryClient = useQueryClient();
@@ -74,6 +80,8 @@ export const useTableActions = (options: {
   const updateTableMutation = useUpdateTable();
   const deleteTableMutation = useDeleteTable();
   const orderStatusMutation = useUpdateOrderStatus();
+  const cancelReservationMutation = useCancelReservation();
+  const fetchTableReservation = useFetchTableReservation();
 
   const { seatTable, openTableOrder } = useOpenTableOrder();
   const { startTransfer, isTransferPending } = useTableTransfer({
@@ -150,13 +158,26 @@ export const useTableActions = (options: {
           );
           break;
         case "reserve":
-          statusMutation.mutate({ id: table.id, status: TableStatus.RESERVED });
+          openModal(
+            `Reserve ${getTableDisplayName(table)}`,
+            renderReserveForm(table),
+          );
           break;
         case "unreserve":
-          statusMutation.mutate({
-            id: table.id,
-            status: TableStatus.AVAILABLE,
-          });
+          void (async () => {
+            try {
+              const active = await fetchTableReservation(table.id);
+              if (!active) {
+                toast.error("No active reservation found for this table");
+                return;
+              }
+              await cancelReservationMutation.mutateAsync({ id: active.id });
+            } catch (error) {
+              toast.error(
+                extractErrorMessage(error, "Failed to clear reservation"),
+              );
+            }
+          })();
           break;
         case "serve":
           if (table.activeOrder) {
@@ -246,9 +267,11 @@ export const useTableActions = (options: {
       }
     },
     [
+      cancelReservationMutation,
       closeModal,
       closeTab,
       deleteTableMutation,
+      fetchTableReservation,
       freeTable,
       openModal,
       openTableOrder,
@@ -257,6 +280,7 @@ export const useTableActions = (options: {
       renderDeleteConfirm,
       renderEditForm,
       renderFreeConfirm,
+      renderReserveForm,
       renderSeatGuests,
       seatTable,
       selectTable,

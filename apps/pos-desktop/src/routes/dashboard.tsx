@@ -1,5 +1,7 @@
 import TitleBar from "@/components/title-bar";
 import { SummaryGrid } from "@/components/reports";
+import { ReservationWidgets } from "@/components/reservations";
+import { useAuthStore } from "@/store/authStore";
 import { useBranches } from "@/hooks/useBranch";
 import { formatCurrency } from "@/utils/reportHelpers";
 import { DEFAULT_LOCALE } from "@/constants/locale";
@@ -34,6 +36,9 @@ const ALL_BRANCHES = "all";
 function DashboardPage() {
   const queryClient = useQueryClient();
   const [branchId, setBranchId] = useState<string | undefined>(undefined);
+  const businessType = useAuthStore(
+    (state) => state.user?.tenant?.businessType,
+  );
 
   const dateRange = useMemo(() => {
     const to = new Date();
@@ -158,6 +163,10 @@ function DashboardPage() {
           isLoading={summaryQuery.isLoading}
           columns="4"
         />
+
+        {businessType === "RESTAURANT" && (
+          <ReservationWidgets branchId={branchId} />
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <WeeklySalesChart

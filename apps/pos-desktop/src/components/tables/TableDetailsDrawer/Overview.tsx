@@ -1,4 +1,9 @@
 import { TableOverview } from "@/dto/tables.dto";
+import type { Reservation } from "@/dto/reservation.dto";
+import {
+  formatReservationCountdown,
+  getReservationSourceLabel,
+} from "@/components/reservations/reservationStatus";
 import { deriveTableUiStatus, formatElapsedSince } from "../config";
 import { useElapsedNow } from "../hooks";
 
@@ -6,9 +11,15 @@ interface OverviewTabProps {
   table: TableOverview;
   summary: TableOverview["activeOrder"];
   uiStatus: ReturnType<typeof deriveTableUiStatus>;
+  nextReservation: Reservation | null;
 }
 
-export function OverviewTab({ table, summary, uiStatus }: OverviewTabProps) {
+export function OverviewTab({
+  table,
+  summary,
+  uiStatus,
+  nextReservation,
+}: OverviewTabProps) {
   const now = useElapsedNow();
 
   return (
@@ -37,10 +48,34 @@ export function OverviewTab({ table, summary, uiStatus }: OverviewTabProps) {
         }
       />
       {uiStatus === "RESERVED" && (
-        <p className="text-muted-foreground bg-muted/50 mt-3 rounded-lg p-3 text-xs">
-          Reservation details (guest, time, countdown) are coming with the
-          reservations module. For now RESERVED is a manual hold.
-        </p>
+        <div className="mt-3 space-y-1 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs dark:border-orange-500/20 dark:bg-orange-500/10">
+          {nextReservation ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-orange-900 dark:text-orange-200">
+                  {nextReservation.customerName}
+                </span>
+                <span className="font-semibold text-orange-700 dark:text-orange-300">
+                  {formatReservationCountdown(
+                    nextReservation.reservationAt,
+                    now,
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-orange-800/80 dark:text-orange-300/80">
+                <span>{nextReservation.reservationNumber}</span>
+                <span>
+                  {nextReservation.guestCount} guests ·{" "}
+                  {getReservationSourceLabel(nextReservation.source)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground">
+              Table is on hold, but no matching reservation was found.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

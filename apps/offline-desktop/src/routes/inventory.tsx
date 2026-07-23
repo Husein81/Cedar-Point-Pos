@@ -5,14 +5,14 @@ import { AdjustStockDialog } from "@/components/inventory/AdjustStockDialog";
 import { getStockMovementColumns } from "@/components/inventory/stockMovementColumns";
 import { useStockMovements } from "@/hooks/useInventory";
 import { useLowStockProducts } from "@/hooks/useProduct";
+import { usePagination } from "@/hooks/usePagination";
 
 export const Route = createFileRoute("/inventory")({
   component: InventoryPage,
 });
 
 function InventoryPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const { page, pageSize, setPage, onPageSizeChange } = usePagination({});
   const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
   const { data, isLoading, refetch } = useStockMovements({ page, pageSize });
@@ -29,7 +29,10 @@ function InventoryPage() {
             Stock movements, adjustments and low stock alerts
           </p>
         </div>
-        <Button iconName="SlidersHorizontal" onClick={() => setIsAdjustOpen(true)}>
+        <Button
+          iconName="SlidersHorizontal"
+          onClick={() => setIsAdjustOpen(true)}
+        >
           Adjust Stock
         </Button>
       </div>
@@ -63,10 +66,7 @@ function InventoryPage() {
           pageSize,
           totalPages: Math.max(1, Math.ceil((data?.total ?? 0) / pageSize)),
           onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
+          onPageSizeChange,
         }}
       />
 

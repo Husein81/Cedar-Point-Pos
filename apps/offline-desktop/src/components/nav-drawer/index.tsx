@@ -7,6 +7,7 @@ import { Button, cn, Icon, Shad } from "@repo/ui";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { sidebarSections } from "./config";
+import logo from "/assets/logo.png";
 
 type NavDrawerProps = {
   open: boolean;
@@ -46,12 +47,14 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
           {/* Header */}
           <Shad.DrawerHeader className="border-b">
             <Shad.DrawerTitle className="flex items-center gap-2 text-lg font-semibold">
+              <img
+                src={logo}
+                className="w-8 h-8 dark:invert-0 invert"
+                alt="cedar point"
+              />
               <span className="text-lg font-semibold text-text">
                 Cedar
                 <span className="text-primary font-bold">Point</span>
-              </span>
-              <span className="text-xs text-muted-foreground font-normal border rounded px-1.5 py-0.5">
-                Offline
               </span>
             </Shad.DrawerTitle>
           </Shad.DrawerHeader>

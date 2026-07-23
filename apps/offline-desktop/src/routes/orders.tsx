@@ -7,6 +7,7 @@ import { useOrders } from "@/hooks/useOrder";
 import { useSettings } from "@/hooks/useSettings";
 import { OrderStatus } from "@/shared/enums";
 import type { Order } from "@/shared/models";
+import { usePagination } from "@/hooks/usePagination";
 
 const ALL_STATUSES = "ALL";
 
@@ -15,16 +16,22 @@ export const Route = createFileRoute("/orders")({
 });
 
 function OrdersPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [search, setSearch] = useState("");
+  const {
+    page,
+    setPage,
+    pageSize,
+    searchQuery,
+    setSearchQuery,
+    onPageSizeChange,
+  } = usePagination({});
+
   const [status, setStatus] = useState<string>(ALL_STATUSES);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useOrders({
     page,
     pageSize,
-    search: search || undefined,
+    search: searchQuery || undefined,
     status: status === ALL_STATUSES ? undefined : status,
   });
   const { data: settings } = useSettings();
@@ -51,9 +58,9 @@ function OrdersPage() {
         isLoading={isLoading}
         onRefetch={refetch}
         search={{
-          term: search,
+          term: searchQuery,
           onTermChange: (term) => {
-            setSearch(term);
+            setSearchQuery(term);
             setPage(1);
           },
           keys: ["orderNumber", "customerName"],
@@ -91,10 +98,7 @@ function OrdersPage() {
           pageSize,
           totalPages: Math.max(1, Math.ceil((data?.total ?? 0) / pageSize)),
           onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
+          onPageSizeChange,
         }}
       />
 

@@ -10,6 +10,7 @@ import {
   CloseShiftSchema,
   ColorSchema,
   CustomerSchema,
+  DateRangeSchema,
   HoldOrderSchema,
   IdSchema,
   ListCustomersSchema,
@@ -22,6 +23,8 @@ import {
   RefundSchema,
   StockAdjustmentSchema,
   StockPurchaseSchema,
+  SubcategorySchema,
+  TopProductsSchema,
   UpdateSettingsSchema,
   UpdateUserSchema,
   UserSchema,
@@ -30,6 +33,7 @@ import { UserRepository } from "../repositories/user.repository";
 import { CategoryRepository } from "../repositories/category.repository";
 import { ColorRepository } from "../repositories/color.repository";
 import { ProductRepository } from "../repositories/product.repository";
+import { SubcategoryRepository } from "../repositories/subcategory.repository";
 import { CustomerRepository } from "../repositories/customer.repository";
 import { OrderRepository } from "../repositories/order.repository";
 import { StockRepository } from "../repositories/stock.repository";
@@ -39,6 +43,7 @@ import { AuthService } from "../services/auth.service";
 import { CatalogService } from "../services/catalog.service";
 import { ColorsService } from "../services/colors.service";
 import { CustomersService } from "../services/customers.service";
+import { DashboardService } from "../services/dashboard.service";
 import { OrdersService } from "../services/orders.service";
 import { InventoryService } from "../services/inventory.service";
 import { ShiftsService } from "../services/shifts.service";
@@ -53,7 +58,8 @@ export function registerIpcHandlers() {
 
   // repositories
   const users = new UserRepository(db);
-  const categories = new CategoryRepository(db);
+  const subcategories = new SubcategoryRepository(db);
+  const categories = new CategoryRepository(db, subcategories);
   const colors = new ColorRepository(db);
   const products = new ProductRepository(db);
   const customers = new CustomerRepository(db);
@@ -65,7 +71,7 @@ export function registerIpcHandlers() {
   // services
   const session = new SessionContext();
   const authService = new AuthService(users);
-  const catalogService = new CatalogService(categories, products);
+  const catalogService = new CatalogService(categories, products, subcategories);
   const colorsService = new ColorsService(colors);
   const customersService = new CustomersService(customers);
   const ordersService = new OrdersService(
@@ -80,6 +86,7 @@ export function registerIpcHandlers() {
   const inventoryService = new InventoryService(db, products, stock, session);
   const shiftsService = new ShiftsService(shifts, session);
   const backupService = new BackupService();
+  const dashboardService = new DashboardService(db);
 
   // ── auth ────────────────────────────────────────────────────────────
   registerHandler("auth:login", {
@@ -156,6 +163,22 @@ export function registerIpcHandlers() {
   registerHandler("categories:delete", {
     schema: byId,
     handle: (input) => catalogService.deleteCategory(input.id),
+  });
+
+  // ── subcategories ───────────────────────────────────────────────────
+  registerHandler("subcategories:create", {
+    schema: z.object({ categoryId: IdSchema, data: SubcategorySchema }),
+    handle: (input) =>
+      catalogService.createSubcategory(input.categoryId, input.data),
+  });
+  registerHandler("subcategories:update", {
+    schema: z.object({ id: IdSchema, data: SubcategorySchema }),
+    handle: (input) =>
+      catalogService.updateSubcategory(input.id, input.data),
+  });
+  registerHandler("subcategories:delete", {
+    schema: byId,
+    handle: (input) => catalogService.deleteSubcategory(input.id),
   });
 
   // ── colors ──────────────────────────────────────────────────────────
@@ -312,5 +335,27 @@ export function registerIpcHandlers() {
   registerHandler("backup:restore", {
     schema: null,
     handle: () => backupService.restoreBackup(),
+  });
+
+  // ── dashboard ───────────────────────────────────────────────────────
+  registerHandler("dashboard:summary", {
+    schema: null,
+    handle: () => dashboardService.summary(),
+  });
+  registerHandler("dashboard:weeklySales", {
+    schema: null,
+    handle: () => dashboardService.weeklySales(),
+  });
+  registerHandler("dashboard:salesByCategory", {
+    schema: DateRangeSchema,
+    handle: (input) => dashboardService.salesByCategory(input),
+  });
+  registerHandler("dashboard:hourlyRevenue", {
+    schema: null,
+    handle: () => dashboardService.hourlyRevenue(),
+  });
+  registerHandler("dashboard:topProducts", {
+    schema: TopProductsSchema,
+    handle: (input) => dashboardService.topProducts(input),
   });
 }

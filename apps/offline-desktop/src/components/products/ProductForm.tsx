@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
@@ -30,6 +30,8 @@ export const ProductForm = ({ open, onOpenChange, product }: Props) => {
     handleSubmit,
     reset,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues, unknown, FormOutput>({
     resolver: zodResolver(ProductSchema),
@@ -43,6 +45,7 @@ export const ProductForm = ({ open, onOpenChange, product }: Props) => {
       trackInventory: true,
       lowStockThreshold: null,
       categoryId: null,
+      subcategoryId: null,
       imagePath: null,
       isActive: true,
     },
@@ -60,11 +63,18 @@ export const ProductForm = ({ open, onOpenChange, product }: Props) => {
         trackInventory: product?.trackInventory ?? true,
         lowStockThreshold: product?.lowStockThreshold ?? null,
         categoryId: product?.categoryId ?? null,
+        subcategoryId: product?.subcategoryId ?? null,
         imagePath: product?.imagePath ?? null,
         isActive: product?.isActive ?? true,
       });
     }
   }, [open, product, reset]);
+
+  const selectedCategoryId = watch("categoryId");
+
+  const availableSubcategories = useMemo(() => {
+    return categories?.find((c) => c.id === selectedCategoryId)?.subcategories ?? [];
+  }, [categories, selectedCategoryId]);
 
   const onSubmit = async (value: FormOutput) => {
     if (product) {
@@ -128,34 +138,74 @@ export const ProductForm = ({ open, onOpenChange, product }: Props) => {
           </div>
 
           {/* Category */}
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Controller
-              control={control}
-              name="categoryId"
-              render={({ field }) => (
-                <Shad.Select
-                  value={field.value ?? NO_CATEGORY}
-                  onValueChange={(value: string) =>
-                    field.onChange(value === NO_CATEGORY ? null : value)
-                  }
-                >
-                  <Shad.SelectTrigger className="w-full">
-                    <Shad.SelectValue placeholder="No category" />
-                  </Shad.SelectTrigger>
-                  <Shad.SelectContent>
-                    <Shad.SelectItem value={NO_CATEGORY}>
-                      No category
-                    </Shad.SelectItem>
-                    {categories?.map((category) => (
-                      <Shad.SelectItem key={category.id} value={category.id}>
-                        {category.name}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <Shad.Select
+                    value={field.value ?? NO_CATEGORY}
+                    onValueChange={(value: string) => {
+                      field.onChange(value === NO_CATEGORY ? null : value);
+                      // A subcategory only ever belongs to one category —
+                      // switching category invalidates whatever was picked.
+                      setValue("subcategoryId", null);
+                    }}
+                  >
+                    <Shad.SelectTrigger className="w-full">
+                      <Shad.SelectValue placeholder="No category" />
+                    </Shad.SelectTrigger>
+                    <Shad.SelectContent>
+                      <Shad.SelectItem value={NO_CATEGORY}>
+                        No category
                       </Shad.SelectItem>
-                    ))}
-                  </Shad.SelectContent>
-                </Shad.Select>
-              )}
-            />
+                      {categories?.map((category) => (
+                        <Shad.SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </Shad.SelectItem>
+                      ))}
+                    </Shad.SelectContent>
+                  </Shad.Select>
+                )}
+              />
+            </div>
+
+            {availableSubcategories.length > 0 && (
+              <div className="space-y-2">
+                <Label>Subcategory</Label>
+                <Controller
+                  control={control}
+                  name="subcategoryId"
+                  render={({ field }) => (
+                    <Shad.Select
+                      value={field.value ?? NO_CATEGORY}
+                      onValueChange={(value: string) =>
+                        field.onChange(value === NO_CATEGORY ? null : value)
+                      }
+                    >
+                      <Shad.SelectTrigger className="w-full">
+                        <Shad.SelectValue placeholder="No subcategory" />
+                      </Shad.SelectTrigger>
+                      <Shad.SelectContent>
+                        <Shad.SelectItem value={NO_CATEGORY}>
+                          No subcategory
+                        </Shad.SelectItem>
+                        {availableSubcategories.map((subcategory) => (
+                          <Shad.SelectItem
+                            key={subcategory.id}
+                            value={subcategory.id}
+                          >
+                            {subcategory.name}
+                          </Shad.SelectItem>
+                        ))}
+                      </Shad.SelectContent>
+                    </Shad.Select>
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           {/* Inventory */}

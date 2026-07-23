@@ -25,6 +25,13 @@ export const sidebarSections: SidebarSection[] = [
     label: "POS",
     items: [
       {
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        href: "/dashboard",
+        tooltip: "Dashboard",
+        roles: MANAGEMENT,
+      },
+      {
         label: "Sales",
         icon: "ShoppingCart",
         href: "/",

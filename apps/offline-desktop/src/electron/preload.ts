@@ -18,6 +18,9 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set([
   "categories:create",
   "categories:update",
   "categories:delete",
+  "subcategories:create",
+  "subcategories:update",
+  "subcategories:delete",
   "colors:list",
   "colors:create",
   "colors:update",
@@ -53,6 +56,11 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set([
   "settings:update",
   "backup:export",
   "backup:restore",
+  "dashboard:summary",
+  "dashboard:weeklySales",
+  "dashboard:salesByCategory",
+  "dashboard:hourlyRevenue",
+  "dashboard:topProducts",
 ]);
 
 contextBridge.exposeInMainWorld("electron", {

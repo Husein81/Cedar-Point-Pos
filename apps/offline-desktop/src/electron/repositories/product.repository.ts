@@ -21,6 +21,10 @@ type ProductRow = {
   colorId: string | null;
   colorName: string | null;
   colorHex: string | null;
+  subcategoryId: string | null;
+  subcategoryName: string | null;
+  subcategoryCreatedAt: string | null;
+  subcategoryUpdatedAt: string | null;
   imagePath: string | null;
   isActive: number;
   createdAt: string;
@@ -33,10 +37,13 @@ const SELECT_PRODUCT = `
          c.name AS categoryName, c.sortOrder AS categorySortOrder,
          c.createdAt AS categoryCreatedAt, c.updatedAt AS categoryUpdatedAt,
          c.colorId, co.name AS colorName, co.hex AS colorHex,
+         p.subcategoryId, s.name AS subcategoryName,
+         s.createdAt AS subcategoryCreatedAt, s.updatedAt AS subcategoryUpdatedAt,
          p.imagePath, p.isActive, p.createdAt, p.updatedAt
   FROM products p
   LEFT JOIN categories c ON c.id = p.categoryId
   LEFT JOIN colors co ON co.id = c.colorId
+  LEFT JOIN subcategories s ON s.id = p.subcategoryId
 `;
 
 const toProduct = (row: ProductRow): Product => ({
@@ -58,8 +65,21 @@ const toProduct = (row: ProductRow): Product => ({
           ? { id: row.colorId, name: row.colorName ?? "", hex: row.colorHex ?? "" }
           : null,
         sortOrder: row.categorySortOrder ?? 0,
+        // Product reads don't need the category's full subcategory list —
+        // the product's own subcategory is exposed separately below.
+        subcategories: [],
         createdAt: row.categoryCreatedAt ?? row.createdAt,
         updatedAt: row.categoryUpdatedAt ?? row.updatedAt,
+      }
+    : null,
+  subcategoryId: row.subcategoryId,
+  subcategory: row.subcategoryId
+    ? {
+        id: row.subcategoryId,
+        categoryId: row.categoryId ?? "",
+        name: row.subcategoryName ?? "",
+        createdAt: row.subcategoryCreatedAt ?? row.createdAt,
+        updatedAt: row.subcategoryUpdatedAt ?? row.updatedAt,
       }
     : null,
   imagePath: row.imagePath,
@@ -68,8 +88,9 @@ const toProduct = (row: ProductRow): Product => ({
   updatedAt: row.updatedAt,
 });
 
-// Only these columns are persisted for a product — category is joined in on
-// read, never stored inline (categoryId is the sole FK column).
+// Only these columns are persisted for a product — category/subcategory are
+// joined in on read, never stored inline (categoryId/subcategoryId are the
+// sole FK columns).
 type ProductRecord = {
   id: string;
   name: string;
@@ -81,6 +102,7 @@ type ProductRecord = {
   trackInventory: boolean;
   lowStockThreshold: number | null;
   categoryId: string | null;
+  subcategoryId: string | null;
   imagePath: string | null;
   isActive: boolean;
   createdAt: string;
@@ -175,9 +197,9 @@ export class ProductRepository {
     this.db
       .prepare(
         `INSERT INTO products (id, name, sku, barcode, price, cost, stock, trackInventory,
-                               lowStockThreshold, categoryId, imagePath, isActive, createdAt, updatedAt)
+                               lowStockThreshold, categoryId, subcategoryId, imagePath, isActive, createdAt, updatedAt)
          VALUES (@id, @name, @sku, @barcode, @price, @cost, @stock, @trackInventory,
-                 @lowStockThreshold, @categoryId, @imagePath, @isActive, @createdAt, @updatedAt)`,
+                 @lowStockThreshold, @categoryId, @subcategoryId, @imagePath, @isActive, @createdAt, @updatedAt)`,
       )
       .run({
         ...product,
@@ -192,7 +214,8 @@ export class ProductRepository {
         `UPDATE products
          SET name = @name, sku = @sku, barcode = @barcode, price = @price, cost = @cost,
              stock = @stock, trackInventory = @trackInventory, lowStockThreshold = @lowStockThreshold,
-             categoryId = @categoryId, imagePath = @imagePath, isActive = @isActive, updatedAt = @updatedAt
+             categoryId = @categoryId, subcategoryId = @subcategoryId, imagePath = @imagePath,
+             isActive = @isActive, updatedAt = @updatedAt
          WHERE id = @id AND deletedAt IS NULL`,
       )
       .run({

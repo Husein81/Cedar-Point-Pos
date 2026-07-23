@@ -6,20 +6,26 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { getCustomerColumns } from "@/components/customer/customerColumns";
 import { useCustomers, useDeleteCustomer } from "@/hooks/useCustomer";
 import type { Customer } from "@/shared/models";
+import { usePagination } from "@/hooks/usePagination";
 
 export const Route = createFileRoute("/customers")({
   component: CustomersPage,
 });
 
 function CustomersPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [search, setSearch] = useState("");
+  const {
+    page,
+    pageSize,
+    setPage,
+    onPageSizeChange,
+    searchQuery,
+    setSearchQuery,
+  } = usePagination({});
 
   const { data, isLoading, refetch } = useCustomers({
     page,
     pageSize,
-    search: search || undefined,
+    search: searchQuery || undefined,
   });
   const deleteCustomer = useDeleteCustomer();
 
@@ -61,9 +67,9 @@ function CustomersPage() {
         isLoading={isLoading}
         onRefetch={refetch}
         search={{
-          term: search,
+          term: searchQuery,
           onTermChange: (term) => {
-            setSearch(term);
+            setSearchQuery(term);
             setPage(1);
           },
           keys: ["name", "phone", "email"],
@@ -74,10 +80,7 @@ function CustomersPage() {
           pageSize,
           totalPages: Math.max(1, Math.ceil((data?.total ?? 0) / pageSize)),
           onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
+          onPageSizeChange,
         }}
       />
 

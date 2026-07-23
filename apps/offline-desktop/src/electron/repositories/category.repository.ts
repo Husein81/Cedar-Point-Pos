@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { Category } from "../../shared/models";
+import type { SubcategoryRepository } from "./subcategory.repository";
 
 type CategoryRow = {
   id: string;
@@ -19,27 +20,37 @@ const SELECT_CATEGORY = `
   LEFT JOIN colors co ON co.id = c.colorId
 `;
 
-const toCategory = (row: CategoryRow): Category => ({
-  id: row.id,
-  name: row.name,
-  color: row.colorId
-    ? { id: row.colorId, name: row.colorName ?? "", hex: row.colorHex ?? "" }
-    : null,
-  sortOrder: row.sortOrder,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-});
-
 export class CategoryRepository {
-  constructor(private readonly db: Database.Database) {}
+  constructor(
+    private readonly db: Database.Database,
+    private readonly subcategories: SubcategoryRepository,
+  ) {}
+
+  private toCategory(row: CategoryRow, subcategoriesById: ReadonlyMap<string, Category["subcategories"]>): Category {
+    return {
+      id: row.id,
+      name: row.name,
+      color: row.colorId
+        ? { id: row.colorId, name: row.colorName ?? "", hex: row.colorHex ?? "" }
+        : null,
+      sortOrder: row.sortOrder,
+      subcategories: subcategoriesById.get(row.id) ?? [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
 
   list(): Category[] {
-    return this.db
+    const rows = this.db
       .prepare<[], CategoryRow>(
         `${SELECT_CATEGORY} WHERE c.deletedAt IS NULL ORDER BY c.sortOrder, c.name`,
       )
-      .all()
-      .map(toCategory);
+      .all();
+
+    const subcategoriesById = this.subcategories.listByCategoryIds(
+      rows.map((row) => row.id),
+    );
+    return rows.map((row) => this.toCategory(row, subcategoriesById));
   }
 
   findById(id: string): Category | null {
@@ -48,7 +59,10 @@ export class CategoryRepository {
         `${SELECT_CATEGORY} WHERE c.id = ? AND c.deletedAt IS NULL`,
       )
       .get(id);
-    return row ? toCategory(row) : null;
+    if (!row) return null;
+
+    const subcategoriesById = this.subcategories.listByCategoryIds([id]);
+    return this.toCategory(row, subcategoriesById);
   }
 
   insert(category: { id: string; name: string; colorId: string | null; sortOrder: number; createdAt: string; updatedAt: string }): void {

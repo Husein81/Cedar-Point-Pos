@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button, DataTable } from "@repo/ui";
 import { CategoryForm } from "@/components/category/CategoryForm";
+import { SubcategoriesDialog } from "@/components/category/SubcategoriesDialog";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { getCategoryColumns } from "@/components/category/categoryColumns";
 import { useCategories, useDeleteCategory } from "@/hooks/useCategory";
@@ -18,6 +19,8 @@ function CategoriesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState<Category | null>(null);
+  const [managingSubcategoriesFor, setManagingSubcategoriesFor] =
+    useState<Category | null>(null);
 
   const columns = getCategoryColumns({
     onEdit: (category) => {
@@ -25,7 +28,14 @@ function CategoriesPage() {
       setIsFormOpen(true);
     },
     onDelete: (category) => setDeleting(category),
+    onManageSubcategories: (category) => setManagingSubcategoriesFor(category),
   });
+
+  // Re-point at the freshly-refetched category so edits inside the dialog
+  // (add/edit/delete subcategory) show up immediately without closing it.
+  const liveManagingCategory = managingSubcategoriesFor
+    ? (categories?.find((c) => c.id === managingSubcategoriesFor.id) ?? null)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -59,6 +69,12 @@ function CategoriesPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         category={editing}
+      />
+
+      <SubcategoriesDialog
+        open={!!managingSubcategoriesFor}
+        onOpenChange={(open) => !open && setManagingSubcategoriesFor(null)}
+        category={liveManagingCategory}
       />
 
       <ConfirmDialog

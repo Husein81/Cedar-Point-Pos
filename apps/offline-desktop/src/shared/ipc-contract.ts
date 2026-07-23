@@ -4,8 +4,11 @@
 
 import type {
   Category,
+  CategorySalesPoint,
   Color,
   Customer,
+  DashboardSummary,
+  HourlyRevenuePoint,
   Order,
   OrderWithDetails,
   Paginated,
@@ -13,12 +16,16 @@ import type {
   Settings,
   Shift,
   StockMovement,
+  Subcategory,
+  TopProductPoint,
   User,
+  WeeklySalesPoint,
 } from "./models";
 import type {
   CategoryInput,
   ColorInput,
   CustomerInput,
+  DateRangeInput,
   ListCustomersInput,
   ListOrdersInput,
   ListProductsInput,
@@ -30,6 +37,8 @@ import type {
   RefundInput,
   StockAdjustmentInput,
   StockPurchaseInput,
+  SubcategoryInput,
+  TopProductsInput,
   UpdateSettingsInput,
   UserInput,
   UpdateUserInput,
@@ -63,6 +72,17 @@ export type IpcContract = {
     output: Category;
   };
   "categories:delete": { input: { id: string }; output: void };
+
+  // ── subcategories ───────────────────────────────────────────────────
+  "subcategories:create": {
+    input: { categoryId: string; data: SubcategoryInput };
+    output: Subcategory;
+  };
+  "subcategories:update": {
+    input: { id: string; data: SubcategoryInput };
+    output: Subcategory;
+  };
+  "subcategories:delete": { input: { id: string }; output: void };
 
   // ── colors ──────────────────────────────────────────────────────────
   "colors:list": { input: void; output: Color[] };
@@ -123,6 +143,19 @@ export type IpcContract = {
   // ── backup ──────────────────────────────────────────────────────────
   "backup:export": { input: void; output: { path: string } | null };
   "backup:restore": { input: void; output: { restored: boolean } };
+
+  // ── dashboard ───────────────────────────────────────────────────────
+  "dashboard:summary": { input: void; output: DashboardSummary };
+  "dashboard:weeklySales": { input: void; output: WeeklySalesPoint[] };
+  "dashboard:salesByCategory": {
+    input: DateRangeInput;
+    output: CategorySalesPoint[];
+  };
+  "dashboard:hourlyRevenue": { input: void; output: HourlyRevenuePoint[] };
+  "dashboard:topProducts": {
+    input: TopProductsInput;
+    output: TopProductPoint[];
+  };
 };
 
 export type IpcChannel = keyof IpcContract;

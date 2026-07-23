@@ -27,6 +27,15 @@ export type Category = {
   name: string;
   color: Color | null;
   sortOrder: number;
+  subcategories: Subcategory[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Subcategory = {
+  id: string;
+  categoryId: string;
+  name: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,6 +61,8 @@ export type Product = {
   lowStockThreshold: number | null;
   categoryId: string | null;
   category: Category | null;
+  subcategoryId: string | null;
+  subcategory: Subcategory | null;
   imagePath: string | null;
   isActive: boolean;
   createdAt: string;
@@ -177,4 +188,36 @@ export type Paginated<T> = {
   total: number;
   page: number;
   pageSize: number;
+};
+
+// ── dashboard ─────────────────────────────────────────────────────────
+
+export type DashboardSummary = {
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalCustomers: number;
+};
+
+export type WeeklySalesPoint = {
+  date: string;
+  name: string;
+  sales: number;
+};
+
+export type CategorySalesPoint = {
+  name: string;
+  sales: number;
+  value: number;
+};
+
+export type HourlyRevenuePoint = {
+  hour: number;
+  revenue: number;
+};
+
+export type TopProductPoint = {
+  product: string;
+  revenue: number;
+  sold: number;
 };

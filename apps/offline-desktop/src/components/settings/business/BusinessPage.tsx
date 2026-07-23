@@ -170,17 +170,20 @@ export default function BusinessPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Phone"
+                placeholder="+(---)-- --- ---"
                 registration={register("phone")}
                 error={errors.phone}
               />
               <FormField
                 label="Email"
+                placeholder="example@test.com"
                 registration={register("email")}
                 error={errors.email}
               />
             </div>
             <FormField
               label="Address"
+              placeholder="123 Main St, City, State, ZIP"
               registration={register("address")}
               error={errors.address}
             />

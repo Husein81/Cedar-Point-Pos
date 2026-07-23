@@ -7,20 +7,26 @@ import { getProductColumns } from "@/components/products/productColumns";
 import { useDeleteProduct, useProducts } from "@/hooks/useProduct";
 import { useSettings } from "@/hooks/useSettings";
 import type { Product } from "@/shared/models";
+import { usePagination } from "@/hooks/usePagination";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
 });
 
 function ProductsPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [search, setSearch] = useState("");
+  const {
+    page,
+    pageSize,
+    setPage,
+    onPageSizeChange,
+    searchQuery,
+    setSearchQuery,
+  } = usePagination({});
 
   const { data, isLoading, refetch } = useProducts({
     page,
     pageSize,
-    search: search || undefined,
+    search: searchQuery || undefined,
     activeOnly: false,
     lowStockOnly: false,
   });
@@ -68,9 +74,9 @@ function ProductsPage() {
         isLoading={isLoading}
         onRefetch={refetch}
         search={{
-          term: search,
+          term: searchQuery,
           onTermChange: (term) => {
-            setSearch(term);
+            setSearchQuery(term);
             setPage(1);
           },
           keys: ["name", "sku", "barcode"],
@@ -81,10 +87,7 @@ function ProductsPage() {
           pageSize,
           totalPages: Math.max(1, Math.ceil((data?.total ?? 0) / pageSize)),
           onPageChange: setPage,
-          onPageSizeChange: (size) => {
-            setPageSize(size);
-            setPage(1);
-          },
+          onPageSizeChange,
         }}
       />
 

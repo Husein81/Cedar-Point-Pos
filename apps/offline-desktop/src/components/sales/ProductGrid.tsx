@@ -21,6 +21,9 @@ export const ProductGrid = ({ currencySymbol }: Props) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<
+    string | null
+  >(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -87,6 +90,24 @@ export const ProductGrid = ({ currencySymbol }: Props) => {
     );
   }, [categories, products]);
 
+  const activeSubcategories = useMemo(() => {
+    if (!selectedCategoryId || !categories) return [];
+
+    const category = categories.find((c) => c.id === selectedCategoryId);
+    if (!category) return [];
+
+    const subcategoryIdsWithProducts = new Set(
+      products
+        .filter((p) => p.categoryId === selectedCategoryId)
+        .map((p) => p.subcategoryId)
+        .filter(Boolean),
+    );
+
+    return category.subcategories.filter((subcategory) =>
+      subcategoryIdsWithProducts.has(subcategory.id),
+    );
+  }, [categories, products, selectedCategoryId]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (searchQuery.trim()) {
@@ -102,20 +123,37 @@ export const ProductGrid = ({ currencySymbol }: Props) => {
         return false;
       }
 
+      if (
+        selectedSubcategoryId &&
+        product.subcategoryId !== selectedSubcategoryId
+      ) {
+        return false;
+      }
+
       if (isAvailableOnly && product.trackInventory && product.stock <= 0) {
         return false;
       }
 
       return true;
     });
-  }, [products, searchQuery, selectedCategoryId, isAvailableOnly]);
+  }, [
+    products,
+    searchQuery,
+    selectedCategoryId,
+    selectedSubcategoryId,
+    isAvailableOnly,
+  ]);
 
   const hasActiveFilters =
-    !!searchQuery.trim() || !!selectedCategoryId || isAvailableOnly;
+    !!searchQuery.trim() ||
+    !!selectedCategoryId ||
+    !!selectedSubcategoryId ||
+    isAvailableOnly;
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
     setIsAvailableOnly(false);
   };
 
@@ -185,7 +223,6 @@ export const ProductGrid = ({ currencySymbol }: Props) => {
         </div>
       );
     }
-    console.log("renderProducts", filteredProducts.length, filteredProducts);
     return (
       <div className="grid grid-cols-2 gap-2 pb-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {filteredProducts.map((product) => (
@@ -249,37 +286,75 @@ export const ProductGrid = ({ currencySymbol }: Props) => {
 
       {/* Categories */}
       {!searchQuery && (
-        <div className="flex flex-wrap gap-2">
-          <SButton
-            size="sm"
-            variant={!selectedCategoryId ? "secondary" : "outline"}
-            onClick={() => setSelectedCategoryId(null)}
-            className="whitespace-nowrap"
-          >
-            All
-          </SButton>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <SButton
+              size="sm"
+              variant={!selectedCategoryId ? "secondary" : "outline"}
+              onClick={() => {
+                setSelectedCategoryId(null);
+                setSelectedSubcategoryId(null);
+              }}
+              className="whitespace-nowrap"
+            >
+              All
+            </SButton>
 
-          {activeCategories.map((category) => {
-            const isSelected = selectedCategoryId === category.id;
-            const hex = category.color?.hex;
+            {activeCategories.map((category) => {
+              const isSelected = selectedCategoryId === category.id;
+              const hex = category.color?.hex;
 
-            return (
-              <SButton
-                key={category.id}
+              return (
+                <SButton
+                  key={category.id}
+                  size="sm"
+                  variant={isSelected ? "secondary" : "outline"}
+                  onClick={() => {
+                    setSelectedCategoryId(category.id);
+                    setSelectedSubcategoryId(null);
+                  }}
+                  className="whitespace-nowrap transition-colors"
+                  style={{
+                    borderColor: hex ? `${hex}40` : undefined,
+                    color: hex,
+                    backgroundColor: isSelected && hex ? `${hex}1A` : undefined,
+                  }}
+                >
+                  {category.name}
+                </SButton>
+              );
+            })}
+          </div>
+
+          {/* Subcategories */}
+          {selectedCategoryId && activeSubcategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 pl-1">
+              <Button
                 size="sm"
-                variant={isSelected ? "secondary" : "outline"}
-                onClick={() => setSelectedCategoryId(category.id)}
-                className="whitespace-nowrap transition-colors"
-                style={{
-                  borderColor: hex ? `${hex}40` : undefined,
-                  color: hex,
-                  backgroundColor: isSelected && hex ? `${hex}1A` : undefined,
-                }}
+                variant={!selectedSubcategoryId ? "secondary" : "outline"}
+                onClick={() => setSelectedSubcategoryId(null)}
+                className="h-8"
               >
-                {category.name}
-              </SButton>
-            );
-          })}
+                All
+              </Button>
+
+              {activeSubcategories.map((subcategory) => (
+                <Button
+                  key={subcategory.id}
+                  size="sm"
+                  variant={
+                    selectedSubcategoryId === subcategory.id
+                      ? "secondary"
+                      : "outline"
+                  }
+                  onClick={() => setSelectedSubcategoryId(subcategory.id)}
+                  className="h-8"
+                >
+                  {subcategory.name}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -66,6 +66,11 @@ export const CategorySchema = z.object({
 });
 export type CategoryInput = z.infer<typeof CategorySchema>;
 
+export const SubcategorySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+});
+export type SubcategoryInput = z.infer<typeof SubcategorySchema>;
+
 // ── products ──────────────────────────────────────────────────────────
 
 export const ProductSchema = z.object({
@@ -78,6 +83,7 @@ export const ProductSchema = z.object({
   trackInventory: z.boolean().default(true),
   lowStockThreshold: z.number().finite().nullable().optional(),
   categoryId: IdSchema.nullable().optional(),
+  subcategoryId: IdSchema.nullable().optional(),
   imagePath: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
 });
@@ -244,3 +250,16 @@ export const UpdateSettingsSchema = z.object({
   theme: z.string().optional(),
 });
 export type UpdateSettingsInput = z.infer<typeof UpdateSettingsSchema>;
+
+// ── dashboard ─────────────────────────────────────────────────────────
+
+export const DateRangeSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+});
+export type DateRangeInput = z.infer<typeof DateRangeSchema>;
+
+export const TopProductsSchema = DateRangeSchema.extend({
+  limit: z.number().int().min(1).max(50).default(5),
+});
+export type TopProductsInput = z.infer<typeof TopProductsSchema>;

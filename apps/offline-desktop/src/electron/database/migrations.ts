@@ -226,6 +226,26 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    version: 4,
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE subcategories (
+          id TEXT PRIMARY KEY,
+          categoryId TEXT NOT NULL REFERENCES categories(id),
+          name TEXT NOT NULL,
+          deletedAt TEXT,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL
+        );
+        CREATE INDEX idx_subcategories_category ON subcategories(categoryId);
+        CREATE INDEX idx_subcategories_deleted ON subcategories(deletedAt);
+
+        ALTER TABLE products ADD COLUMN subcategoryId TEXT REFERENCES subcategories(id);
+        CREATE INDEX idx_products_subcategory ON products(subcategoryId);
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database) {

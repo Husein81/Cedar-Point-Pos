@@ -3,12 +3,15 @@ import { Icon, Shad } from "@repo/ui";
 import { useModalStore } from "@/store/modalStore";
 import { ProductForm } from "./ProductForm";
 import { useDeleteProduct } from "@/hooks/useProduct";
+import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "@tanstack/react-router";
 
 export const ProductActions = ({ product }: { product: Product }) => {
   const openModal = useModalStore((state) => state.openModal);
   const deleteMutation = useDeleteProduct();
   const navigate = useNavigate();
+  // Editing/deleting the catalog is Manager/Admin only (see Option C).
+  const canManageProducts = useAuthStore((s) => s.isHighLevelUser);
 
   const handleEdit = () => {
     openModal("Edit Product", <ProductForm product={product} />);
@@ -37,14 +40,18 @@ export const ProductActions = ({ product }: { product: Product }) => {
           <Icon name="Eye" className="h-4 w-4 hover:text-accent" />
           View Details
         </Shad.DropdownMenuItem>
-        <Shad.DropdownMenuItem onClick={handleEdit}>
-          <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
-          Edit
-        </Shad.DropdownMenuItem>
-        <Shad.DropdownMenuItem onClick={handleDelete} variant="destructive">
-          <Icon name="Trash2" className="h-4 w-4" />
-          Delete
-        </Shad.DropdownMenuItem>
+        {canManageProducts && (
+          <>
+            <Shad.DropdownMenuItem onClick={handleEdit}>
+              <Icon name="SquarePen" className="h-4 w-4 hover:text-accent" />
+              Edit
+            </Shad.DropdownMenuItem>
+            <Shad.DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <Icon name="Trash2" className="h-4 w-4" />
+              Delete
+            </Shad.DropdownMenuItem>
+          </>
+        )}
       </Shad.DropdownMenuContent>
     </Shad.DropdownMenu>
   );

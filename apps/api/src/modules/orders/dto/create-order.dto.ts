@@ -85,6 +85,16 @@ export class CreateOrderDto {
   @IsString()
   customerId?: string;
 
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description: 'Extra customers sharing this order (excludes the primary).',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  additionalCustomerIds?: string[];
+
   @ApiProperty({ type: [CreateOrderItemDto], required: false })
   @IsOptional()
   @IsArray()

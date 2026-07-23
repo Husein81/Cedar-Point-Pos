@@ -1,14 +1,20 @@
 import { useState, useCallback, useMemo } from "react";
-import { Combobox, Icon, Shad } from "@repo/ui";
+import { Combobox, Icon, Shad, toast } from "@repo/ui";
 import type { ComboboxOption } from "@repo/ui";
 import { useSearchCustomers } from "@/hooks/useCustomer";
+import { useSetOrderCustomers } from "@/hooks/useOrder";
 import { useOrderStore } from "@/store/orderStore";
 import { CustomerCard } from "./CustomerCard";
 import type { CustomerSummary } from "@/dto/customer.dto";
 import { useModalStore } from "@/store/modalStore";
 import { CustomerForm } from "./CustomerForm";
+import { extractErrorMessage } from "@/utils/error";
 import { OrderType } from "@repo/types";
 import _ from "lodash";
+
+/** A persisted (server-side) order has a UUID id; drafts are prefixed "order-". */
+const isPersistedOrder = (orderId?: string): boolean =>
+  !!orderId && !orderId.startsWith("order-");
 
 type Props = {
   className?: string;
@@ -28,49 +34,112 @@ export const CustomerSelector = ({ className }: Props) => {
     open,
   );
 
-  const { getActiveOrder, setCustomer } = useOrderStore();
+  const {
+    getActiveOrder,
+    setCustomer,
+    addAdditionalCustomer,
+    removeAdditionalCustomer,
+  } = useOrderStore();
+  const setOrderCustomers = useSetOrderCustomers();
   const order = getActiveOrder();
-  const selectedCustomerId = order?.customerId;
-  const selectedCustomerName = order?.customerName;
+  const primaryCustomerId = order?.customerId;
+  const primaryCustomerName = order?.customerName;
+  const additionalCustomers = order?.additionalCustomers ?? [];
+
+  // Push the full customer list of an already-created (server-side) order.
+  // Draft orders persist their customers on the initial create, so this is a
+  // no-op for them. Reads fresh store state after synchronous store updates.
+  const syncOrderCustomers = useCallback(() => {
+    const active = useOrderStore.getState().getActiveOrder();
+    if (!active || !isPersistedOrder(active.id)) return;
+    setOrderCustomers.mutate(
+      {
+        id: active.id,
+        customerId: active.customerId,
+        additionalCustomerIds: active.additionalCustomers.map((c) => c.id),
+      },
+      {
+        onError: (error) =>
+          toast.error(extractErrorMessage(error, "Failed to update customers")),
+      },
+    );
+  }, [setOrderCustomers]);
+
+  // Hide already-selected customers (primary + guests) from the add list.
+  const selectedIds = useMemo(() => {
+    const ids = new Set(additionalCustomers.map((c) => c.id));
+    if (primaryCustomerId) ids.add(primaryCustomerId);
+    return ids;
+  }, [additionalCustomers, primaryCustomerId]);
 
   const options: ComboboxOption[] = useMemo(() => {
     if (!customers) return [];
-    return customers.map((customer) => ({
-      value: customer.id,
-      label: customer.name,
-      description: customer.phone || undefined,
-      icon: (
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
-          <Icon name="User" className="w-4 h-4 text-muted-foreground" />
-        </div>
-      ),
-    }));
-  }, [customers]);
+    return customers
+      .filter((customer) => !selectedIds.has(customer.id))
+      .map((customer) => ({
+        value: customer.id,
+        label: customer.name,
+        description: customer.phone || undefined,
+        icon: (
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted shrink-0">
+            <Icon name="User" className="w-4 h-4 text-muted-foreground" />
+          </div>
+        ),
+      }));
+  }, [customers, selectedIds]);
+
+  // First customer becomes the primary (earns loyalty); the rest are guests.
+  const addCustomer = useCallback(
+    (customer: { id: string; name: string }) => {
+      const active = useOrderStore.getState().getActiveOrder();
+      if (active?.customerId) {
+        addAdditionalCustomer({ id: customer.id, name: customer.name });
+      } else {
+        setCustomer(customer.id, customer.name);
+      }
+      syncOrderCustomers();
+    },
+    [addAdditionalCustomer, setCustomer, syncOrderCustomers],
+  );
 
   const handleSelectCustomer = useCallback(
     (customerId: string | null) => {
-      if (!customerId) {
-        setCustomer(null, null);
-        return;
-      }
+      if (!customerId) return;
       const customer = customers?.find((c) => c.id === customerId);
       if (customer) {
-        setCustomer(customer.id, customer.name);
+        addCustomer({ id: customer.id, name: customer.name });
         setSearchQuery("");
       }
     },
-    [customers, setCustomer],
+    [customers, addCustomer],
   );
 
-  const handleRemoveCustomer = useCallback(() => {
-    setCustomer(null, null);
-  }, [setCustomer]);
+  // Removing the primary promotes the first guest (if any) so loyalty keeps a
+  // holder; setCustomer de-dupes the promoted id out of the guest list.
+  const handleRemovePrimary = useCallback(() => {
+    const active = useOrderStore.getState().getActiveOrder();
+    const next = active?.additionalCustomers[0];
+    if (next) {
+      setCustomer(next.id, next.name);
+    } else {
+      setCustomer(null, null);
+    }
+    syncOrderCustomers();
+  }, [setCustomer, syncOrderCustomers]);
+
+  const handleRemoveAdditional = useCallback(
+    (customerId: string) => {
+      removeAdditionalCustomer(customerId);
+      syncOrderCustomers();
+    },
+    [removeAdditionalCustomer, syncOrderCustomers],
+  );
 
   const handleCustomerCreated = useCallback(
     (customer: CustomerSummary) => {
-      setCustomer(customer.id, customer.name);
+      addCustomer({ id: customer.id, name: customer.name });
     },
-    [setCustomer],
+    [addCustomer],
   );
 
   const handleOpenNewCustomer = () => {
@@ -84,29 +153,36 @@ export const CustomerSelector = ({ className }: Props) => {
     );
   };
 
-  // If customer is selected, show the card
-  if (selectedCustomerId && selectedCustomerName) {
-    return (
-      <div className={className}>
-        <CustomerCard
-          customer={{
-            id: selectedCustomerId,
-            name: selectedCustomerName,
-            phone: null,
-          }}
-          onRemove={handleRemoveCustomer}
-        />
-      </div>
-    );
-  }
+  const hasPrimary = !!(primaryCustomerId && primaryCustomerName);
 
   return (
-    <div className={className}>
+    <div className={`space-y-2 ${className ?? ""}`}>
+      {hasPrimary && (
+        <CustomerCard
+          customer={{
+            id: primaryCustomerId,
+            name: primaryCustomerName,
+            phone: null,
+          }}
+          badgeLabel="Primary"
+          onRemove={handleRemovePrimary}
+        />
+      )}
+
+      {additionalCustomers.map((customer) => (
+        <CustomerCard
+          key={customer.id}
+          customer={{ id: customer.id, name: customer.name, phone: null }}
+          badgeLabel="Guest"
+          onRemove={() => handleRemoveAdditional(customer.id)}
+        />
+      ))}
+
       <Combobox
         options={options}
-        value={selectedCustomerId}
+        value={undefined}
         onValueChange={handleSelectCustomer}
-        placeholder="Add customer (optional)"
+        placeholder={hasPrimary ? "Add another customer" : "Add customer (optional)"}
         searchPlaceholder="Search by name or phone..."
         emptyText={searchQuery ? "No customers found" : "No recent customers"}
         isLoading={isLoading}

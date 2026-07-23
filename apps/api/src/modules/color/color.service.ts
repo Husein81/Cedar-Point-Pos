@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateColorDto, UpdateColorDto } from './dto/color.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Color } from '../../generated/prisma/browser.js';
@@ -91,13 +87,9 @@ export class ColorService {
       { name: 'Stone', hex: '#78716C', tenantId },
     ];
 
-    const existingCount = await this.prisma.color.count({
-      where: { tenantId },
-    });
-    if (existingCount > 0) {
-      throw new BadRequestException('Colors already exist');
-    }
-
+    // Idempotent: adds any missing default colors and skips ones already
+    // present (guarded by the @@unique([tenantId, name]) / ([tenantId, hex])
+    // constraints), so re-running "Seed Colors" never errors.
     return await this.prisma.color.createMany({
       data: defaultColors,
       skipDuplicates: true,

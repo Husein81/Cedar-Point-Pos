@@ -43,6 +43,9 @@ export const mapBackendOrderToClientOrder = (
     customerId: backendOrder.customerId || null,
     customerName: backendOrder.customer?.name || null,
     customerAddress: backendOrder.customer?.address || null,
+    additionalCustomers: (backendOrder.orderCustomers || [])
+      .filter((oc) => !oc.isPrimary)
+      .map((oc) => ({ id: oc.customer.id, name: oc.customer.name })),
     tableId: backendOrder.tableId || null,
     tableName: backendOrder.table?.name || null,
     notes: backendOrder.notes || "",

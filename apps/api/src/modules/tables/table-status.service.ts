@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ACTIVE_ORDER_STATUSES } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { fetchAdditionalOrderCustomers } from '../common/order-customers.util.js';
 import {
   TableStatus,
   OrderStatus,
@@ -153,7 +154,6 @@ export class TableStatusService {
     tableId: string,
     tenantId: string,
     tx?: Prisma.TransactionClient,
-    guestCount?: number,
   ): Promise<{ status: TableStatus; capacity: number | null }> {
     const prismaClient = tx || this.prisma;
 
@@ -178,11 +178,8 @@ export class TableStatusService {
       throw new BadRequestException('Table is not active');
     }
 
-    if (guestCount && table.capacity < guestCount) {
-      throw new BadRequestException(
-        `Table capacity(${table.capacity}) is insufficient for ${guestCount} guests`,
-      );
-    }
+    // Seating over a table's capacity is allowed — the POS surfaces it as a
+    // soft "over capacity" warning on the table card rather than blocking it.
 
     return {
       status: table.status,
@@ -202,14 +199,8 @@ export class TableStatusService {
     tableId: string,
     tenantId: string,
     tx?: Prisma.TransactionClient,
-    guestCount?: number,
   ): Promise<void> {
-    const table = await this.validateTableForOrder(
-      tableId,
-      tenantId,
-      tx,
-      guestCount,
-    );
+    const table = await this.validateTableForOrder(tableId, tenantId, tx);
 
     // Only update if transitioning from AVAILABLE or RESERVED
     if (table.status !== TableStatus.OCCUPIED) {
@@ -250,7 +241,7 @@ export class TableStatusService {
   ) {
     const prismaClient = tx || this.prisma;
 
-    return prismaClient.order.findMany({
+    const orders = await prismaClient.order.findMany({
       where: {
         tableId,
         tenantId,
@@ -274,6 +265,17 @@ export class TableStatusService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Additional (shared) customers fetched separately + guarded so a missing
+    // join table can't break loading a table's orders.
+    const additionalByOrder = await fetchAdditionalOrderCustomers(
+      this.prisma,
+      orders.map((o) => o.id),
+    );
+    return orders.map((order) => ({
+      ...order,
+      orderCustomers: additionalByOrder.get(order.id) ?? [],
+    }));
   }
 
   /**

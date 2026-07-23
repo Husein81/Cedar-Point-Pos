@@ -30,6 +30,7 @@ export interface CreateOrderDto {
   deviceId?: string;
   shiftId?: string;
   customerId?: string;
+  additionalCustomerIds?: string[];
   items?: CreateOrderItemDto[];
   discount?: number; // Discount amount (must be >= 0)
   shippingFee?: number; // Shipping fee (must be >= 0)
@@ -120,6 +121,12 @@ export type OrderDiscount = {
   value: number;
 };
 
+/** An extra customer sharing an order alongside the primary (loyalty) one. */
+export type AdditionalCustomer = {
+  id: string;
+  name: string;
+};
+
 export type Order = {
   id: string;
   status: OrderStatus;
@@ -132,6 +139,7 @@ export type Order = {
   customerId: string | null;
   customerName: string | null;
   customerAddress: string | null;
+  additionalCustomers: AdditionalCustomer[];
   tableId: string | null;
   tableName: string | null;
   guestCount?: number;
@@ -186,6 +194,11 @@ export type BackendOrder = {
   includeVAT?: boolean;
   customerId?: string | null;
   customer?: { name: string; address?: string | null } | null;
+  orderCustomers?: Array<{
+    customerId: string;
+    isPrimary: boolean;
+    customer: { id: string; name: string };
+  }>;
   tableId?: string | null;
   table?: { name: string } | null;
   notes?: string | null;

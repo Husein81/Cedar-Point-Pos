@@ -7,6 +7,7 @@ import {
 import { OrderStatus, QueryParams } from '@repo/types';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { isMissingTableError } from '../common/order-customers.util.js';
 
 @Injectable()
 export class CustomersService {
@@ -238,35 +239,40 @@ export class CustomersService {
     const limit = Math.min(Math.max(Number(rawLimit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where = {
+    // Include orders where the customer is primary (customerId) or a shared
+    // participant (orderCustomers join). The OR also covers legacy orders
+    // created before the join table existed.
+    const withJoinWhere = {
       tenantId,
-      customerId,
+      OR: [{ customerId }, { orderCustomers: { some: { customerId } } }],
     };
+    // Fallback that only needs the always-present Order.customerId column, used
+    // if the OrderCustomer join table is missing (e.g. a shared-DB reset).
+    const primaryOnlyWhere = { tenantId, customerId };
 
-    const [totalCount, orders] = await this.prisma.$transaction([
-      this.prisma.order.count({ where }),
-      this.prisma.order.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-        include: {
-          branch: {
-            select: {
-              id: true,
-              name: true,
-            },
+    const runQuery = (where: Prisma.OrderWhereInput) =>
+      this.prisma.$transaction([
+        this.prisma.order.count({ where }),
+        this.prisma.order.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+          include: {
+            branch: { select: { id: true, name: true } },
+            payments: { select: { id: true, method: true, amount: true } },
           },
-          payments: {
-            select: {
-              id: true,
-              method: true,
-              amount: true,
-            },
-          },
-        },
-      }),
-    ]);
+        }),
+      ]);
+
+    let totalCount: number;
+    let orders: Awaited<ReturnType<typeof runQuery>>[1];
+    try {
+      [totalCount, orders] = await runQuery(withJoinWhere);
+    } catch (error) {
+      if (!isMissingTableError(error)) throw error;
+      [totalCount, orders] = await runQuery(primaryOnlyWhere);
+    }
 
     return {
       data: orders,

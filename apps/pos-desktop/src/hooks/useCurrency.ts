@@ -17,6 +17,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 
 const CURRENCY_QUERY_KEY = ["currencies"];
 const TENANT_CURRENCY_QUERY_KEY = ["tenant-currencies"];
@@ -28,6 +30,29 @@ export const useTenantCurrencies = () => {
     queryFn: () => currencyApi.getTenantCurrencies(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+};
+
+/**
+ * The tenant's base currency (code + symbol) and a money formatter that uses
+ * it. Amounts are stored in the base currency, so all price displays should go
+ * through this instead of a hard-coded "$". Symbol is suffixed (e.g. "50,000
+ * L.L") to match the invoice formatting convention.
+ */
+export const useBaseCurrency = () => {
+  const { data } = useTenantCurrencies();
+  const code = data?.baseCurrencyCode ?? "USD";
+  const symbol =
+    data?.currencies.find((c) => c.currencyCode === code)?.currency?.symbol ||
+    code;
+
+  const format = (value: number | string | null | undefined): string => {
+    if (value === null || value === undefined || value === "") return "—";
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "—";
+    return `${new Intl.NumberFormat("en-US").format(num)} ${symbol}`;
+  };
+
+  return { code, symbol, format };
 };
 
 export const useTenantCurrenciesPaginated = (params?: QueryParams) => {
@@ -73,11 +98,15 @@ export const useCreateTenantCurrency = (): UseMutationResult<
 
   return useMutation({
     mutationFn: currencyApi.createTenantCurrency,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`${data.currencyCode} added`);
       queryClient.invalidateQueries({ queryKey: TENANT_CURRENCY_QUERY_KEY });
       queryClient.invalidateQueries({
         queryKey: ACTIVE_CURRENCIES_QUERY_KEY,
       });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to add currency"));
     },
   });
 };
@@ -92,8 +121,12 @@ export const useUpdateTenantCurrency = () => {
   >({
     mutationFn: ({ id, data }) => currencyApi.updateTenantCurrency(id, data),
     onSuccess: () => {
+      toast.success("Currency updated");
       queryClient.invalidateQueries({ queryKey: TENANT_CURRENCY_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ACTIVE_CURRENCIES_QUERY_KEY });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to update currency"));
     },
   });
 };

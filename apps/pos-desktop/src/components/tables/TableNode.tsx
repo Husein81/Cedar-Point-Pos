@@ -5,11 +5,13 @@ import {
   TABLE_SHAPE_CONFIG,
   TABLE_UI_STATUS_CONFIG,
   DEFAULT_TABLE_SHAPE,
+  OVER_CAPACITY_TEXT_CLASS,
   deriveTableUiStatus,
   formatElapsedSince,
   formatTableMoney,
   getTableSize,
   getVisibleMenuEntries,
+  isOverCapacity,
 } from "./config";
 
 export type TableNodeAction =
@@ -72,6 +74,7 @@ export const TableNode = memo(function TableNode({
   const rotation = table.rotation ?? 0;
   const isCompact = width < 110 || height < 110;
   const order = table.activeOrder;
+  const overCapacity = isOverCapacity(order?.guestCount, table.capacity);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -143,7 +146,14 @@ export const TableNode = memo(function TableNode({
 
         {!isCompact && (
           <>
-            <div className="text-muted-foreground flex items-center gap-1 text-[11px] leading-tight">
+            <div
+              className={cn(
+                "flex items-center gap-1 text-[11px] leading-tight",
+                overCapacity
+                  ? cn(OVER_CAPACITY_TEXT_CLASS, "font-semibold")
+                  : "text-muted-foreground",
+              )}
+            >
               <Icon name="Users" className="h-3 w-3" />
               <span>
                 {order?.guestCount ?? 0}/{table.capacity}
@@ -177,6 +187,18 @@ export const TableNode = memo(function TableNode({
             {order?.userName && (
               <span className="text-muted-foreground max-w-full truncate text-[10px] leading-tight">
                 {order.userName}
+              </span>
+            )}
+
+            {overCapacity && (
+              <span
+                className={cn(
+                  "flex items-center gap-0.5 text-[10px] leading-tight font-semibold",
+                  OVER_CAPACITY_TEXT_CLASS,
+                )}
+              >
+                <Icon name="TriangleAlert" className="h-2.5 w-2.5" />
+                Over capacity
               </span>
             )}
           </>

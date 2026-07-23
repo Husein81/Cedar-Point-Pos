@@ -1,7 +1,7 @@
 import TitleBar from "@/components/title-bar";
 import { BulkImportModal } from "@/components/common";
 import { ProductForm } from "@/components/products/ProductForm";
-import { productColumns } from "@/components/products/productColumn";
+import { getProductColumns } from "@/components/products/productColumn";
 import {
   PRODUCT_IMPORT_COLUMNS,
   PRODUCT_IMPORT_SAMPLE,
@@ -9,6 +9,8 @@ import {
 } from "@/components/products/bulkImportConfig";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useBulkCreateProducts, useProductsPaginated } from "@/hooks/useProduct";
+import { useBaseCurrency } from "@/hooks/useCurrency";
+import { useAuthStore } from "@/store/authStore";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
@@ -38,6 +40,10 @@ function RouteComponent() {
 
   const { openModal } = useModalStore();
   const bulkCreateProducts = useBulkCreateProducts();
+  // Product catalog management (create/import) is Manager/Admin only.
+  const canManageProducts = useAuthStore((s) => s.isHighLevelUser);
+  const { format: formatMoney } = useBaseCurrency();
+  const columns = getProductColumns(formatMoney);
 
   const handleCreateProduct = () => {
     openModal("Create Product", <ProductForm />);
@@ -64,7 +70,7 @@ function RouteComponent() {
       <TitleBar title={"Products"} subtitle={"Manage your products"} />
 
       <DataTable
-        columns={productColumns}
+        columns={columns}
         data={products}
         isLoading={isLoading}
         onRefetch={refetch}
@@ -74,16 +80,18 @@ function RouteComponent() {
           keys: ["name", "sku", "barcode"],
         }}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleBulkImport}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button onClick={handleCreateProduct}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </div>
+          canManageProducts ? (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleBulkImport}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+              <Button onClick={handleCreateProduct}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </div>
+          ) : undefined
         }
         pagination={{
           rows: data?.pagination.totalCount ?? 0,

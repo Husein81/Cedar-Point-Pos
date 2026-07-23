@@ -93,6 +93,9 @@ export function useOrderActions() {
         branchId,
         type: orderType,
         customerId: active.customerId ?? undefined,
+        ...(active.additionalCustomers.length > 0 && {
+          additionalCustomerIds: active.additionalCustomers.map((c) => c.id),
+        }),
         shippingFee: active.shippingFee,
         includeVAT: active.includeVAT,
         ...(orderType === OrderType.DINE_IN && active.tableId

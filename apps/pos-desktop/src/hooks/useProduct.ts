@@ -10,6 +10,7 @@ import {
 } from "@/dto/products.dto";
 import { useBranchStore } from "@/store/branchStore";
 import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 
 const PRODUCT_QUERY_KEY = ["products"];
 
@@ -53,8 +54,12 @@ export const useCreateProduct = () => {
 
   return useMutation<Product, Error, CreateProductDto>({
     mutationFn: productsApi.createProduct,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Product "${data.name}" created`);
       queryClient.invalidateQueries({ queryKey: PRODUCT_QUERY_KEY });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to create product"));
     },
   });
 };

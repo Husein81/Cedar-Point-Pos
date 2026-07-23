@@ -26,6 +26,7 @@ import { CurrentRole } from '../common/decorators/current-role.decorator.js';
 import { AddItemDto } from './dto/add-item.dto.js';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto.js';
 import { AssignTableDto } from './dto/assign-table.dto.js';
+import { SetOrderCustomersDto } from './dto/set-order-customers.dto.js';
 import { CreateOrderDto, ProcessPaymentDto } from './dto/create-order.dto.js';
 import { UpdateQuantityDto } from './dto/update-quantity.dto.js';
 import { UpdateItemDiscountDto } from './dto/update-item-discount.dto.js';
@@ -197,6 +198,27 @@ export class OrdersController {
     const user = req.user as { tenantId: string };
     return this.ordersService.updateDiscount(user.tenantId, id, body.discount);
   }
+
+  /**
+   * Set the full customer list on an existing order: the primary customer
+   * (earns loyalty) plus any additional customers sharing the bill.
+   */
+  @Patch(':id/customers')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER)
+  setOrderCustomers(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: SetOrderCustomersDto,
+  ) {
+    const user = req.user as { tenantId: string };
+    return this.ordersService.setOrderCustomers(
+      user.tenantId,
+      id,
+      dto.customerId ?? null,
+      dto.additionalCustomerIds ?? [],
+    );
+  }
+
   /**
    * Assign or change table (restaurant only)
    */

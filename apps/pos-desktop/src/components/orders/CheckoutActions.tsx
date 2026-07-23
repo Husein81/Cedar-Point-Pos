@@ -13,12 +13,13 @@ import { BusinessType, OrderType } from "@repo/types";
 import { Button, Icon, Shad } from "@repo/ui";
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { formatPrice } from "./config";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import OtherActions from "./Keypad/OtherActions";
 
 /** Persistent checkout bar — Pay, Send to Kitchen / Confirm, and secondary actions. */
 export default function CheckoutActions() {
   const { openModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
   const { order, subtotalValue, discountValue, vatValue } = useOrderStore(
     useShallow((s) => {
       const activeOrder = s.getActiveOrder();
@@ -103,7 +104,7 @@ export default function CheckoutActions() {
         {!isOnline ? "Pay Cash" : "Pay"}
         {!payDisabled && (
           <span className="ml-1.5 tabular-nums opacity-90">
-            ${formatPrice(remainingTotal)}
+            {formatMoney(remainingTotal)}
           </span>
         )}
       </Button>

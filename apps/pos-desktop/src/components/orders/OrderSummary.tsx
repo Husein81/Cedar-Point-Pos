@@ -7,7 +7,7 @@ import { useKeypadStore } from "@/store/keypadStore";
 import { useOrderStore } from "@/store/orderStore";
 import { OrderType } from "@repo/types";
 import { cn, Icon, Separator } from "@repo/ui";
-import { formatPrice } from "./config";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { Activity } from "react";
 
 const Row = ({
@@ -74,6 +74,7 @@ const OrderSummary = () => {
     setDiscount,
     setShippingFee,
   } = useOrderStore();
+  const { format: formatMoney } = useBaseCurrency();
   const { closeKeypad, context, itemId } = useKeypadStore();
 
   const order = getActiveOrder();
@@ -139,12 +140,12 @@ const OrderSummary = () => {
     <div className="border-t border-border bg-muted/20 px-3 pb-2 pt-1.5">
       {hasBreakdown && (
         <div className="space-y-px pb-1.5">
-          <Row label="Subtotal" value={`$${formatPrice(subtotal)}`} />
+          <Row label="Subtotal" value={formatMoney(subtotal)} />
 
           {orderDiscount > 0 && (
             <Row
               label="Order Discount"
-              value={`− $${formatPrice(orderDiscount)}`}
+              value={`− ${formatMoney(orderDiscount)}`}
               variant="discount"
               onClick={handleEditOrderDiscount}
               active={isOrderDiscountActive}
@@ -156,7 +157,7 @@ const OrderSummary = () => {
             <Row
               label="Delivery Fee"
               value={
-                shippingFee > 0 ? `+ $${formatPrice(shippingFee)}` : "$0.00"
+                shippingFee > 0 ? `+ ${formatMoney(shippingFee)}` : formatMoney(0)
               }
               variant="charge"
               onClick={handleShippingFeeClick}
@@ -168,7 +169,7 @@ const OrderSummary = () => {
           {order?.includeVAT && (
             <Row
               label={`VAT (${VAT_RATE_PERCENT_LABEL})`}
-              value={`+ $${formatPrice(vatAmount)}`}
+              value={`+ ${formatMoney(vatAmount)}`}
               variant="charge"
             />
           )}
@@ -176,7 +177,7 @@ const OrderSummary = () => {
           {hasPayments && (
             <Row
               label="Paid"
-              value={`− $${formatPrice(paidAmount)}`}
+              value={`− ${formatMoney(paidAmount)}`}
               variant="paid"
             />
           )}
@@ -206,7 +207,7 @@ const OrderSummary = () => {
           key={balanceDue}
           className="animate-in fade-in slide-in-from-bottom-1 text-2xl font-bold tabular-nums tracking-tight text-primary duration-200"
         >
-          ${formatPrice(balanceDue)}
+          {formatMoney(balanceDue)}
         </span>
       </div>
     </div>

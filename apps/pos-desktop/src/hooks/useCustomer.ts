@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@repo/ui";
 import { customerApi } from "@/apis/customerApi";
+import { extractErrorMessage } from "@/utils/error";
 import type {
   CreateCustomerDto,
   CustomerDetails,
@@ -67,8 +69,12 @@ export const useCreateCustomer = () => {
 
   return useMutation<CustomerSummary, Error, CreateCustomerDto>({
     mutationFn: customerApi.createCustomer,
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Customer "${data.name}" created`);
       queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEY });
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error, "Failed to create customer"));
     },
   });
 };

@@ -13,6 +13,7 @@ import { SplitBillForm } from "../SplitBillForm";
 import { TransferOrderModal } from "../TransferOrderModal";
 import { MergeOrderModal } from "../MergeOrderModal";
 import { LoadOrderModal } from "../LoadOrderModal";
+import { OfferSelectionModal } from "../OfferSelectionModal";
 import { useAuthStore } from "@/store/authStore";
 
 type Action = {
@@ -173,6 +174,10 @@ export default function OtherActions() {
     openModal("Load Order", <LoadOrderModal />);
   };
 
+  const handleAddOffer = () => {
+    openModal("Add Offer", <OfferSelectionModal />);
+  };
+
   const actions: Action[] = [
     {
       key: "load-order",
@@ -182,6 +187,15 @@ export default function OtherActions() {
       disabled: false,
       tenantType: ["RESTAURANT", "RETAIL"],
       onClick: handleLoadOrder,
+    },
+    {
+      key: "add-offer",
+      label: "Offer",
+      icon: "BadgePercent",
+      variant: "outline" as const,
+      disabled: false,
+      tenantType: ["RESTAURANT", "RETAIL"],
+      onClick: handleAddOffer,
     },
     {
       key: "refund",

@@ -19,7 +19,7 @@ model Tenant {
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-
+  
   users                User[]
   branches             Branch[]
   products             Product[]
@@ -52,6 +52,7 @@ model Tenant {
   staffSessions        StaffSession[]
   reservations         Reservation[]
   reservationSequences ReservationSequence[]
+  orderCustomers      OrderCustomer[]
 }
 
 model Currency {
@@ -75,7 +76,11 @@ model TenantCurrency {
   currency     Currency @relation(fields: [currencyCode], references: [code])
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, isDefault], map: "one_base_currency_per_tenant")
+  // "One base currency per tenant" is enforced by a PARTIAL unique index
+  // (UNIQUE(tenantId) WHERE isDefault = true), applied via raw SQL migration —
+  // Prisma's @@unique can't express a partial index. A full @@unique on
+  // (tenantId, isDefault) is WRONG: it also caps a tenant at one non-default
+  // currency and breaks setBaseCurrency's reset-all-to-false swap.
   @@unique([tenantId, currencyCode])
   @@index([tenantId, isActive])
 }
@@ -604,6 +609,7 @@ model Order {
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
   statusHistory                   OrderStatusHistory[]
   reservation                     Reservation?
+  orderCustomers                  OrderCustomer[]
 
   @@unique([branchId, orderNumber])
   @@unique([tenantId, idempotencyKey])
@@ -690,7 +696,28 @@ model Customer {
   loyaltyAccount      LoyaltyAccount?
   loyaltyTransactions LoyaltyTransaction[]
   reservations        Reservation[]
+  orderCustomers      OrderCustomer[]
 
+  @@index([tenantId])
+}
+
+/// Join table linking an Order to one or more Customers (shared bill).
+/// The primary customer (isPrimary) is mirrored on Order.customerId and is the
+/// one that earns/redeems loyalty; the others are linked for shared history.
+model OrderCustomer {
+  id         String   @id @default(uuid())
+  tenantId   String
+  orderId    String
+  customerId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, customerId])
+  @@index([customerId])
   @@index([tenantId])
 }
 

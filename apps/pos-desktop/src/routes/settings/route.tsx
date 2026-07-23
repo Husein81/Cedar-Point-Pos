@@ -1,7 +1,7 @@
 import TitleBar from "@/components/title-bar";
 import { settingsSections } from "@/components/settings";
 import { useAuthStore } from "@/store/authStore";
-import type { BusinessType } from "@repo/types";
+import type { BusinessType, UserRole } from "@repo/types";
 import { cn, Icon, Shad } from "@repo/ui";
 import {
   createFileRoute,
@@ -19,8 +19,10 @@ function SettingsLayout() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const businessType = (user?.tenant?.businessType as BusinessType) ?? "RETAIL";
 
-  const filteredSections = settingsSections.filter((section) =>
-    section.showFor.includes(businessType),
+  const filteredSections = settingsSections.filter(
+    (section) =>
+      section.showFor.includes(businessType) &&
+      (!section.roles || section.roles.includes(user?.role as UserRole)),
   );
 
   return (

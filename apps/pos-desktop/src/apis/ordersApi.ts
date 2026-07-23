@@ -73,6 +73,15 @@ export const ordersApi = {
     return response.data;
   },
 
+  // Set the full customer list on an order: primary (loyalty) + additional
+  setOrderCustomers: async (
+    id: string,
+    data: { customerId: string | null; additionalCustomerIds: string[] },
+  ): Promise<{ id: string; customerId: string | null }> => {
+    const response = await api.patch(`/orders/${id}/customers`, data);
+    return response.data;
+  },
+
   // Add item to order
   addItemToOrder: async (id: string, data: AddItemDto): Promise<Order> => {
     const response = await api.post(`/orders/${id}/items`, data);

@@ -20,7 +20,7 @@ type DataTableProps<TData, TValue> = {
     keys: (keyof TData)[];
   };
   isLoading?: boolean;
-  onRefetch?: () => void;
+  onRefetch?: () => void | Promise<unknown>;
   actions?: React.ReactNode;
   pagination?: {
     rows: number;
@@ -44,6 +44,7 @@ export function DataTable<TData, TValue>({
   // 🔹 internal fallback state
   const [internalTerm, setInternalTerm] = useState("");
   const [inputValue, setInputValue] = useState("");
+  const [isRefetching, setIsRefetching] = useState(false);
 
   const appliedTerm = search?.term ?? internalTerm;
 
@@ -84,6 +85,19 @@ export function DataTable<TData, TValue>({
 
   const isInitialLoad =
     isLoading && (!data || data.length === 0) && (!search || !appliedTerm);
+
+  const handleRefetch = async () => {
+    if (!onRefetch || isRefetching) return;
+
+    setIsRefetching(true);
+    try {
+      await onRefetch();
+    } finally {
+      setIsRefetching(false);
+    }
+  };
+
+  const isRefreshing = isLoading || isRefetching;
 
   return (
     <div className="space-y-4">
@@ -127,13 +141,13 @@ export function DataTable<TData, TValue>({
             {onRefetch && (
               <Button
                 variant="outline"
-                onClick={onRefetch}
-                disabled={isLoading}
+                onClick={handleRefetch}
+                disabled={isRefreshing}
               >
                 <Icon
                   name="RefreshCw"
                   size={16}
-                  className={cn("mr-2", isLoading && "animate-spin")}
+                  className={cn("mr-2", isRefreshing && "animate-spin")}
                 />
                 Refresh
               </Button>

@@ -13,42 +13,46 @@ datasource db {
 model Tenant {
   id               String       @id @default(uuid())
   name             String
+  code             String?      @unique
   businessType     BusinessType
   baseCurrencyCode String       @default("USD") // Base currency for accounting/reporting
   isActive         Boolean      @default(true)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-
-  users               User[]
-  branches            Branch[]
-  products            Product[]
-  inventory           Inventory[] // Inventory records still belong to the Tenant scope
-  inventoryHistory    InventoryHistory[]
-  orders              Order[]
-  tables              Table[]
-  floors              Floor[] // Restaurant floor layouts
-  modifierGroups      ModifierGroup[]
-  devices             POSDevice[]
-  customers           Customer[]
-  suppliers           Supplier[]
-  purchaseOrders      PurchaseOrder[]
-  shifts              Shift[]
-  shiftSchedules      ShiftSchedule[]
-  transfers           Transfer[]
-  settings            Json? // feature flags, tax rates, etc.
-  modifiers           Modifier[]
-  categories          Category[]
-  tenantCurrencies    TenantCurrency[] // Tenant-specific currency configurations
-  colors              Color[]
-  loyaltyProgram      LoyaltyProgram?
-  loyaltyAccounts     LoyaltyAccount[]
-  loyaltyTransactions LoyaltyTransaction[]
-  offers              Offer[]
-  refunds             Refund[]
-  cashMovements       CashMovement[]
-  orderSequences      OrderSequence[]
-  activityLogs        StaffActivityLog[]
-  staffSessions       StaffSession[]
+  
+  users                User[]
+  branches             Branch[]
+  products             Product[]
+  inventory            Inventory[] // Inventory records still belong to the Tenant scope
+  inventoryHistory     InventoryHistory[]
+  orders               Order[]
+  tables               Table[]
+  floors               Floor[] // Restaurant floor layouts
+  modifierGroups       ModifierGroup[]
+  devices              POSDevice[]
+  customers            Customer[]
+  suppliers            Supplier[]
+  purchaseOrders       PurchaseOrder[]
+  shifts               Shift[]
+  shiftSchedules       ShiftSchedule[]
+  transfers            Transfer[]
+  settings             Json? // feature flags, tax rates, etc.
+  modifiers            Modifier[]
+  categories           Category[]
+  tenantCurrencies     TenantCurrency[] // Tenant-specific currency configurations
+  colors               Color[]
+  loyaltyProgram       LoyaltyProgram?
+  loyaltyAccounts      LoyaltyAccount[]
+  loyaltyTransactions  LoyaltyTransaction[]
+  offers               Offer[]
+  refunds              Refund[]
+  cashMovements        CashMovement[]
+  orderSequences       OrderSequence[]
+  activityLogs         StaffActivityLog[]
+  staffSessions        StaffSession[]
+  reservations         Reservation[]
+  reservationSequences ReservationSequence[]
+  orderCustomers      OrderCustomer[]
 }
 
 model Currency {
@@ -72,17 +76,23 @@ model TenantCurrency {
   currency     Currency @relation(fields: [currencyCode], references: [code])
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, isDefault], map: "one_base_currency_per_tenant")
+  // "One base currency per tenant" is enforced by a partial unique index:
+  // CREATE UNIQUE INDEX one_base_currency_per_tenant ON "TenantCurrency"
+  // ("tenantId") WHERE ("isDefault" = true).
+  // Prisma's @@unique can't express a partial index. A full @@unique on
+  // (tenantId, isDefault) is WRONG: it also caps a tenant at one non-default
+  // currency and breaks setBaseCurrency's reset-all-to-false swap.
   @@unique([tenantId, currencyCode])
   @@index([tenantId, isActive])
 }
 
 model User {
-  id                  String               @id @default(uuid())
-  name                String
-  email               String?              @unique
-  phone               String?              @unique
-  username            String               @unique
+  id    String  @id @default(uuid())
+  name  String
+  email String? @unique
+  phone String? @unique
+
+  username            String
   password            String
   pinHash             String? // bcrypt-hashed 4-6 digit PIN for POS login
   hasPosAccess        Boolean              @default(true) // POS register access, separate from isActive
@@ -109,39 +119,43 @@ model User {
   schedulesPublished  ShiftSchedule[]      @relation("SchedulePublishedBy")
   activityLogs        StaffActivityLog[]
   staffSessions       StaffSession[]
+  createdReservations Reservation[]        @relation("ReservationCreatedBy")
   branch              Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   tenant              Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([email, role])
+  @@unique([tenantId, username])
   @@index([tenantId, role])
   @@index([tenantId, branchId])
 }
 
 model Branch {
-  id               String             @id @default(uuid())
-  tenantId         String
-  name             String
-  address          String?
-  phone            String?
-  isDeleted        Boolean            @default(false) // Soft delete
-  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tables           Table[]
-  floors           Floor[] // Restaurant floor layouts
-  devices          POSDevice[]
-  inventory        Inventory[] // Inventory is tracked at the Branch level
-  orders           Order[]
-  shifts           Shift[]
-  shiftSchedules   ShiftSchedule[]
-  inventoryHistory InventoryHistory[]
-  transfersFrom    Transfer[]         @relation("TransfersFrom")
-  transfersTo      Transfer[]         @relation("TransfersTo")
-  products         Product[]
-  purchaseOrders   PurchaseOrder[]
-  refunds          Refund[]
-  cashMovements    CashMovement[]
-  orderSequences   OrderSequence[]
-  staffSessions    StaffSession[]
-  staffMembers     User[]             @relation("UserBranch")
+  id                   String                @id @default(uuid())
+  tenantId             String
+  name                 String
+  address              String?
+  phone                String?
+  isDeleted            Boolean               @default(false) // Soft delete
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tables               Table[]
+  floors               Floor[] // Restaurant floor layouts
+  devices              POSDevice[]
+  inventory            Inventory[] // Inventory is tracked at the Branch level
+  orders               Order[]
+  shifts               Shift[]
+  shiftSchedules       ShiftSchedule[]
+  inventoryHistory     InventoryHistory[]
+  transfersFrom        Transfer[]            @relation("TransfersFrom")
+  transfersTo          Transfer[]            @relation("TransfersTo")
+  products             Product[]
+  purchaseOrders       PurchaseOrder[]
+  refunds              Refund[]
+  cashMovements        CashMovement[]
+  orderSequences       OrderSequence[]
+  staffSessions        StaffSession[]
+  staffMembers         User[]                @relation("UserBranch")
+  reservations         Reservation[]
+  reservationSequences ReservationSequence[]
 }
 
 model POSDevice {
@@ -487,10 +501,11 @@ model Table {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  floor  Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
-  orders Order[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch       Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  floor        Floor?        @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  orders       Order[]
+  reservations Reservation[]
 
   @@index([branchId, deletedAt])
   @@index([floorId])
@@ -594,6 +609,8 @@ model Order {
   refunds                         Refund[]
   loyaltyTransactions             LoyaltyTransaction[] @relation("OrderLoyaltyTransactions")
   statusHistory                   OrderStatusHistory[]
+  reservation                     Reservation?
+  orderCustomers                  OrderCustomer[]
 
   @@unique([branchId, orderNumber])
   @@unique([tenantId, idempotencyKey])
@@ -679,7 +696,29 @@ model Customer {
   orders              Order[]
   loyaltyAccount      LoyaltyAccount?
   loyaltyTransactions LoyaltyTransaction[]
+  reservations        Reservation[]
+  orderCustomers      OrderCustomer[]
 
+  @@index([tenantId])
+}
+
+/// Join table linking an Order to one or more Customers (shared bill).
+/// The primary customer (isPrimary) is mirrored on Order.customerId and is the
+/// one that earns/redeems loyalty; the others are linked for shared history.
+model OrderCustomer {
+  id         String   @id @default(uuid())
+  tenantId   String
+  orderId    String
+  customerId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, customerId])
+  @@index([customerId])
   @@index([tenantId])
 }
 
@@ -1157,4 +1196,81 @@ model OrderSequence {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, date])
+}
+
+//
+// ---------- RESERVATIONS ----------
+//
+model Reservation {
+  id                String  @id @default(uuid())
+  reservationNumber String
+  tenantId          String
+  branchId          String
+  customerId        String? // linked Customer when the guest is known; null for guest bookings
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  tableId           String? // optional pre-assigned table; required to SEAT
+  orderId           String? @unique // dine-in Order created when the reservation is seated
+  guestCount        Int
+
+  reservationDate    DateTime          @db.Date
+  reservationTime    String
+  reservationAt      DateTime
+  durationMinutes    Int               @default(90)
+  status             ReservationStatus @default(PENDING)
+  source             ReservationSource @default(PHONE)
+  notes              String?
+  cancellationReason String?
+  createdById        String?
+  deletedAt          DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch    Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  table     Table?    @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([branchId, reservationNumber])
+  @@index([tenantId, branchId, reservationDate])
+  @@index([tenantId, branchId, status])
+  @@index([tenantId, branchId, tableId, reservationAt])
+  @@index([tenantId, customerPhone])
+  @@index([tenantId, reservationNumber])
+  @@index([status, reservationAt]) // drives the no-show expiration sweep
+  @@index([tableId])
+}
+
+model ReservationSequence {
+  id        String   @id @default(uuid())
+  tenantId  String
+  branchId  String
+  date      String
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, date])
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  ARRIVED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ReservationSource {
+  WALK_IN
+  PHONE
+  ONLINE
+  ADMIN
 }

@@ -11,7 +11,8 @@ import { toast } from "@repo/ui";
 import { extractErrorMessage } from "@/utils/error";
 import { useBranch } from "@/hooks/useBranch";
 import { useAuthStore } from "@/store/authStore";
-import { Order } from "@/dto/order.dto";
+import { BackendOrder } from "@/dto/order.dto";
+import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
 
 interface TablePaymentFormProps {
   orderId: string;
@@ -31,8 +32,13 @@ export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
     try {
       const order = await fetchOrder(orderId);
       if (order && currentBranch) {
+        // findOne returns the raw order; map it to the client shape the
+        // receipt renderer expects (item.name / item.price).
+        const clientOrder = mapBackendOrderToClientOrder(
+          order as unknown as BackendOrder,
+        );
         await printReceipt({
-          order: order as unknown as Order,
+          order: clientOrder,
           tenantName: user?.tenant?.name || "Receipt",
           branchName: currentBranch.name,
           branchAddress: currentBranch.address || "",

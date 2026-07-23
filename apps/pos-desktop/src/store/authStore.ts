@@ -2,7 +2,11 @@ import type { PublicUser } from "@repo/types";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useBranchStore } from "./branchStore";
-import { AUTH_ROUTE, AUTH_TOKEN_STORAGE_KEY } from "@/constants/auth";
+import {
+  AUTH_REFRESH_TOKEN_STORAGE_KEY,
+  AUTH_ROUTE,
+  AUTH_TOKEN_STORAGE_KEY,
+} from "@/constants/auth";
 
 type State = {
   user: PublicUser | null;
@@ -13,7 +17,7 @@ type State = {
 };
 
 type Actions = {
-  setUser: (user: PublicUser, token: string) => void;
+  setUser: (user: PublicUser, token: string, refreshToken?: string) => void;
   updateUser: (user: PublicUser) => void;
   clearUser: () => void;
   logout: () => void;
@@ -29,9 +33,14 @@ export const useAuthStore = create<State & Actions>()(
       isAuthenticated: false,
       isHighLevelUser: false,
       isStaff: false,
-      setUser: (user: PublicUser, token: string) => {
-        // Store token separately for API interceptor
+      setUser: (user: PublicUser, token: string, refreshToken?: string) => {
+        // Store tokens separately for the API interceptor (access token for
+        // every request; refresh token so the interceptor can silently renew
+        // an expired access token instead of forcing a re-login).
         localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+        if (refreshToken) {
+          localStorage.setItem(AUTH_REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+        }
         set(() => ({
           user,
           token,
@@ -49,6 +58,7 @@ export const useAuthStore = create<State & Actions>()(
       },
       clearUser: () => {
         localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+        localStorage.removeItem(AUTH_REFRESH_TOKEN_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
         set(() => ({
           user: null,
@@ -61,6 +71,7 @@ export const useAuthStore = create<State & Actions>()(
       logout: () => {
         // Clear user data and localStorage
         localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+        localStorage.removeItem(AUTH_REFRESH_TOKEN_STORAGE_KEY);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         useBranchStore.getState().clearBranchId();
         set(() => ({

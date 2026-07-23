@@ -18,6 +18,7 @@ import {
 } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 import { tablesApi } from "../apis/tablesApi";
 import { useOfflineQueueStore } from "@/store/offlineQueueStore";
 import { useNetworkStatus } from "@/context/NetworkContext";
@@ -197,9 +198,9 @@ export const useCreateTable = (): UseMutationResult<
       queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
     },
     onError: (error: Error) => {
-      const message = error.message ?? "Failed to create table";
-      console.error("Table creation error:", error.message || error);
-      toast.error(message);
+      // Surface the backend's real reason (e.g. "Table number 1 already exists
+      // in this branch") — error.message alone is the generic axios status text.
+      toast.error(extractErrorMessage(error, "Failed to create table"));
     },
   });
 };
@@ -246,8 +247,7 @@ export const useUpdateTable = () => {
       if (context?.previousTables && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousTables);
       }
-      const message = error.message || "Failed to update table";
-      toast.error(message);
+      toast.error(extractErrorMessage(error, "Failed to update table"));
     },
 
     onSuccess: (data) => {
@@ -361,8 +361,7 @@ export const useDeleteTable = () => {
       if (context?.previousTables && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousTables);
       }
-      const message = error.message || "Failed to delete table";
-      toast.error(message);
+      toast.error(extractErrorMessage(error, "Failed to delete table"));
     },
 
     onSuccess: () => {

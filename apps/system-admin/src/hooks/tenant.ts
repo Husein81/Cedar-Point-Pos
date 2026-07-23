@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { tenantApi } from "@/apis/tenantApi";
-import { CreateTenantPayload, CreateUserPayload } from "@/dto/tenant.dto";
+import {
+  CreateTenantPayload,
+  CreateUserPayload,
+  UpdateTenantPayload,
+} from "@/dto/tenant.dto";
 
 export const tenantKeys = {
   all: ["tenants"] as const,
@@ -50,6 +54,27 @@ export const useCreateTenant = () => {
     mutationFn: (payload: CreateTenantPayload) => tenantApi.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tenantKeys.all });
+    },
+  });
+};
+
+/**
+ * Update a tenant
+ */
+export const useUpdateTenant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateTenantPayload;
+    }) => tenantApi.update(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: tenantKeys.all });
+      queryClient.invalidateQueries({ queryKey: tenantKeys.detail(variables.id) });
     },
   });
 };

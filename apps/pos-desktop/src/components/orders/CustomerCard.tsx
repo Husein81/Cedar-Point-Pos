@@ -9,9 +9,16 @@ type Props = {
   };
   onRemove: () => void;
   className?: string;
+  /** Badge text (e.g. "Primary" / "Guest"). Defaults to "Customer". */
+  badgeLabel?: string;
 };
 
-export const CustomerCard = ({ customer, onRemove, className }: Props) => {
+export const CustomerCard = ({
+  customer,
+  onRemove,
+  className,
+  badgeLabel = "Customer",
+}: Props) => {
   return (
     <div
       className={cn(
@@ -31,7 +38,7 @@ export const CustomerCard = ({ customer, onRemove, className }: Props) => {
           <div className="flex items-center gap-2">
             <p className="font-medium text-sm truncate">{customer.name}</p>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-              Customer
+              {badgeLabel}
             </Badge>
           </div>
           {customer.phone && (

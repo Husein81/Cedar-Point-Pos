@@ -165,7 +165,10 @@ export class QueryScheduleDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  // Must stay >= the POS LIST_FETCH_CAP (apps/pos-desktop routes/shifts/index.tsx):
+  // the schedule list groups by employee, so it loads the whole filtered set in
+  // one page rather than paginating (which would split a person across pages).
+  @Max(500)
   limit: number = 25;
 }
 

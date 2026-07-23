@@ -1,5 +1,5 @@
 import {
-  BackendOrder,
+  AdditionalCustomer,
   Order,
   OrderDiscount,
   OrderItem,
@@ -86,6 +86,8 @@ type Actions = {
     customerName: string | null,
     customerAddress?: string | null,
   ) => void;
+  addAdditionalCustomer: (customer: AdditionalCustomer) => void;
+  removeAdditionalCustomer: (customerId: string) => void;
 
   // Table actions
   setTable: (tableId: string | null, tableName: string | null) => void;
@@ -122,8 +124,6 @@ type Actions = {
   getVATAmount: (tabId?: string) => number;
   hasUnsavedChanges: (tabId: string) => boolean;
   canCreateNewTab: () => boolean;
-
-  loadExistingOrder: (backendOrder: BackendOrder) => void;
 
   setLastCompletedOrder: (data?: LastCompletedOrder) => void;
   reset: () => void;
@@ -777,6 +777,60 @@ export const useOrderStore = create<OrderStore>()(
                 customerId,
                 customerName,
                 customerAddress: customerAddress ?? null,
+                // A customer can't be both primary and additional.
+                additionalCustomers: customerId
+                  ? tab.order.additionalCustomers.filter(
+                      (c) => c.id !== customerId,
+                    )
+                  : tab.order.additionalCustomers,
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      addAdditionalCustomer: (customer: AdditionalCustomer) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            const { order } = tab;
+            // Skip if it's already the primary or already added.
+            if (order.customerId === customer.id) return tab;
+            if (order.additionalCustomers.some((c) => c.id === customer.id))
+              return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...order,
+                additionalCustomers: [...order.additionalCustomers, customer],
+                modifiedAt: new Date(),
+              },
+            };
+          }),
+        });
+      },
+
+      removeAdditionalCustomer: (customerId: string) => {
+        const state = get();
+        if (!state.activeTabId) return;
+
+        set({
+          tabs: state.tabs.map((tab) => {
+            if (tab.id !== state.activeTabId) return tab;
+
+            return {
+              ...tab,
+              order: {
+                ...tab.order,
+                additionalCustomers: tab.order.additionalCustomers.filter(
+                  (c) => c.id !== customerId,
+                ),
                 modifiedAt: new Date(),
               },
             };
@@ -1144,55 +1198,6 @@ export const useOrderStore = create<OrderStore>()(
         set({
           tabs: [newTab],
           activeTabId: newTab.id,
-        });
-      },
-
-      loadExistingOrder: (backendOrder: BackendOrder) => {
-        const state = get();
-        if (!state.activeTabId) return;
-
-        const order: Order = {
-          id: backendOrder.id,
-          status: backendOrder.status as OrderStatus,
-          type: backendOrder.type as OrderType | undefined,
-          items: (backendOrder.items || []).map((item) => ({
-            id: item.id,
-            productId: item.productId,
-            name: item.product?.name || "Unknown Product",
-            price: Number(item.unitPrice),
-            quantity: Number(item.quantity),
-            notes: item.notes || undefined,
-            imageUrl: item.product?.imageUrl || null,
-            modifiers: item.modifiers?.map((m) => ({
-              modifierId: m.modifierId,
-              name: m.modifier?.name || "Unknown Modifier",
-              price: Number(m.price),
-            })),
-            discount: item.discount as OrderItem["discount"],
-          })),
-          discount: backendOrder.discount
-            ? { type: "FIXED", value: Number(backendOrder.discount) }
-            : null,
-          shippingFee: Number(backendOrder.shippingFee || 0),
-          includeVAT: backendOrder.includeVAT ?? false,
-          paidAmount: 0,
-          customerId: backendOrder.customerId ?? null,
-          customerName: backendOrder.customer?.name ?? null,
-          customerAddress: backendOrder.customer?.address ?? null,
-          tableId: backendOrder.tableId ?? null,
-          tableName: backendOrder.table?.name ?? null,
-          notes: backendOrder.notes || "",
-          orderNumber: backendOrder.orderNumber ?? "",
-          createdAt: new Date(backendOrder.createdAt),
-          modifiedAt: new Date(
-            backendOrder.updatedAt || backendOrder.createdAt,
-          ),
-        };
-
-        set({
-          tabs: state.tabs.map((tab) =>
-            tab.id === state.activeTabId ? { ...tab, order } : tab,
-          ),
         });
       },
     }),

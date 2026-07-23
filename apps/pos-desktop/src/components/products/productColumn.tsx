@@ -4,7 +4,9 @@ import { Checkbox } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { ProductActions } from "@/components/products/ProductActions";
 
-export const productColumns: ColumnDef<Product>[] = [
+export const getProductColumns = (
+  formatMoney: (value: number | string | null | undefined) => string,
+): ColumnDef<Product>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -57,13 +59,14 @@ export const productColumns: ColumnDef<Product>[] = [
   {
     accessorKey: "price",
     header: "Price",
-    cell: ({ row }) => (row.original.price ? `$${row.original.price}` : "—"),
+    cell: ({ row }) =>
+      row.original.price ? formatMoney(row.original.price) : "—",
   },
 
   {
     accessorKey: "cost",
     header: "Cost",
-    cell: ({ row }) => (row.original.cost ? `$${row.original.cost}` : "—"),
+    cell: ({ row }) => (row.original.cost ? formatMoney(row.original.cost) : "—"),
   },
 
   {

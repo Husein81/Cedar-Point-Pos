@@ -156,6 +156,24 @@ export const useAssignTableToOrder = () => {
   });
 };
 
+export const useSetOrderCustomers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { id: string; customerId: string | null },
+    Error,
+    { id: string; customerId: string | null; additionalCustomerIds: string[] }
+  >({
+    mutationFn: ({ id, customerId, additionalCustomerIds }) =>
+      ordersApi.setOrderCustomers(id, { customerId, additionalCustomerIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ORDER_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: TABLE_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+};
+
 export const useAddItemToOrder = () => {
   const queryClient = useQueryClient();
 

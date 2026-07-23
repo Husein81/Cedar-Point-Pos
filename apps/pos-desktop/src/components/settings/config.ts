@@ -1,4 +1,4 @@
-import type { BusinessType } from "@repo/types";
+import type { BusinessType, UserRole } from "@repo/types";
 
 export type SettingsSection = {
   id: string;
@@ -7,6 +7,8 @@ export type SettingsSection = {
   icon: string;
   href: string;
   showFor: BusinessType[];
+  /** Roles allowed to see this section. Omit to allow all roles. */
+  roles?: UserRole[];
 };
 
 export const settingsSections: SettingsSection[] = [
@@ -33,6 +35,8 @@ export const settingsSections: SettingsSection[] = [
     icon: "Landmark",
     href: "/settings/currencies",
     showFor: ["RETAIL", "RESTAURANT"],
+    // Currency management is Manager/Admin only (backend enforces the same).
+    roles: ["ADMIN", "MANAGER"],
   },
   {
     id: "colors",
@@ -41,6 +45,7 @@ export const settingsSections: SettingsSection[] = [
     icon: "Droplet",
     href: "/settings/colors",
     showFor: ["RETAIL", "RESTAURANT"],
+    roles: ["ADMIN", "MANAGER"],
   },
   {
     id: "loyalty",
@@ -49,6 +54,7 @@ export const settingsSections: SettingsSection[] = [
     icon: "Award",
     href: "/settings/loyalty",
     showFor: ["RETAIL", "RESTAURANT"],
+    roles: ["ADMIN", "MANAGER"],
   },
   {
     id: "tenant",
@@ -57,6 +63,8 @@ export const settingsSections: SettingsSection[] = [
     icon: "Building2",
     href: "/settings/tenant",
     showFor: ["RETAIL", "RESTAURANT"],
+    // Business identity (name) and branch management are admin-only.
+    roles: ["ADMIN"],
   },
 
   {

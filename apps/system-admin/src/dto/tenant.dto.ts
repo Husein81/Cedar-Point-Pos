@@ -1,22 +1,14 @@
 import { z } from "zod";
+import { BusinessType, UserRole } from "@repo/types";
 
-/* -------------------------------------------------------------------------- */
-/*                         Enums (use your existing)                           */
-/* -------------------------------------------------------------------------- */
-/**
- * If you already have zod enums elsewhere, reuse them.
- * Otherwise define them like this (adjust values to match your Prisma enums):
- */
-export const BusinessTypeSchema = z.enum(["RETAIL", "RESTAURANT"]);
-export type BusinessType = z.infer<typeof BusinessTypeSchema>;
+export type { BusinessType, UserRole };
 
-export const UserRoleSchema = z.enum([
-  "SYSTEM_ADMIN",
-  "ADMIN",
-  "MANAGER",
-  "CASHIER",
-]);
-export type UserRole = z.infer<typeof UserRoleSchema>;
+const BusinessTypeSchema = z.enum(
+  Object.values(BusinessType) as [BusinessType, ...BusinessType[]]
+);
+const UserRoleSchema = z.enum(
+  Object.values(UserRole) as [UserRole, ...UserRole[]]
+);
 
 /* -------------------------------------------------------------------------- */
 /*                               TenantWithCount                               */
@@ -30,6 +22,7 @@ export const TenantCountSchema = z.object({
 export const TenantWithCountSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  code: z.string().nullable(),
   businessType: BusinessTypeSchema,
   createdAt: z.string(), // keep string since you're using string in types (ISO)
   updatedAt: z.string(),
@@ -63,9 +56,34 @@ export type TenantUser = z.infer<typeof TenantUserSchema>;
 export const CreateTenantPayloadSchema = z.object({
   name: z.string().min(1, "Tenant name is required"),
   businessType: BusinessTypeSchema,
+  code: z
+    .string()
+    .regex(
+      /^[A-Z0-9-]{3,20}$/,
+      "Code must be 3-20 uppercase letters, digits, or hyphens"
+    )
+    .optional(),
 });
 
 export type CreateTenantPayload = z.infer<typeof CreateTenantPayloadSchema>;
+
+/* -------------------------------------------------------------------------- */
+/*                               UpdateTenantPayload                            */
+/* -------------------------------------------------------------------------- */
+
+export const UpdateTenantPayloadSchema = z.object({
+  name: z.string().min(1, "Tenant name is required").optional(),
+  businessType: BusinessTypeSchema.optional(),
+  code: z
+    .string()
+    .regex(
+      /^[A-Z0-9-]{3,20}$/,
+      "Code must be 3-20 uppercase letters, digits, or hyphens"
+    )
+    .optional(),
+});
+
+export type UpdateTenantPayload = z.infer<typeof UpdateTenantPayloadSchema>;
 
 /* -------------------------------------------------------------------------- */
 /*                                CreateUserPayload                             */

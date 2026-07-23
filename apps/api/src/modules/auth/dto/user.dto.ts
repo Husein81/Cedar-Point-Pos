@@ -32,6 +32,10 @@ export class CreateUserDto {
 
 export class LoginDto {
   @IsString()
+  @MinLength(1)
+  tenantCode!: string;
+
+  @IsString()
   username!: string;
 
   @IsString()

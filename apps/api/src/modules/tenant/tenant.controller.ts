@@ -3,17 +3,18 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
-  Post,
-  Patch,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
+  Put,
 } from '@nestjs/common';
 import { UserRole } from '@repo/types';
-import { TenantService } from './tenant.service.js';
-import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator.js';
-import { Prisma } from '../../generated/prisma/client.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CreateTenantDto } from './dto/create-tenant.dto.js';
+import { UpdateTenantDto } from './dto/update-tenant.dto.js';
+import { TenantService } from './tenant.service.js';
 
 @Controller('tenants')
 export class TenantController {
@@ -40,8 +41,14 @@ export class TenantController {
   @Roles(UserRole.SYSTEM_ADMIN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  createTenant(@Body() body: Prisma.TenantCreateInput) {
+  createTenant(@Body() body: CreateTenantDto) {
     return this.tenantService.createTenant(body);
+  }
+
+  @Roles(UserRole.SYSTEM_ADMIN)
+  @Put(':id')
+  updateTenant(@Param('id') id: string, @Body() body: UpdateTenantDto) {
+    return this.tenantService.updateTenant(id, body);
   }
 
   @Roles(UserRole.SYSTEM_ADMIN)
@@ -52,10 +59,10 @@ export class TenantController {
   }
 
   @Roles(UserRole.ADMIN)
-  @Patch('my-tenant')
+  @Put('my-tenant')
   updateMyTenant(
     @CurrentTenant() tenantId: string,
-    @Body() body: Prisma.TenantUpdateInput,
+    @Body() body: UpdateTenantDto,
   ) {
     return this.tenantService.updateTenant(tenantId, body);
   }

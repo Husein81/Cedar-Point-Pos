@@ -33,6 +33,7 @@ export const createEmptyOrder = (overrides?: Partial<Order>): Order => ({
   customerId: null,
   customerName: null,
   customerAddress: null,
+  additionalCustomers: [],
   tableId: null,
   tableName: null,
   guestCount: undefined,
@@ -118,6 +119,9 @@ export const hydrateOrderFromServer = (
     customerId: serverOrder.customerId || null,
     customerName: serverOrder.customer?.name || null,
     customerAddress: serverOrder.customer?.address || null,
+    additionalCustomers: (serverOrder.orderCustomers || [])
+      .filter((oc) => !oc.isPrimary)
+      .map((oc) => ({ id: oc.customer.id, name: oc.customer.name })),
     tableId: resolvedTableId,
     tableName: resolvedTableName,
     guestCount: serverOrder.guestCount ?? 0,

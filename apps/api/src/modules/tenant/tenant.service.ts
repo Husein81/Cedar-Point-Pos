@@ -1,10 +1,13 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import type { CreateTenantDto } from './dto/create-tenant.dto.js';
+import type { UpdateTenantDto } from './dto/update-tenant.dto.js';
 
 /**
  * Default currency codes to initialize for new tenants
@@ -74,14 +77,17 @@ export class TenantService {
     return users;
   }
 
-  async createTenant(data: Prisma.TenantCreateInput) {
+  async createTenant(data: CreateTenantDto) {
     try {
       const tenant = await this.prisma.$transaction(async (tx) => {
-        // Create tenant with default base currency
+        // Create tenant with default base currency. Fields are picked
+        // explicitly (never spread) so a client can't mass-assign columns.
         const newTenant = await tx.tenant.create({
           data: {
-            ...data,
-            baseCurrencyCode: data.baseCurrencyCode || 'USD',
+            name: data.name,
+            businessType: data.businessType,
+            code: data.code ?? null,
+            baseCurrencyCode: 'USD',
           },
           include: {
             _count: {
@@ -136,6 +142,16 @@ export class TenantService {
 
       return tenant;
     } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        (error.meta?.target as string[] | undefined)?.includes('code')
+      ) {
+        throw new ConflictException({
+          message: 'A tenant with this code already exists',
+          code: 'TENANT_CODE_TAKEN',
+        });
+      }
       console.error('Error creating tenant:', error);
       throw new InternalServerErrorException(
         `Failed to create tenant: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -160,7 +176,7 @@ export class TenantService {
     return { message: 'Tenant deleted successfully' };
   }
 
-  async updateTenant(id: string, data: Prisma.TenantUpdateInput) {
+  async updateTenant(id: string, data: UpdateTenantDto) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
     });
@@ -169,9 +185,35 @@ export class TenantService {
       throw new NotFoundException('Tenant not found');
     }
 
-    return await this.prisma.tenant.update({
-      where: { id },
-      data,
-    });
+    try {
+      // Fields are picked explicitly (never spread) so a client can't
+      // mass-assign columns via this DTO.
+      return await this.prisma.tenant.update({
+        where: { id },
+        data: {
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.businessType !== undefined && {
+            businessType: data.businessType,
+          }),
+          ...(data.baseCurrencyCode !== undefined && {
+            baseCurrencyCode: data.baseCurrencyCode,
+          }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.code !== undefined && { code: data.code }),
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        (error.meta?.target as string[] | undefined)?.includes('code')
+      ) {
+        throw new ConflictException({
+          message: 'A tenant with this code already exists',
+          code: 'TENANT_CODE_TAKEN',
+        });
+      }
+      throw error;
+    }
   }
 }

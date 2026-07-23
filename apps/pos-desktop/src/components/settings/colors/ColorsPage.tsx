@@ -5,6 +5,7 @@ import TitleBar from "@/components/title-bar";
 import { Button, DataTable } from "@repo/ui";
 import { getColorColumns } from "@/components/settings/colors/colorColumn";
 import { toast } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 
 export default function ColorsPage() {
   const { data: colors = [], isLoading, refetch } = useColors();
@@ -21,8 +22,10 @@ export default function ColorsPage() {
       onSuccess: () => {
         toast.success("Default colors generated successfully");
       },
-      onError: () => {
-        toast.error("Failed to generate default colors");
+      onError: (error) => {
+        toast.error(
+          extractErrorMessage(error, "Failed to generate default colors"),
+        );
       },
     });
   };

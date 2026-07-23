@@ -237,6 +237,15 @@ export const getTableDisplayName = (
   table: Pick<TableOverview, "name" | "floor">,
 ): string => (table.floor ? `${table.floor.name} - ${table.name}` : table.name);
 
+/** True when a seated order's guest count exceeds the table's capacity. */
+export const isOverCapacity = (
+  guestCount: number | null | undefined,
+  capacity: number,
+): boolean => (guestCount ?? 0) > capacity;
+
+/** Warning color for the over-capacity guest count (matches destructive tone). */
+export const OVER_CAPACITY_TEXT_CLASS = "text-red-600 dark:text-red-400";
+
 export const formatTableMoney = (value: string | number): string => {
   const amount = typeof value === "string" ? Number(value) : value;
 

@@ -79,6 +79,7 @@ const TableOrderSummarySchema = z.object({
   createdAt: z.string(),
   userName: z.string().nullable().optional(),
   customerName: z.string().nullable().optional(),
+  additionalCustomerNames: z.array(z.string()).optional(),
 });
 export type TableOrderSummary = z.infer<typeof TableOrderSummarySchema>;
 

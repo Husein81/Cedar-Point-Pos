@@ -9,7 +9,9 @@ import {
   SelectField,
   SwitchField,
   TextareaField,
+  toast,
 } from "@repo/ui";
+import { extractErrorMessage } from "@/utils/error";
 import { useForm } from "@tanstack/react-form";
 import { generateEan13, generateSku } from "./config";
 import { ProductWithRelations } from "@/dto/products.dto";
@@ -147,7 +149,10 @@ export const ProductForm = ({ product, onCreated }: Props) => {
           productId = createdProduct.id;
         }
 
-        // Handle stock adjustment separately using inventory transaction service
+        // Handle stock adjustment separately using inventory transaction
+        // service. The product itself is already saved, so a failure here
+        // (e.g. a cashier lacks inventory permission) must not abort the flow —
+        // surface it as a warning and still close the modal.
         if (stockValue !== initialStock || isEdit) {
           setIsAdjustingStock(true);
 
@@ -173,6 +178,18 @@ export const ProductForm = ({ product, onCreated }: Props) => {
                 });
               }
             }
+          } catch (stockError) {
+            const status = (
+              stockError as { response?: { status?: number } }
+            )?.response?.status;
+            toast.error(
+              status === 403
+                ? "Product saved, but only a Manager or Admin can set stock levels."
+                : extractErrorMessage(
+                    stockError,
+                    "Product saved, but updating stock failed.",
+                  ),
+            );
           } finally {
             setIsAdjustingStock(false);
           }

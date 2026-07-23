@@ -111,6 +111,19 @@ export const sidebarSections: SidebarSection[] = [
     ],
   },
   {
+    label: "Front of House",
+    items: [
+      {
+        label: "Reservations",
+        icon: "CalendarClock",
+        href: "/reservations",
+        tooltip: "Reservations",
+        showFor: ["RESTAURANT"],
+        roles: ["ADMIN", "MANAGER", "CASHIER", "WAITER"],
+      },
+    ],
+  },
+  {
     label: "Management",
     items: [
       {

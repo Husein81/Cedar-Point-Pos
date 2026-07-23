@@ -15,6 +15,7 @@ import { useTableUiStore } from "@/store/tableUiStore";
 // Feature components
 import MergeTargetSelector from "@/components/orders/MergeTargetSelector";
 import { TableSelectorModal } from "@/components/orders/TableSelectorModal";
+import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { FloorCanvas } from "./FloorCanvas";
 import { FloorManagementModal } from "./FloorManagementModal";
 import { SeatGuestsModal } from "./SeatGuestsModal";
@@ -22,12 +23,14 @@ import { TableDetailsDrawer } from "./TableDetailsDrawer";
 import { TableForm } from "./TableForm";
 import { TablesGridView } from "./TablesGridView";
 import { TablesHeader } from "./TablesHeader";
-import { TablesStatsRow } from "./TablesStatsRow";
 import { buildTablesStats, deriveTableUiStatus } from "./config";
 import { getTableDisplayName, useTableActions } from "./hooks";
 
 export function TablesPage() {
   const { isHighLevelUser } = useAuthStore();
+  const businessType = useAuthStore(
+    (state) => state.user?.tenant?.businessType,
+  );
   const { branchId } = useBranchStore();
   const { openModal } = useModalStore();
   const navigate = useNavigate();
@@ -146,6 +149,7 @@ export function TablesPage() {
       />
     ),
     renderEditForm: (table) => <TableForm table={table} />,
+    renderReserveForm: (table) => <ReservationForm tableId={table.id} />,
     renderSeatGuests: ({ table, onConfirm, onCancel }) => (
       <SeatGuestsModal
         tableName={getTableDisplayName(table)}
@@ -247,13 +251,18 @@ export function TablesPage() {
         onManageFloors={() =>
           openModal("Manage Floors", <FloorManagementModal />)
         }
+        onOpenReservations={
+          businessType === "RESTAURANT"
+            ? () => void navigate({ to: "/reservations" })
+            : undefined
+        }
       />
 
-      <TablesStatsRow stats={stats} />
+      {/* <TablesStatsRow stats={stats} /> */}
 
       <div className="flex gap-4">
         {view === "canvas" ? (
-          <div className="h-[calc(100vh-20rem)] w-[calc(100vw-20rem)] flex-1">
+          <div className="h-[calc(100vh-12rem)] w-[calc(100vw-20rem)] flex-1">
             <FloorCanvas
               key={`${branchId}:${effectiveFloorId}`}
               floorKey={`${branchId}:${effectiveFloorId}`}

@@ -12,10 +12,12 @@ import { PublicUser } from "@repo/types";
 export const useLogin = (): UseMutationResult<
   {
     accessToken: string;
+    refreshToken: string;
     user: PublicUser;
   },
   Error,
   {
+    tenantCode: string;
     username: string;
     password: string;
   }
@@ -24,15 +26,18 @@ export const useLogin = (): UseMutationResult<
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
+      tenantCode,
       username,
       password,
     }: {
+      tenantCode: string;
       username: string;
       password: string;
-    }) => authApi.login(username, password),
+    }) => authApi.login(tenantCode, username, password),
     onSuccess: (data) => {
-      // Store both user data and access token
-      setUser(data.user, data.accessToken);
+      // Store user data, access token, and the refresh token that keeps the
+      // session alive without forcing a re-login on expiry.
+      setUser(data.user, data.accessToken, data.refreshToken);
       queryClient.invalidateQueries({ queryKey: ["current-user"] });
       toast.success("Logged in successfully.");
     },

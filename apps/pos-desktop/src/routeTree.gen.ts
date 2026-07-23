@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TablesRouteImport } from './routes/tables'
 import { Route as StockRouteImport } from './routes/stock'
+import { Route as ReservationsRouteImport } from './routes/reservations'
 import { Route as RefundsRouteImport } from './routes/refunds'
 import { Route as ReceiptPreviewRouteImport } from './routes/receipt-preview'
 import { Route as PaymentsRouteImport } from './routes/payments'
@@ -64,6 +65,11 @@ const TablesRoute = TablesRouteImport.update({
 const StockRoute = StockRouteImport.update({
   id: '/stock',
   path: '/stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservationsRoute = ReservationsRouteImport.update({
+  id: '/reservations',
+  path: '/reservations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RefundsRoute = RefundsRouteImport.update({
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/payments': typeof PaymentsRoute
   '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
+  '/reservations': typeof ReservationsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/payments': typeof PaymentsRoute
   '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
+  '/reservations': typeof ReservationsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
@@ -395,6 +403,7 @@ export interface FileRoutesById {
   '/payments': typeof PaymentsRoute
   '/receipt-preview': typeof ReceiptPreviewRoute
   '/refunds': typeof RefundsRoute
+  '/reservations': typeof ReservationsRoute
   '/stock': typeof StockRoute
   '/tables': typeof TablesRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/receipt-preview'
     | '/refunds'
+    | '/reservations'
     | '/stock'
     | '/tables'
     | '/categories/$categoryId'
@@ -492,6 +502,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/receipt-preview'
     | '/refunds'
+    | '/reservations'
     | '/stock'
     | '/tables'
     | '/categories/$categoryId'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/receipt-preview'
     | '/refunds'
+    | '/reservations'
     | '/stock'
     | '/tables'
     | '/categories/$categoryId'
@@ -589,6 +601,7 @@ export interface RootRouteChildren {
   PaymentsRoute: typeof PaymentsRoute
   ReceiptPreviewRoute: typeof ReceiptPreviewRoute
   RefundsRoute: typeof RefundsRoute
+  ReservationsRoute: typeof ReservationsRoute
   StockRoute: typeof StockRoute
   TablesRoute: typeof TablesRoute
   CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
@@ -624,6 +637,13 @@ declare module '@tanstack/react-router' {
       path: '/stock'
       fullPath: '/stock'
       preLoaderRoute: typeof StockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservations': {
+      id: '/reservations'
+      path: '/reservations'
+      fullPath: '/reservations'
+      preLoaderRoute: typeof ReservationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/refunds': {
@@ -1002,6 +1022,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentsRoute: PaymentsRoute,
   ReceiptPreviewRoute: ReceiptPreviewRoute,
   RefundsRoute: RefundsRoute,
+  ReservationsRoute: ReservationsRoute,
   StockRoute: StockRoute,
   TablesRoute: TablesRoute,
   CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,

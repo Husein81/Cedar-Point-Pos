@@ -58,12 +58,17 @@ export class KitchenGateway
     this.server.to(`branch_${branchId}`).emit('newOrder', order);
   }
 
-  /**
-   * Notify a branch that its floor plan changed (table status, layout,
-   * assignment...). Payload is intentionally minimal — clients refetch the
-   * tables overview rather than patching local state.
-   */
   emitTablesChanged(branchId: string) {
     this.server.to(`branch_${branchId}`).emit('tablesUpdated', { branchId });
+  }
+
+  emitReservationChanged(
+    branchId: string,
+    event: string,
+    payload: Record<string, unknown>,
+  ) {
+    this.server
+      .to(`branch_${branchId}`)
+      .emit('reservationsUpdated', { event, ...payload });
   }
 }

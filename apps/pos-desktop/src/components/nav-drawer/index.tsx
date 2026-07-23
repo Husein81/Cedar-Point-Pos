@@ -63,40 +63,46 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
           <Shad.ScrollArea className="flex-1 min-h-0">
             <div className="p-4 space-y-4">
               {/* Navigation Sections */}
-              {sidebarSections.map((section) => (
-                <Shad.Collapsible
-                  open={toggle[section.label]}
-                  onOpenChange={(isOpen: boolean) =>
-                    setToggle((prev) => ({ ...prev, [section.label]: isOpen }))
-                  }
-                  key={section.label}
-                >
-                  <div className="space-y-2">
-                    <Shad.CollapsibleTrigger asChild>
-                      <span className="flex justify-between items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                        <span>{section.label}</span>
-                        <Icon
-                          name={
-                            toggle[section.label]
-                              ? "ChevronDown"
-                              : "ChevronRight"
-                          }
-                          className="w-4 h-4"
-                        />
-                      </span>
-                    </Shad.CollapsibleTrigger>
-                    <Shad.CollapsibleContent>
-                      <div className="space-y-1">
-                        {section.items
-                          .filter((item) => {
-                            return (
-                              item.showFor.includes(
-                                (user?.tenant?.businessType as BusinessType) ??
-                                  "RETAIL",
-                              ) && item.roles?.includes(user?.role || "CASHIER")
-                            );
-                          })
-                          .map((item) => (
+              {sidebarSections.map((section) => {
+                const visibleItems = section.items.filter(
+                  (item) =>
+                    item.showFor.includes(
+                      (user?.tenant?.businessType as BusinessType) ?? "RETAIL",
+                    ) && item.roles?.includes(user?.role || "CASHIER"),
+                );
+
+                // Don't render a section header when the role/business type
+                // leaves it with no items (e.g. "Management" for a cashier).
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <Shad.Collapsible
+                    open={toggle[section.label]}
+                    onOpenChange={(isOpen: boolean) =>
+                      setToggle((prev) => ({
+                        ...prev,
+                        [section.label]: isOpen,
+                      }))
+                    }
+                    key={section.label}
+                  >
+                    <div className="space-y-2">
+                      <Shad.CollapsibleTrigger asChild>
+                        <span className="flex justify-between items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                          <span>{section.label}</span>
+                          <Icon
+                            name={
+                              toggle[section.label]
+                                ? "ChevronDown"
+                                : "ChevronRight"
+                            }
+                            className="w-4 h-4"
+                          />
+                        </span>
+                      </Shad.CollapsibleTrigger>
+                      <Shad.CollapsibleContent>
+                        <div className="space-y-1">
+                          {visibleItems.map((item) => (
                             <Button
                               key={item.href}
                               variant="ghost"
@@ -114,11 +120,12 @@ const NavDrawer = ({ open, onOpenChange }: NavDrawerProps) => {
                               <span>{item.label}</span>
                             </Button>
                           ))}
-                      </div>
-                    </Shad.CollapsibleContent>
-                  </div>
-                </Shad.Collapsible>
-              ))}
+                        </div>
+                      </Shad.CollapsibleContent>
+                    </div>
+                  </Shad.Collapsible>
+                );
+              })}
             </div>
             <Shad.ScrollBar />
           </Shad.ScrollArea>

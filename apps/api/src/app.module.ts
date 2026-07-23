@@ -24,6 +24,7 @@ import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { RefundsModule } from './modules/refunds/refunds.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { ReservationsModule } from './modules/reservations/reservations.module.js';
 import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { StaffModule } from './modules/staff/staff.module.js';
@@ -36,6 +37,7 @@ import { ShiftsModule } from './modules/shifts/shifts.module.js';
 
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       isGlobal: true,
     }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute
@@ -74,6 +77,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     OffersModule,
     RefundsModule,
     ReportsModule,
+    ReservationsModule,
     ShiftsModule,
     StaffModule,
     SystemAdminModule,

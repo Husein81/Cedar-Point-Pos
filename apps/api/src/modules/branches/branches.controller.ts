@@ -1,7 +1,17 @@
-import { Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
+import { UserRole } from '@repo/types';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { BranchesService } from './branches.service.js';
+import { CreateBranchDto } from './dto/create-branch.dto.js';
 import { Prisma } from '../../generated/prisma/client.js';
 
 @Controller('branches')
@@ -16,18 +26,19 @@ export class BranchesController {
     return this.branchesService.getBranchesByTenantId(tenantId);
   }
 
-  @Roles('ADMIN', 'MANAGER')
-  @Post()
-  createBranch(@Req() req: Request) {
-    const body = req.body as Prisma.BranchCreateInput;
-    const { tenantId } = req.user as { tenantId: string };
-    return this.branchesService.createBranch({
-      ...body,
-      tenant: { connect: { id: tenantId } },
-    });
+  @Roles(UserRole.SYSTEM_ADMIN)
+  @Post('/tenant/:tenantId')
+  createBranch(
+    @Param('tenantId') tenantId: string,
+    @Body() body: CreateBranchDto,
+  ) {
+    if (!tenantId) {
+      throw new Error('Tenant ID is required');
+    }
+    return this.branchesService.createBranch(tenantId, body);
   }
 
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.SYSTEM_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post('/:id')
   updateBranch(@Req() req: Request, @Param('id') id: string) {
     if (!id) {
@@ -37,7 +48,7 @@ export class BranchesController {
     return this.branchesService.updateBranch(id, body);
   }
 
-  @Roles('ADMIN', 'MANAGER')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Delete('/:id')
   deleteBranch(@Req() req: Request, @Param('id') id: string) {
     if (!id) {

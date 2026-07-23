@@ -7,6 +7,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ACTIVE_ORDER_STATUSES, TABLE_SHAPE_DEFAULT_SIZE } from '@repo/types';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { fetchAdditionalOrderCustomers } from '../common/order-customers.util.js';
 import { TableStatusService } from './table-status.service.js';
 import { OrderStatus, TableStatus } from '../../generated/prisma/client.js';
 import type {
@@ -498,6 +499,13 @@ export class TablesService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Additional (shared) customers fetched separately + guarded, so a missing
+    // OrderCustomer table can never break the floor-plan overview.
+    const additionalByOrder = await fetchAdditionalOrderCustomers(
+      this.prisma,
+      orders.map((o) => o.id),
+    );
+
     // Most recent in-service order per table (list is createdAt desc).
     const orderByTableId = new Map<string, (typeof orders)[number]>();
     for (const order of orders) {
@@ -528,6 +536,9 @@ export class TablesService {
               createdAt: order.createdAt,
               userName: order.user?.name ?? null,
               customerName: order.customer?.name ?? null,
+              additionalCustomerNames: (
+                additionalByOrder.get(order.id) ?? []
+              ).map((oc) => oc.customer.name),
             }
           : null,
       };

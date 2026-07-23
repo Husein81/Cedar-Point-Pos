@@ -71,7 +71,7 @@ export const CustomerSearchList = () => {
         <div className="flex flex-col gap-1">
           {isLoading && (
             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-              <Icon name="Loader2" className="h-4 w-4 mr-2 animate-spin" />
+              <Icon name="LoaderCircle" className="h-4 w-4 mr-2 animate-spin" />
               Searching...
             </div>
           )}

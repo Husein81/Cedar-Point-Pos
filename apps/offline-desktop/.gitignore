@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-electron
+release
+.tanstack
+src/routeTree.gen.ts

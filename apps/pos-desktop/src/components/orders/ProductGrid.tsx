@@ -7,15 +7,7 @@ import { useOrderStore } from "@/store/orderStore";
 import { OfferSelectionModal } from "./OfferSelectionModal";
 import type { Product } from "@repo/types";
 import { Subcategory } from "@repo/types";
-import {
-  Button,
-  Icon,
-  Input,
-  SButton,
-  Shad,
-  Skeleton,
-  cn,
-} from "@repo/ui";
+import { Button, Icon, Input, SButton, Shad, Skeleton, cn } from "@repo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "./ProductCard";
 
@@ -224,7 +216,7 @@ export const ProductGrid = () => {
           </div>
           {hasActiveFilters && (
             <Button variant="outline" size="sm" onClick={clearFilters}>
-              <Icon name="FilterX" className="mr-1.5 h-4 w-4" />
+              <Icon name="FunnelX" className="mr-1.5 h-4 w-4" />
               Clear filters
             </Button>
           )}

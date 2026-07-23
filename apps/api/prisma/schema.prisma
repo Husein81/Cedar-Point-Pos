@@ -74,7 +74,11 @@ model TenantCurrency {
   currency     Currency @relation(fields: [currencyCode], references: [code])
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, isDefault], map: "one_base_currency_per_tenant")
+  // "One base currency per tenant" is enforced by a PARTIAL unique index
+  // (UNIQUE(tenantId) WHERE isDefault = true), applied via raw SQL migration —
+  // Prisma's @@unique can't express a partial index. A full @@unique on
+  // (tenantId, isDefault) is WRONG: it also caps a tenant at one non-default
+  // currency and breaks setBaseCurrency's reset-all-to-false swap.
   @@unique([tenantId, currencyCode])
   @@index([tenantId, isActive])
 }

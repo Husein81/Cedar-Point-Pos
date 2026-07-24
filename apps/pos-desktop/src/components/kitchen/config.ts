@@ -74,17 +74,21 @@ const actionButtonStatuses: Record<string, ActionButtonStatus> = {
   },
 };
 
-const pickupActionButtonStatus: ActionButtonStatus = {
-  nextStatus: OrderStatus.COMPLETED,
-  buttonLabel: "Picked Up",
-};
-
 export const getActionButtonStatus = (
   status: OrderStatus,
   orderType?: OrderType,
 ): ActionButtonStatus => {
-  if (status === OrderStatus.READY && orderType !== OrderType.DINE_IN) {
-    return pickupActionButtonStatus;
+  // Takeaway and delivery are never closed from the KDS. A settled one closes
+  // itself the moment the kitchen marks it READY; an unsettled one closes when
+  // the money is recorded — at the register for takeaway, or from the Delivery
+  // Orders modal when the driver returns. The kitchen also isn't permitted
+  // READY → COMPLETED, so offering the button here would only 403 for a real
+  // kitchen account. Anything still on the board at READY is awaiting payment.
+  if (
+    status === OrderStatus.READY &&
+    (orderType === OrderType.TAKEAWAY || orderType === OrderType.DELIVERY)
+  ) {
+    return { nextStatus: null, buttonLabel: "Awaiting Payment" };
   }
 
   return actionButtonStatuses[status] || { nextStatus: null, buttonLabel: "" };

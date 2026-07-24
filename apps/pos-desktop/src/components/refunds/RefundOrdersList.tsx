@@ -1,5 +1,6 @@
 import type { RefundableOrderSummary } from "@/dto/refund.dto";
 import { useRefundStore } from "@/store/refundStore";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { Badge, Button, cn, Icon, Shad } from "@repo/ui";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -25,6 +26,7 @@ export const RefundOrdersList = ({
   const selectOrder = useRefundStore((s) => s.selectOrder);
   const page = useRefundStore((s) => s.page);
   const setPage = useRefundStore((s) => s.setPage);
+  const { format: formatMoney } = useBaseCurrency();
 
   const totalPages = Math.ceil(totalCount / REFUND_ORDERS_PAGE_SIZE);
 
@@ -110,7 +112,7 @@ export const RefundOrdersList = ({
                 {/* Total + payment */}
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-lg font-bold tabular-nums">
-                    ${order.total.toFixed(2)}
+                    {formatMoney(order.total)}
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Icon name="CreditCard" className="w-3 h-3" />

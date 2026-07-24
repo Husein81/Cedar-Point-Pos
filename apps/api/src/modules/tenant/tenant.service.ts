@@ -198,6 +198,7 @@ export class TenantService {
           ...(data.baseCurrencyCode !== undefined && {
             baseCurrencyCode: data.baseCurrencyCode,
           }),
+          ...(data.logoUrl !== undefined && { logoUrl: data.logoUrl }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
           ...(data.code !== undefined && { code: data.code }),
         },

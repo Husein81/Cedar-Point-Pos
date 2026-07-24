@@ -2,6 +2,7 @@ import { SupplierForm } from "@/components/supplier/SupplierForm";
 import TitleBar from "@/components/title-bar";
 import { getSupplierColumns } from "@/components/supplier/supplierColumn";
 import { useSuppliersPaginated } from "@/hooks/useSupplier";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { Button, DataTable } from "@repo/ui";
 import { createFileRoute } from "@tanstack/react-router";
@@ -25,6 +26,7 @@ function RouteComponent() {
     search: searchQuery,
   });
   const openModal = useModalStore((state) => state.openModal);
+  const { format: formatMoney } = useBaseCurrency();
 
   const handleCreateSupplier = () => {
     openModal("Create Supplier", <SupplierForm />);
@@ -35,7 +37,7 @@ function RouteComponent() {
       <TitleBar title="Suppliers" subtitle="Browse and manage all suppliers" />
       <DataTable
         isLoading={isLoading}
-        columns={getSupplierColumns()}
+        columns={getSupplierColumns(formatMoney)}
         data={suppliersResponse?.data ?? []}
         onRefetch={refetch}
         actions={

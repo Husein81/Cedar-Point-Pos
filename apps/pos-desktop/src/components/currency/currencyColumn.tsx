@@ -64,15 +64,21 @@ export const getCurrencyColumns = (
     accessorKey: "exchangeRate",
     header: "Exchange Rate",
     cell: ({ row }) => {
-      const rate = parseFloat(row.original.exchangeRate?.toString() || "0");
-      const decimalPlaces = row.original.currency?.decimalPlaces ?? 2;
       const isBase = row.original.currencyCode === baseCurrencyCode;
+      // Show the stored rate at full precision (trailing zeros trimmed), read
+      // straight from the string to avoid float loss. Forcing the currency's
+      // money decimals (e.g. 2 for USD) would collapse a tiny rate such as
+      // 0.000011111111 (USD per LBP) to "0.00".
+      const raw = row.original.exchangeRate?.toString() ?? "0";
+      const display = raw.includes(".")
+        ? raw.replace(/0+$/, "").replace(/\.$/, "")
+        : raw;
       return (
         <div className="font-mono">
           {isBase ? (
             <span className="text-muted-foreground">1.00</span>
           ) : (
-            rate.toFixed(decimalPlaces)
+            display
           )}
         </div>
       );

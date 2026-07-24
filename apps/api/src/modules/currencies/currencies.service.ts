@@ -290,23 +290,40 @@ export class CurrenciesService {
       );
     }
 
-    // Transaction: update tenant base currency and toggle isDefault flags
+    // The new base's current rate is "units of new base per 1 old base".
+    // Rebasing every currency by dividing by it maps the new base to 1 and
+    // each other currency to "units of C per 1 new base" — the direction the
+    // conversion helpers expect (converted = baseAmount * rate). Captured
+    // before any writes.
+    const newBaseOldRate = new Prisma.Decimal(tenantCurrency.exchangeRate);
+
+    // Transaction: update tenant base currency, rebase rates, toggle isDefault
     return this.prisma.$transaction(async (tx) => {
-      // Reset all isDefault flags for this tenant
+      // Reset all isDefault flags first. Clearing the old default before
+      // setting the new one avoids a transient two-defaults state that would
+      // violate the partial unique index (isDefault = true per tenant).
       await tx.tenantCurrency.updateMany({
         where: { tenantId },
         data: { isDefault: false },
       });
 
-      // Set new default
-      await tx.tenantCurrency.update({
-        where: { id: tenantCurrency.id },
-        data: {
-          isDefault: true,
-          isActive: true, // Ensure base currency is always active
-          exchangeRate: 1, // Base currency always has rate of 1
-        },
+      // Rebase every currency's exchange rate onto the new base currency.
+      const currencies = await tx.tenantCurrency.findMany({
+        where: { tenantId },
       });
+      for (const currency of currencies) {
+        const isNewBase = currency.id === tenantCurrency.id;
+        await tx.tenantCurrency.update({
+          where: { id: currency.id },
+          data: {
+            exchangeRate: isNewBase
+              ? new Prisma.Decimal(1) // Base currency always has rate of 1
+              : new Prisma.Decimal(currency.exchangeRate).div(newBaseOldRate),
+            // Ensure the base currency is always the default and active.
+            ...(isNewBase ? { isDefault: true, isActive: true } : {}),
+          },
+        });
+      }
 
       // Update tenant's base currency
       const updatedTenant = await tx.tenant.update({

@@ -1,4 +1,5 @@
 import { useCustomer, useCustomerOrders } from "@/hooks/useCustomer";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import {
   useCustomerLoyaltyAccount,
   useCustomerLoyaltyTransactions,
@@ -65,7 +66,9 @@ const getOrderStatusBadge = (status: string) => {
   }
 };
 
-const getCustomerOrderColumns = (): ColumnDef<CustomerOrder>[] => [
+const getCustomerOrderColumns = (
+  formatMoney: (value: number | string | null | undefined) => string,
+): ColumnDef<CustomerOrder>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
@@ -115,9 +118,7 @@ const getCustomerOrderColumns = (): ColumnDef<CustomerOrder>[] => [
     accessorKey: "total",
     header: "Total",
     cell: ({ row }) => (
-      <div className="font-medium">
-        ${Number(row.original.total).toFixed(2)}
-      </div>
+      <div className="font-medium">{formatMoney(row.original.total)}</div>
     ),
   },
   {
@@ -152,7 +153,9 @@ const getDirectionBadge = (direction: string) => {
   );
 };
 
-const getLoyaltyTransactionColumns = (): ColumnDef<LoyaltyTransaction>[] => [
+const getLoyaltyTransactionColumns = (
+  formatMoney: (value: number | string | null | undefined) => string,
+): ColumnDef<LoyaltyTransaction>[] => [
   {
     accessorKey: "createdAt",
     header: "Date",
@@ -203,7 +206,7 @@ const getLoyaltyTransactionColumns = (): ColumnDef<LoyaltyTransaction>[] => [
       const amount = row.original.moneyAmount;
       return (
         <div className="text-sm font-mono">
-          {amount != null ? `$${Number(amount).toFixed(2)}` : "—"}
+          {amount != null ? formatMoney(amount) : "—"}
         </div>
       );
     },
@@ -275,6 +278,7 @@ function RouteComponent() {
 
   const { isHighLevelUser } = useAuthStore();
   const { openModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
 
   const showLoyalty = loyaltyProgram?.isEnabled;
 
@@ -356,7 +360,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-2xl font-bold">
-              ${customer.totalRevenue.toFixed(2)}
+              {formatMoney(customer.totalRevenue)}
             </div>
           </Shad.CardContent>
         </Shad.Card>
@@ -370,7 +374,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-2xl font-bold">
-              ${customer.averageOrderValue.toFixed(2)}
+              {formatMoney(customer.averageOrderValue)}
             </div>
           </Shad.CardContent>
         </Shad.Card>
@@ -548,7 +552,7 @@ function RouteComponent() {
                 </div>
               ) : (
                 <DataTable
-                  columns={getLoyaltyTransactionColumns()}
+                  columns={getLoyaltyTransactionColumns(formatMoney)}
                   data={txResponse?.data ?? []}
                   isLoading={txLoading}
                   pagination={
@@ -587,7 +591,7 @@ function RouteComponent() {
           </div>
         ) : (
           <DataTable
-            columns={getCustomerOrderColumns()}
+            columns={getCustomerOrderColumns(formatMoney)}
             data={ordersResponse?.data ?? []}
             isLoading={ordersLoading}
           />

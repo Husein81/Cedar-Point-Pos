@@ -1,12 +1,15 @@
 import { Icon, Shad } from "@repo/ui";
 import type { SupplierFullDetails } from "@/dto/supplier.dto";
 import { DEFAULT_LOCALE } from "@/constants/locale";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 
 interface SupplierInfoProps {
   supplier: SupplierFullDetails;
 }
 
 export const SupplierInfo = ({ supplier }: SupplierInfoProps) => {
+  const { format: formatMoney } = useBaseCurrency();
+
   return (
     <Shad.Card>
       <Shad.CardHeader>
@@ -64,7 +67,7 @@ export const SupplierInfo = ({ supplier }: SupplierInfoProps) => {
                 Current Balance
               </p>
               <p className="text-base">
-                ${Number(supplier.currentBalance).toFixed(2)}
+                {formatMoney(supplier.currentBalance)}
               </p>
             </div>
           </div>

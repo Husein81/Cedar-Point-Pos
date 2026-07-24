@@ -86,6 +86,9 @@ export function OrderDetailPage() {
           branchPhone={branch?.phone || ""}
           orderNumber={order.orderNumber || order.id.slice(0, 8)}
           loyaltyApplied={loyaltyApplied}
+          tenantCurrencies={tenantCurrencies}
+          baseCurrencyCode={baseCurrencyCode}
+          logoUrl={user?.tenant?.logoUrl}
         />,
       ).toBlob();
 

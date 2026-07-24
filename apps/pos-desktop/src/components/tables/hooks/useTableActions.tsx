@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { OrderStatus, TableStatus } from "@repo/types";
+import { OrderStatus, PaymentStatus, TableStatus } from "@repo/types";
 import { toast } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TableOverview } from "@/dto/tables.dto";
@@ -104,14 +104,25 @@ export const useTableActions = (options: {
           return;
         }
 
+        // A paid order is never voided when freeing a table — it's completed
+        // (closing the sale, deducting stock). Only genuinely unpaid orders are
+        // cancelled. This is what makes "pay only" safe to free.
+        let completedCount = 0;
+        let cancelledCount = 0;
         for (const order of activeOrders) {
+          const isPaid = order.paymentStatus === PaymentStatus.PAID;
           await orderStatusMutation.mutateAsync({
             id: order.id,
-            status: OrderStatus.CANCELLED,
+            status: isPaid ? OrderStatus.COMPLETED : OrderStatus.CANCELLED,
           });
+          if (isPaid) completedCount += 1;
+          else cancelledCount += 1;
         }
 
-        toast.success("Orders cancelled, table freed");
+        const parts: string[] = [];
+        if (completedCount > 0) parts.push(`${completedCount} completed`);
+        if (cancelledCount > 0) parts.push(`${cancelledCount} cancelled`);
+        toast.success(`Table freed (${parts.join(", ")})`);
         selectTable(null);
       } catch (error) {
         toast.error(extractErrorMessage(error, "Failed to free the table"));

@@ -8,6 +8,7 @@ import {
   useUpdateOrderStatus,
 } from "@/hooks/useOrder";
 import { useBranch } from "@/hooks/useBranch";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { printReceipt } from "@/components/receipt/ReceiptPdf";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
@@ -30,6 +31,9 @@ export function useOrderActions() {
   const { user } = useAuthStore();
   const { branchId } = useBranchStore();
   const { data: branch } = useBranch(branchId || "");
+  const { data: currencyData } = useTenantCurrencies();
+  const tenantCurrencies = currencyData?.currencies ?? [];
+  const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
   const navigate = useNavigate();
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueueStore();
@@ -166,13 +170,16 @@ export function useOrderActions() {
       loyalty?: { redeemPoints: number },
     ) => {
       await withPaymentLock(async () => {
-        if (payments.length === 0) return;
-
         const active = getActiveOrder();
         if (!active || !branchId || !user?.tenantId) return;
 
         const remainingTotal = getTotal() - (active.paidAmount ?? 0);
-        if (remainingTotal <= 0) return;
+
+        // A fully discounted order owes nothing and takes no payment, but it
+        // still has to be finalised — the server settles it without writing a
+        // payment row. Anything that does owe money needs a real payment.
+        const nothingDue = remainingTotal <= 0;
+        if (payments.length === 0 && !nothingDue) return;
 
         if (active.type === OrderType.DELIVERY && !active.customerId) return;
         if (active.type === OrderType.DELIVERY && !active.customerAddress)
@@ -356,6 +363,9 @@ export function useOrderActions() {
               branchPhone: branch?.phone || "",
               orderNumber: finalOrderNumber,
               loyaltyApplied,
+              tenantCurrencies,
+              baseCurrencyCode,
+              logoUrl: user.tenant?.logoUrl,
             });
           } catch (printErr) {
             console.error("Auto-print failed:", printErr);
@@ -369,10 +379,12 @@ export function useOrderActions() {
     },
     [
       activeTabId,
+      baseCurrencyCode,
       batchAddItemsToOrder,
       branch,
       branchId,
       buildOrderDto,
+      tenantCurrencies,
       clearOrder,
       closeKeypad,
       closeModal,
@@ -386,6 +398,7 @@ export function useOrderActions() {
       processPayment,
       sendToKitchen,
       user?.tenant?.businessType,
+      user?.tenant?.logoUrl,
       user?.tenantId,
       withPaymentLock,
       navigate,

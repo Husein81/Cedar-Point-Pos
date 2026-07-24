@@ -109,6 +109,18 @@ export const OWING_PAYMENT_STATUSES: readonly PaymentStatus[] = [
   PaymentStatus.PARTIALLY_PAID,
 ] as const;
 
+/**
+ * The currency all reporting/analytics is expressed in, regardless of the
+ * tenant's base currency. Operational screens (POS, tables, receipts) show the
+ * base currency the customer actually pays in; revenue is reported in this
+ * stable reference currency instead.
+ *
+ * Each order snapshots its own rate against this at creation
+ * (`Order.exchangeRate` = units of this currency per 1 unit of the order's
+ * currency) so past revenue never shifts when the configured rate changes.
+ */
+export const REPORTING_CURRENCY_CODE = "USD";
+
 export const SortOrder = {
   ASC: "asc",
   DESC: "desc",

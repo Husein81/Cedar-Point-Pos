@@ -1,6 +1,7 @@
 import { memo, useCallback } from "react";
 import { Icon, Shad, cn } from "@repo/ui";
 import type { TableOverview } from "@/dto/tables.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import {
   TABLE_SHAPE_CONFIG,
   TABLE_UI_STATUS_CONFIG,
@@ -8,7 +9,6 @@ import {
   OVER_CAPACITY_TEXT_CLASS,
   deriveTableUiStatus,
   formatElapsedSince,
-  formatTableMoney,
   getTableSize,
   getVisibleMenuEntries,
   isOverCapacity,
@@ -66,7 +66,12 @@ export const TableNode = memo(function TableNode({
   onAction,
   onDragStart,
 }: TableNodeProps) {
-  const uiStatus = deriveTableUiStatus(table, table.activeOrder?.status);
+  const { format: formatMoney } = useBaseCurrency();
+  const uiStatus = deriveTableUiStatus(
+    table,
+    table.activeOrder?.status,
+    table.activeOrder?.paymentStatus,
+  );
   const statusConfig = TABLE_UI_STATUS_CONFIG[uiStatus];
   const shape = table.shape ?? DEFAULT_TABLE_SHAPE;
   const shapeConfig = TABLE_SHAPE_CONFIG[shape];
@@ -171,7 +176,7 @@ export const TableNode = memo(function TableNode({
                   <Icon name="Timer" className="h-3 w-3" />
                   {formatElapsedSince(order.createdAt, now)}
                 </span>
-                <span>{formatTableMoney(order.total)}</span>
+                <span>{formatMoney(order.total)}</span>
               </div>
             ) : (
               <span
@@ -214,6 +219,7 @@ export const TableNode = memo(function TableNode({
     uiStatus,
     canManage,
     order?.paymentStatus,
+    order ? Number(order.total) : undefined,
   );
 
   return (

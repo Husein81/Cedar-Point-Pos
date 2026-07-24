@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon, Shad } from "@repo/ui";
 import { format } from "date-fns";
 import type { RefundHistory } from "@/dto/refund.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 
 interface RefundHistoryPanelProps {
   history: RefundHistory[];
@@ -9,6 +10,7 @@ interface RefundHistoryPanelProps {
 
 export const RefundHistoryPanel = ({ history }: RefundHistoryPanelProps) => {
   const [open, setOpen] = useState(false);
+  const { format: formatMoney } = useBaseCurrency();
 
   return (
     <Shad.Collapsible className="rounded-lg border overflow-hidden">
@@ -50,7 +52,7 @@ export const RefundHistoryPanel = ({ history }: RefundHistoryPanelProps) => {
               </div>
 
               <div className="text-sm font-bold text-destructive tabular-nums">
-                -${refund.totalAmount.toFixed(2)}
+                -{formatMoney(refund.totalAmount)}
               </div>
             </div>
 
@@ -66,7 +68,7 @@ export const RefundHistoryPanel = ({ history }: RefundHistoryPanelProps) => {
                       {item.quantity} × {item.productName}
                     </span>
                     <span className="tabular-nums ml-2">
-                      ${item.subtotal.toFixed(2)}
+                      {formatMoney(item.subtotal)}
                     </span>
                   </div>
                 ))}

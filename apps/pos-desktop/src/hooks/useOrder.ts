@@ -8,9 +8,16 @@ import {
   PaymentDto,
   type LoyaltyRedemptionPayload,
 } from "@/dto/order.dto";
+import { useBranchStore } from "@/store/branchStore";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
-import type { Order, OrderStatus } from "@repo/types";
+import type { Order } from "@repo/types";
+import {
+  ACTIVE_ORDER_STATUSES,
+  OrderStatus,
+  OrderType,
+  PaymentStatus,
+} from "@repo/types";
 import {
   UseMutationResult,
   UseQueryResult,
@@ -18,7 +25,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "@repo/ui";
 
 const ORDER_QUERY_KEY = ["orders"];
@@ -29,6 +36,36 @@ export const useOrders = (filters?: OrderFilters) => {
     queryKey: [...ORDER_QUERY_KEY, filters],
     queryFn: () => ordersApi.getOrders(filters),
   });
+};
+
+/**
+ * Delivery orders that still owe money — the food is with (or heading to) the
+ * driver and the order closes when the cashier records the cash on their
+ * return. Drives both the Delivery Orders modal and its header count.
+ *
+ * Excludes an unpaid never-fired draft: that's an open cart, not a delivery.
+ */
+export const useUnpaidDeliveryOrders = () => {
+  const { branchId } = useBranchStore();
+
+  const query = useOrders({
+    branchId: branchId ?? undefined,
+    type: OrderType.DELIVERY,
+  });
+
+  const orders = useMemo(() => {
+    return (query.data?.data ?? []).filter(
+      (order) =>
+        (ACTIVE_ORDER_STATUSES as readonly string[]).includes(order.status) &&
+        order.paymentStatus !== PaymentStatus.PAID &&
+        !(
+          order.status === OrderStatus.DRAFT &&
+          order.paymentStatus === PaymentStatus.UNPAID
+        ),
+    );
+  }, [query.data]);
+
+  return { ...query, orders };
 };
 
 export const useOrder = (id: string) => {

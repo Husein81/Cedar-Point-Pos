@@ -1,5 +1,6 @@
 import { ReceiptPdf } from "@/components/receipt/ReceiptPdf";
 import { useBranch } from "@/hooks/useBranch";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useNextOrderNumber } from "@/hooks/useOrder";
 import { useAuthStore } from "@/store/authStore";
 import { useBranchStore } from "@/store/branchStore";
@@ -25,6 +26,9 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
   );
 
   const order = getActiveOrder();
+  const { data: currencyData } = useTenantCurrencies();
+  const tenantCurrencies = currencyData?.currencies ?? [];
+  const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
   const { data: nextNumberData, isLoading: isNextNumberLoading } =
     useNextOrderNumber(branchId!);
 
@@ -63,6 +67,9 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
         branchPhone={branch?.phone || ""}
         orderNumber={orderNumber}
         loyaltyApplied={loyaltyApplied}
+        tenantCurrencies={tenantCurrencies}
+        baseCurrencyCode={baseCurrencyCode}
+        logoUrl={user.tenant?.logoUrl}
       />,
     ).toBlob();
 
@@ -100,6 +107,9 @@ export const ReceiptModal = ({ loyaltyApplied }: Props) => {
             branchPhone={branch?.phone || ""}
             orderNumber={orderNumber}
             loyaltyApplied={loyaltyApplied}
+            tenantCurrencies={tenantCurrencies}
+            baseCurrencyCode={baseCurrencyCode}
+            logoUrl={user.tenant?.logoUrl}
           />
         </PDFViewer>
       </div>

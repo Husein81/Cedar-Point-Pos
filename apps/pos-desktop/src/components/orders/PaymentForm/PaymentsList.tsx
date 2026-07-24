@@ -46,7 +46,8 @@ export default function PaymentsList({
                     {/* Show conversion if not in base currency */}
                     {p.currencyCode !== baseCurrency?.currencyCode && (
                       <p className="text-xs text-muted-foreground font-mono">
-                        ≈ ${formatPrice(p.amountInBase)}
+                        ≈ {baseCurrency?.currency?.symbol ?? baseCurrency?.currencyCode}{" "}
+                        {formatPrice(p.amountInBase)}
                       </p>
                     )}
                   </div>

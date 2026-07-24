@@ -18,6 +18,7 @@ import {
   OrderType,
   PaymentStatus,
   QueryParams,
+  REPORTING_CURRENCY_CODE,
   ShiftStatus,
   TicketStatus,
   UserRole,
@@ -254,10 +255,17 @@ export class OrdersService {
     // Fetch tenant info
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { businessType: true },
+      select: { businessType: true, baseCurrencyCode: true },
     });
 
     if (!tenant) throw new NotFoundException('Tenant not found');
+
+    // Freeze the reporting rate onto the order so revenue reported for it never
+    // shifts when the tenant later edits the configured rate.
+    const reportingRate = await this.resolveReportingRate(
+      tenantId,
+      tenant.baseCurrencyCode,
+    );
 
     if (
       tenant.businessType === BusinessType.RESTAURANT &&
@@ -462,6 +470,12 @@ export class OrdersService {
             shippingFee: shippingFee ?? 0,
             includeVAT: includeVAT ?? false,
             vat: vatAmount,
+            // Derived, never defaulted: an order discounted to zero owes
+            // nothing and is settled the moment it exists. Leaving it UNPAID
+            // would strand it — no payment can ever be taken to clear it.
+            paymentStatus: this.derivePaymentStatus(0, total),
+            currencyCode: tenant.baseCurrencyCode,
+            ...(reportingRate !== null && { exchangeRate: reportingRate }),
             ...(tableId && { tableId }),
             ...(customerId && { customerId }),
             ...(shiftId && { shiftId }),
@@ -674,6 +688,47 @@ export class OrdersService {
     };
   }
 
+  /**
+   * How many units of the reporting currency 1 unit of the tenant's base
+   * currency is worth, right now. Snapshotted onto each order at creation so
+   * historical revenue is converted at the rate that was true at the time.
+   *
+   * Returns null when the tenant has no reporting currency configured — the
+   * order simply carries no rate and reporting falls back to the live rate.
+   */
+  private async resolveReportingRate(
+    tenantId: string,
+    baseCurrencyCode: string,
+  ): Promise<Prisma.Decimal | null> {
+    // Base already is the reporting currency: 1:1, nothing to convert.
+    if (baseCurrencyCode === REPORTING_CURRENCY_CODE) {
+      return new Prisma.Decimal(1);
+    }
+
+    const reportingCurrency = await this.prisma.tenantCurrency.findUnique({
+      where: {
+        tenantId_currencyCode: {
+          tenantId,
+          currencyCode: REPORTING_CURRENCY_CODE,
+        },
+      },
+      select: { exchangeRate: true },
+    });
+
+    return reportingCurrency?.exchangeRate ?? null;
+  }
+
+  /**
+   * Order types the restaurant stops owning once the kitchen is done: takeaway
+   * is handed over the counter, delivery leaves with the driver. Neither has a
+   * service step of its own, so the order is finished the moment BOTH axes are
+   * satisfied — fully paid AND kitchen-done. Dine-in is deliberately excluded:
+   * its table stays in service until the cashier explicitly closes it.
+   */
+  private isSelfClosingOrderType(type: OrderType | null | undefined): boolean {
+    return type === OrderType.TAKEAWAY || type === OrderType.DELIVERY;
+  }
+
   async updateStatus({
     tenantId,
     orderId,
@@ -694,6 +749,7 @@ export class OrdersService {
         where: { id: orderId, tenantId },
         select: {
           status: true,
+          type: true,
           paymentStatus: true,
           tableId: true,
           branchId: true,
@@ -721,22 +777,23 @@ export class OrdersService {
       // PAID on the payment axis yet fail a full-precision `<` recheck.
       // A fully-comped order (nothing due, e.g. 100% loyalty) is settled by
       // definition even if no payment row was ever written.
-      if (nextStatus === OrderStatus.COMPLETED) {
-        const loyaltyDiscount =
-          order.loyaltyRedeemedAmount ?? new Prisma.Decimal(0);
-        const nothingDue = order.total.sub(loyaltyDiscount).lte(0);
-        if (order.paymentStatus !== PaymentStatus.PAID && !nothingDue) {
-          throw new BadRequestException({
-            message:
-              'Order cannot be completed: payment has not been fully settled',
-            code: 'ORDER_NOT_PAID',
-          });
-        }
+      const loyaltyDiscount =
+        order.loyaltyRedeemedAmount ?? new Prisma.Decimal(0);
+      const isSettled =
+        order.paymentStatus === PaymentStatus.PAID ||
+        order.total.sub(loyaltyDiscount).lte(0);
+
+      if (nextStatus === OrderStatus.COMPLETED && !isSettled) {
+        throw new BadRequestException({
+          message:
+            'Order cannot be completed: payment has not been fully settled',
+          code: 'ORDER_NOT_PAID',
+        });
       }
 
       // Update order status (+ lifecycle timestamps)
       const now = new Date();
-      const result = await tx.order.update({
+      let result = await tx.order.update({
         where: { id: orderId },
         data: {
           status: nextStatus,
@@ -748,10 +805,37 @@ export class OrdersService {
 
       await this.recordTransition(tx, orderId, order.status, nextStatus, userId);
 
+      // Takeaway/delivery auto-close: neither has a service step of its own, so
+      // an already-settled order marked READY has nothing left to wait for —
+      // close it here rather than stranding it on the pass. System-initiated:
+      // the kitchen role may not perform READY → COMPLETED itself, so this
+      // deliberately runs without a role check (same precedent as
+      // processPayment closing a retail sale).
+      let autoCompleted = false;
+      if (
+        nextStatus === OrderStatus.READY &&
+        this.isSelfClosingOrderType(order.type) &&
+        isSettled
+      ) {
+        result = await tx.order.update({
+          where: { id: orderId },
+          data: { status: OrderStatus.COMPLETED, completedAt: now },
+        });
+        await this.recordTransition(
+          tx,
+          orderId,
+          OrderStatus.READY,
+          OrderStatus.COMPLETED,
+          userId,
+        );
+        autoCompleted = true;
+      }
+
       // Auto-update table status when order completed/cancelled
       if (
         order.tableId &&
         (nextStatus === OrderStatus.COMPLETED ||
+          autoCompleted ||
           nextStatus === OrderStatus.CANCELLED)
       ) {
         // Mark table as AVAILABLE if no other active orders exist
@@ -763,10 +847,16 @@ export class OrdersService {
         );
       }
 
-      return { ...result, _branchId: order.branchId };
+      return {
+        ...result,
+        _branchId: order.branchId,
+        _autoCompleted: autoCompleted,
+      };
     });
 
-    if (nextStatus === OrderStatus.COMPLETED) {
+    // Post-commit completion effects run for an auto-closed takeaway too —
+    // otherwise its stock would never be deducted.
+    if (nextStatus === OrderStatus.COMPLETED || updated._autoCompleted) {
       await this.inventoryDeductionService.deductStockForOrder(
         tenantId,
         orderId,
@@ -791,7 +881,7 @@ export class OrdersService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { _branchId, ...result } = updated;
+    const { _branchId, _autoCompleted, ...result } = updated;
     return result;
   }
 
@@ -841,11 +931,11 @@ export class OrdersService {
       throw new BadRequestException('No payments provided');
     }
 
-    // Validate all payments
-    if (payments.length === 0) {
-      throw new BadRequestException('At least one payment is required');
-    }
-
+    // An empty batch is only legitimate for an order that owes nothing (fully
+    // discounted or entirely covered by loyalty) — that is settled by
+    // definition and must not get a meaningless zero-value Payment row. The
+    // "something must actually be paid" check therefore moves inside the
+    // transaction, where the amount due is known.
     if (payments.some((p) => p.amount <= 0)) {
       throw new BadRequestException(
         'All payment amounts must be greater than 0',
@@ -912,6 +1002,7 @@ export class OrdersService {
           select: {
             id: true,
             status: true,
+            type: true,
             total: true, // ✅ already includes VAT + shipping
             subtotal: true,
             discount: true,
@@ -1043,6 +1134,22 @@ export class OrdersService {
         const totalDue = this.money(
           Number(order.total) - loyaltyRedeemedAmount,
         );
+
+        // Settling with no payment rows is valid only when nothing is owed.
+        if (payments.length === 0) {
+          if (totalDue > 0) {
+            throw new BadRequestException('At least one payment is required');
+          }
+          // Without a payment row there is no idempotency key to dedupe on, so
+          // reject an obvious replay rather than re-running the completion
+          // side effects (stock deduction, loyalty earn) a second time.
+          if (order.status === OrderStatus.COMPLETED) {
+            throw new BadRequestException({
+              message: 'Order is already completed',
+              code: 'ORDER_ALREADY_COMPLETED',
+            });
+          }
+        }
 
         // Already paid (all in base currency)
         const alreadyPaid = this.money(
@@ -1176,9 +1283,10 @@ export class OrdersService {
         const isRestaurant =
           order.tenant?.businessType === BusinessType.RESTAURANT;
 
-        // Payment writes the PAYMENT axis. The only fulfillment move a
-        // payment may trigger is closing/committing a RETAIL sale —
-        // restaurant orders complete explicitly (cashier close), never here.
+        // Payment writes the PAYMENT axis. The fulfillment moves a payment may
+        // trigger are closing a RETAIL sale, committing a retail credit sale,
+        // and closing a settled TAKEAWAY order. Dine-in never closes here — its
+        // table must stay in service until the cashier explicitly closes it.
         let shouldDeductInventory = false;
         let newStatus: OrderStatus | null = null;
         const newPaymentStatus = this.derivePaymentStatus(
@@ -1186,8 +1294,22 @@ export class OrdersService {
           totalDue,
         );
 
-        if (!isRestaurant && isFullyPaid) {
-          // Retail instant sale: full payment closes the order.
+        // Takeaway/delivery are done once BOTH axes are satisfied — fully paid
+        // AND kitchen-done. Kitchen-done means READY, or DRAFT ("pay only":
+        // never fired, handed over directly). PLACED/PREPARING still owe
+        // cooking, so those wait and are closed by updateStatus when the
+        // kitchen marks them READY. For delivery this is the cash-on-return
+        // case: the driver comes back, the cashier records the money, and that
+        // payment is what closes the order.
+        const isHandoffOrderReadyToClose =
+          isRestaurant &&
+          this.isSelfClosingOrderType(order.type) &&
+          isFullyPaid &&
+          (order.status === OrderStatus.DRAFT ||
+            order.status === OrderStatus.READY);
+
+        if ((!isRestaurant && isFullyPaid) || isHandoffOrderReadyToClose) {
+          // Full payment closes the sale.
           const orderWithTable = await tx.order.findFirst({
             where: { id: orderId },
             select: { tableId: true },
@@ -1220,8 +1342,8 @@ export class OrdersService {
             );
           }
 
-          // Flag for post-commit inventory deduction (retail only —
-          // restaurant deducts when the order is COMPLETED via updateStatus)
+          // Flag for post-commit inventory deduction. Any other restaurant
+          // order deducts when it is COMPLETED via updateStatus instead.
           shouldDeductInventory = true;
         } else if (
           !isRestaurant &&
@@ -2602,6 +2724,14 @@ export class OrdersService {
                 ...(source.customerId && { customerId: source.customerId }),
                 ...(source.shiftId && { shiftId: source.shiftId }),
                 ...(source.deviceId && { deviceId: source.deviceId }),
+                // Inherit the parent's currency snapshot — a split is the same
+                // sale, so both halves must report at the same rate.
+                ...(source.currencyCode && {
+                  currencyCode: source.currencyCode,
+                }),
+                ...(source.exchangeRate !== null && {
+                  exchangeRate: source.exchangeRate,
+                }),
                 ...(idempotencyKey && { idempotencyKey }),
               },
             });

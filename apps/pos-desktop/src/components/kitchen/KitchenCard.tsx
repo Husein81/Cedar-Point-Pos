@@ -19,13 +19,16 @@ const KitchenCard = ({ order }: Props) => {
     [updateStatusMutation],
   );
 
-  const onActionButtonClick = useCallback(() => {
-    const { nextStatus } = getActionButtonStatus(order.status, order.type);
+  const actionButton = useMemo(
+    () => getActionButtonStatus(order.status, order.type),
+    [order.status, order.type],
+  );
 
-    if (nextStatus) {
-      handleStatusChange(order.id, nextStatus);
+  const onActionButtonClick = useCallback(() => {
+    if (actionButton.nextStatus) {
+      handleStatusChange(order.id, actionButton.nextStatus);
     }
-  }, [order.id, order.status, order.type, handleStatusChange]);
+  }, [order.id, actionButton.nextStatus, handleStatusChange]);
 
   const elapsedMinutes = useMemo(() => {
     return Math.floor(
@@ -216,13 +219,13 @@ const KitchenCard = ({ order }: Props) => {
         <div className="border-t border-zinc-100 p-3">
           <Button
             onClick={onActionButtonClick}
-            disabled={updateStatusMutation.isPending}
+            disabled={updateStatusMutation.isPending || !actionButton.nextStatus}
             isSubmitting={updateStatusMutation.isPending}
             className={cn(
               "h-9 w-full rounded-md text-sm font-semibold text-white",
             )}
           >
-            {getActionButtonStatus(order.status, order.type).buttonLabel}
+            {actionButton.buttonLabel}
           </Button>
         </div>
       </Activity>

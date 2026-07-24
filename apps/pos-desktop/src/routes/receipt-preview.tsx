@@ -1,4 +1,6 @@
 import { ReceiptPdf } from "@/components/receipt/ReceiptPdf";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
+import { useAuthStore } from "@/store/authStore";
 import { useOrderStore } from "@/store/orderStore";
 import { PDFViewer, pdf } from "@react-pdf/renderer";
 import { Button, Icon, toast } from "@repo/ui";
@@ -12,6 +14,10 @@ function ReceiptPreviewPageComponent() {
   const navigate = useNavigate();
   const lastCompletedOrder = useOrderStore((s) => s.lastCompletedOrder);
   const createTab = useOrderStore((s) => s.createTab);
+  const { data: currencyData } = useTenantCurrencies();
+  const tenantCurrencies = currencyData?.currencies ?? [];
+  const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
+  const logoUrl = useAuthStore((s) => s.user?.tenant?.logoUrl);
 
   if (!lastCompletedOrder) {
     return (
@@ -58,6 +64,9 @@ function ReceiptPreviewPageComponent() {
           branchPhone={branchPhone}
           orderNumber={orderNumber}
           loyaltyApplied={loyaltyApplied}
+          tenantCurrencies={tenantCurrencies}
+          baseCurrencyCode={baseCurrencyCode}
+          logoUrl={logoUrl}
         />,
       ).toBlob();
 
@@ -132,6 +141,9 @@ function ReceiptPreviewPageComponent() {
                 branchPhone={branchPhone}
                 orderNumber={orderNumber}
                 loyaltyApplied={loyaltyApplied}
+                tenantCurrencies={tenantCurrencies}
+                baseCurrencyCode={baseCurrencyCode}
+                logoUrl={logoUrl}
               />
             </PDFViewer>
           </div>

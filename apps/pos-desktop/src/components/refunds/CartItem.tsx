@@ -1,4 +1,5 @@
 import { Badge, Button, Checkbox, cn, Icon, Input } from "@repo/ui";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import type { RefundLine } from "./config";
 
 interface Props {
@@ -24,6 +25,8 @@ const ProductThumb = ({ line }: { line: RefundLine }) => (
 );
 
 export const CartItem = ({ line, onToggle, onQuantityChange }: Props) => {
+  const { format: formatMoney } = useBaseCurrency();
+
   // Fully refunded items — muted row with badge
   if (line.refundableQuantity <= 0) {
     return (
@@ -33,7 +36,7 @@ export const CartItem = ({ line, onToggle, onQuantityChange }: Props) => {
         <div className="flex-1 min-w-0">
           <p className="text-sm truncate">{line.productName}</p>
           <p className="text-xs text-muted-foreground">
-            ${line.unitPrice.toFixed(2)} × {line.quantity}
+            {formatMoney(line.unitPrice)} × {line.quantity}
           </p>
         </div>
 
@@ -80,7 +83,7 @@ export const CartItem = ({ line, onToggle, onQuantityChange }: Props) => {
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span>
-                ${line.unitPrice.toFixed(2)} × {line.quantity}
+                {formatMoney(line.unitPrice)} × {line.quantity}
               </span>
               <span className="text-primary/80">
                 {line.refundableQuantity} refundable
@@ -90,7 +93,7 @@ export const CartItem = ({ line, onToggle, onQuantityChange }: Props) => {
 
           {line.lineTotal > 0 && (
             <span className="text-sm font-semibold text-destructive tabular-nums shrink-0">
-              -${line.lineTotal.toFixed(2)}
+              -{formatMoney(line.lineTotal)}
             </span>
           )}
         </div>

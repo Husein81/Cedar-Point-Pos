@@ -220,13 +220,3 @@ export const formatModifierNames = (modifiers: SelectedModifier[]): string => {
   return modifiers.map((m) => m.name).join(", ");
 };
 
-/**
- * Format modifier prices for display
- * Example: "+$2.50"
- */
-export const formatModifierPrice = (price: number): string => {
-  if (price === 0) return "";
-  return price > 0
-    ? `+$${price.toFixed(2)}`
-    : `-$${Math.abs(price).toFixed(2)}`;
-};

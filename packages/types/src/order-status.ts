@@ -13,9 +13,16 @@ type TransitionMap = Partial<Record<OrderStatus, readonly OrderStatus[]>>;
  * DRAFT → PLACED → PREPARING → READY → SERVED → COMPLETED
  * CANCELLED exits everywhere pre-completion (post-fire = manager only).
  * READY → COMPLETED covers takeaway/counter pickup (no serving step).
+ * DRAFT → COMPLETED covers "pay only" (bill settled without ever firing to
+ * the kitchen — a chef-cashier who prepared it directly, or counter service).
+ * Still payment-gated: completion is rejected until the order is fully settled.
  */
 const RESTAURANT_TRANSITIONS: TransitionMap = {
-  [OrderStatus.DRAFT]: [OrderStatus.PLACED, OrderStatus.CANCELLED],
+  [OrderStatus.DRAFT]: [
+    OrderStatus.PLACED,
+    OrderStatus.COMPLETED,
+    OrderStatus.CANCELLED,
+  ],
   [OrderStatus.PLACED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
   [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
   [OrderStatus.READY]: [

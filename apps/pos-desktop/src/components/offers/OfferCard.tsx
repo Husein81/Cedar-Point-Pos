@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button, Icon, Shad, cn } from "@repo/ui";
 import type { Offer, OfferGroup, OfferGroupItem } from "@/dto/offers.dto";
 import { useDeleteOffer, useUpdateOffer, useDeleteOfferGroup, useRemoveOfferGroupItem } from "@/hooks/useOffers";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { OfferForm } from "./OfferForm";
 import { OfferGroupForm } from "./OfferGroupForm";
@@ -19,6 +20,7 @@ export const OfferCard = ({
   forceExpanded = true,
 }: OfferCardProps) => {
   const { openModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
   const [isExpanded, setIsExpanded] = useState(forceExpanded);
 
   const deleteOffer = useDeleteOffer();
@@ -111,7 +113,7 @@ export const OfferCard = ({
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-medium text-primary">
-                ${Number(offer.basePrice).toFixed(2)}
+                {formatMoney(offer.basePrice)}
               </span>
               <span>•</span>
               <span>
@@ -229,7 +231,7 @@ export const OfferCard = ({
                           <div className="flex items-center gap-2">
                             {Number(item.extraPrice) > 0 && (
                               <span className="text-xs text-muted-foreground">
-                                +${Number(item.extraPrice).toFixed(2)}
+                                +{formatMoney(item.extraPrice)}
                               </span>
                             )}
                             <Button

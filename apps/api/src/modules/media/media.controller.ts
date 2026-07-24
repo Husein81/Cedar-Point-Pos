@@ -32,4 +32,22 @@ export class MediaController {
   ) {
     return this.mediaService.uploadProductImage(tenantId, file);
   }
+
+  /**
+   * Upload a tenant logo. Returns a key + public URL; the client saves the URL
+   * on the tenant via PUT /tenant/my-tenant.
+   */
+  @Post('tenant/logo')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MEDIA_MAX_FILE_SIZE_BYTES, files: 1 },
+    }),
+  )
+  uploadTenantLogo(
+    @CurrentTenant() tenantId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.mediaService.uploadTenantLogo(tenantId, file);
+  }
 }

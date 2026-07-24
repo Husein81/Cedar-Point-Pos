@@ -30,6 +30,7 @@ export const TenantSchema = z.object({
   id: uuid,
   name: z.string(),
   businessType: BusinessType,
+  logoUrl: z.string().nullable().optional(), // Public URL shown on receipts
   createdAt: isoDate,
   updatedAt: isoDate,
   settings: z.unknown().nullable().optional(), // Json?

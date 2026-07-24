@@ -1,11 +1,11 @@
 import { Badge, Empty, Icon, Skeleton, cn } from "@repo/ui";
 import type { TableOverview } from "@/dto/tables.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import {
   OVER_CAPACITY_TEXT_CLASS,
   TABLE_UI_STATUS_CONFIG,
   deriveTableUiStatus,
   formatElapsedSince,
-  formatTableMoney,
   isOverCapacity,
 } from "./config";
 import { useElapsedNow } from "./hooks/useElapsedNow";
@@ -28,6 +28,7 @@ export function TablesGridView({
   onSelect,
 }: TablesGridViewProps) {
   const now = useElapsedNow();
+  const { format: formatMoney } = useBaseCurrency();
 
   if (isLoading) {
     return (
@@ -52,7 +53,11 @@ export function TablesGridView({
   return (
     <div className="grid grid-cols-2 gap-3 pb-4 md:grid-cols-3 xl:grid-cols-5">
       {tables.map((table) => {
-        const uiStatus = deriveTableUiStatus(table, table.activeOrder?.status);
+        const uiStatus = deriveTableUiStatus(
+          table,
+          table.activeOrder?.status,
+          table.activeOrder?.paymentStatus,
+        );
         const config = TABLE_UI_STATUS_CONFIG[uiStatus];
         const order = table.activeOrder;
         const isSelected = table.id === selectedTableId;
@@ -102,7 +107,7 @@ export function TablesGridView({
                     {formatElapsedSince(order.createdAt, now)}
                   </span>
                   <span className={cn("ml-auto font-semibold", config.text)}>
-                    {formatTableMoney(order.total)}
+                    {formatMoney(order.total)}
                   </span>
                 </>
               )}

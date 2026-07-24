@@ -1,4 +1,5 @@
 import { Icon, cn } from "@repo/ui";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { formatPrice } from "../config";
 
 type Props = {
@@ -14,6 +15,10 @@ export default function PaymentSummaryCard({
   currencySymbol,
   remainingInCurrency,
 }: Props) {
+  // `total` is always in the tenant's base currency (unlike `remainingInCurrency`,
+  // which reflects whatever currency was selected for this payment).
+  const { symbol: baseSymbol } = useBaseCurrency();
+
   return (
     <div className="grid grid-cols-2 gap-3">
       {/* Total */}
@@ -21,7 +26,10 @@ export default function PaymentSummaryCard({
         <p className="text-xs text-muted-foreground uppercase tracking-wide">
           Total
         </p>
-        <p className="text-2xl font-bold">${formatPrice(total)}</p>
+        <p className="text-2xl font-bold">
+          {baseSymbol}
+          {formatPrice(total)}
+        </p>
       </div>
 
       {/* Remaining */}

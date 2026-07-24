@@ -121,6 +121,11 @@ export const PaymentForm = ({
 
   const isFullyPaid = Math.abs(remainingInBase) < 0.01;
 
+  // A fully discounted / fully loyalty-covered order owes nothing, so it is
+  // settled without any payment being taken. It still has to be confirmable —
+  // otherwise the order can never be closed.
+  const nothingDue = payableTotal < 0.01;
+
   const quickAmounts = useMemo(
     () => generateQuickCashAmounts(remainingInCurrency),
     [remainingInCurrency],
@@ -183,8 +188,11 @@ export const PaymentForm = ({
 
   const [isConfirming, setIsConfirming] = useState(false);
 
+  const canConfirm =
+    isFullyPaid && (payments.length > 0 || nothingDue) && !isConfirming;
+
   const handleConfirm = () => {
-    if (!isFullyPaid || payments.length === 0 || isConfirming) return;
+    if (!canConfirm) return;
     setIsConfirming(true);
     const loyalty =
       loyaltyEstimate.appliedPoints > 0
@@ -194,7 +202,7 @@ export const PaymentForm = ({
   };
 
   const handlePayAndSend = () => {
-    if (!isFullyPaid || payments.length === 0 || isConfirming) return;
+    if (!canConfirm) return;
     setIsConfirming(true);
     const loyalty =
       loyaltyEstimate.appliedPoints > 0
@@ -314,7 +322,10 @@ export const PaymentForm = ({
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
-                        − ${formatPrice(loyaltyEstimate.appliedDiscount)}
+                        {/* Loyalty is estimated against eligibleBase (base
+                        currency), not the selected payment currency. */}
+                        − {baseCurrency?.currency?.symbol ?? baseCurrency?.currencyCode}
+                        {formatPrice(loyaltyEstimate.appliedDiscount)}
                       </span>
                       <p className="text-[10px] text-purple-500">
                         {loyaltyEstimate.appliedPoints} pts · preview
@@ -460,7 +471,7 @@ export const PaymentForm = ({
         <PaymentFooterActions
           isConfirming={isConfirming}
           isFullyPaid={isFullyPaid}
-          payments={payments}
+          canConfirm={canConfirm}
           handleConfirm={handleConfirm}
           handlePayAndSend={handlePayAndSend}
           offlineMode={offlineMode}

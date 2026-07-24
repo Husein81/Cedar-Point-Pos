@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/authStore";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useBranchStore } from "@/store/branchStore";
 import { useBranch } from "@/hooks/useBranch";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { printReceipt } from "@/components/receipt/ReceiptPdf";
 import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
 import { ReceiptPreviewModal } from "@/components/invoices/ReceiptPreviewModal";
@@ -256,6 +257,9 @@ export function getInvoiceColumns(
         const { user } = useAuthStore();
         const { branchId } = useBranchStore();
         const { data: branch } = useBranch(branchId || "");
+        const { data: currencyData } = useTenantCurrencies();
+        const tenantCurrencies = currencyData?.currencies ?? [];
+        const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
 
         const order = row.original;
         // Refunds only apply to closed orders; a partially refunded order
@@ -286,6 +290,9 @@ export function getInvoiceColumns(
               branchPhone: branch?.phone || "",
               orderNumber: order.orderNumber || order.id.slice(0, 8),
               loyaltyApplied,
+              tenantCurrencies,
+              baseCurrencyCode,
+              logoUrl: user?.tenant?.logoUrl,
             });
           } catch (err) {
             toast.error("Failed to print receipt.");

@@ -1,6 +1,8 @@
 import { PDFViewer } from "@react-pdf/renderer";
 import { ReceiptPdf, printReceipt } from "@/components/receipt/ReceiptPdf";
 import { Button, Icon, toast } from "@repo/ui";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
+import { useAuthStore } from "@/store/authStore";
 import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
 import type { Order } from "@repo/types";
 import { BackendOrder } from "@/dto/order.dto";
@@ -28,6 +30,10 @@ export function ReceiptPreviewModal({
   loyaltyApplied,
 }: ReceiptPreviewModalProps) {
   const clientOrder = mapBackendOrderToClientOrder(order as BackendOrder);
+  const { data: currencyData } = useTenantCurrencies();
+  const tenantCurrencies = currencyData?.currencies ?? [];
+  const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
+  const logoUrl = useAuthStore((s) => s.user?.tenant?.logoUrl);
 
   const handlePrint = async () => {
     try {
@@ -39,6 +45,9 @@ export function ReceiptPreviewModal({
         branchPhone,
         orderNumber,
         loyaltyApplied,
+        tenantCurrencies,
+        baseCurrencyCode,
+        logoUrl,
       });
       toast.success("Sent to printer.");
     } catch (err) {
@@ -58,6 +67,9 @@ export function ReceiptPreviewModal({
             branchPhone={branchPhone}
             orderNumber={orderNumber}
             loyaltyApplied={loyaltyApplied}
+            tenantCurrencies={tenantCurrencies}
+            baseCurrencyCode={baseCurrencyCode}
+            logoUrl={logoUrl}
           />
         </PDFViewer>
       </div>

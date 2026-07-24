@@ -6,6 +6,7 @@ import {
   buildMultiCurrencyAmounts,
   formatCurrency,
 } from "@/utils/invoiceFinancials";
+import { getItemDiscountAmount, getItemLineTotal } from "@/utils/financial";
 import { Document, Page, Text, View, pdf, Image } from "@react-pdf/renderer";
 
 import { styles } from "./style-sheet";
@@ -76,9 +77,10 @@ export const ReceiptPdf = ({
       baseDecimals,
     );
 
+  // Modifiers in, item-level discounts out — same helper the cart totals use,
+  // so the printed bill always matches what the customer was charged.
   const subtotal = order.items.reduce(
-    (sum: number, item: { price?: number | null; quantity: number }) =>
-      sum + (item.price ? Number(item.price) * item.quantity : 0),
+    (sum, item) => sum + getItemLineTotal(item),
     0,
   );
 
@@ -126,7 +128,10 @@ export const ReceiptPdf = ({
 
         {/* ================= ITEMS ================= */}
         <View style={styles.itemsContainer}>
-          {order.items.map((item) => (
+          {order.items.map((item) => {
+            const itemDiscount = getItemDiscountAmount(item);
+
+            return (
             <View key={item.id} style={styles.itemBlock}>
               {/* Main Row */}
               <View style={styles.itemRow}>
@@ -136,10 +141,20 @@ export const ReceiptPdf = ({
                   <Text style={styles.itemName}>{item.name}</Text>
 
                   <Text style={styles.itemSub}>{money(item.price)} / Units</Text>
+
+                  {/* Spell out the per-line discount so the charged price is
+                      never a surprise against the unit price above. */}
+                  {itemDiscount > 0 && (
+                    <Text style={styles.itemSub}>
+                      {item.discount?.type === "PERCENTAGE"
+                        ? `Discount ${item.discount.value}% (-${money(itemDiscount)})`
+                        : `Discount -${money(itemDiscount)}`}
+                    </Text>
+                  )}
                 </View>
 
                 <Text style={styles.itemTotal}>
-                  {money(item.price ? Number(item.price) * item.quantity : 0)}
+                  {money(getItemLineTotal(item))}
                 </Text>
               </View>
 
@@ -154,7 +169,8 @@ export const ReceiptPdf = ({
                 </View>
               )}
             </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* ================= TOTALS ================= */}

@@ -49,7 +49,11 @@ module.exports = {
       owner: "Husein81",
       repo: "Cedar-Point-Pos",
       releaseType: "draft",
-      private: true,
+      // The repo is public. Marking it private makes electron-updater fetch
+      // releases through the authenticated GitHub API, so an installed client
+      // would need a token just to check for updates. Public releases are
+      // downloaded anonymously.
+      private: false,
     },
   ],
 };

@@ -1,7 +1,7 @@
 import { Icon } from "@repo/ui";
 import { EmptyTab } from ".";
-import { formatTableMoney } from "../config";
 import { ActiveTableOrder, TableOverview } from "@/dto/tables.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { memo, useMemo } from "react";
 
 interface TimelineEvent {
@@ -17,6 +17,7 @@ export const TimelineTab = memo(function TimelineTab({
   summary: TableOverview["activeOrder"];
   fullOrder: ActiveTableOrder | null;
 }) {
+  const { format: formatMoney } = useBaseCurrency();
   const events = useMemo<TimelineEvent[]>(() => {
     if (!summary) return [];
     const list: TimelineEvent[] = [
@@ -51,7 +52,7 @@ export const TimelineTab = memo(function TimelineTab({
     for (const payment of fullOrder?.payments ?? []) {
       list.push({
         at: new Date(payment.paidAt).getTime(),
-        label: `Payment · ${payment.method} ${formatTableMoney(payment.amount)}`,
+        label: `Payment · ${payment.method} ${formatMoney(payment.amount)}`,
         icon: "CreditCard",
       });
     }
@@ -59,7 +60,7 @@ export const TimelineTab = memo(function TimelineTab({
     return list
       .filter((e) => Number.isFinite(e.at))
       .sort((a, b) => a.at - b.at);
-  }, [fullOrder, summary]);
+  }, [fullOrder, summary, formatMoney]);
 
   if (events.length === 0) {
     return <EmptyTab icon="History" text="No activity yet" />;

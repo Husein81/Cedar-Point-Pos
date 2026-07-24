@@ -12,7 +12,11 @@ const ALL = Object.values(OrderStatus);
  */
 
 const RESTAURANT_ALLOWED: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.DRAFT]: [OrderStatus.PLACED, OrderStatus.CANCELLED],
+  [OrderStatus.DRAFT]: [
+    OrderStatus.PLACED,
+    OrderStatus.COMPLETED,
+    OrderStatus.CANCELLED,
+  ],
   [OrderStatus.PLACED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
   [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
   [OrderStatus.READY]: [

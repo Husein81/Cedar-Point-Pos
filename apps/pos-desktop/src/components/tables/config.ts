@@ -39,6 +39,7 @@ const PREPARING_ORDER_STATUSES = new Set<OrderStatus>([
 export const deriveTableUiStatus = (
   table: Pick<TableOverview, "status" | "isActive">,
   orderStatus?: OrderStatus | null,
+  orderPaymentStatus?: PaymentStatus | null,
 ): TableUiStatus => {
   if (!table.isActive) return "DISABLED";
   if (table.status === "RESERVED") return "RESERVED";
@@ -48,6 +49,14 @@ export const deriveTableUiStatus = (
     if (orderStatus === OrderStatus.READY) return "READY";
     // Food delivered, bill open (unpaid, partial, or paid awaiting close).
     if (orderStatus === OrderStatus.SERVED) return "BILLING";
+    // "Pay only": a draft settled without ever firing to the kitchen is done —
+    // surface BILLING so the cashier can Complete & Free rather than cancel.
+    // Only when fully paid; a partially/unpaid draft stays OCCUPIED.
+    if (
+      orderStatus === OrderStatus.DRAFT &&
+      orderPaymentStatus === PaymentStatus.PAID
+    )
+      return "BILLING";
     return "OCCUPIED";
   }
   return "AVAILABLE";
@@ -209,7 +218,11 @@ export const buildTablesStats = (
   let openOrders = 0;
 
   for (const table of tables) {
-    const uiStatus = deriveTableUiStatus(table, table.activeOrder?.status);
+    const uiStatus = deriveTableUiStatus(
+      table,
+      table.activeOrder?.status,
+      table.activeOrder?.paymentStatus,
+    );
     byStatus[uiStatus] += 1;
     if (table.activeOrder) {
       openOrders += 1;
@@ -245,14 +258,6 @@ export const isOverCapacity = (
 
 /** Warning color for the over-capacity guest count (matches destructive tone). */
 export const OVER_CAPACITY_TEXT_CLASS = "text-red-600 dark:text-red-400";
-
-export const formatTableMoney = (value: string | number): string => {
-  const amount = typeof value === "string" ? Number(value) : value;
-
-  if (!Number.isFinite(amount)) return "—";
-
-  return `$${amount.toFixed(2)}`;
-};
 
 /** "58m" / "1h 12m" elapsed since the given ISO timestamp. */
 export const formatElapsedSince = (iso: string, now: number): string => {
@@ -463,15 +468,24 @@ export const MENU_BY_STATUS: Record<TableUiStatus, MenuEntry[]> = {
 
 /**
  * Payment gating for the BILLING actions: "pay" only while a balance is
- * owed, "complete" only once fully paid — mirrors the backend guard that
+ * owed, "complete" once the bill is settled — mirrors the backend guard that
  * rejects COMPLETED for an unpaid order.
+ *
+ * "Settled" includes an order that owes nothing at all (100% discount, or a
+ * bill fully covered by loyalty). Such an order can never reach PAID by taking
+ * money, so gating purely on PAID would strand it: no payment to collect and
+ * no way to close it.
  */
 const isBillingActionVisible = (
   action: TableNodeAction,
   paymentStatus?: PaymentStatus,
+  total?: number,
 ): boolean => {
-  if (action === "pay") return paymentStatus !== PaymentStatus.PAID;
-  if (action === "complete") return paymentStatus === PaymentStatus.PAID;
+  const nothingDue = total !== undefined && Number(total) <= 0;
+  const isSettled = paymentStatus === PaymentStatus.PAID || nothingDue;
+
+  if (action === "pay") return !isSettled;
+  if (action === "complete") return isSettled;
   return true;
 };
 
@@ -479,20 +493,22 @@ export const getVisibleActions = (
   uiStatus: TableUiStatus,
   canManage: boolean,
   paymentStatus?: PaymentStatus,
+  total?: number,
 ): ActionSpec[] =>
   ACTIONS_BY_STATUS[uiStatus].filter(
     (a) =>
       (!a.managerOnly || canManage) &&
-      isBillingActionVisible(a.action, paymentStatus),
+      isBillingActionVisible(a.action, paymentStatus, total),
   );
 
 export const getVisibleMenuEntries = (
   uiStatus: TableUiStatus,
   canManage: boolean,
   paymentStatus?: PaymentStatus,
+  total?: number,
 ): MenuEntry[] =>
   MENU_BY_STATUS[uiStatus].filter(
     (entry) =>
       (!entry.managerOnly || canManage) &&
-      isBillingActionVisible(entry.action, paymentStatus),
+      isBillingActionVisible(entry.action, paymentStatus, total),
   );

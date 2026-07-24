@@ -11,7 +11,7 @@ import {
   OrderStatus,
   PaymentStatus,
 } from '../../generated/prisma/client.js';
-import { PaginationResponse } from '@repo/types';
+import { PaginationResponse, REPORTING_CURRENCY_CODE } from '@repo/types';
 
 // ============================================================
 // Debt semantics on the two-axis status model:
@@ -197,6 +197,58 @@ function validateSortBy(
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * The tenant's current base → reporting currency rate, used only for orders
+   * created before rates were snapshotted (`exchangeRate` null). Newer orders
+   * carry their own frozen rate so their reported revenue never moves.
+   *
+   * Falls back to 1 when the tenant has no reporting currency configured — the
+   * figures then read as base currency rather than silently becoming zero.
+   */
+  private async resolveFallbackReportingRate(
+    tenantId: string,
+  ): Promise<number> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { baseCurrencyCode: true },
+    });
+
+    if (!tenant || tenant.baseCurrencyCode === REPORTING_CURRENCY_CODE) {
+      return 1;
+    }
+
+    const reportingCurrency = await this.prisma.tenantCurrency.findUnique({
+      where: {
+        tenantId_currencyCode: {
+          tenantId,
+          currencyCode: REPORTING_CURRENCY_CODE,
+        },
+      },
+      select: { exchangeRate: true },
+    });
+
+    const rate = Number(reportingCurrency?.exchangeRate ?? 0);
+    return rate > 0 ? rate : 1;
+  }
+
+  /**
+   * Convert a base-currency amount to the reporting currency. Aggregates must
+   * convert per order *before* summing — each order can carry a different
+   * frozen rate, so converting an already-summed total would apply one rate to
+   * everything and misstate history.
+   */
+  private toReporting(
+    amount: Prisma.Decimal | number | null | undefined,
+    orderRate: Prisma.Decimal | null | undefined,
+    fallbackRate: number,
+  ): number {
+    const rate = orderRate === null || orderRate === undefined
+      ? fallbackRate
+      : Number(orderRate);
+    return Number(amount ?? 0) * rate;
+  }
+
   async getSalesOrdersList(
     tenantId: string,
     query: ReportQueryDto,
@@ -250,7 +302,8 @@ export class ReportsService {
       : { createdAt: sortDir };
 
     // Execute count and list queries in parallel
-    const [totalItems, orders] = await Promise.all([
+    const [fallbackRate, totalItems, orders] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
         where,
@@ -266,6 +319,7 @@ export class ReportsService {
           subtotal: true,
           discount: true,
           total: true,
+          exchangeRate: true,
           orderNumber: true,
           branch: {
             select: { id: true, name: true },
@@ -293,8 +347,13 @@ export class ReportsService {
       >();
       let totalPaid = 0;
 
+      // Reporting is expressed in REPORTING_CURRENCY_CODE, converted at the
+      // rate this order froze at creation.
+      const convert = (value: Prisma.Decimal | number | null | undefined) =>
+        this.toReporting(value, order.exchangeRate, fallbackRate);
+
       order.payments.forEach((p) => {
-        const amount = Number(p.amount);
+        const amount = convert(p.amount);
         totalPaid += amount;
         const existing = paymentsByMethod.get(p.method);
         if (existing) {
@@ -317,9 +376,9 @@ export class ReportsService {
         completedAt: order.completedAt,
         branch: order.branch,
         cashier: order.user,
-        subtotal: Number(order.subtotal),
-        discount: Number(order.discount) || 0,
-        total: Number(order.total),
+        subtotal: convert(order.subtotal),
+        discount: convert(order.discount),
+        total: convert(order.total),
         paymentsSummary: {
           methods: Array.from(paymentsByMethod.values()),
           totalPaid,
@@ -468,30 +527,61 @@ export class ReportsService {
     // Use limit if provided, otherwise use pageSize
     const effectiveLimit = limit ?? pageSize;
 
-    const groupedProducts = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          tenantId,
-          status: OrderStatus.COMPLETED,
-          createdAt: {
-            gte: from,
-            lte: to,
+    // Folded in memory so each line converts at its own order's frozen rate.
+    const [fallbackRate, items] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: {
+            tenantId,
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lte: to,
+            },
+            ...(branchId && { branchId }),
+            ...(shiftId && { shiftId }),
           },
-          ...(branchId && { branchId }),
-          ...(shiftId && { shiftId }),
+          ...(categoryId && {
+            product: {
+              categoryId,
+            },
+          }),
         },
-        ...(categoryId && {
-          product: {
-            categoryId,
-          },
-        }),
-      },
-      _sum: {
-        total: true,
-        quantity: true,
-      },
-    });
+        select: {
+          productId: true,
+          total: true,
+          quantity: true,
+          order: { select: { exchangeRate: true } },
+        },
+      }),
+    ]);
+
+    const groupedMap = new Map<
+      string,
+      { productId: string; revenue: number; quantity: number }
+    >();
+
+    for (const item of items) {
+      const revenue = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
+      const existing = groupedMap.get(item.productId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.quantity += Number(item.quantity);
+      } else {
+        groupedMap.set(item.productId, {
+          productId: item.productId,
+          revenue,
+          quantity: Number(item.quantity),
+        });
+      }
+    }
+
+    const groupedProducts = Array.from(groupedMap.values());
 
     // Fetch product details with categories
     const productIds = groupedProducts.map((p) => p.productId);
@@ -518,8 +608,8 @@ export class ReportsService {
     // Build full result set
     let results: TopProductRow[] = groupedProducts.map((p) => {
       const details = productMap.get(p.productId);
-      const revenue = Number(p._sum.total) || 0;
-      const qtySold = Number(p._sum.quantity) || 0;
+      const revenue = p.revenue;
+      const qtySold = p.quantity;
       return {
         productId: p.productId,
         productName: details?.name || 'Unknown Product',
@@ -602,16 +692,19 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
     };
 
-    // Run aggregation and order type groupBy in parallel
-    const [aggregation, ordersByType] = await Promise.all([
-      this.prisma.order.aggregate({
+    // Revenue must be converted per order *before* summing — each order can
+    // carry a different frozen rate, so a SQL-level SUM of base amounts cannot
+    // express this. Fetch the narrow columns and fold them in memory instead.
+    const [fallbackRate, revenueRows, ordersByType] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
         where,
-        _sum: {
+        select: {
           total: true,
           subtotal: true,
           discount: true,
+          exchangeRate: true,
         },
-        _count: true,
       }),
       this.prisma.order.groupBy({
         by: ['type'],
@@ -623,8 +716,26 @@ export class ReportsService {
       }),
     ]);
 
-    const totalRevenue = Number(aggregation._sum.total) || 0;
-    const orderCount = aggregation._count || 0;
+    const totals = revenueRows.reduce(
+      (acc, row) => {
+        acc.total += this.toReporting(row.total, row.exchangeRate, fallbackRate);
+        acc.subtotal += this.toReporting(
+          row.subtotal,
+          row.exchangeRate,
+          fallbackRate,
+        );
+        acc.discount += this.toReporting(
+          row.discount,
+          row.exchangeRate,
+          fallbackRate,
+        );
+        return acc;
+      },
+      { total: 0, subtotal: 0, discount: 0 },
+    );
+
+    const totalRevenue = totals.total;
+    const orderCount = revenueRows.length;
 
     // Calculate revenue from PARTIALLY_PAID orders (only the paid portion)
     const partiallyPaidOrders = await this.prisma.order.findMany({
@@ -645,7 +756,9 @@ export class ReportsService {
 
     const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
       const totalPaid = order.payments.reduce(
-        (pSum, payment) => pSum + Number(payment.amount),
+        (pSum, payment) =>
+          pSum +
+          this.toReporting(payment.amount, order.exchangeRate, fallbackRate),
         0,
       );
       return sum + totalPaid;
@@ -674,8 +787,8 @@ export class ReportsService {
 
     return {
       totalRevenue: Number(combinedRevenue.toFixed(2)),
-      totalSubtotal: Number(aggregation._sum.subtotal) || 0,
-      totalDiscount: Number(aggregation._sum.discount) || 0,
+      totalSubtotal: Number(totals.subtotal.toFixed(2)),
+      totalDiscount: Number(totals.discount.toFixed(2)),
       orderCount: combinedOrderCount,
       averageOrderValue: Number(averageOrderValue.toFixed(2)),
       bestOrderType, // New: Most frequent order type based on business type
@@ -701,17 +814,21 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
     };
 
-    // Get aggregated totals
-    const aggregation = await this.prisma.order.aggregate({
-      where,
-      _sum: {
-        total: true,
-      },
-      _count: true,
-    });
+    // Get aggregated totals — converted per order before summing.
+    const [fallbackRate, debtRows] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
+        where,
+        select: { total: true, exchangeRate: true },
+      }),
+    ]);
 
-    const totalDebts = Number(aggregation._sum.total) || 0;
-    const unpaidOrdersCount = aggregation._count || 0;
+    const totalDebts = debtRows.reduce(
+      (sum, row) =>
+        sum + this.toReporting(row.total, row.exchangeRate, fallbackRate),
+      0,
+    );
+    const unpaidOrdersCount = debtRows.length;
 
     // Calculate debts from PARTIALLY_PAID orders (only the unpaid portion)
     const partiallyPaidOrders = await this.prisma.order.findMany({
@@ -732,10 +849,14 @@ export class ReportsService {
 
     const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
       const totalPaid = order.payments.reduce(
-        (pSum, payment) => pSum + Number(payment.amount),
+        (pSum, payment) =>
+          pSum +
+          this.toReporting(payment.amount, order.exchangeRate, fallbackRate),
         0,
       );
-      const unpaid = Number(order.total) - totalPaid;
+      const unpaid =
+        this.toReporting(order.total, order.exchangeRate, fallbackRate) -
+        totalPaid;
       return sum + unpaid;
     }, 0);
 
@@ -780,14 +901,20 @@ export class ReportsService {
       );
       const customerPartialDebt = customerPartialOrders.reduce((sum, order) => {
         const totalPaid = order.payments.reduce(
-          (pSum, payment) => pSum + Number(payment.amount),
+          (pSum, payment) =>
+            pSum +
+            this.toReporting(payment.amount, order.exchangeRate, fallbackRate),
           0,
         );
-        return sum + (Number(order.total) - totalPaid);
+        return (
+          sum +
+          (this.toReporting(order.total, order.exchangeRate, fallbackRate) -
+            totalPaid)
+        );
       }, 0);
 
       // Get PENDING orders total for this customer
-      const customerPendingOrders = await this.prisma.order.aggregate({
+      const customerPendingOrders = await this.prisma.order.findMany({
         where: {
           customerId: topDebtorId,
           ...FULL_DEBT_WHERE,
@@ -795,11 +922,16 @@ export class ReportsService {
           ...(branchId && { branchId }),
           ...(shiftId && { shiftId }),
         },
-        _sum: { total: true },
+        select: { total: true, exchangeRate: true },
       });
 
       topDebtorAmount =
-        Number(customerPendingOrders._sum.total || 0) + customerPartialDebt;
+        customerPendingOrders.reduce(
+          (sum, order) =>
+            sum +
+            this.toReporting(order.total, order.exchangeRate, fallbackRate),
+          0,
+        ) + customerPartialDebt;
 
       // Fetch customer name
       const customer = await this.prisma.customer.findUnique({
@@ -864,7 +996,8 @@ export class ReportsService {
       : { createdAt: sortDir };
 
     // Execute count and list queries in parallel
-    const [totalItems, orders] = await Promise.all([
+    const [fallbackRate, totalItems, orders] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
         where,
@@ -878,6 +1011,7 @@ export class ReportsService {
           subtotal: true,
           discount: true,
           total: true,
+          exchangeRate: true,
           branch: {
             select: { id: true, name: true },
           },
@@ -898,9 +1032,17 @@ export class ReportsService {
       createdAt: order.createdAt,
       branch: order.branch,
       type: order.type,
-      subtotal: Number(order.subtotal),
-      discount: Number(order.discount) || 0,
-      total: Number(order.total),
+      subtotal: this.toReporting(
+        order.subtotal,
+        order.exchangeRate,
+        fallbackRate,
+      ),
+      discount: this.toReporting(
+        order.discount,
+        order.exchangeRate,
+        fallbackRate,
+      ),
+      total: this.toReporting(order.total, order.exchangeRate, fallbackRate),
       customer: order.customer,
       cashier: order.user,
     }));
@@ -917,32 +1059,59 @@ export class ReportsService {
   async getTopSellingProducts(tenantId: string, query: ReportQueryDto) {
     const { from, to, branchId, shiftId } = query;
 
-    // Get order items for completed orders
-    const topProducts = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          tenantId,
-          status: OrderStatus.COMPLETED,
-          createdAt: {
-            gte: from,
-            lte: to,
+    // Grouped and ranked in memory: revenue converts at each order's own frozen
+    // rate, so a SQL _sum (and its orderBy) can't produce the right ranking.
+    const [fallbackRate, items] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: {
+            tenantId,
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lte: to,
+            },
+            ...(branchId && { branchId }),
+            ...(shiftId && { shiftId }),
           },
-          ...(branchId && { branchId }),
-          ...(shiftId && { shiftId }),
         },
-      },
-      _sum: {
-        subtotal: true,
-        quantity: true,
-      },
-      orderBy: {
-        _sum: {
-          subtotal: 'desc',
+        select: {
+          productId: true,
+          subtotal: true,
+          quantity: true,
+          order: { select: { exchangeRate: true } },
         },
-      },
-      take: 10,
-    });
+      }),
+    ]);
+
+    const byProduct = new Map<
+      string,
+      { productId: string; revenue: number; quantity: number }
+    >();
+
+    for (const item of items) {
+      const revenue = this.toReporting(
+        item.subtotal,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
+      const existing = byProduct.get(item.productId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.quantity += Number(item.quantity);
+      } else {
+        byProduct.set(item.productId, {
+          productId: item.productId,
+          revenue,
+          quantity: Number(item.quantity),
+        });
+      }
+    }
+
+    const topProducts = Array.from(byProduct.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
 
     // Fetch product details
     const productIds = topProducts.map((p) => p.productId);
@@ -966,8 +1135,8 @@ export class ReportsService {
         productId: item.productId,
         productName: product?.name || 'Unknown',
         categoryName: product?.category?.name || null,
-        revenue: Number(item._sum.subtotal) || 0,
-        quantitySold: Number(item._sum.quantity) || 0,
+        revenue: Number(item.revenue.toFixed(2)),
+        quantitySold: item.quantity,
       };
     });
   }
@@ -1107,24 +1276,45 @@ export class ReportsService {
       },
     };
 
-    // Get payment breakdown by method
-    const payments = await this.prisma.payment.groupBy({
-      by: ['method'],
-      where,
-      _sum: {
-        amount: true,
-      },
-      _count: true,
-    });
+    // Grouped in memory rather than via groupBy: each payment converts at its
+    // own order's frozen rate, which a SQL-level SUM cannot express.
+    const [fallbackRate, payments] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.payment.findMany({
+        where,
+        select: {
+          method: true,
+          amount: true,
+          order: { select: { exchangeRate: true } },
+        },
+      }),
+    ]);
 
-    const paymentBreakdown = payments.map((p) => ({
-      method: p.method,
-      totalAmount: Number(p._sum.amount) || 0,
-      transactionCount:
-        typeof p._count === 'number'
-          ? p._count
-          : ((p._count as unknown as { _all: number })._all ?? 0),
-    }));
+    const breakdownByMethod = new Map<
+      string,
+      { method: string; totalAmount: number; transactionCount: number }
+    >();
+
+    for (const payment of payments) {
+      const amount = this.toReporting(
+        payment.amount,
+        payment.order?.exchangeRate,
+        fallbackRate,
+      );
+      const existing = breakdownByMethod.get(payment.method);
+      if (existing) {
+        existing.totalAmount += amount;
+        existing.transactionCount += 1;
+      } else {
+        breakdownByMethod.set(payment.method, {
+          method: payment.method,
+          totalAmount: amount,
+          transactionCount: 1,
+        });
+      }
+    }
+
+    const paymentBreakdown = Array.from(breakdownByMethod.values());
 
     const grandTotal = paymentBreakdown.reduce(
       (sum, p) => sum + p.totalAmount,
@@ -1176,7 +1366,8 @@ export class ReportsService {
       },
     };
 
-    const [data, totalItems] = await Promise.all([
+    const [fallbackRate, rows, totalItems] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
       this.prisma.payment.findMany({
         where,
         include: {
@@ -1185,6 +1376,7 @@ export class ReportsService {
               id: true,
               status: true,
               type: true,
+              exchangeRate: true,
               branch: {
                 select: {
                   name: true,
@@ -1206,6 +1398,16 @@ export class ReportsService {
       }),
       this.prisma.payment.count({ where }),
     ]);
+
+    // Amounts are stored in the order's currency; report them converted.
+    const data = rows.map((payment) => ({
+      ...payment,
+      amount: this.toReporting(
+        payment.amount,
+        payment.order?.exchangeRate,
+        fallbackRate,
+      ),
+    }));
 
     return {
       data,
@@ -1310,17 +1512,20 @@ export class ReportsService {
       ...(branchId && { branchId }),
     };
 
-    const [orders, orderCount] = await Promise.all([
-      this.prisma.order.aggregate({
+    const [fallbackRate, revenueRows, orderCount] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
         where,
-        _sum: {
-          total: true,
-        },
+        select: { total: true, exchangeRate: true },
       }),
       this.prisma.order.count({ where }),
     ]);
 
-    const totalRevenue = Number(orders._sum.total) || 0;
+    const totalRevenue = revenueRows.reduce(
+      (sum, row) =>
+        sum + this.toReporting(row.total, row.exchangeRate, fallbackRate),
+      0,
+    );
 
     // Get unique customers (assuming userId on orders)
     const uniqueCustomers = await this.prisma.order.groupBy({
@@ -1350,21 +1555,25 @@ export class ReportsService {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        tenantId,
-        status: OrderStatus.COMPLETED,
-        createdAt: {
-          gte: sevenDaysAgo,
-          lte: today,
+    const [fallbackRate, orders] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
+        where: {
+          tenantId,
+          status: OrderStatus.COMPLETED,
+          createdAt: {
+            gte: sevenDaysAgo,
+            lte: today,
+          },
+          ...(branchId && { branchId }),
         },
-        ...(branchId && { branchId }),
-      },
-      select: {
-        createdAt: true,
-        total: true,
-      },
-    });
+        select: {
+          createdAt: true,
+          total: true,
+          exchangeRate: true,
+        },
+      }),
+    ]);
 
     // Group by day
     const salesByDay = new Map<string, number>();
@@ -1378,7 +1587,11 @@ export class ReportsService {
     orders.forEach((order) => {
       const dateStr = order.createdAt.toISOString().split('T')[0];
       const currentTotal = salesByDay.get(dateStr) || 0;
-      salesByDay.set(dateStr, currentTotal + Number(order.total));
+      salesByDay.set(
+        dateStr,
+        currentTotal +
+          this.toReporting(order.total, order.exchangeRate, fallbackRate),
+      );
     });
 
     return Array.from(salesByDay.entries()).map(([date, sales]) => ({
@@ -1394,34 +1607,40 @@ export class ReportsService {
   async getSalesByCategory(tenantId: string, query: ReportQueryDto) {
     const { from, to, branchId, shiftId } = query;
 
-    const orderItems = await this.prisma.orderItem.findMany({
-      where: {
-        order: {
-          tenantId,
-          status: OrderStatus.COMPLETED,
-          createdAt: {
-            gte: from,
-            lte: to,
+    const [fallbackRate, orderItems] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: {
+            tenantId,
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lte: to,
+            },
+            ...(branchId && { branchId }),
+            ...(shiftId && { shiftId }),
           },
-          ...(branchId && { branchId }),
-          ...(shiftId && { shiftId }),
         },
-      },
-      select: {
-        total: true,
-        quantity: true,
-        product: {
-          select: {
-            categoryId: true,
-            category: {
-              select: {
-                name: true,
+        select: {
+          total: true,
+          quantity: true,
+          // Item amounts are in the parent order's currency, so the rate to
+          // convert them by lives on the order.
+          order: { select: { exchangeRate: true } },
+          product: {
+            select: {
+              categoryId: true,
+              category: {
+                select: {
+                  name: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     // Group by category
     const categoryMap = new Map<
@@ -1432,7 +1651,11 @@ export class ReportsService {
     orderItems.forEach((item) => {
       const categoryId = item.product.categoryId || 'uncategorized';
       const categoryName = item.product.category?.name || 'Uncategorized';
-      const itemTotal = Number(item.total);
+      const itemTotal = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
 
       if (categoryMap.has(categoryId)) {
         const existing = categoryMap.get(categoryId)!;
@@ -1463,21 +1686,25 @@ export class ReportsService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const orders = await this.prisma.order.findMany({
-      where: {
-        tenantId,
-        status: OrderStatus.COMPLETED,
-        createdAt: {
-          gte: today,
-          lt: tomorrow,
+    const [fallbackRate, orders] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
+        where: {
+          tenantId,
+          status: OrderStatus.COMPLETED,
+          createdAt: {
+            gte: today,
+            lt: tomorrow,
+          },
+          ...(branchId && { branchId }),
         },
-        ...(branchId && { branchId }),
-      },
-      select: {
-        createdAt: true,
-        total: true,
-      },
-    });
+        select: {
+          createdAt: true,
+          total: true,
+          exchangeRate: true,
+        },
+      }),
+    ]);
 
     // Initialize all hours with 0
     const revenueByHour = new Map<number, number>();
@@ -1489,7 +1716,11 @@ export class ReportsService {
     orders.forEach((order) => {
       const hour = order.createdAt.getHours();
       const currentRevenue = revenueByHour.get(hour) || 0;
-      revenueByHour.set(hour, currentRevenue + Number(order.total));
+      revenueByHour.set(
+        hour,
+        currentRevenue +
+          this.toReporting(order.total, order.exchangeRate, fallbackRate),
+      );
     });
 
     return Array.from(revenueByHour.entries()).map(([hour, revenue]) => ({
@@ -1504,31 +1735,54 @@ export class ReportsService {
   async getTopProducts(tenantId: string, query: ReportQueryDto, limit = 5) {
     const { from, to, branchId, shiftId } = query;
 
-    const products = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          tenantId,
-          status: OrderStatus.COMPLETED,
-          createdAt: {
-            gte: from,
-            lte: to,
+    // Ranked in memory: revenue converts per order, so the DB cannot rank it.
+    const [fallbackRate, items] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: {
+            tenantId,
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lte: to,
+            },
+            ...(branchId && { branchId }),
+            ...(shiftId && { shiftId }),
           },
-          ...(branchId && { branchId }),
-          ...(shiftId && { shiftId }),
         },
-      },
-      _sum: {
-        total: true,
-        quantity: true,
-      },
-      orderBy: {
-        _sum: {
-          total: 'desc',
+        select: {
+          productId: true,
+          total: true,
+          quantity: true,
+          order: { select: { exchangeRate: true } },
         },
-      },
-      take: limit,
-    });
+      }),
+    ]);
+
+    const byProduct = new Map<string, { revenue: number; sold: number }>();
+    for (const item of items) {
+      const revenue = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
+      const existing = byProduct.get(item.productId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.sold += Number(item.quantity);
+      } else {
+        byProduct.set(item.productId, {
+          revenue,
+          sold: Number(item.quantity),
+        });
+      }
+    }
+
+    const products = Array.from(byProduct.entries())
+      .map(([productId, totals]) => ({ productId, ...totals }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, limit);
 
     // Fetch product details
     const productIds = products.map((p) => p.productId);
@@ -1546,8 +1800,8 @@ export class ReportsService {
 
     return products.map((p) => ({
       product: productMap.get(p.productId) || 'Unknown Product',
-      revenue: Number(p._sum.total) || 0,
-      sold: Number(p._sum.quantity) || 0,
+      revenue: Number(p.revenue.toFixed(2)),
+      sold: p.sold,
     }));
   }
 
@@ -1580,39 +1834,55 @@ export class ReportsService {
     };
 
     // Get orders grouped by customer for completed orders (for revenue calculation)
-    const completedOrdersByCustomer = await this.prisma.order.groupBy({
-      by: ['customerId'],
-      where: {
-        ...orderWhere,
-        status: OrderStatus.COMPLETED,
-      },
-      _sum: {
-        total: true,
-      },
-      _count: true,
-    });
+    // Grouped in memory so each order converts at its own frozen rate.
+    const [fallbackRate, customerOrders] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
+        where: {
+          ...orderWhere,
+          status: OrderStatus.COMPLETED,
+        },
+        select: { customerId: true, total: true, exchangeRate: true },
+      }),
+    ]);
+
+    const revenueByCustomer = new Map<string | null, number>();
+    for (const order of customerOrders) {
+      const revenue = this.toReporting(
+        order.total,
+        order.exchangeRate,
+        fallbackRate,
+      );
+      revenueByCustomer.set(
+        order.customerId,
+        (revenueByCustomer.get(order.customerId) ?? 0) + revenue,
+      );
+    }
 
     // Count distinct active customers (who placed at least one order in date range)
-    const activeCustomers = completedOrdersByCustomer.length;
+    const activeCustomers = revenueByCustomer.size;
 
     // Calculate total revenue and find top customer
     let topCustomerName: string | null = null;
     let topCustomerRevenue = 0;
     let totalRevenue = 0;
+    let topCustomerId: string | null = null;
 
-    for (const group of completedOrdersByCustomer) {
-      const revenue = Number(group._sum.total) || 0;
+    for (const [customerId, revenue] of revenueByCustomer) {
       totalRevenue += revenue;
 
-      if (revenue > topCustomerRevenue && group.customerId) {
+      if (revenue > topCustomerRevenue && customerId) {
         topCustomerRevenue = revenue;
-        // Fetch customer name
-        const customer = await this.prisma.customer.findUnique({
-          where: { id: group.customerId },
-          select: { name: true },
-        });
-        topCustomerName = customer?.name || null;
+        topCustomerId = customerId;
       }
+    }
+
+    if (topCustomerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: topCustomerId },
+        select: { name: true },
+      });
+      topCustomerName = customer?.name || null;
     }
 
     const averageCustomerSpend =
@@ -1681,6 +1951,8 @@ export class ReportsService {
       },
     });
 
+    const fallbackRate = await this.resolveFallbackReportingRate(tenantId);
+
     // For each customer, aggregate their order data
     const data: CustomerReportRow[] = await Promise.all(
       customers.map(async (customer) => {
@@ -1696,22 +1968,23 @@ export class ReportsService {
           ...(shiftId && { shiftId }),
         };
 
-        // Aggregate all orders
+        // Aggregate all orders — money folds in memory so each order converts
+        // at its own frozen rate.
         const [allOrders, completedOrders, pendingOrders, lastOrder] =
           await Promise.all([
             // Total order count
             this.prisma.order.count({ where: orderWhere }),
 
             // Completed orders total
-            this.prisma.order.aggregate({
+            this.prisma.order.findMany({
               where: { ...orderWhere, status: OrderStatus.COMPLETED },
-              _sum: { total: true },
+              select: { total: true, exchangeRate: true },
             }),
 
             // Pending orders total (debt)
-            this.prisma.order.aggregate({
+            this.prisma.order.findMany({
               where: { ...orderWhere, ...FULL_DEBT_WHERE },
-              _sum: { total: true },
+              select: { total: true, exchangeRate: true },
             }),
 
             // Last order date
@@ -1722,14 +1995,26 @@ export class ReportsService {
             }),
           ]);
 
+        const sumConverted = (
+          rows: Array<{
+            total: Prisma.Decimal;
+            exchangeRate: Prisma.Decimal | null;
+          }>,
+        ) =>
+          rows.reduce(
+            (sum, row) =>
+              sum + this.toReporting(row.total, row.exchangeRate, fallbackRate),
+            0,
+          );
+
         return {
           id: customer.id,
           name: customer.name,
           email: customer.email,
           phone: customer.phone,
           ordersCount: allOrders,
-          totalSpent: Number(completedOrders._sum.total) || 0,
-          outstandingDebt: Number(pendingOrders._sum.total) || 0,
+          totalSpent: sumConverted(completedOrders),
+          outstandingDebt: sumConverted(pendingOrders),
           lastOrderDate: lastOrder?.createdAt || null,
         };
       }),
@@ -1784,15 +2069,20 @@ export class ReportsService {
       ...(shiftId && { shiftId }),
     };
 
-    // 1. Get total revenue (COMPLETED orders only)
-    const revenueAgg = await this.prisma.order.aggregate({
-      where: orderWhere,
-      _sum: {
-        total: true,
-      },
-    });
+    // 1. Get total revenue (COMPLETED orders only), converted per order.
+    const [fallbackRate, revenueRows] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.order.findMany({
+        where: orderWhere,
+        select: { total: true, exchangeRate: true },
+      }),
+    ]);
 
-    const completedRevenue = Number(revenueAgg._sum.total) || 0;
+    const completedRevenue = revenueRows.reduce(
+      (sum, row) =>
+        sum + this.toReporting(row.total, row.exchangeRate, fallbackRate),
+      0,
+    );
 
     // Get PARTIALLY_PAID revenue (only the paid portion)
     const partiallyPaidOrders = await this.prisma.order.findMany({
@@ -1813,7 +2103,9 @@ export class ReportsService {
 
     const partiallyPaidRevenue = partiallyPaidOrders.reduce((sum, order) => {
       const totalPaid = order.payments.reduce(
-        (pSum, payment) => pSum + Number(payment.amount),
+        (pSum, payment) =>
+          pSum +
+          this.toReporting(payment.amount, order.exchangeRate, fallbackRate),
         0,
       );
       return sum + totalPaid;
@@ -1822,7 +2114,7 @@ export class ReportsService {
     const totalRevenue = completedRevenue + partiallyPaidRevenue;
 
     // 2. Get total debts (PENDING orders full amount)
-    const debtsAgg = await this.prisma.order.aggregate({
+    const debtRows = await this.prisma.order.findMany({
       where: {
         tenantId,
         ...FULL_DEBT_WHERE,
@@ -1833,20 +2125,26 @@ export class ReportsService {
         ...(branchId && { branchId }),
         ...(shiftId && { shiftId }),
       },
-      _sum: {
-        total: true,
-      },
+      select: { total: true, exchangeRate: true },
     });
 
-    const pendingDebts = Number(debtsAgg._sum.total) || 0;
+    const pendingDebts = debtRows.reduce(
+      (sum, row) =>
+        sum + this.toReporting(row.total, row.exchangeRate, fallbackRate),
+      0,
+    );
 
     // Get PARTIALLY_PAID debts (only the unpaid portion)
     const partiallyPaidDebts = partiallyPaidOrders.reduce((sum, order) => {
       const totalPaid = order.payments.reduce(
-        (pSum, payment) => pSum + Number(payment.amount),
+        (pSum, payment) =>
+          pSum +
+          this.toReporting(payment.amount, order.exchangeRate, fallbackRate),
         0,
       );
-      const unpaid = Number(order.total) - totalPaid;
+      const unpaid =
+        this.toReporting(order.total, order.exchangeRate, fallbackRate) -
+        totalPaid;
       return sum + unpaid;
     }, 0);
 
@@ -1862,6 +2160,7 @@ export class ReportsService {
         quantity: true,
         total: true,
         productId: true,
+        order: { select: { exchangeRate: true } },
         product: {
           select: {
             cost: true,
@@ -1880,8 +2179,19 @@ export class ReportsService {
     for (const item of orderItems) {
       const cost = Number(item.product.cost) || 0;
       const quantity = Number(item.quantity);
-      const revenue = Number(item.total);
-      const itemCOGS = cost * quantity;
+      // Revenue and COGS must convert at the SAME rate or the profit figure is
+      // meaningless. Product cost isn't order-linked, so the sale's own rate is
+      // the one that applies to both sides.
+      const revenue = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
+      const itemCOGS = this.toReporting(
+        cost * quantity,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
 
       totalCOGS += itemCOGS;
 
@@ -1937,26 +2247,61 @@ export class ReportsService {
   ): Promise<ProductProfitRow[]> {
     const { from, to, branchId, shiftId, limit = 5 } = query;
 
-    // Group order items by product (same pattern as top products)
-    const groupedProducts = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          tenantId,
-          status: OrderStatus.COMPLETED,
-          createdAt: {
-            gte: from,
-            lte: to,
+    // Group order items by product, folding in memory so revenue converts at
+    // each order's own frozen rate.
+    const [fallbackRate, items] = await Promise.all([
+      this.resolveFallbackReportingRate(tenantId),
+      this.prisma.orderItem.findMany({
+        where: {
+          order: {
+            tenantId,
+            status: OrderStatus.COMPLETED,
+            createdAt: {
+              gte: from,
+              lte: to,
+            },
+            ...(branchId && { branchId }),
+            ...(shiftId && { shiftId }),
           },
-          ...(branchId && { branchId }),
-          ...(shiftId && { shiftId }),
         },
-      },
-      _sum: {
-        total: true,
-        quantity: true,
-      },
-    });
+        select: {
+          productId: true,
+          total: true,
+          quantity: true,
+          order: { select: { exchangeRate: true } },
+        },
+      }),
+    ]);
+
+    const groupedMap = new Map<
+      string,
+      { productId: string; revenue: number; quantity: number; rate: number }
+    >();
+
+    for (const item of items) {
+      const rate = Number(item.order.exchangeRate ?? fallbackRate);
+      const revenue = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
+      const existing = groupedMap.get(item.productId);
+      if (existing) {
+        existing.revenue += revenue;
+        existing.quantity += Number(item.quantity);
+      } else {
+        groupedMap.set(item.productId, {
+          productId: item.productId,
+          revenue,
+          quantity: Number(item.quantity),
+          // Cost is a product-level base amount with no order of its own, so
+          // it converts at the rate of the sales it is being compared against.
+          rate,
+        });
+      }
+    }
+
+    const groupedProducts = Array.from(groupedMap.values());
 
     // Fetch product details with cost and category
     const productIds = groupedProducts.map((p) => p.productId);
@@ -1988,9 +2333,11 @@ export class ReportsService {
     // Calculate profit for each product
     const results: ProductProfitRow[] = groupedProducts.map((p) => {
       const details = productMap.get(p.productId);
-      const revenue = Number(p._sum.total) || 0;
-      const qtySold = Number(p._sum.quantity) || 0;
-      const costPerUnit = details?.cost || 0;
+      const revenue = p.revenue;
+      const qtySold = p.quantity;
+      // Convert cost at the same rate as the revenue it's compared against,
+      // otherwise the margin mixes two currencies.
+      const costPerUnit = (details?.cost || 0) * p.rate;
       const totalCost = costPerUnit * qtySold;
       const profit = revenue - totalCost;
       const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
@@ -2040,6 +2387,7 @@ export class ReportsService {
       select: {
         total: true,
         quantity: true,
+        order: { select: { exchangeRate: true } },
         product: {
           select: {
             cost: true,
@@ -2054,6 +2402,8 @@ export class ReportsService {
       },
     });
 
+    const fallbackRate = await this.resolveFallbackReportingRate(tenantId);
+
     // Aggregate by category
     const categoryMap = new Map<
       string,
@@ -2066,10 +2416,19 @@ export class ReportsService {
 
       if (!categoryId || !categoryName) continue;
 
-      const revenue = Number(item.total);
+      // Revenue and cost convert at the same rate so the margin stays coherent.
+      const revenue = this.toReporting(
+        item.total,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
       const cost = Number(item.product.cost) || 0;
       const quantity = Number(item.quantity);
-      const totalCost = cost * quantity;
+      const totalCost = this.toReporting(
+        cost * quantity,
+        item.order.exchangeRate,
+        fallbackRate,
+      );
 
       const existing = categoryMap.get(categoryId);
       if (existing) {

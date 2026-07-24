@@ -1,8 +1,8 @@
 import { ActiveTableOrder, TableOverview } from "@/dto/tables.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { cn, Icon } from "@repo/ui";
 import { memo } from "react";
 import { EmptyTab } from ".";
-import { formatTableMoney } from "../config";
 
 export const PaymentsTab = memo(function PaymentsTab({
   summary,
@@ -11,6 +11,8 @@ export const PaymentsTab = memo(function PaymentsTab({
   summary: TableOverview["activeOrder"];
   fullOrder: ActiveTableOrder | null;
 }) {
+  const { format: formatMoney } = useBaseCurrency();
+
   if (!summary) {
     return <EmptyTab icon="CreditCard" text="No payments for this table" />;
   }
@@ -23,15 +25,15 @@ export const PaymentsTab = memo(function PaymentsTab({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
-        <PaymentStat label="Total" value={formatTableMoney(total)} />
+        <PaymentStat label="Total" value={formatMoney(total)} />
         <PaymentStat
           label="Paid"
-          value={formatTableMoney(paid)}
+          value={formatMoney(paid)}
           className="text-emerald-600 dark:text-emerald-400"
         />
         <PaymentStat
           label="Remaining"
-          value={formatTableMoney(remaining)}
+          value={formatMoney(remaining)}
           className={
             remaining > 0 ? "text-amber-600 dark:text-amber-400" : undefined
           }
@@ -59,7 +61,7 @@ export const PaymentsTab = memo(function PaymentsTab({
                 </span>
               </span>
               <span className="font-medium">
-                {formatTableMoney(payment.amount)}
+                {formatMoney(payment.amount)}
               </span>
             </li>
           ))}

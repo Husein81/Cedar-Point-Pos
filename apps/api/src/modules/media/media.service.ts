@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import sharp from 'sharp';
 import {
+  LOGO_IMAGE_PREFIX,
   MEDIA_ALLOWED_MIME_TYPES,
   MEDIA_IMAGE_MAX_DIMENSION,
   MEDIA_WEBP_QUALITY,
@@ -30,17 +31,40 @@ export class MediaService {
 
   /**
    * Validate, normalize and store a product image, returning its durable storage
-   * key plus the derived public URL. The key is tenant-scoped so a tenant can
-   * never write outside its own prefix.
+   * key plus the derived public URL.
    */
-  async uploadProductImage(
+  uploadProductImage(
     tenantId: string,
     file: Express.Multer.File | undefined,
+  ): Promise<UploadedImage> {
+    return this.storeImage(tenantId, file, PRODUCT_IMAGE_PREFIX);
+  }
+
+  /**
+   * Validate, normalize and store a tenant logo, returning its durable storage
+   * key plus the derived public URL.
+   */
+  uploadTenantLogo(
+    tenantId: string,
+    file: Express.Multer.File | undefined,
+  ): Promise<UploadedImage> {
+    return this.storeImage(tenantId, file, LOGO_IMAGE_PREFIX);
+  }
+
+  /**
+   * Validate, normalize and store an image under a tenant-scoped prefix,
+   * returning its durable storage key plus the derived public URL. The key is
+   * tenant-scoped so a tenant can never write outside its own prefix.
+   */
+  private async storeImage(
+    tenantId: string,
+    file: Express.Multer.File | undefined,
+    prefix: string,
   ): Promise<UploadedImage> {
     this.assertValidImage(file);
 
     const optimized = await this.toOptimizedWebp(file.buffer);
-    const key = `${tenantId}/${PRODUCT_IMAGE_PREFIX}/${randomUUID()}.webp`;
+    const key = `${tenantId}/${prefix}/${randomUUID()}.webp`;
 
     await this.storage.upload(key, optimized, 'image/webp');
 

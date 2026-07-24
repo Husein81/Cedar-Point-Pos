@@ -18,8 +18,19 @@ export const TableQuickActions = memo(function TableQuickActions({
   onAction,
 }: TableQuickActionsProps) {
   const actions = useMemo(
-    () => getVisibleActions(uiStatus, canManage, table.activeOrder?.paymentStatus),
-    [uiStatus, canManage, table.activeOrder?.paymentStatus],
+    () =>
+      getVisibleActions(
+        uiStatus,
+        canManage,
+        table.activeOrder?.paymentStatus,
+        table.activeOrder ? Number(table.activeOrder.total) : undefined,
+      ),
+    [
+      uiStatus,
+      canManage,
+      table.activeOrder?.paymentStatus,
+      table.activeOrder?.total,
+    ],
   );
 
   const handleActionClick = useCallback(

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Input, Label, Empty, Icon, InputField } from "@repo/ui";
 import { useAddOfferGroupItem } from "@/hooks/useOffers";
 import { useProducts } from "@/hooks/useProduct";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import type { Product } from "@repo/types";
 import { useForm } from "@tanstack/react-form";
@@ -16,6 +17,7 @@ export const OfferGroupItemForm = ({
   groupId,
 }: OfferGroupItemFormProps) => {
   const { closeModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
   const { data: products, isLoading: productsLoading } = useProducts();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,7 +110,7 @@ export const OfferGroupItemForm = ({
             >
               <span className="text-sm">{product.name}</span>
               <span className="text-xs text-muted-foreground">
-                ${Number(product.price).toFixed(2)}
+                {formatMoney(product.price)}
               </span>
             </div>
           ))
@@ -122,7 +124,7 @@ export const OfferGroupItemForm = ({
           <span className="font-medium text-foreground">
             {selectedProduct.name}
           </span>{" "}
-          (${Number(selectedProduct.price).toFixed(2)})
+          ({formatMoney(selectedProduct.price)})
         </div>
       )}
 

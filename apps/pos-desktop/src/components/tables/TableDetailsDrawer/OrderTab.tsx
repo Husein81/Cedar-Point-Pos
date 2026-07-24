@@ -1,9 +1,9 @@
 import { ActiveTableOrder, TableOverview } from "@/dto/tables.dto";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { OrderItem } from "@repo/types";
 import { Badge, Icon, Skeleton } from "@repo/ui";
 import { memo } from "react";
 import { EmptyTab } from ".";
-import { formatTableMoney } from "../config";
 
 const latestTicketStatus = (item: OrderItem): string | null => {
   if (!item.tickets || item.tickets.length === 0) return null;
@@ -22,6 +22,8 @@ export const OrderTab = memo(function OrderTab({
   fullOrder: ActiveTableOrder | null;
   isLoading: boolean;
 }) {
+  const { format: formatMoney } = useBaseCurrency();
+
   if (!summary) {
     return <EmptyTab icon="ReceiptText" text="No order on this table" />;
   }
@@ -77,7 +79,7 @@ export const OrderTab = memo(function OrderTab({
                   )}
                 </div>
                 <span className="shrink-0 font-semibold">
-                  {formatTableMoney(item.total)}
+                  {formatMoney(item.total)}
                 </span>
               </li>
             );
@@ -87,7 +89,7 @@ export const OrderTab = memo(function OrderTab({
 
       <div className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
         <span>Total</span>
-        <span>{formatTableMoney(summary.total)}</span>
+        <span>{formatMoney(summary.total)}</span>
       </div>
     </div>
   );

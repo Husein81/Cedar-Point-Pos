@@ -23,3 +23,6 @@ export const MEDIA_WEBP_QUALITY = 80;
 
 // Key segment grouping product images within a tenant prefix.
 export const PRODUCT_IMAGE_PREFIX = 'products';
+
+// Key segment grouping tenant logo images within a tenant prefix.
+export const LOGO_IMAGE_PREFIX = 'logos';

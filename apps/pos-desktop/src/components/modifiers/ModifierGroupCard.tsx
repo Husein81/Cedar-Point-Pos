@@ -3,6 +3,7 @@ import { Button, Icon, Shad, cn } from "@repo/ui";
 import { Modifier, ModifierGroupItem } from "@/types/modifiers";
 import { useDeleteModifier } from "@/hooks/useModifierApi";
 import { useDeleteModifierGroup } from "@/hooks/useModifierGroupApi";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { ModifierGroupForm } from "./ModifierGroupForm";
 import { ModifierForm } from "./ModifierForm";
@@ -19,6 +20,7 @@ export const ModifierGroupCard = ({
   forceExpanded = true,
 }: ModifierGroupCardProps) => {
   const { openModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
   const [isExpanded, setIsExpanded] = useState(forceExpanded);
   const deleteGroup = useDeleteModifierGroup();
   const deleteModifier = useDeleteModifier();
@@ -175,7 +177,7 @@ export const ModifierGroupCard = ({
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground whitespace-nowrap">
                       {modifier.price > 0
-                        ? `+$${Number(modifier.price).toFixed(2)}`
+                        ? `+${formatMoney(modifier.price)}`
                         : "Free"}
                     </span>
                     <Shad.DropdownMenu>
@@ -325,7 +327,7 @@ export const ModifierGroupCard = ({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground whitespace-nowrap">
                     {modifier.price > 0
-                      ? `+$${Number(modifier.price).toFixed(2)}`
+                      ? `+${formatMoney(modifier.price)}`
                       : "Free"}
                   </span>
                   <Shad.DropdownMenu>

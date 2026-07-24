@@ -1,6 +1,7 @@
 import { ProductForm } from "@/components/products/ProductForm";
 import TitleBar from "@/components/title-bar";
 import { useProduct } from "@/hooks/useProduct";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 import { Badge, Button, Shad } from "@repo/ui";
@@ -15,6 +16,7 @@ function RouteComponent() {
   const { productId } = useParams({ from: "/products/$productId" });
   const { data: product, isLoading } = useProduct(productId);
   const openModal = useModalStore((state) => state.openModal);
+  const { format: formatMoney } = useBaseCurrency();
 
   const handleEdit = () => {
     if (product) {
@@ -63,7 +65,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-2xl font-bold">
-              {product.price ? `$${product.price}` : "—"}
+              {product.price ? formatMoney(product.price) : "—"}
             </div>
           </Shad.CardContent>
         </Shad.Card>
@@ -77,7 +79,7 @@ function RouteComponent() {
           </Shad.CardHeader>
           <Shad.CardContent>
             <div className="text-2xl font-bold">
-              {product.cost ? `$${product.cost}` : "—"}
+              {product.cost ? formatMoney(product.cost) : "—"}
             </div>
           </Shad.CardContent>
         </Shad.Card>

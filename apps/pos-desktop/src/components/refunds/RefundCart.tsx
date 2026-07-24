@@ -3,6 +3,7 @@ import { Button, Empty, Icon, Shad, Textarea } from "@repo/ui";
 import type { RefundableInfo, RefundHistory } from "@/dto/refund.dto";
 import { useRefundStore } from "@/store/refundStore";
 import { useCreateRefund } from "@/hooks/useRefund";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { CartItem } from "./CartItem";
 import { RefundConfirmModal } from "./RefundConfirmModal";
 import { RefundHistoryPanel } from "./RefundHistoryPanel";
@@ -65,6 +66,7 @@ export const RefundCart = ({
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const createRefundMutation = useCreateRefund();
+  const { format: formatMoney } = useBaseCurrency();
 
   if (!selectedOrderId) {
     return (
@@ -302,7 +304,7 @@ export const RefundCart = ({
             </div>
 
             <p className="text-2xl font-bold text-destructive tabular-nums">
-              ${refundTotal.toFixed(2)}
+              {formatMoney(refundTotal)}
             </p>
           </div>
 
@@ -311,7 +313,7 @@ export const RefundCart = ({
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Order total</span>
                 <span className="font-medium tabular-nums">
-                  ${info.orderTotal.toFixed(2)}
+                  {formatMoney(info.orderTotal)}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
@@ -319,7 +321,7 @@ export const RefundCart = ({
                   Remaining after refund
                 </span>
                 <span className="font-semibold text-amber-700 dark:text-amber-400 tabular-nums">
-                  ${(info.orderTotal - refundTotal).toFixed(2)}
+                  {formatMoney(info.orderTotal - refundTotal)}
                 </span>
               </div>
             </div>

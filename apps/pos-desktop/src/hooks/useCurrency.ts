@@ -41,18 +41,25 @@ export const useTenantCurrencies = () => {
 export const useBaseCurrency = () => {
   const { data } = useTenantCurrencies();
   const code = data?.baseCurrencyCode ?? "USD";
-  const symbol =
-    data?.currencies.find((c) => c.currencyCode === code)?.currency?.symbol ||
-    code;
+  const currency = data?.currencies.find(
+    (c) => c.currencyCode === code,
+  )?.currency;
+  const symbol = currency?.symbol || code;
+  // Honour the currency's own precision: LBP has 0 decimals, so "1,260,000"
+  // rather than "1,260,000.00"; USD keeps its 2.
+  const decimalPlaces = currency?.decimalPlaces ?? 2;
 
   const format = (value: number | string | null | undefined): string => {
     if (value === null || value === undefined || value === "") return "—";
     const num = Number(value);
     if (!Number.isFinite(num)) return "—";
-    return `${new Intl.NumberFormat("en-US").format(num)} ${symbol}`;
+    return `${new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: decimalPlaces,
+      maximumFractionDigits: decimalPlaces,
+    }).format(num)} ${symbol}`;
   };
 
-  return { code, symbol, format };
+  return { code, symbol, decimalPlaces, format };
 };
 
 export const useTenantCurrenciesPaginated = (params?: QueryParams) => {

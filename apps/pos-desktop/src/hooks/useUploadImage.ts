@@ -15,3 +15,16 @@ export const useUploadProductImage = () => {
     },
   });
 };
+
+/**
+ * Uploads a tenant logo through the API (stored in B2) and returns the storage
+ * key + public URL. Surfaces a toast on failure so callers can bail out.
+ */
+export const useUploadTenantLogo = () => {
+  return useMutation<UploadImageResult, Error, File>({
+    mutationFn: mediaApi.uploadTenantLogo,
+    onError: () => {
+      toast.error("Failed to upload logo. Please try again.");
+    },
+  });
+};

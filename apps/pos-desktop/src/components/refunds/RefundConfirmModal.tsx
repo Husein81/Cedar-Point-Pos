@@ -1,4 +1,5 @@
 import { Button, Icon, Shad } from "@repo/ui";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import type { RefundLine } from "./config";
 
 interface RefundConfirmModalProps {
@@ -26,6 +27,8 @@ export const RefundConfirmModal = ({
   isProcessing,
   isFullRefund,
 }: RefundConfirmModalProps) => {
+  const { format: formatMoney } = useBaseCurrency();
+
   return (
     <Shad.AlertDialog open={isOpen} onOpenChange={onClose}>
       <Shad.AlertDialogContent className="max-w-md">
@@ -87,7 +90,7 @@ export const RefundConfirmModal = ({
                     )}
                   </div>
                   <span className="font-medium ml-2 tabular-nums">
-                    ${line.lineTotal.toFixed(2)}
+                    {formatMoney(line.lineTotal)}
                   </span>
                 </div>
               ))}
@@ -109,7 +112,7 @@ export const RefundConfirmModal = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold">Refund Total</span>
               <span className="text-xl font-bold text-destructive tabular-nums">
-                ${total.toFixed(2)}
+                {formatMoney(total)}
               </span>
             </div>
           </div>
@@ -121,7 +124,7 @@ export const RefundConfirmModal = ({
           <div>
             <strong>Important:</strong> This will:
             <ul className="mt-1 ml-4 list-disc text-xs">
-              <li>Return ${total.toFixed(2)} to the customer</li>
+              <li>Return {formatMoney(total)} to the customer</li>
               <li>Restore inventory for refunded items</li>
               <li>Update order status to reflect the refund</li>
               <li>

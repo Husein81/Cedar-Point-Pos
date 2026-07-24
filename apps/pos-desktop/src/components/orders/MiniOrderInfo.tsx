@@ -1,5 +1,6 @@
 import type { Order } from "@repo/types";
 import { Badge, cn } from "@repo/ui";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { STATUS_BADGE_CONFIG } from "./config";
 
 type MiniOrderInfoProps = {
@@ -7,6 +8,7 @@ type MiniOrderInfoProps = {
 };
 
 export function MiniOrderInfo({ order }: MiniOrderInfoProps) {
+  const { format: formatMoney } = useBaseCurrency();
   const statusConfig = STATUS_BADGE_CONFIG[order.status] ?? {
     label: order.status,
     className: "bg-muted text-muted-foreground",
@@ -31,7 +33,7 @@ export function MiniOrderInfo({ order }: MiniOrderInfoProps) {
           {itemCount} item{itemCount !== 1 ? "s" : ""}
         </span>
       </div>
-      <span className="font-bold text-sm">${total.toFixed(2)}</span>
+      <span className="font-bold text-sm">{formatMoney(total)}</span>
     </div>
   );
 }

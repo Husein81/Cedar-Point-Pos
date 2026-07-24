@@ -85,9 +85,14 @@ export default function CheckoutActions() {
     openModal("Actions", <OtherActions />);
   };
 
+  // A fully discounted (or fully loyalty-covered) order owes nothing, yet it
+  // still has to be finalised — so Pay stays available and opens the form on
+  // its "Complete Order" state. Only an order that *had* a balance and has
+  // since been settled has nothing left to do.
+  const nothingDue = total <= 0;
   const payDisabled =
     !hasItems ||
-    remainingTotal <= 0 ||
+    (!nothingDue && remainingTotal <= 0) ||
     deliveryNeedsCustomer ||
     deliveryNeedsAddress;
 

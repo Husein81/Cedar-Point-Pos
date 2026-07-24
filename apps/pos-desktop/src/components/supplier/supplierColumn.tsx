@@ -5,7 +5,9 @@ import type { SupplierDetails, SupplierPurchaseOrder } from "@/dto/supplier.dto"
 import { getPurchaseOrderStatusConfig } from "@/components/purchase-orders/config";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 
-export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
+export const getSupplierColumns = (
+  formatMoney: (value: number | string | null | undefined) => string,
+): ColumnDef<SupplierDetails>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -69,7 +71,7 @@ export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
     header: "Balance",
     cell: ({ row }) => (
       <div className="font-medium">
-        ${Number(row.original.currentBalance).toFixed(2)}
+        {formatMoney(row.original.currentBalance)}
       </div>
     ),
   },
@@ -89,7 +91,9 @@ export const getSupplierColumns = (): ColumnDef<SupplierDetails>[] => [
   },
 ];
 
-export const getPurchaseOrderColumns = (): ColumnDef<SupplierPurchaseOrder>[] => [
+export const getPurchaseOrderColumns = (
+  formatMoney: (value: number | string | null | undefined) => string,
+): ColumnDef<SupplierPurchaseOrder>[] => [
   {
     accessorKey: "orderNumber",
     header: "Order #",
@@ -138,7 +142,7 @@ export const getPurchaseOrderColumns = (): ColumnDef<SupplierPurchaseOrder>[] =>
     header: "Total",
     cell: ({ row }) => (
       <div className="font-medium">
-        ${Number(row.original.totalAmount).toFixed(2)}
+        {formatMoney(row.original.totalAmount)}
       </div>
     ),
   },

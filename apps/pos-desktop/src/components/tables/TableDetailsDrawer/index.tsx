@@ -2,6 +2,7 @@ import type { TableOverview } from "@/dto/tables.dto";
 import type { Reservation } from "@/dto/reservation.dto";
 import { useActiveOrdersByTable } from "@/hooks/useTable";
 import { useTableReservations } from "@/hooks/useReservations";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { formatReservationCountdown } from "@/components/reservations/reservationStatus";
 import { Badge, Icon, Shad, cn } from "@repo/ui";
 import { ACTIVE_RESERVATION_STATUSES } from "@repo/types";
@@ -11,7 +12,6 @@ import {
   TABLE_UI_STATUS_CONFIG,
   deriveTableUiStatus,
   formatElapsedSince,
-  formatTableMoney,
   isOverCapacity,
   type TableUiStatusConfig,
 } from "../config";
@@ -48,6 +48,7 @@ const DrawerHeader = memo(function DrawerHeader({
   nextReservation,
 }: DrawerHeaderProps) {
   const now = useElapsedNow();
+  const { format: formatMoney } = useBaseCurrency();
 
   return (
     <Shad.SheetHeader className="border-b p-4 pb-3">
@@ -88,7 +89,7 @@ const DrawerHeader = memo(function DrawerHeader({
               {formatElapsedSince(summary.createdAt, now)}
             </span>
             <span className={cn("font-semibold", statusConfig.text)}>
-              {formatTableMoney(summary.total)}
+              {formatMoney(summary.total)}
             </span>
             {summary.userName && (
               <span className="flex items-center gap-1">
@@ -164,7 +165,11 @@ export const TableDetailsDrawer = memo(
 
     if (!table) return null;
 
-    const uiStatus = deriveTableUiStatus(table, table.activeOrder?.status);
+    const uiStatus = deriveTableUiStatus(
+      table,
+      table.activeOrder?.status,
+      table.activeOrder?.paymentStatus,
+    );
     const statusConfig = TABLE_UI_STATUS_CONFIG[uiStatus];
     const summary = table.activeOrder;
 

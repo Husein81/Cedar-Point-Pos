@@ -4,9 +4,11 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUrl,
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { TENANT_CODE_REGEX } from './create-tenant.dto.js';
 
@@ -31,6 +33,13 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsString()
   baseCurrencyCode?: string;
+
+  // Nullable so the client can clear the logo. `@ValidateIf` skips the URL
+  // check when the value is explicitly null.
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUrl()
+  logoUrl?: string | null;
 
   @IsOptional()
   @IsBoolean()

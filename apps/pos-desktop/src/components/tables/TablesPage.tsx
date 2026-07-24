@@ -5,6 +5,7 @@ import { useMemo } from "react";
 // Hooks & stores
 import { useNetworkStatus } from "@/context/NetworkContext";
 import { useFloorsByBranch } from "@/hooks/useFloor";
+import { useUnpaidDeliveryOrders } from "@/hooks/useOrder";
 import { useTablesOverview } from "@/hooks/useTable";
 import { useTablesSocket } from "@/hooks/useTablesSocket";
 import { useAuthStore } from "@/store/authStore";
@@ -13,6 +14,7 @@ import { useModalStore } from "@/store/modalStore";
 import { useTableUiStore } from "@/store/tableUiStore";
 
 // Feature components
+import { DeliveryOrdersModal } from "@/components/orders/DeliveryOrdersModal";
 import MergeTargetSelector from "@/components/orders/MergeTargetSelector";
 import { TableSelectorModal } from "@/components/orders/TableSelectorModal";
 import { ReservationForm } from "@/components/reservations/ReservationForm";
@@ -45,6 +47,8 @@ export function TablesPage() {
   } = useTablesOverview();
   const { data: floors = [] } = useFloorsByBranch();
   const { isConnected } = useTablesSocket(branchId);
+  const { orders: unpaidDeliveryOrders } = useUnpaidDeliveryOrders();
+  const unpaidDeliveryCount = unpaidDeliveryOrders.length;
 
   // UI state
   const view = useTableUiStore((s) => s.view);
@@ -88,7 +92,11 @@ export function TablesPage() {
         continue;
 
       if (filters.statuses.length > 0) {
-        const uiStatus = deriveTableUiStatus(table, table.activeOrder?.status);
+        const uiStatus = deriveTableUiStatus(
+          table,
+          table.activeOrder?.status,
+          table.activeOrder?.paymentStatus,
+        );
         if (!filters.statuses.includes(uiStatus)) continue;
       }
 
@@ -176,8 +184,8 @@ export function TablesPage() {
     renderFreeConfirm: ({ table, onConfirm, onCancel }) => (
       <div className="space-y-4">
         <p className="text-muted-foreground text-sm">
-          This will cancel every unpaid order on{" "}
-          <strong>{getTableDisplayName(table)}</strong> and mark the table
+          Paid orders on <strong>{getTableDisplayName(table)}</strong> will be
+          completed and unpaid orders cancelled, then the table is marked
           available again.
         </p>
         <div className="flex justify-end gap-2">
@@ -211,15 +219,33 @@ export function TablesPage() {
     <div className="flex flex-col gap-4 p-6">
       {/* Page-level view toggle + primary actions */}
       <div className="flex items-center justify-between gap-2">
-        <Button
-          size="sm"
-          iconName="Plus"
-          onClick={() =>
-            navigate({ to: "/", search: { orderType: "dine_in" } })
-          }
-        >
-          New Order
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            iconName="Plus"
+            onClick={() =>
+              navigate({ to: "/", search: { orderType: "dine_in" } })
+            }
+          >
+            New Order
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            iconName="Truck"
+            onClick={() =>
+              openModal("Delivery Orders", <DeliveryOrdersModal />)
+            }
+          >
+            Delivery Orders
+            {unpaidDeliveryCount > 0 && (
+              <span className="bg-primary text-primary-foreground ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold">
+                {unpaidDeliveryCount}
+              </span>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Offline cache freshness badge */}

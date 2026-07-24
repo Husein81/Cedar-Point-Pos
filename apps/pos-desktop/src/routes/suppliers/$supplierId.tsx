@@ -4,6 +4,7 @@ import TitleBar from "@/components/title-bar";
 import { getPurchaseOrderColumns } from "@/components/supplier/supplierColumn";
 import { DEFAULT_LOCALE } from "@/constants/locale";
 import { useSupplier, useSupplierPurchaseOrders } from "@/hooks/useSupplier";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { Button, DataTable, Icon, Shad } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -25,6 +26,7 @@ function RouteComponent() {
   const { data: supplier, isLoading } = useSupplier(supplierId);
   const { data: purchaseOrdersResponse, isLoading: purchaseOrdersLoading } =
     useSupplierPurchaseOrders(supplierId);
+  const { format: formatMoney } = useBaseCurrency();
 
   if (isLoading) {
     return <DetailsSkeleton />;
@@ -52,12 +54,12 @@ function RouteComponent() {
     },
     {
       title: "Total Spent",
-      value: `$${supplier.totalPurchaseAmount.toFixed(2)}`,
+      value: formatMoney(supplier.totalPurchaseAmount),
       icon: "DollarSign",
     },
     {
       title: "Avg. Purchase Value",
-      value: `$${supplier.averagePurchaseValue.toFixed(2)}`,
+      value: formatMoney(supplier.averagePurchaseValue),
       icon: "TrendingUp",
     },
     {
@@ -110,7 +112,7 @@ function RouteComponent() {
         </div>
 
         <DataTable
-          columns={getPurchaseOrderColumns()}
+          columns={getPurchaseOrderColumns(formatMoney)}
           data={purchaseOrdersResponse?.data ?? []}
           isLoading={purchaseOrdersLoading}
         />

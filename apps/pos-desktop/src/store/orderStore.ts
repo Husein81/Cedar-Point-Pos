@@ -9,6 +9,7 @@ import {
 } from "@/dto/order.dto";
 import { OrderStatus, OrderType } from "@repo/types";
 import { VAT_RATE } from "@/constants/finance";
+import { getItemLineTotal } from "@/utils/financial";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
@@ -1122,27 +1123,11 @@ export const useOrderStore = create<OrderStore>()(
 
         if (!tab) return 0;
 
-        // Calculate subtotal with item-level discounts applied
-        return tab.order.items.reduce((sum, item) => {
-          // Calculate base price + modifiers
-          const modifiersTotal =
-            item.modifiers?.reduce((modSum, mod) => modSum + mod.price, 0) || 0;
-          const unitPrice = item.price + modifiersTotal;
-          const lineTotal = unitPrice * item.quantity;
-
-          // Apply item-level discount if present
-          let itemDiscount = 0;
-          if (item.discount) {
-            if (item.discount.type === "PERCENTAGE") {
-              itemDiscount = lineTotal * (item.discount.value / 100);
-            } else {
-              // FIXED discount
-              itemDiscount = item.discount.value;
-            }
-          }
-
-          return sum + (lineTotal - itemDiscount);
-        }, 0);
+        // Subtotal with modifiers in and item-level discounts out.
+        return tab.order.items.reduce(
+          (sum, item) => sum + getItemLineTotal(item),
+          0,
+        );
       },
 
       getDiscountAmount: (tabId?: string) => {

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useActiveOffers, usePricePreview } from "@/hooks/useOffers";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import type {
@@ -16,6 +17,7 @@ type Props = {
 export const OfferSelectionModal = ({ onConfirm }: Props) => {
   const { closeModal } = useModalStore();
   const { addItem } = useOrderStore();
+  const { format: formatMoney } = useBaseCurrency();
   const { data: offersResponse, isLoading } = useActiveOffers();
   const pricePreviewMutation = usePricePreview();
 
@@ -159,7 +161,7 @@ export const OfferSelectionModal = ({ onConfirm }: Props) => {
                     </div>
                   </div>
                   <span className="text-sm font-bold text-primary">
-                    ${Number(offer.basePrice).toFixed(2)}
+                    {formatMoney(offer.basePrice)}
                   </span>
                 </div>
               ))}
@@ -221,24 +223,24 @@ export const OfferSelectionModal = ({ onConfirm }: Props) => {
           <div className="space-y-2 mb-4 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>Base Price</span>
-              <span>${preview.basePrice.toFixed(2)}</span>
+              <span>{formatMoney(preview.basePrice)}</span>
             </div>
             {preview.totalExtras > 0 && (
               <div className="flex justify-between text-muted-foreground">
                 <span>Extras</span>
-                <span>+${preview.totalExtras.toFixed(2)}</span>
+                <span>+{formatMoney(preview.totalExtras)}</span>
               </div>
             )}
             {preview.totalFreeDiscount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <span>Free Item Discount</span>
-                <span>-${preview.totalFreeDiscount.toFixed(2)}</span>
+                <span>-{formatMoney(preview.totalFreeDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-base pt-2 border-t">
               <span>Total</span>
               <span className="text-primary">
-                ${preview.finalTotal.toFixed(2)}
+                {formatMoney(preview.finalTotal)}
               </span>
             </div>
             {preview.validationErrors.length > 0 && (
@@ -283,6 +285,8 @@ const OfferGroupSelector = ({
   selectedProductId,
   onSelectProduct,
 }: OfferGroupSelectorProps) => {
+  const { format: formatMoney } = useBaseCurrency();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -299,7 +303,7 @@ const OfferGroupSelector = ({
           const isSelected = selectedProductId === item.productId;
           const priceText =
             Number(item.extraPrice) > 0
-              ? `+$${Number(item.extraPrice).toFixed(2)}`
+              ? `+${formatMoney(item.extraPrice)}`
               : "";
 
           return (

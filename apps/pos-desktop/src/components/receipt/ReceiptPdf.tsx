@@ -1,6 +1,12 @@
 import type { Order } from "@/dto/order.dto";
+import type { TenantCurrency } from "@repo/types";
 import { useAuthStore } from "@/store/authStore";
 import { VAT_RATE, VAT_RATE_PERCENT_LABEL } from "@/constants/finance";
+import {
+  buildMultiCurrencyAmounts,
+  formatCurrency,
+} from "@/utils/invoiceFinancials";
+import { getItemDiscountAmount, getItemLineTotal } from "@/utils/financial";
 import { Document, Page, Text, View, pdf, Image } from "@react-pdf/renderer";
 
 import { styles } from "./style-sheet";
@@ -16,7 +22,27 @@ type Props = {
     points: number;
     discount: number;
   };
+  /**
+   * Tenant currency config (base + secondaries). Amounts are stored in the base
+   * currency; this drives symbol/decimals and the secondary-currency equivalent.
+   * Passed in rather than fetched with a hook because the print path renders
+   * this component detached, outside the React Query provider.
+   */
+  tenantCurrencies: TenantCurrency[];
+  baseCurrencyCode: string;
+  /** Public logo URL; rendered at the top of the receipt when present. */
+  logoUrl?: string | null;
 };
+
+// The WinAnsi (CP1252) high range react-pdf's Helvetica can still render on top
+// of Latin-1 — includes the € and other symbols. Anything outside Latin-1 +
+// this set (e.g. Arabic script) has no glyph and prints as garbage.
+const WINANSI_HIGH = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+
+const isWinAnsiRenderable = (value: string): boolean =>
+  [...value].every(
+    (char) => char.charCodeAt(0) <= 0xff || WINANSI_HIGH.includes(char),
+  );
 
 export const ReceiptPdf = ({
   order,
@@ -26,12 +52,35 @@ export const ReceiptPdf = ({
   branchPhone,
   orderNumber,
   loyaltyApplied,
+  tenantCurrencies,
+  baseCurrencyCode,
+  logoUrl,
 }: Props) => {
   const { user } = useAuthStore();
 
+  const baseCurrency =
+    tenantCurrencies.find((tc) => tc.isDefault) ??
+    tenantCurrencies.find((tc) => tc.currencyCode === baseCurrencyCode);
+  // react-pdf's built-in Helvetica only draws WinAnsi (CP1252) glyphs, so a
+  // non-Latin symbol like the Arabic "ل.ل" prints as garbage ("D.D"). Keep the
+  // symbol when it's renderable ($, €, £), otherwise fall back to the ISO code.
+  const rawSymbol = baseCurrency?.currency?.symbol;
+  const baseSymbol =
+    rawSymbol && isWinAnsiRenderable(rawSymbol) ? rawSymbol : baseCurrencyCode;
+  const baseDecimals = baseCurrency?.currency?.decimalPlaces ?? 2;
+
+  const money = (value: number | null | undefined): string =>
+    formatCurrency(
+      Number(value ?? 0),
+      baseCurrencyCode,
+      baseSymbol,
+      baseDecimals,
+    );
+
+  // Modifiers in, item-level discounts out — same helper the cart totals use,
+  // so the printed bill always matches what the customer was charged.
   const subtotal = order.items.reduce(
-    (sum: number, item: { price?: number | null; quantity: number }) =>
-      sum + (item.price ? Number(item.price) * item.quantity : 0),
+    (sum, item) => sum + getItemLineTotal(item),
     0,
   );
 
@@ -47,14 +96,20 @@ export const ReceiptPdf = ({
 
   const total = subtotal - discount + order.shippingFee + vat - loyaltyDiscount;
 
+  // Base currency first, then any active secondary currencies (e.g. USD).
+  const secondaryTotals = buildMultiCurrencyAmounts(
+    total,
+    tenantCurrencies,
+    baseCurrencyCode,
+  ).slice(1);
+
   return (
     <Document>
       <Page size={[226]} style={styles.page}>
         {/* ================= HEADER ================= */}
         <View style={styles.header}>
-          {/* LOGO */}
-          {/* Replace with your logo if available */}
-          {false && <Image src="/assets/icon.png" style={[styles.logo]} />}
+          {/* LOGO — shown only when the tenant has one configured */}
+          {logoUrl ? <Image src={logoUrl} style={styles.logo} /> : null}
 
           <Text style={[styles.logoText, { paddingBottom: 2 }]}>
             {tenantName}
@@ -73,7 +128,10 @@ export const ReceiptPdf = ({
 
         {/* ================= ITEMS ================= */}
         <View style={styles.itemsContainer}>
-          {order.items.map((item) => (
+          {order.items.map((item) => {
+            const itemDiscount = getItemDiscountAmount(item);
+
+            return (
             <View key={item.id} style={styles.itemBlock}>
               {/* Main Row */}
               <View style={styles.itemRow}>
@@ -82,13 +140,21 @@ export const ReceiptPdf = ({
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.name}</Text>
 
-                  <Text style={styles.itemSub}>
-                    ${item.price ? Number(item.price).toFixed(2) : "0.00"} / Units
-                  </Text>
+                  <Text style={styles.itemSub}>{money(item.price)} / Units</Text>
+
+                  {/* Spell out the per-line discount so the charged price is
+                      never a surprise against the unit price above. */}
+                  {itemDiscount > 0 && (
+                    <Text style={styles.itemSub}>
+                      {item.discount?.type === "PERCENTAGE"
+                        ? `Discount ${item.discount.value}% (-${money(itemDiscount)})`
+                        : `Discount -${money(itemDiscount)}`}
+                    </Text>
+                  )}
                 </View>
 
                 <Text style={styles.itemTotal}>
-                  ${item.price ? (Number(item.price) * item.quantity).toFixed(2) : "0.00"}
+                  {money(getItemLineTotal(item))}
                 </Text>
               </View>
 
@@ -97,13 +163,14 @@ export const ReceiptPdf = ({
                 <View style={styles.modifierContainer}>
                   {item.modifiers.map((m) => (
                     <Text key={m.modifierId} style={styles.modifier}>
-                      + {m.name} {m.price ? `($${Number(m.price).toFixed(2)})` : ""}
+                      + {m.name} {m.price ? `(${money(Number(m.price))})` : ""}
                     </Text>
                   ))}
                 </View>
               )}
             </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* ================= TOTALS ================= */}
@@ -111,14 +178,14 @@ export const ReceiptPdf = ({
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal</Text>
 
-            <Text style={styles.totalValue}>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{money(subtotal)}</Text>
           </View>
 
           {discount > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Discount</Text>
 
-              <Text style={styles.totalValue}>-${discount.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>-{money(discount)}</Text>
             </View>
           )}
 
@@ -126,9 +193,7 @@ export const ReceiptPdf = ({
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Loyalty</Text>
 
-              <Text style={styles.totalValue}>
-                -${loyaltyDiscount.toFixed(2)}
-              </Text>
+              <Text style={styles.totalValue}>-{money(loyaltyDiscount)}</Text>
             </View>
           )}
 
@@ -136,19 +201,15 @@ export const ReceiptPdf = ({
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Delivery</Text>
 
-              <Text style={styles.totalValue}>
-                ${order.shippingFee.toFixed(2)}
-              </Text>
+              <Text style={styles.totalValue}>{money(order.shippingFee)}</Text>
             </View>
           )}
 
           {order.includeVAT && (
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>
-                VAT {VAT_RATE_PERCENT_LABEL}
-              </Text>
+              <Text style={styles.totalLabel}>VAT {VAT_RATE_PERCENT_LABEL}</Text>
 
-              <Text style={styles.totalValue}>${vat.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>{money(vat)}</Text>
             </View>
           )}
 
@@ -157,13 +218,22 @@ export const ReceiptPdf = ({
           <View style={styles.totalRow}>
             <Text style={styles.grandLabel}>Total</Text>
 
-            <Text style={styles.grandValue}>${total.toFixed(2)}</Text>
+            <Text style={styles.grandValue}>{money(total)}</Text>
           </View>
+
+          {/* Equivalent in each active secondary currency (e.g. USD) */}
+          {secondaryTotals.map((c) => (
+            <View key={c.code} style={styles.totalRow}>
+              <Text style={styles.totalLabel}>≈ {c.code}</Text>
+
+              <Text style={styles.totalValue}>{c.formatted}</Text>
+            </View>
+          ))}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Card</Text>
 
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{money(total)}</Text>
           </View>
         </View>
 
@@ -171,9 +241,7 @@ export const ReceiptPdf = ({
         <View style={styles.footer}>
           <Text style={styles.footerText}>{branchName}</Text>
 
-          {branchAddress && (
-            <Text style={styles.footerSub}>{branchAddress}</Text>
-          )}
+          {branchAddress && <Text style={styles.footerSub}>{branchAddress}</Text>}
 
           {branchPhone && <Text style={styles.footerSub}>{branchPhone}</Text>}
 
@@ -198,6 +266,9 @@ export const printReceipt = async (
       branchPhone={params.branchPhone}
       orderNumber={params.orderNumber}
       loyaltyApplied={params.loyaltyApplied}
+      tenantCurrencies={params.tenantCurrencies}
+      baseCurrencyCode={params.baseCurrencyCode}
+      logoUrl={params.logoUrl}
     />,
   ).toBlob();
 

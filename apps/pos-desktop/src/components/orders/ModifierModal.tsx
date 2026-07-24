@@ -1,5 +1,6 @@
 import { useProductModifiers } from "@/hooks/useModifiers";
 import { useModifierSelection } from "@/hooks/useModifierSelection";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import { useModalStore } from "@/store/modalStore";
 import {
   ModifierGroup as ModifierGroupType,
@@ -23,6 +24,7 @@ export const ModifierModal = ({
   onConfirm,
 }: Props) => {
   const { closeModal } = useModalStore();
+  const { format: formatMoney } = useBaseCurrency();
   const [quantity, setQuantity] = useState(initialQuantity);
 
   const { data: groups, isLoading } = useProductModifiers(product.id);
@@ -110,17 +112,17 @@ export const ModifierModal = ({
         <div className="space-y-2 mb-4 text-sm">
           <div className="flex justify-between text-muted-foreground">
             <span>Base Price</span>
-            <span>${basePrice.toFixed(2)}</span>
+            <span>{formatMoney(basePrice)}</span>
           </div>
           {totalModifierPrice > 0 && (
             <div className="flex justify-between text-muted-foreground">
               <span>Modifiers</span>
-              <span>+${totalModifierPrice.toFixed(2)}</span>
+              <span>+{formatMoney(totalModifierPrice)}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-base pt-2 border-t">
             <span>Total</span>
-            <span className="text-primary">${totalPrice.toFixed(2)}</span>
+            <span className="text-primary">{formatMoney(totalPrice)}</span>
           </div>
         </div>
 
@@ -173,6 +175,8 @@ export const ModifierGroup = ({
   isSelected,
   toggleModifier,
 }: ModifierGroupProps) => {
+  const { format: formatMoney } = useBaseCurrency();
+
   return (
     <div className="space-y-3">
       {/* Group Title */}
@@ -184,9 +188,9 @@ export const ModifierGroup = ({
           const checked = isSelected(group.id, modifier.id);
           const priceText =
             modifier.price > 0
-              ? `+ ${modifier.price.toFixed(2)}$`
+              ? `+ ${formatMoney(modifier.price)}`
               : modifier.price < 0
-                ? `- ${Math.abs(modifier.price).toFixed(2)}$`
+                ? `- ${formatMoney(Math.abs(modifier.price))}`
                 : "";
 
           return (

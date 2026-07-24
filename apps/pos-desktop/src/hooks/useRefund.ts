@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "@repo/ui";
 import { refundsApi } from "@/apis/refundsApi";
+import { useBaseCurrency } from "@/hooks/useCurrency";
 import type {
   CreateRefundDto,
   RefundFilters,
@@ -61,12 +62,13 @@ export const useOrderRefundHistory = (orderId: string) => {
 
 export const useCreateRefund = () => {
   const queryClient = useQueryClient();
+  const { format: formatMoney } = useBaseCurrency();
 
   return useMutation({
     mutationFn: (data: CreateRefundDto) => refundsApi.createRefund(data),
     onSuccess: (refund) => {
       toast.success(
-        `Refund of $${Number(refund.totalAmount).toFixed(2)} processed`,
+        `Refund of ${formatMoney(refund.totalAmount)} processed`,
       );
       // Root key covers refundable info, order lists, and history sub-keys.
       queryClient.invalidateQueries({ queryKey: REFUND_QUERY_KEY });

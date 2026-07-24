@@ -1,12 +1,15 @@
 import { useModalStore } from "@/store/modalStore";
 import { useOrderStore } from "@/store/orderStore";
 import { Button, Icon } from "@repo/ui";
-import { PaymentEntry } from ".";
 
 type Props = {
   isConfirming: boolean;
   isFullyPaid: boolean;
-  payments: PaymentEntry[];
+  /**
+   * Whether the order can be finalised. Owns the "a payment is required unless
+   * nothing is due" rule so a fully discounted order stays confirmable.
+   */
+  canConfirm: boolean;
   handleConfirm: () => void;
   handlePayAndSend: () => void;
   offlineMode?: boolean;
@@ -15,7 +18,7 @@ type Props = {
 export default function PaymentFooterActions({
   isConfirming,
   isFullyPaid,
-  payments,
+  canConfirm,
   handleConfirm,
   handlePayAndSend,
   offlineMode = false,
@@ -43,7 +46,7 @@ export default function PaymentFooterActions({
             <Button
               variant="outline"
               onClick={handleConfirm}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              disabled={!canConfirm}
               isSubmitting={isConfirming}
               className="flex-1 text-base"
             >
@@ -52,7 +55,7 @@ export default function PaymentFooterActions({
             </Button>
             <Button
               onClick={handlePayAndSend}
-              disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+              disabled={!canConfirm}
               isSubmitting={isConfirming}
               className="flex-1 text-base"
             >
@@ -63,7 +66,7 @@ export default function PaymentFooterActions({
         ) : (
           <Button
             onClick={handleConfirm}
-            disabled={!isFullyPaid || payments.length === 0 || isConfirming}
+            disabled={!canConfirm}
             isSubmitting={isConfirming}
             className="flex-1 text-base"
           >

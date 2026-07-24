@@ -10,6 +10,7 @@ import { useModalStore } from "@/store/modalStore";
 import { toast } from "@repo/ui";
 import { extractErrorMessage } from "@/utils/error";
 import { useBranch } from "@/hooks/useBranch";
+import { useTenantCurrencies } from "@/hooks/useCurrency";
 import { useAuthStore } from "@/store/authStore";
 import { BackendOrder } from "@/dto/order.dto";
 import { mapBackendOrderToClientOrder } from "@/utils/orderMapper";
@@ -27,6 +28,9 @@ export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
   const { user } = useAuthStore();
 
   const { data: currentBranch } = useBranch(branchId || "");
+  const { data: currencyData } = useTenantCurrencies();
+  const tenantCurrencies = currencyData?.currencies ?? [];
+  const baseCurrencyCode = currencyData?.baseCurrencyCode ?? "USD";
 
   const handlePrintReceipt = async () => {
     try {
@@ -43,6 +47,9 @@ export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
           branchName: currentBranch.name,
           branchAddress: currentBranch.address || "",
           orderNumber: order.orderNumber || order.id,
+          tenantCurrencies,
+          baseCurrencyCode,
+          logoUrl: user?.tenant?.logoUrl,
         });
       }
     } catch (printError) {
@@ -52,7 +59,9 @@ export const TablePaymentForm = ({ orderId, total }: TablePaymentFormProps) => {
   };
 
   const handleConfirm = async (payments: PaymentEntry[]) => {
-    if (payments.length === 0) return;
+    // An empty batch is legitimate when the order owes nothing (fully
+    // discounted); the server settles it without writing a payment row.
+    if (payments.length === 0 && total > 0) return;
     try {
       await processPayment.mutateAsync({
         id: orderId,
